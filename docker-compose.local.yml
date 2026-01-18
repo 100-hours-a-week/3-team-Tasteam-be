@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:17
+    container_name: tasteam-db
+    environment:
+      POSTGRES_DB: tasteam
+      POSTGRES_USER: tasteam
+      POSTGRES_PASSWORD: tasteam
+      TZ: Asia/Seoul
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tasteam"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: tasteam-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tasteam-api:local
+    container_name: tasteam-api
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+
+      # PostgreSQL
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/tasteam
+      SPRING_DATASOURCE_USERNAME: tasteam
+      SPRING_DATASOURCE_PASSWORD: tasteam
+
+      # Redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+
+      # JWT
+      JWT_SECRET: local-secret
+
+volumes:
+  postgres_data:
+  redis_data:
