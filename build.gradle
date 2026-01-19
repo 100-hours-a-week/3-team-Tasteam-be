@@ -107,7 +107,6 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
-    testImplementation 'org.testcontainers:redis'
     // testImplementation 'org.testcontainers:mongodb'
 
     testImplementation 'org.assertj:assertj-core'
@@ -130,4 +129,3 @@ tasks.jacocoTestReport {
         csv.required = false
     }
 }
-
