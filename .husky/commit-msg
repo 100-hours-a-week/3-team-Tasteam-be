@@ -1,0 +1,72 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+COMMIT_MESSAGE_FILE="$1"
+
+if [ ! -s "$COMMIT_MESSAGE_FILE" ]; then
+  exit 0
+fi
+
+first_line=$(sed -n '1p' "$COMMIT_MESSAGE_FILE")
+remaining_lines=$(tail -n +2 "$COMMIT_MESSAGE_FILE")
+
+# 공동 커밋자 트레일러 차단
+if echo "$first_line" | grep -Eiq '^[[:space:]]*co-authored-by:[[:space:]]*'; then
+  echo "⛔ 공동 커밋자(Co-authored-by) 트레일러가 포함되어 있어 커밋을 막았습니다."
+  echo "   공동 커밋자가 필요한 경우 팀 정책에 따라 수동 처리하세요."
+  exit 1
+fi
+
+# 미리 이모지+타입이 포함된 메시지이면 생략
+case "$first_line" in
+  "✨ feat"*)      exit 0 ;;
+  "🐛 fix"*)       exit 0 ;;
+  "⚡️ perf"*)      exit 0 ;;
+  "♻️ refactor"*)  exit 0 ;;
+  "✅ test"*)      exit 0 ;;
+  "📝 docs"*)      exit 0 ;;
+  "💄 style"*)     exit 0 ;;
+  "🔧 chore"*)     exit 0 ;;
+  "🔁 ci"*)        exit 0 ;;
+  "📦 build"*)     exit 0 ;;
+  "⏪ revert"*)    exit 0 ;;
+esac
+
+# Merge/Amend/Reset/Tag 메시지는 자연스럽게 통과
+case "$first_line" in
+  Merge*|Revert*|Amend*|Reset*|Rebase*|Tag*)
+    exit 0
+    ;;
+esac
+
+type=$(echo "$first_line" | grep -o "^[A-Za-z]*")
+normalized_type=$(echo "$type" | tr 'A-Z' 'a-z')
+
+emoji=""
+case "$normalized_type" in
+  feat)     emoji="✨" ;;
+  fix)      emoji="🐛" ;;
+  perf)     emoji="⚡️" ;;
+  refactor) emoji="♻️" ;;
+  test)     emoji="✅" ;;
+  docs)     emoji="📝" ;;
+  style)    emoji="💄" ;;
+  chore)    emoji="🔧" ;;
+  ci)       emoji="🔁" ;;
+  build)    emoji="📦" ;;
+  revert)   emoji="⏪" ;;
+esac
+
+if [ -z "$emoji" ] || [ -z "$normalized_type" ]; then
+  echo "⛔ 커밋 메시지 타입이 올바르지 않습니다."
+  echo "   https://github.com/team3/tasteam/tree/main/docs/convention/커밋%20브랜치%20전략/브랜치_커밋_전략.md 를 참고하세요."
+  echo "   사용 가능한 타입: feat, fix, perf, refactor, test, docs, style, chore, ci, build, revert"
+  exit 1
+fi
+
+formatted_first_line=$(echo "$first_line" | sed "s/^$type/$emoji $normalized_type/")
+
+{
+  echo "$formatted_first_line"
+  echo "$remaining_lines"
+} > "$COMMIT_MESSAGE_FILE"

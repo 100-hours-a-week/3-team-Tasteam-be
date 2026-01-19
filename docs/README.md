@@ -22,3 +22,4 @@
 
 - `package.json`: Husky를 설치하고 `prepare` 스크립트를 통해 Git 후크 초기화를 자동화합니다.
 - `.husky/pre-commit`: 커밋 전에 `./gradlew check -x test`를 실행해 컴파일/정적 검사를 확인합니다(현재 테스트는 Docker 환경이 필요해 후크에서 제외합니다).
+- `.husky/commit-msg`: `docs/convention/커밋 브랜치 전략/브랜치_커밋_전략.md`의 커밋 메시지 규칙(타입, 이모지 등)을 자동으로 적용하며, 잘못된 형식이나 `Co-authored-by` 트레일러가 있을 경우 커밋을 막습니다.
