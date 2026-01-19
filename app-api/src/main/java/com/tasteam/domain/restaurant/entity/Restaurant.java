@@ -7,6 +7,8 @@ import java.util.List;
 import org.hibernate.annotations.Comment;
 import org.locationtech.jts.geom.Point;
 
+import com.tasteam.domain.common.BaseTimeEntity;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -22,8 +24,6 @@ import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import com.tasteam.domain.common.BaseTimeEntity;
-
 @Entity
 @Getter
 @Builder(access = AccessLevel.PROTECTED)
@@ -33,31 +33,31 @@ import com.tasteam.domain.common.BaseTimeEntity;
 @Comment("음식점의 기본 정보를 저장하는 마스터 테이블")
 public class Restaurant extends BaseTimeEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id")
+	private Long id;
 
-    @Column(name = "name", nullable = false, length = 100)
-    @Comment("빈 문자열 불가")
-    private String name;
+	@Column(name = "name", nullable = false, length = 100)
+	@Comment("빈 문자열 불가")
+	private String name;
 
-    @Column(name = "full_address", nullable = false, length = 255)
-    private String fullAddress;
+	@Column(name = "full_address", nullable = false, length = 255)
+	private String fullAddress;
 
-    @Column(name = "location", nullable = false, columnDefinition = "geometry(Point,4326)")
-    @Comment("WGS84")
-    private Point location;
+	@Column(name = "location", nullable = false, columnDefinition = "geometry(Point,4326)")
+	@Comment("WGS84")
+	private Point location;
 
-    @Column(name = "deleted_at")
-    @Comment("소프트 삭제")
-    private Instant deletedAt;
+	@Column(name = "deleted_at")
+	@Comment("소프트 삭제")
+	private Instant deletedAt;
 
-    @OneToMany(mappedBy = "restaurant", fetch = FetchType.LAZY)
-    @Default
-    private List<RestaurantImage> images = new ArrayList<>();
+	@OneToMany(mappedBy = "restaurant", fetch = FetchType.LAZY)
+	@Default
+	private List<RestaurantImage> images = new ArrayList<>();
 
-    @OneToMany(mappedBy = "restaurant", fetch = FetchType.LAZY)
-    @Default
-    private List<RestaurantAddress> addresses = new ArrayList<>();
+	@OneToMany(mappedBy = "restaurant", fetch = FetchType.LAZY)
+	@Default
+	private List<RestaurantAddress> addresses = new ArrayList<>();
 }

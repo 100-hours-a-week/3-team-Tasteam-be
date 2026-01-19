@@ -23,12 +23,12 @@ import lombok.NoArgsConstructor;
 @Comment("음식점 분류에 사용되는 음식 카테고리의 정보를 관리하는 테이블")
 public class FoodCategory {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id")
+	private Long id;
 
-    @Column(name = "name", nullable = false, length = 20)
-    @Comment("빈 문자열 불가")
-    private String name;
+	@Column(name = "name", nullable = false, length = 20)
+	@Comment("빈 문자열 불가")
+	private String name;
 }

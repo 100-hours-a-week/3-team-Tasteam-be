@@ -26,16 +26,16 @@ import lombok.NoArgsConstructor;
 @Comment("음식점과 음식 카테고리 간의 매핑 테이블")
 public class RestaurantFoodCategory {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id")
+	private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "restaurant_id", nullable = false)
-    private Restaurant restaurant;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "restaurant_id", nullable = false)
+	private Restaurant restaurant;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "food_category_id", nullable = false)
-    private FoodCategory foodCategory;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "food_category_id", nullable = false)
+	private FoodCategory foodCategory;
 }
