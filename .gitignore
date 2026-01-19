@@ -40,5 +40,6 @@ out/
 ### Environment / Secrets ###
 .env
 .env.*
+!.env.example
 application.yaml
 application-*.yaml
