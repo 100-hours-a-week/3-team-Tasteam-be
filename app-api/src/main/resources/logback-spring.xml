@@ -2,7 +2,7 @@
 <configuration>
     <property name="LOG_PATH" value="./logs" />
 
-    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
+    <conversionRule conversionWord="clr" class="org.springframework.boot.logging.logback.ColorConverter" />
 
     <springProfile name="!prod">
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -10,7 +10,7 @@
                 <level>INFO</level>
             </filter>
             <encoder>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, UTC} %clr(%-5level){DEBUG=magenta, INFO=green, WARN=yellow, ERROR=red} %cyan([%10.10thread]) %clr(pid=%pid){blue} %magenta(%-40logger{35}) : %msg%n</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, UTC} %clr(%-5level){DEBUG=magenta, INFO=green, WARN=yellow, ERROR=red} %cyan([%10.10thread]) %clr(pid=%property{PID}){blue} %magenta(%-40logger{35}) : %msg%n</pattern>
             </encoder>
         </appender>
 
@@ -26,7 +26,7 @@
                 <maxHistory>30</maxHistory>
             </rollingPolicy>
             <encoder>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, UTC} %-5level [%10.10thread] pid=%pid %logger : %msg%n</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, UTC} %-5level [%10.10thread] pid=%property{PID} %logger : %msg%n</pattern>
             </encoder>
         </appender>
 
@@ -46,7 +46,7 @@
                 <level>WARN</level>
             </filter>
             <encoder>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, UTC} %clr(%-5level){DEBUG=magenta, INFO=green, WARN=yellow, ERROR=red} %cyan([%10.10thread]) %clr(pid=%pid){blue} %magenta(%-40logger{35}) : %msg%n</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, UTC} %clr(%-5level){DEBUG=magenta, INFO=green, WARN=yellow, ERROR=red} %cyan([%10.10thread]) %clr(pid=%property{PID}){blue} %magenta(%-40logger{35}) : %msg%n</pattern>
             </encoder>
         </appender>
 
@@ -62,7 +62,7 @@
                 <maxHistory>30</maxHistory>
             </rollingPolicy>
             <encoder>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, UTC} %-5level [%10.10thread] pid=%pid %logger : %msg%n</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, UTC} %-5level [%10.10thread] pid=%property{PID} %logger : %msg%n</pattern>
             </encoder>
         </appender>
 
