@@ -1,0 +1,11 @@
+{
+  "name": "tasteam-be",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "husky": "^9.0.0"
+  },
+  "scripts": {
+    "prepare": "husky install"
+  }
+}
