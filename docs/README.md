@@ -19,6 +19,7 @@
 - `docs/spec/`: 설계 산출물(ERD, API 명세)을 모아둔 공간입니다.
   - `docs/spec/erd/`: ERD 파일 저장
   - `docs/spec/api/`: API 명세서 저장
+  - `docs/spec/tech/`: 도메인별 테크 스펙 문서 저장
 
 ## 확장 포인트
 
