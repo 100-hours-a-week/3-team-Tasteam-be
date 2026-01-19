@@ -1,4 +1,4 @@
-package com.tasteam.core.dto.api;
+package com.tasteam.global.dto.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 

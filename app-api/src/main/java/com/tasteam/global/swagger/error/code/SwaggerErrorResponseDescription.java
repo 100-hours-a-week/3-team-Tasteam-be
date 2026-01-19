@@ -1,10 +1,10 @@
-package com.tasteam.core.swagger.error.code;
+package com.tasteam.global.swagger.error.code;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import com.tasteam.core.exception.ErrorCode;
-import com.tasteam.core.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.ErrorCode;
+import com.tasteam.global.exception.code.CommonErrorCode;
 
 import lombok.Getter;
 

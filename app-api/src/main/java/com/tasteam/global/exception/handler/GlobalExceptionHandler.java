@@ -1,4 +1,4 @@
-package com.tasteam.core.exception.handler;
+package com.tasteam.global.exception.handler;
 
 import java.util.List;
 
@@ -8,9 +8,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.tasteam.core.dto.api.ErrorResponse;
-import com.tasteam.core.dto.api.FieldErrorResponse;
-import com.tasteam.core.exception.business.BusinessException;
+import com.tasteam.global.dto.api.ErrorResponse;
+import com.tasteam.global.dto.api.FieldErrorResponse;
+import com.tasteam.global.exception.business.BusinessException;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -1,4 +1,4 @@
-package com.tasteam.core.validation;
+package com.tasteam.global.validation;
 
 public final class ValidationPatterns {
 

@@ -1,4 +1,4 @@
-package com.tasteam.core.exception;
+package com.tasteam.global.exception;
 
 import org.springframework.http.HttpStatus;
 
