@@ -1,0 +1,36 @@
+name: Auto Assign Reviewers
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  request-reviewers:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request reviewers
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const reviewers = [
+              "kimseonj",
+              "Y0unse0",
+              "GY102912",
+            ];
+
+            if (reviewers.length === 0) {
+              core.info("No reviewers configured.");
+              return;
+            }
+
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              reviewers,
+            });
