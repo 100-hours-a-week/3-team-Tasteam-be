@@ -1,8 +1,8 @@
-package com.tasteam.core.exception.business;
+package com.tasteam.global.exception.business;
 
 import org.springframework.http.HttpStatus;
 
-import com.tasteam.core.exception.ErrorCode;
+import com.tasteam.global.exception.ErrorCode;
 
 import lombok.Getter;
 

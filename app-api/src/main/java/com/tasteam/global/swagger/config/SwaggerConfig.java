@@ -1,14 +1,14 @@
-package com.tasteam.core.swagger.config;
+package com.tasteam.global.swagger.config;
 
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.HandlerMethod;
 
-import com.tasteam.core.dto.api.ErrorResponse;
-import com.tasteam.core.exception.ErrorCode;
-import com.tasteam.core.swagger.annotation.CustomErrorResponseDescription;
-import com.tasteam.core.swagger.error.code.SwaggerErrorResponseDescription;
+import com.tasteam.global.dto.api.ErrorResponse;
+import com.tasteam.global.exception.ErrorCode;
+import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.error.code.SwaggerErrorResponseDescription;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
