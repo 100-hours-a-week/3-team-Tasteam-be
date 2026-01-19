@@ -33,7 +33,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: app-api/Dockerfile
     image: tasteam-api:local
     container_name: tasteam-api
     ports:

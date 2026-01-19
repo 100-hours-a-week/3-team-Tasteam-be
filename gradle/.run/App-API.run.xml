@@ -3,9 +3,9 @@
     <option name="envFilePaths">
       <option value="$PROJECT_DIR$/.env.example" />
     </option>
-    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=local" />
     <option name="MAIN_CLASS_NAME" value="com.tasteam.ApiApplication" />
-    <module name="tasteam.main" />
+    <module name="tasteam.app-api.main" />
+    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=local" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

@@ -9,6 +9,7 @@ WORKDIR /app
 COPY gradlew .
 COPY gradle gradle
 COPY build.gradle settings.gradle ./
+COPY app-api/build.gradle app-api/build.gradle
 
 RUN ./gradlew dependencies --no-daemon || true
 
@@ -16,7 +17,7 @@ RUN ./gradlew dependencies --no-daemon || true
 COPY . .
 
 # app-api 기준 bootJar
-RUN ./gradlew bootJar --no-daemon
+RUN ./gradlew :app-api:bootJar --no-daemon
 
 # ===============================
 # 2. Runtime stage
@@ -26,7 +27,7 @@ FROM amazoncorretto:21
 WORKDIR /app
 
 # 빌드 결과 복사
-COPY --from=builder /app/build/libs/*.jar app.jar
+COPY --from=builder /app/app-api/build/libs/*.jar app.jar
 
 EXPOSE 8080
 
