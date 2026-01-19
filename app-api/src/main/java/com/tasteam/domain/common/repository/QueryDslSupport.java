@@ -15,6 +15,7 @@ import org.springframework.util.Assert;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.ComparableExpression;
+import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
@@ -45,7 +46,8 @@ public abstract class QueryDslSupport {
 			entityManager);
 		SimpleEntityPathResolver resolver = SimpleEntityPathResolver.INSTANCE;
 		this.querydsl = new Querydsl(entityManager,
-			resolver.createPath(entityInformation.getJavaType()));
+			new PathBuilder<>(entityInformation.getJavaType(),
+				entityInformation.getJavaType().getSimpleName()));
 		this.entityManager = entityManager;
 		this.queryFactory = new JPAQueryFactory(entityManager);
 	}
