@@ -1,6 +1,9 @@
 spring:
   application:
     name: tasteam-api
+  output:
+    ansi:
+      enabled: ALWAYS
   config:
     import:
       - optional:classpath:application.local.yml

@@ -43,3 +43,4 @@ out/
 !.env.example
 application.yaml
 application-*.yaml
+*.log
