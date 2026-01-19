@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Import;
 class ApiApplicationTests {
 
 	@Test
-	void contextLoads() {
-	}
+	void contextLoads() {}
 
 }

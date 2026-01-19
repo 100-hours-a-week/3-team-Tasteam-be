@@ -3,6 +3,7 @@ plugins {
 	id 'org.springframework.boot' version '4.0.1'
 	id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
+	id 'com.diffplug.spotless' version '6.19.0'
 }
 
 group = 'com.team3'
@@ -127,5 +128,14 @@ tasks.jacocoTestReport {
         html.required = true
         xml.required = true
         csv.required = false
+    }
+}
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        eclipse().configFile(file("docs/convention/인텔리제이_포맷터/naver-eclipse-formatter.xml"))
+        importOrder('java', 'javax', 'org', 'net', 'com')
+        removeUnusedImports()
     }
 }
