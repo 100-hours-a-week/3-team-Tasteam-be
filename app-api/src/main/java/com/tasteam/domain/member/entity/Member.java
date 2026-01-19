@@ -125,16 +125,16 @@ public class Member extends BaseTimeEntity {
 		if (email == null) {
 			return;
 		}
-		Assert.hasText(email, "email is required");
+		Assert.hasText(email, "이메일은 필수입니다");
 		if (email.length() > 255) {
-			throw new IllegalArgumentException("email too long");
+			throw new IllegalArgumentException("이메일이 너무 깁니다");
 		}
 	}
 
 	private static void validateNickname(String nickname) {
-		Assert.hasText(nickname, "nickname is required");
+		Assert.hasText(nickname, "닉네임은 필수입니다");
 		if (nickname.length() > 50) {
-			throw new IllegalArgumentException("nickname too long");
+			throw new IllegalArgumentException("닉네임이 너무 깁니다");
 		}
 	}
 
@@ -142,9 +142,9 @@ public class Member extends BaseTimeEntity {
 		if (profileImageUrl == null) {
 			return;
 		}
-		Assert.hasText(profileImageUrl, "profileImageUrl is required");
+		Assert.hasText(profileImageUrl, "프로필 이미지 URL은 필수입니다");
 		if (profileImageUrl.length() > 500) {
-			throw new IllegalArgumentException("profileImageUrl too long");
+			throw new IllegalArgumentException("프로필 이미지 URL이 너무 깁니다");
 		}
 	}
 }
