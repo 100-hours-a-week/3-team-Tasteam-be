@@ -6,7 +6,7 @@ plugins {
 	id 'com.diffplug.spotless' version '6.19.0'
 }
 
-group = 'com.team3'
+group = 'com.tasteam'
 version = '0.0.1-SNAPSHOT'
 description = 'Demo project for Spring Boot'
 

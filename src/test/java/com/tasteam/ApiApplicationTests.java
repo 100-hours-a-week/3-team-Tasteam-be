@@ -1,4 +1,4 @@
-package com.team3.tasteam;
+package com.tasteam;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
