@@ -23,6 +23,11 @@ spring:
         format_sql: true
         show_sql: true
 
+  security:
+    jwt:
+      accessTokenExpiration: 60000    # 1분
+      refreshTokenExpiration: 180000  # 3분
+
 logging:
   level:
     org.hibernate.SQL: debug
