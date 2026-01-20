@@ -1,8 +1,9 @@
-package com.tasteam.domain.group.repository;
+package com.tasteam.domain.group.entity;
 
 import java.time.Instant;
 
 import com.tasteam.domain.common.BaseTimeEntity;
+import org.locationtech.jts.geom.Point;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,11 +12,15 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "\"group\"")
 public class Group extends BaseTimeEntity {
@@ -41,7 +46,7 @@ public class Group extends BaseTimeEntity {
 	private String detailAddress;
 
 	@Column(name = "location", columnDefinition = "geometry(Point,4326)")
-	private Object location;
+	private Point location;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "join_type", nullable = false, length = 20)

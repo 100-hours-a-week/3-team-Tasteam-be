@@ -1,4 +1,4 @@
-package com.tasteam.domain.group.service;
+package com.tasteam.global.exception.code;
 
 import org.springframework.http.HttpStatus;
 
@@ -11,7 +11,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum GroupErrorCode implements ErrorCode {
 
-	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다");
+	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다"),
+	ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 존재하는 그룹입니다");
 
 	private final HttpStatus httpStatus;
 	private final String message;

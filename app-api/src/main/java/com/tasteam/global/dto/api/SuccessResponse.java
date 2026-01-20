@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SuccessResponse<T> {
 
-	private boolean success;
+	private Boolean success;
 	private T data;
 
 	public static <T> SuccessResponse<T> success(T data) {
@@ -30,4 +30,9 @@ public class SuccessResponse<T> {
 			.build();
 	}
 
+	public static <T> SuccessResponse<T> of(T data) {
+		return SuccessResponse.<T>builder()
+			.data(data)
+			.build();
+	}
 }

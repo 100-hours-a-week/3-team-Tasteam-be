@@ -525,7 +525,7 @@ erDiagram
             - content-type: `application/json`
             - 스키마(필드 정의)
                 - `name`: string - 그룹명
-                - `imageURL`: string - 로고 이미지 URL
+                - `logoImageURL`: string - 로고 이미지 URL
                 - `type`: string(enum: `OFFICIAL|UNOFFICIAL`)
                 - `address`: string - 주소
                 - `detailAddress`: string | null - 상세 주소
@@ -537,7 +537,7 @@ erDiagram
               ```json
               {
                 "name": "카카오 부트캠프",
-                "imageIds": "a3f1c9e0-7a9b...",
+                "logoImageUrl": "https://cdn.xxx...",
                 "address": "경기 성남시 분당구 판교역로 166",
                 "detailAddress": null,
                 "location": {
@@ -564,7 +564,35 @@ erDiagram
             }
           }
           ```
-    - **처리 로직:** (관리자 생성 플로우는 명세/운영 정책 확정 후 문서에 고정)
+    - **처리 로직:** 
+        1. Controller 책임: 요청 헤더/바디 매핑, Service 호출, SuccessResponse.of(data)로 래핑, Security 계층에서 ADMIN 권한 검증이 완료된 요청만 처리
+        2. Service 책임:
+           - name 기준으로 중복 그룹 존재 여부 검증
+           - 동일한 이름의 그룹이 이미 존재하는 경우 생성 거부
+           - 명세된 요청 필드로 그룹 생성 처리
+           - 그룹 타입이 OFFICIAL인 경우:
+               - joinType은 EMAIL이어야 함
+               - emailDomain은 필수
+           - 그룹 타입이 UNOFFICIAL인 경우:
+               - joinType은 PASSWORD이어야함
+               - emailDomain 은 NULL이어야 함
+
+           - 생성된 그룹의 초기 status는 ACTIVE로 설정
+        3. Repository 조회 조건:
+           - name 기준으로 기존 그룹 존재 여부 조회그룹 중복 여부 확인을 위한 조회 (deleted_at IS NULL)
+           - 신규 그룹 insert
+        4. 트랜잭션 범위: 단일 insert 트랜잭션
+        5. 응답 DTO 구조: data.id, data.status, data.createdAt
+        6. 예외 발생 조건:
+           - INVALID_REQUEST(400):
+               - OFFICIAL 그룹인데 joinType != EMAIL
+               - OFFICIAL 그룹인데 emailDomain 누락
+               - UNOFFICIAL 그룹인데 joinType != PASSWORD
+               - UNOFFICIAL 그룹인데 emailDomain 존재
+           - UNAUTHORIZED(401): 인증/인가 실패 (Security 계층에서 처리)
+           - ALREADY_EXISTS(409):이미 같은 그룹명(group.name)의 그룹이 존재하는 경우
+           - INTERNAL_SERVER_ERROR(500)
+           
     - **트랜잭션 관리:** `group` insert 단일 트랜잭션(예상)
     - **동시성/멱등성:** 중복 생성 방지 정책(유니크 키/검증) 확정 필요
     - **에러 코드(주요, API 명세서 기준):** `UNAUTHORIZED`(401), `GROUP_NOT_FOUND`(404), `ALREADY_EXISTS`(409), `INTERNAL_SERVER_ERROR`(500)
@@ -599,10 +627,7 @@ erDiagram
             "data": {
               "groupId": 10,
               "name": "카카오 부트캠프",
-              "logoImage": {
-                "id": "a3f1c9e0-7a9b...",
-                "url": "https://cdn.xxx..."
-              },
+              "logoImageUrl":"https://cdn.xxx...",
               "address": "경기 성남시 분당구 대왕판교로 660",
               "detailAddress": "유스페이스 1 A동 405호",
               "emailDomain": null,
