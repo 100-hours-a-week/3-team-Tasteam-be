@@ -23,6 +23,21 @@ body:
     attributes:
       value: |
         ---
+        ## 🏷️ Type
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - 기능
+        - 버그
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
         ## 🔁 재현 절차
   - type: textarea
     id: steps

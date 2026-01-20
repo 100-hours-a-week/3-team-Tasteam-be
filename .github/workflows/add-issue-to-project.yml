@@ -1,0 +1,120 @@
+name: Add issue to project
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add issue to project and set status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+          script: |
+            const org = "100-hours-a-week";
+            const projectNumber = 304;
+            const statusFieldName = "Status";
+            const statusOptionName = "Sprint-Backlog-Todo";
+            const allowedLabels = new Set(["기능", "버그"]);
+
+            const contentId = context.payload.issue.node_id;
+            const issueLabels = (context.payload.issue.labels || []).map(
+              (label) => label.name
+            );
+            const hasAllowedLabel = issueLabels.some((label) =>
+              allowedLabels.has(label)
+            );
+            if (!hasAllowedLabel) {
+              core.info("Skipping: issue does not have allowed labels.");
+              return;
+            }
+
+            const projectData = await github.graphql(
+              `
+              query($org: String!, $number: Int!) {
+                organization(login: $org) {
+                  projectV2(number: $number) {
+                    id
+                    fields(first: 50) {
+                      nodes {
+                        ... on ProjectV2SingleSelectField {
+                          id
+                          name
+                          options {
+                            id
+                            name
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              `,
+              { org, number: projectNumber }
+            );
+
+            const project = projectData.organization.projectV2;
+            if (!project) {
+              throw new Error("Project not found.");
+            }
+
+            const statusField = project.fields.nodes.find(
+              (field) => field.name === statusFieldName
+            );
+            if (!statusField) {
+              throw new Error(`Field '${statusFieldName}' not found.`);
+            }
+
+            const statusOption = statusField.options.find(
+              (option) => option.name === statusOptionName
+            );
+            if (!statusOption) {
+              throw new Error(`Status option '${statusOptionName}' not found.`);
+            }
+
+            const addItemResult = await github.graphql(
+              `
+              mutation($projectId: ID!, $contentId: ID!) {
+                addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
+                  item {
+                    id
+                  }
+                }
+              }
+              `,
+              { projectId: project.id, contentId }
+            );
+
+            const itemId = addItemResult.addProjectV2ItemById.item.id;
+
+            await github.graphql(
+              `
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(
+                  input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: { singleSelectOptionId: $optionId }
+                  }
+                ) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+              `,
+              {
+                projectId: project.id,
+                itemId,
+                fieldId: statusField.id,
+                optionId: statusOption.id,
+              }
+            );
