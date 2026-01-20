@@ -172,11 +172,18 @@ The following rules in the Naver coding convention cannot be checked by this con
 		<property name="tabWidth" value="4"/>
 
 		<!-- [indentation-tab] -->
+		<!--
 		<module name="RegexpSinglelineJava">
 			<property name="format" value="^\t* "/>
 			<property name="message" value="[indentation-tab] Indent must use tab characters"/>
 			<property name="ignoreComments" value="true"/>
 		</module>
+		-->
+		<!--
+		설명:
+		- 들여쓰기에 탭만 허용하고 공백 들여쓰기를 금지합니다.
+		- 현재 코드베이스/IDE 기본 설정과 충돌이 커서 과도한 규칙으로 판단해 비활성화했습니다.
+		-->
 
 		<!-- End of Indentation chapter -->
 
