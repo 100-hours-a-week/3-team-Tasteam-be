@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.auth.entity.RefreshToken;
 import com.tasteam.domain.auth.repository.RefreshTokenRepository;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
+@Transactional
 public class JpaRefreshTokenStore implements RefreshTokenStore {
 
 	private final RefreshTokenRepository refreshTokenRepository;
@@ -19,6 +21,11 @@ public class JpaRefreshTokenStore implements RefreshTokenStore {
 	@Override
 	public Optional<RefreshToken> findByTokenHash(String tokenHash) {
 		return refreshTokenRepository.findByTokenHash(tokenHash);
+	}
+
+	@Override
+	public Optional<RefreshToken> findByTokenHashForUpdate(String tokenHash) {
+		return refreshTokenRepository.findByTokenHashForUpdate(tokenHash);
 	}
 
 	@Override

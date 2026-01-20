@@ -2,6 +2,7 @@ package com.tasteam.global.security.jwt.provider;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
@@ -50,6 +51,7 @@ public class JwtTokenProvider {
 
 		return Jwts.builder()
 			.subject(String.valueOf(memberId))
+			.id(UUID.randomUUID().toString())
 			.claim(JwtTokenConstants.CLAIM_TYPE, JwtTokenConstants.TOKEN_TYPE_REFRESH)
 			.issuedAt(now)
 			.expiration(expiryDate)

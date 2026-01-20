@@ -15,6 +15,7 @@ import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
 import com.tasteam.global.security.user.repository.UserRepositoryPort;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 토큰 리프레시 서비스
@@ -22,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class TokenRefreshService {
 
 	private final JwtTokenProvider jwtTokenProvider;
@@ -53,7 +55,7 @@ public class TokenRefreshService {
 		}
 
 		String tokenHash = RefreshTokenHasher.hash(refreshToken);
-		RefreshToken storedToken = refreshTokenStore.findByTokenHash(tokenHash)
+		RefreshToken storedToken = refreshTokenStore.findByTokenHashForUpdate(tokenHash)
 			.orElse(null);
 
 		if (storedToken == null) {
@@ -68,6 +70,14 @@ public class TokenRefreshService {
 
 		String newAccessToken = jwtTokenProvider.generateAccessToken(memberId, member.role().name());
 		String newRefreshToken = jwtTokenProvider.generateRefreshToken(memberId);
+		String newTokenHash = RefreshTokenHasher.hash(newRefreshToken);
+
+		log.info("refresh rotate memberId={} familyId={} oldHash={} newHash={} sameHash={}",
+			memberId,
+			storedToken.getTokenFamilyId(),
+			tokenHash,
+			newTokenHash,
+			tokenHash.equals(newTokenHash));
 
 		Instant now = Instant.now();
 		storedToken.rotate(now);
@@ -75,7 +85,7 @@ public class TokenRefreshService {
 
 		RefreshToken rotatedToken = RefreshToken.issue(
 			memberId,
-			RefreshTokenHasher.hash(newRefreshToken),
+			newTokenHash,
 			storedToken.getTokenFamilyId(),
 			jwtTokenProvider.getExpiration(newRefreshToken).toInstant());
 		refreshTokenStore.save(rotatedToken);
