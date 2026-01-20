@@ -10,20 +10,13 @@ import com.tasteam.global.exception.ErrorCode;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
 import com.tasteam.global.swagger.error.code.SwaggerErrorResponseDescription;
 
-import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
-import io.swagger.v3.oas.models.security.OAuthFlow;
-import io.swagger.v3.oas.models.security.OAuthFlows;
-import io.swagger.v3.oas.models.security.Scopes;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
-import io.swagger.v3.oas.models.security.SecurityScheme;
 
 @Configuration
 public class SwaggerConfig {
@@ -31,8 +24,6 @@ public class SwaggerConfig {
 	@Bean
 	public OpenAPI openAPI() {
 		return new OpenAPI()
-			.components(openApiComponents())
-			.addSecurityItem(new SecurityRequirement().addList(SCHEME_OAUTH2))
 			.info(apiInfo());
 	}
 
@@ -54,28 +45,6 @@ public class SwaggerConfig {
 	}
 
 	/// =========== Swagger 커스텀 에러 응답 ============== ///
-
-	private static final String SCHEME_OAUTH2 = "oauth2";
-	private static final String KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize";
-	private static final String KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token";
-
-	private Components openApiComponents() {
-		Scopes kakaoScopes = new Scopes()
-			.addString("profile_nickname", "카카오 프로필 닉네임")
-			.addString("account_email", "카카오 이메일");
-
-		OAuthFlow kakaoFlow = new OAuthFlow()
-			.authorizationUrl(KAKAO_AUTH_URL)
-			.tokenUrl(KAKAO_TOKEN_URL)
-			.scopes(kakaoScopes);
-
-		return new Components()
-			.addSecuritySchemes(SCHEME_OAUTH2,
-				new SecurityScheme()
-					.type(SecurityScheme.Type.OAUTH2)
-					.flows(new OAuthFlows()
-						.authorizationCode(kakaoFlow)));
-	}
 
 	/**
 	 * 컨트롤러 및 구현한 인터페이스에서 @CustomErrorResponseDescription을 탐색한다.
