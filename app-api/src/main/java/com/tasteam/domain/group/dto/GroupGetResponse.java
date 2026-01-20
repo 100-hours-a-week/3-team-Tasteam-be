@@ -2,7 +2,7 @@ package com.tasteam.domain.group.dto;
 
 import java.time.Instant;
 
-import com.tasteam.domain.group.repository.Group;
+import com.tasteam.domain.group.entity.Group;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
