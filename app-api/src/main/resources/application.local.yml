@@ -2,6 +2,8 @@ spring:
   config:
     activate:
       on-profile: local
+    import:
+      - optional:file:.env.local[.properties]
 
   datasource:
     url: jdbc:postgresql://localhost:5432/tasteam
