@@ -1,7 +1,5 @@
 package com.tasteam.global.swagger.config;
 
-import java.util.Map;
-
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +21,7 @@ import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.OAuthFlow;
 import io.swagger.v3.oas.models.security.OAuthFlows;
+import io.swagger.v3.oas.models.security.Scopes;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 
@@ -61,17 +60,21 @@ public class SwaggerConfig {
 	private static final String KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token";
 
 	private Components openApiComponents() {
+		Scopes kakaoScopes = new Scopes()
+			.addString("profile_nickname", "카카오 프로필 닉네임")
+			.addString("account_email", "카카오 이메일");
+
+		OAuthFlow kakaoFlow = new OAuthFlow()
+			.authorizationUrl(KAKAO_AUTH_URL)
+			.tokenUrl(KAKAO_TOKEN_URL)
+			.scopes(kakaoScopes);
+
 		return new Components()
 			.addSecuritySchemes(SCHEME_OAUTH2,
 				new SecurityScheme()
 					.type(SecurityScheme.Type.OAUTH2)
 					.flows(new OAuthFlows()
-						.authorizationCode(new OAuthFlow()
-							.authorizationUrl(KAKAO_AUTH_URL)
-							.tokenUrl(KAKAO_TOKEN_URL)
-							.scopes(Map.of(
-								"profile_nickname", "카카오 프로필 닉네임",
-								"account_email", "카카오 이메일")))));
+						.authorizationCode(kakaoFlow)));
 	}
 
 	/**
