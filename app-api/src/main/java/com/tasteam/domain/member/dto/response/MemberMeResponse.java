@@ -3,9 +3,9 @@ package com.tasteam.domain.member.dto.response;
 import com.tasteam.domain.member.entity.Member;
 
 public record MemberMeResponse(
-		MemberSummaryResponse member,
-		MemberPreviewResponse<GroupRequestPreviewResponse> groupRequests,
-		MemberPreviewResponse<ReviewPreviewResponse> reviews) {
+	MemberSummaryResponse member,
+	MemberPreviewResponse<GroupRequestPreviewResponse> groupRequests,
+	MemberPreviewResponse<ReviewPreviewResponse> reviews) {
 	public static MemberMeResponse from(Member member) {
 		return new MemberMeResponse(
 			MemberSummaryResponse.from(member),

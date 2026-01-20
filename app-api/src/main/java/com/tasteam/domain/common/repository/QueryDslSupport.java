@@ -80,9 +80,9 @@ public abstract class QueryDslSupport {
 	 * 별도로 구성해서 전달하는 방식만 지원합니다.
 	 */
 	protected <T> Page<T> applyPagination(
-			Pageable pageable,
-			JPAQuery<T> contentQuery,
-			JPAQuery<Long> countQuery) {
+		Pageable pageable,
+		JPAQuery<T> contentQuery,
+		JPAQuery<Long> countQuery) {
 		List<T> content = getQuerydsl().applyPagination(pageable, contentQuery).fetch();
 		return PageableExecutionUtils.getPage(content, pageable, countQuery::fetchOne);
 	}
@@ -112,8 +112,8 @@ public abstract class QueryDslSupport {
 	 * 사용 예: coalesce(post.likeCount, 0L)
 	 */
 	protected <T extends Comparable<? super T>> ComparableExpression<T> coalesce(
-			ComparableExpression<T> expression,
-			T defaultValue) {
+		ComparableExpression<T> expression,
+		T defaultValue) {
 		return expression.coalesce(defaultValue);
 	}
 }

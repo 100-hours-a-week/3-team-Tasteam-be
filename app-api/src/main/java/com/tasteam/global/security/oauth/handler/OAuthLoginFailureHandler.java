@@ -26,7 +26,7 @@ public class OAuthLoginFailureHandler extends SimpleUrlAuthenticationFailureHand
 
 	@Override
 	public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
-			AuthenticationException exception) throws IOException, ServletException {
+		AuthenticationException exception) throws IOException, ServletException {
 		authorizationRequestRepository.removeAuthorizationRequestCookies(response);
 		log.warn("OAuth2 login failed: {}", exception.getMessage());
 		super.setDefaultFailureUrl("/login?error");

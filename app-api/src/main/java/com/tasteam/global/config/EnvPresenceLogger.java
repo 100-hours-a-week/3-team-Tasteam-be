@@ -15,7 +15,7 @@ public class EnvPresenceLogger {
 
 	@Bean
 	public ApplicationRunner envPresenceRunner(Environment environment,
-			ClientRegistrationRepository clientRegistrationRepository) {
+		ClientRegistrationRepository clientRegistrationRepository) {
 		return args -> {
 			logPresence(environment, "GOOGLE_CLIENT_ID");
 			logPresence(environment, "GOOGLE_CLIENT_SECRET");

@@ -27,25 +27,25 @@ public class MemberController implements MemberControllerDocs {
 
 	@GetMapping
 	public SuccessResponse<MemberMeResponse> getMyMemberInfo(
-			@RequestHeader("X-Member-Id")
-			Long memberId) {
+		@RequestHeader("X-Member-Id")
+		Long memberId) {
 		return SuccessResponse.success(memberService.getMyProfile(memberId));
 	}
 
 	@PatchMapping("/profile")
 	public ResponseEntity<Void> updateMyProfile(
-			@RequestHeader("X-Member-Id")
-			Long memberId,
-			@Valid @RequestBody
-			MemberProfileUpdateRequest request) {
+		@RequestHeader("X-Member-Id")
+		Long memberId,
+		@Valid @RequestBody
+		MemberProfileUpdateRequest request) {
 		memberService.updateMyProfile(memberId, request);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping
 	public ResponseEntity<Void> withdraw(
-			@RequestHeader("X-Member-Id")
-			Long memberId) {
+		@RequestHeader("X-Member-Id")
+		Long memberId) {
 		memberService.withdraw(memberId);
 		return ResponseEntity.noContent().build();
 	}
