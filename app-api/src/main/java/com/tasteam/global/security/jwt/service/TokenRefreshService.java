@@ -1,7 +1,5 @@
 package com.tasteam.global.security.jwt.service;
 
-import java.time.Instant;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,38 +57,15 @@ public class TokenRefreshService {
 			.orElse(null);
 
 		if (storedToken == null) {
-			refreshTokenStore.revokeByMemberId(memberId, Instant.now());
+			// RTR 비활성화: 재사용 차단/회전 로직을 잠시 중지
 			throw new BusinessException(AuthErrorCode.REFRESH_TOKEN_REUSED);
 		}
 
-		if (storedToken.isRotated() || storedToken.isRevoked()) {
-			refreshTokenStore.revokeByTokenFamilyId(storedToken.getTokenFamilyId(), Instant.now());
-			throw new BusinessException(AuthErrorCode.REFRESH_TOKEN_REUSED);
-		}
+		// RTR 비활성화: rotated/revoked 체크를 생략
 
 		String newAccessToken = jwtTokenProvider.generateAccessToken(memberId, member.role().name());
-		String newRefreshToken = jwtTokenProvider.generateRefreshToken(memberId);
-		String newTokenHash = RefreshTokenHasher.hash(newRefreshToken);
-
-		log.info("refresh rotate memberId={} familyId={} oldHash={} newHash={} sameHash={}",
-			memberId,
-			storedToken.getTokenFamilyId(),
-			tokenHash,
-			newTokenHash,
-			tokenHash.equals(newTokenHash));
-
-		Instant now = Instant.now();
-		storedToken.rotate(now);
-		refreshTokenStore.save(storedToken);
-
-		RefreshToken rotatedToken = RefreshToken.issue(
-			memberId,
-			newTokenHash,
-			storedToken.getTokenFamilyId(),
-			jwtTokenProvider.getExpiration(newRefreshToken).toInstant());
-		refreshTokenStore.save(rotatedToken);
-
-		return new TokenPair(newAccessToken, newRefreshToken);
+		// RTR 비활성화: refresh token은 그대로 사용
+		return new TokenPair(newAccessToken, refreshToken);
 	}
 
 	public record TokenPair(String accessToken, String refreshToken) {
