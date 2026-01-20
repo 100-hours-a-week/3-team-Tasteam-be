@@ -1,13 +1,38 @@
 #!/usr/bin/env sh
 set -euo pipefail
 log_file=$(mktemp)
-if ! ./gradlew spotlessCheck check -x test >"$log_file" 2>&1; then
-  echo "spotlessCheck 훅 실패 원인:"
+
+hash_diff() {
+  if command -v shasum >/dev/null 2>&1; then
+    git diff | shasum -a 256 | awk '{print $1}'
+  else
+    git diff | sha256sum | awk '{print $1}'
+  fi
+}
+
+before_hash=$(hash_diff)
+
+if ! ./gradlew spotlessApply >"$log_file" 2>&1; then
+  echo "spotlessApply(포맷팅) 실패 원인:"
   cat "$log_file"
-  echo "spotlessApply로 자동 포맷을 시도합니다..."
-  ./gradlew spotlessApply
-  echo "포맷을 적용했으니 git add 후 다시 커밋해주세요."
   rm -f "$log_file"
   exit 1
 fi
+
+after_hash=$(hash_diff)
+if [ "$before_hash" != "$after_hash" ]; then
+  echo "포맷팅으로 변경된 파일이 있습니다."
+  echo "git add 후 다시 커밋해주세요."
+  git --no-pager diff
+  rm -f "$log_file"
+  exit 1
+fi
+
+if ! ./gradlew checkstyleMain checkstyleTest -x test >"$log_file" 2>&1; then
+  echo "checkstyle(규칙 검사) 실패 원인:"
+  cat "$log_file"
+  rm -f "$log_file"
+  exit 1
+fi
+
 rm -f "$log_file"
