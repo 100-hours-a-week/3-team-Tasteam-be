@@ -36,7 +36,7 @@ public class OAuthLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHand
 
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-		Authentication authentication) throws IOException {
+			Authentication authentication) throws IOException {
 
 		CustomOAuthUserDetails oAuth2User = (CustomOAuthUserDetails)authentication.getPrincipal();
 		Long memberId = oAuth2User.getUid();

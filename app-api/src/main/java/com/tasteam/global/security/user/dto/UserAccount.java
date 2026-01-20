@@ -16,13 +16,13 @@ import com.tasteam.domain.member.entity.MemberRole;
  * @param active 활성화 여부
  */
 public record UserAccount(
-	Long id,
-	String email,
-	String password,
-	String nickname,
-	String profileImageUrl,
-	MemberRole role,
-	boolean active) {
+		Long id,
+		String email,
+		String password,
+		String nickname,
+		String profileImageUrl,
+		MemberRole role,
+		boolean active) {
 
 	public static UserAccount from(Member member) {
 		return new UserAccount(

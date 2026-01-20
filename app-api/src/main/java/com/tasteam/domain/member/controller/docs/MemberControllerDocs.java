@@ -24,22 +24,22 @@ public interface MemberControllerDocs {
 	@ApiResponse(responseCode = "200", description = "성공", content = @Content(schema = @Schema(implementation = MemberMeResponse.class)))
 	@CustomErrorResponseDescription(SwaggerErrorResponseDescription.MEMBER_ME)
 	SuccessResponse<MemberMeResponse> getMyMemberInfo(
-		@Parameter(name = "X-Member-Id", in = ParameterIn.HEADER, required = true, description = "테스트용 회원 ID")
-		Long memberId);
+			@Parameter(name = "X-Member-Id", in = ParameterIn.HEADER, required = true, description = "테스트용 회원 ID")
+			Long memberId);
 
 	@Operation(summary = "회원 정보 수정", description = "프로필 이미지와 이메일을 수정합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = MemberProfileUpdateRequest.class)))
 	@ApiResponse(responseCode = "204", description = "수정 완료")
 	@CustomErrorResponseDescription(SwaggerErrorResponseDescription.MEMBER_PROFILE_UPDATE)
 	ResponseEntity<Void> updateMyProfile(
-		@Parameter(name = "X-Member-Id", in = ParameterIn.HEADER, required = true, description = "테스트용 회원 ID")
-		Long memberId,
-		MemberProfileUpdateRequest request);
+			@Parameter(name = "X-Member-Id", in = ParameterIn.HEADER, required = true, description = "테스트용 회원 ID")
+			Long memberId,
+			MemberProfileUpdateRequest request);
 
 	@Operation(summary = "회원 탈퇴", description = "현재 로그인 사용자의 계정을 탈퇴 처리합니다.")
 	@ApiResponse(responseCode = "204", description = "탈퇴 완료")
 	@CustomErrorResponseDescription(SwaggerErrorResponseDescription.MEMBER_WITHDRAW)
 	ResponseEntity<Void> withdraw(
-		@Parameter(name = "X-Member-Id", in = ParameterIn.HEADER, required = true, description = "테스트용 회원 ID")
-		Long memberId);
+			@Parameter(name = "X-Member-Id", in = ParameterIn.HEADER, required = true, description = "테스트용 회원 ID")
+			Long memberId);
 }

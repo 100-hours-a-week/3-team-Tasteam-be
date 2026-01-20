@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class HttpCookieOAuth2AuthorizationRequestRepository
-	implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
+		implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
 
 	private final RedirectUriValidator redirectUriValidator;
 	private final OAuth2CookieProvider oAuth2CookieProvider;
@@ -36,7 +36,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 	/** OAuth2 인증 요청을 쿠키에 저장합니다. */
 	@Override
 	public void saveAuthorizationRequest(OAuth2AuthorizationRequest authorizationRequest, HttpServletRequest request,
-		HttpServletResponse response) {
+			HttpServletResponse response) {
 		if (authorizationRequest == null) {
 			removeAuthorizationRequestCookies(response);
 			return;
@@ -58,7 +58,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 	/** OAuth2 인증 요청을 쿠키에서 제거합니다. */
 	@Override
 	public OAuth2AuthorizationRequest removeAuthorizationRequest(HttpServletRequest request,
-		HttpServletResponse response) {
+			HttpServletResponse response) {
 		return loadAuthorizationRequest(request);
 	}
 

@@ -35,10 +35,10 @@ public class RefreshTokenArgumentResolver implements HandlerMethodArgumentResolv
 	 */
 	@Override
 	public Object resolveArgument(
-		MethodParameter parameter,
-		ModelAndViewContainer mavContainer,
-		NativeWebRequest webRequest,
-		WebDataBinderFactory binderFactory) {
+			MethodParameter parameter,
+			ModelAndViewContainer mavContainer,
+			NativeWebRequest webRequest,
+			WebDataBinderFactory binderFactory) {
 		HttpServletRequest request = webRequest.getNativeRequest(HttpServletRequest.class);
 		if (request == null) {
 			throw new BusinessException(AuthErrorCode.AUTHENTICATION_REQUIRED);

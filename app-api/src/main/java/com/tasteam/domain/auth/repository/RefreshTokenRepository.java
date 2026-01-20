@@ -24,24 +24,24 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("""
-		update RefreshToken rt
-		   set rt.revokedAt = :revokedAt
-		 where rt.memberId = :memberId
-		   and rt.revokedAt is null
-		""")
+			update RefreshToken rt
+			   set rt.revokedAt = :revokedAt
+			 where rt.memberId = :memberId
+			   and rt.revokedAt is null
+			""")
 	int revokeByMemberId(@Param("memberId")
 	Long memberId, @Param("revokedAt")
 	Instant revokedAt);
 
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("""
-		update RefreshToken rt
-		   set rt.revokedAt = :revokedAt
-		 where rt.tokenFamilyId = :tokenFamilyId
-		   and rt.revokedAt is null
-		""")
+			update RefreshToken rt
+			   set rt.revokedAt = :revokedAt
+			 where rt.tokenFamilyId = :tokenFamilyId
+			   and rt.revokedAt is null
+			""")
 	int revokeByTokenFamilyId(@Param("tokenFamilyId")
 	String tokenFamilyId,
-		@Param("revokedAt")
-		Instant revokedAt);
+			@Param("revokedAt")
+			Instant revokedAt);
 }

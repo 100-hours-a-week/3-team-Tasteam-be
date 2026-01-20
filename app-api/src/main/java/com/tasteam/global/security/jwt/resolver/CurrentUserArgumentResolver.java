@@ -31,7 +31,7 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 	 */
 	@Override
 	public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
-		NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+			NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
 
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 

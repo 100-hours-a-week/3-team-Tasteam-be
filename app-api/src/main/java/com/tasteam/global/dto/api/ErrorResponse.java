@@ -37,9 +37,9 @@ public class ErrorResponse<E> {
 	}
 
 	public static ErrorResponse<List<FieldErrorResponse>> of(
-		String code,
-		String message,
-		List<FieldErrorResponse> errors) {
+			String code,
+			String message,
+			List<FieldErrorResponse> errors) {
 		return ErrorResponse.<List<FieldErrorResponse>>builder()
 			.success(false)
 			.code(code)

@@ -7,7 +7,8 @@
 ## 최상위 구조
 
 - `config/`: 빌드/정적 분석/포맷팅 설정 파일을 모아둔 공간입니다.
-  - `config/formatter/naver-eclipse-formatter.xml`: 포맷터(Eclipse formatter) 설정 파일입니다. Spotless에서 사용합니다.
+- `config/formatter/naver-eclipse-formatter.xml`: Eclipse/Spotless에서 사용하는 포매터 설정 파일입니다.
+  - `config/formatter/intellij-java-wooteco-style.xml`: IntelliJ 포맷터 전용이므로 Spotless 설정에는 적용하지 않고 참조용으로 보관합니다.
   - `config/checkstyle/naver-checkstyle-rules.xml`: Checkstyle 규칙 파일입니다. Gradle Checkstyle에서 사용합니다.
 - `docs/convention/`: 팀의 코딩 컨벤션과 개발 규칙을 모아둔 공간입니다.
   - `docs/convention/커밋 브랜치 전략/`

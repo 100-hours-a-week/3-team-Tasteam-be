@@ -47,7 +47,7 @@ public class MemberOAuthAccount extends BaseCreatedAtEntity {
 	private String providerUserEmail;
 
 	public static MemberOAuthAccount create(String provider, String providerUserId, String providerUserEmail,
-		Member member) {
+			Member member) {
 		return MemberOAuthAccount.builder()
 			.provider(provider)
 			.providerUserId(providerUserId)

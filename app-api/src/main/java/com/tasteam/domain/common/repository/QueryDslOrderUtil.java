@@ -27,9 +27,9 @@ public final class QueryDslOrderUtil {
 	 * 화이트리스트 기반으로 허용된 필드만 정렬 가능
 	 */
 	public static OrderSpecifier<?>[] getOrderSpecifiers(
-		Pageable pageable,
-		EntityPathBase<?> qClass,
-		Set<String> allowedFields) {
+			Pageable pageable,
+			EntityPathBase<?> qClass,
+			Set<String> allowedFields) {
 		List<OrderSpecifier<?>> orders = new ArrayList<>();
 
 		if (pageable.getSort().isEmpty()) {
@@ -62,9 +62,9 @@ public final class QueryDslOrderUtil {
 	 * API 필드명과 엔티티 필드명이 다를 때 사용
 	 */
 	public static OrderSpecifier<?>[] getOrderSpecifiers(
-		Pageable pageable,
-		EntityPathBase<?> qClass,
-		Map<String, String> fieldMapping) {
+			Pageable pageable,
+			EntityPathBase<?> qClass,
+			Map<String, String> fieldMapping) {
 		List<OrderSpecifier<?>> orders = new ArrayList<>();
 
 		if (pageable.getSort().isEmpty()) {
@@ -109,10 +109,10 @@ public final class QueryDslOrderUtil {
 	 * 사용자 정렬이 없을 때 기본 정렬 적용
 	 */
 	public static OrderSpecifier<?>[] getOrderSpecifiersWithDefault(
-		Pageable pageable,
-		EntityPathBase<?> qClass,
-		Set<String> allowedFields,
-		OrderSpecifier<?> defaultOrder) {
+			Pageable pageable,
+			EntityPathBase<?> qClass,
+			Set<String> allowedFields,
+			OrderSpecifier<?> defaultOrder) {
 		OrderSpecifier<?>[] orders = getOrderSpecifiers(pageable, qClass, allowedFields);
 
 		if (orders.length == 0) {

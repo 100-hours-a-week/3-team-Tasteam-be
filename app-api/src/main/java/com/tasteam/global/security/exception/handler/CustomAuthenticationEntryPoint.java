@@ -25,7 +25,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
 
 	@Override
 	public void commence(HttpServletRequest request, HttpServletResponse response,
-		AuthenticationException authException) throws IOException, ServletException {
+			AuthenticationException authException) throws IOException, ServletException {
 
 		// 401 Unauthorized 응답 전송
 		securityResponseSender.sendError(response, AuthErrorCode.AUTHENTICATION_REQUIRED);

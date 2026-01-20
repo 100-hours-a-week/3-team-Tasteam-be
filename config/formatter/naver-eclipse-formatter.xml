@@ -80,8 +80,8 @@
 <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="120"/>
 
 <!-- [indentation-after-line-wrapping] -->
-<setting id="org.eclipse.jdt.core.formatter.continuation_indentation" value="1"/>
-<setting id="org.eclipse.jdt.core.formatter.continuation_indentation_for_array_initializer" value="1"/>
+<setting id="org.eclipse.jdt.core.formatter.continuation_indentation" value="2"/>
+<setting id="org.eclipse.jdt.core.formatter.continuation_indentation_for_array_initializer" value="2"/>
 
 <!-- [line-wrapping-position] -->
 <setting id="org.eclipse.jdt.core.formatter.join_wrapped_lines" value="false"/>

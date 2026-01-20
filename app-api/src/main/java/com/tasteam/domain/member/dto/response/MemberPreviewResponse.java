@@ -8,8 +8,8 @@ import com.tasteam.global.dto.api.PaginationResponse;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record MemberPreviewResponse<T>(
-	List<T> data,
-	PaginationResponse page) {
+		List<T> data,
+		PaginationResponse page) {
 	public static <T> MemberPreviewResponse<T> empty() {
 		return new MemberPreviewResponse<>(
 			Collections.emptyList(),

@@ -28,7 +28,7 @@ public class AuthController implements AuthApiDocs {
 	@PostMapping("/token/refresh")
 	public SuccessResponse<RefreshTokenResponse> refreshToken(@RefreshToken
 	String refreshToken,
-		HttpServletResponse servletResponse) {
+			HttpServletResponse servletResponse) {
 		TokenRefreshService.TokenPair tokenPair = tokenRefreshService.refreshTokens(refreshToken);
 		jwtCookieProvider.addRefreshTokenCookie(servletResponse, tokenPair.refreshToken());
 
@@ -39,8 +39,8 @@ public class AuthController implements AuthApiDocs {
 
 	@PostMapping("/logout")
 	public SuccessResponse<Void> logout(
-		HttpServletRequest request,
-		HttpServletResponse response) {
+			HttpServletRequest request,
+			HttpServletResponse response) {
 		throw new UnsupportedOperationException("해당 엔드포인트는 Security 필터에서 처리됩니다");
 	}
 
