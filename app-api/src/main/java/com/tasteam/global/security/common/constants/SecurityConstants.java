@@ -16,7 +16,8 @@ public class SecurityConstants {
 		"/",
 		LOGIN_URL, LOGOUT_URL, SIGNUP_URL, REFRESH_TOKEN_URL,
 		OAUTH_URL, OAUTH_API_URL, "/api/*",
-		"/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/actuator/**"
+		"/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/index.html", "/swagger-ui/**",
+		"/swagger-resources/**", "/webjars/**", "/actuator/**"
 	};
 
 	public static final String[] SECURE_URLS = {
