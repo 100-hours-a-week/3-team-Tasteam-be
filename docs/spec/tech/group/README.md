@@ -525,12 +525,13 @@ erDiagram
             - content-type: `application/json`
             - 스키마(필드 정의)
                 - `name`: string - 그룹명
-                - `imageIds`: string - 로고 이미지 식별자(명세 예시 기준, 타입 확정 필요)
+                - `imageURL`: string - 로고 이미지 URL
+                - `type`: string(enum: `OFFICIAL|UNOFFICIAL`)
                 - `address`: string - 주소
                 - `detailAddress`: string | null - 상세 주소
                 - `location.latitude`: number - 위도
                 - `location.longitude`: number - 경도
-                - `joinType`: string (enum: `PASSWORD|WORK-EMAIL`) - 가입 방식(명세 기준)
+                - `joinType`: string (enum: `PASSWORD|EMAIL`) - 가입 방식(명세 기준)
                 - `emailDomain`: string | null - 이메일 가입 도메인 제한(이메일 가입 방식일 때)
             - 예시(JSON)
               ```json
@@ -585,8 +586,7 @@ erDiagram
         - body 스키마(요약)
             - `data.groupId`: number
             - `data.name`: string
-            - `data.logoImage.id`: string
-            - `data.logoImage.url`: string
+            - `data.logoImageUrl`: string
             - `data.address`: string
             - `data.detailAddress`: string | null
             - `data.emailDomain`: string | null
