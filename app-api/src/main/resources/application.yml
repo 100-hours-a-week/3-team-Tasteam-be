@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: tasteam-api
+  config:
+    import:
+      - optional:classpath:application.local.yml
+      - optional:classpath:application.dev.yml
+      - optional:classpath:application.prod.yml
 
   output:
     ansi:

@@ -3,7 +3,7 @@ spring:
     activate:
       on-profile: local
     import:
-      - optional:file:.env.local[.properties]
+      - optional:file:../.env.local[.properties]
 
   datasource:
     url: jdbc:postgresql://localhost:5432/tasteam
@@ -17,7 +17,13 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     properties:
       hibernate:
         format_sql: true
+        show_sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.tool.schema: debug
