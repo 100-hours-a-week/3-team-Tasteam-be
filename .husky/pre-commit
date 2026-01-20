@@ -1,1 +1,13 @@
-./gradlew spotlessCheck check -x test
+#!/usr/bin/env sh
+set -euo pipefail
+log_file=$(mktemp)
+if ! ./gradlew spotlessCheck check -x test >"$log_file" 2>&1; then
+  echo "spotlessCheck 훅 실패 원인:"
+  cat "$log_file"
+  echo "spotlessApply로 자동 포맷을 시도합니다..."
+  ./gradlew spotlessApply
+  echo "포맷을 적용했으니 git add 후 다시 커밋해주세요."
+  rm -f "$log_file"
+  exit 1
+fi
+rm -f "$log_file"
