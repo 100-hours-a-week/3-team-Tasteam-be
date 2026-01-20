@@ -1,5 +1,6 @@
 package com.tasteam.domain.group.controller;
 
+import com.tasteam.global.dto.api.SuccessResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,7 +23,7 @@ public class GroupController {
 	private final GroupService groupService;
 
 	@GetMapping("/{groupId}")
-	public ResponseEntity<GroupGetResponse> getGroup(@PathVariable @Positive Long groupId) {
-		return ResponseEntity.ok(groupService.getGroup(groupId));
+	public SuccessResponse<GroupGetResponse> getGroup(@PathVariable @Positive Long groupId) {
+		return SuccessResponse.success(groupService.getGroup(groupId));
 	}
 }
