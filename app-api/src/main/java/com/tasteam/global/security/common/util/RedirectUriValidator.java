@@ -35,12 +35,12 @@ public class RedirectUriValidator {
 			boolean valid = allowedOrigins.contains(origin);
 
 			if (!valid) {
-				log.warn("Invalid redirect URI rejected: {}", redirectUri);
+				log.warn("허용되지 않은 리다이렉트 URI 거부: {}", redirectUri);
 			}
 
 			return valid;
 		} catch (Exception e) {
-			log.warn("Invalid redirect URI format: {}", redirectUri, e);
+			log.warn("리다이렉트 URI 형식이 올바르지 않습니다: {}", redirectUri, e);
 			return false;
 		}
 	}

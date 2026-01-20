@@ -34,8 +34,6 @@ public class AuthController implements AuthApiDocs {
 
 		RefreshTokenResponse response = new RefreshTokenResponse(tokenPair.accessToken());
 
-		log.info("??");
-
 		return SuccessResponse.success(response);
 	}
 

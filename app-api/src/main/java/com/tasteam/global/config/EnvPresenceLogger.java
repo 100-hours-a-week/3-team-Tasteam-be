@@ -26,11 +26,11 @@ public class EnvPresenceLogger {
 	private void logPresence(Environment environment, String key) {
 		String value = environment.getProperty(key);
 		int length = value == null ? 0 : value.length();
-		log.info("env {} present={} length={}", key, value != null && !value.isBlank(), length);
+		log.info("환경변수 {} 존재여부={} 길이={}", key, value != null && !value.isBlank(), length);
 	}
 
 	private void logClientRegistration(ClientRegistrationRepository repository, String registrationId) {
 		boolean present = repository.findByRegistrationId(registrationId) != null;
-		log.info("clientRegistration {} present={}", registrationId, present);
+		log.info("클라이언트 등록 {} 존재여부={}", registrationId, present);
 	}
 }
