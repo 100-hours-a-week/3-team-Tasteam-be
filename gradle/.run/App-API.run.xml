@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="App-API" type="Application" factoryName="Application" activateToolWindowBeforeRun="false">
     <option name="envFilePaths">
-      <option value="$PROJECT_DIR$/.env" />
+      <option value="$PROJECT_DIR$/.env.local" />
     </option>
     <option name="MAIN_CLASS_NAME" value="com.tasteam.ApiApplication" />
     <module name="tasteam.app-api.main" />
-    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=local" />
+    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=local --debug" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
