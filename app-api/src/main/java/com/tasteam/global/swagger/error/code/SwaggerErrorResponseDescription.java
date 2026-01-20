@@ -5,6 +5,7 @@ import java.util.Set;
 
 import com.tasteam.global.exception.ErrorCode;
 import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.code.MemberErrorCode;
 
 import lombok.Getter;
 
@@ -23,7 +24,15 @@ public enum SwaggerErrorResponseDescription {
 		MemberErrorCode.DUPLICATE_EMAIL,
 		MemberErrorCode.DUPLICATE_NICKNAME)))
 	 */
-	;
+	MEMBER_ME(new LinkedHashSet<>(Set.of(
+		MemberErrorCode.MEMBER_NOT_FOUND))),
+	MEMBER_PROFILE_UPDATE(new LinkedHashSet<>(Set.of(
+		CommonErrorCode.INVALID_REQUEST,
+		MemberErrorCode.MEMBER_NOT_FOUND,
+		MemberErrorCode.EMAIL_ALREADY_EXISTS))),
+	MEMBER_WITHDRAW(new LinkedHashSet<>(Set.of(
+		MemberErrorCode.MEMBER_NOT_FOUND))),
+		;
 
 	private final Set<ErrorCode> errorCodeList;
 

@@ -12,20 +12,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ApiResponse<T> {
+public class SuccessResponse<T> {
 
 	private boolean success;
 	private T data;
 
-	public static <T> ApiResponse<T> success(T data) {
-		return ApiResponse.<T>builder()
+	public static <T> SuccessResponse<T> success(T data) {
+		return SuccessResponse.<T>builder()
 			.success(true)
 			.data(data)
 			.build();
 	}
 
-	public static ApiResponse<Void> success() {
-		return ApiResponse.<Void>builder()
+	public static SuccessResponse<Void> success() {
+		return SuccessResponse.<Void>builder()
 			.success(true)
 			.build();
 	}
