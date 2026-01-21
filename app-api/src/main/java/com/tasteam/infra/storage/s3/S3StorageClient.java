@@ -12,6 +12,7 @@ import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
@@ -33,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @Profile("!test")
+@ConditionalOnProperty(prefix = "tasteam.storage", name = "type", havingValue = "s3")
 @RequiredArgsConstructor
 public class S3StorageClient implements StorageClient {
 

@@ -1,5 +1,6 @@
 package com.tasteam.infra.storage.s3;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -13,6 +14,7 @@ import com.tasteam.infra.storage.StorageProperties;
 
 @Configuration
 @Profile("!test")
+@ConditionalOnProperty(prefix = "tasteam.storage", name = "type", havingValue = "s3")
 public class S3StorageConfig {
 
 	@Bean

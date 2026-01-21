@@ -51,6 +51,7 @@ spring:
 ## ====== 커스텀 설정 ======
 tasteam:
   storage:
+    type: ${STORAGE_TYPE:dummy}
     region: ${STORAGE_REGION:}
     bucket: ${STORAGE_BUCKET:}
     base-url: ${STORAGE_BASE_URL:}

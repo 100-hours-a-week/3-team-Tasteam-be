@@ -12,6 +12,7 @@ import lombok.Setter;
 @ConfigurationProperties(prefix = "tasteam.storage")
 public class StorageProperties {
 
+	private String type;
 	private String region;
 	private String bucket;
 	private String baseUrl;
