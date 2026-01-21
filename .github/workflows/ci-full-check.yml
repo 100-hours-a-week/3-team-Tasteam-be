@@ -59,10 +59,10 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "Backend Feature CI ${{ job.status }}"
+          title: "백엔드 Develop, Main PR CI ${{ job.status }}"
           description: |
-            **Result:** ${{ job.status }}
-            **Branch:** ${{ github.ref_name }}
-            **Author:** ${{ github.actor }}
-            **Commit:** ${{ github.sha }}
+            **결과:** ${{ job.status }}
+            **브랜치:** ${{ github.ref_name }}
+            **작성자:** ${{ github.actor }}
+            **커밋:** ${{ github.sha }}
           color: ${{ job.status == 'success' && '0x00ff00' || '0xff0000' }}
