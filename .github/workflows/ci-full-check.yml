@@ -1,0 +1,83 @@
+name: Backend Feature CI - Full Check
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  quick-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # SonarCloud가 전체 히스토리를 필요로 함
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      # 1주차 생략
+      # formatting
+      #      - name: Run Spotless Check
+      #        run: ./gradlew spotlessCheck
+
+      # 1주차 생략
+      # convention
+      #      - name: Run Checkstyle
+      #        run: ./gradlew checkstyleMain checkstyleTest
+
+      # 빌드
+      - name: Build with Gradle
+        run: ./gradlew build -x test
+
+      # 1주차 생략
+#      # 테스트 단계 - 커버리지 리포트 생성
+#      - name: Run tests with coverage
+#        run: ./gradlew test jacocoTestReport
+
+      # 1주차 생략
+      # SonarCloud 분석 - 빌드와 테스트 완료 후 실행
+#      - name: SonarCloud Scan
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#        run: ./gradlew sonar
+
+      # 산출물 저장
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar-${{ github.sha }}
+          path: build/libs/backend/*.jar
+          retention-days: 7
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports-${{ github.sha }}
+          path: build/reports/
+          retention-days: 3
+
+      # CI 결과 알림 (PR은 항상)
+      - name: Notify CI result to Discord
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "백엔드 Develop, Main PR CI ${{ job.status }}"
+          description: |
+            **결과:** ${{ job.status }}
+            **브랜치:** ${{ github.ref_name }}
+            **작성자:** ${{ github.actor }}
+            **커밋:** ${{ github.sha }}
+          color: ${{ job.status == 'success' && '0x00ff00' || '0xff0000' }}
