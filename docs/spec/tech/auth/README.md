@@ -4,8 +4,8 @@
 | 문서 목적 | 인증/인가 도메인의 요구사항·데이터 모델·API 계약·보안 정책을 정의하여 구현/리뷰/테스트 기준으로 활용한다. |
 | 작성 및 관리 | Backend Team |
 | 최초 작성일 | 2026.01.12 |
-| 최종 수정일 | 2026.01.14 |
-| 문서 버전 | v1.4 |
+| 최종 수정일 | 2026.01.17 |
+| 문서 버전 | v1.6 |
 
 
 <br>
@@ -22,7 +22,7 @@
 
 **목표 적절성(검증)**
 - 확장성: 세션 스토어/스티키 세션/동기화 부담 없이 수평 확장 가능(AccessToken stateless).
-- 보안/대응: “로그아웃/강제 만료/기기 분실” 요구를 RefreshToken 통제(회전/차단)로 충족.
+- 보안/대응: “로그아웃/강제 만료/기기 분실” 요구를 RefreshToken RTR(회전+재사용 감지)로 충족.
 - 공격면 축소: OAuth `code` 교환/검증을 백엔드로 집중시켜 프론트가 provider 토큰을 직접 다루지 않게 한다.
 
 <br>
@@ -40,7 +40,7 @@
 
 ## **[1-3] 가설 (Hypothesis)**
 
-인증을 백엔드 중심(OAuth code 교환/토큰 발급/검증)으로 통제하고 RefreshToken 회전+차단 정책을 적용하면, 확장성과 보안/운영 대응력이 개선된다.
+인증을 백엔드 중심(OAuth code 교환/토큰 발급/검증)으로 통제하고 RefreshToken RTR(회전+재사용 감지) 정책을 적용하면, 확장성과 보안/운영 대응력이 개선된다.
 
 <br>
 
@@ -86,7 +86,7 @@
 - 시간 표준: 서버 저장은 ISO TIMESTAMP(UTC), 외부 표시는 클라이언트 로컬 시간(국가/타임존)
 - 아키텍처 요약
     - AccessToken: Stateless, `Authorization: Bearer {token}`
-    - RefreshToken: 서버 통제(현재는 블랙리스트 기반 무효화, 추후 화이트리스트 회전+재사용 감지 도입 예정), HttpOnly Cookie로 전달
+    - RefreshToken: 서버 통제(RTR: 회전+재사용 감지, DB에 최신 토큰 해시 저장), HttpOnly Cookie로 전달
     - OAuth2 Authorization Request는 쿠키에 저장(단기 TTL, HMAC 서명) 후 콜백에서 복원
     - Spring Security Filter Chain에서 JWT 검증 후 `SecurityContext` 세팅
 
@@ -112,15 +112,14 @@
 - security 모듈
     - 필터 체인 구성, 예외 처리, 공통 상수/유틸, 권한 규칙 조립
 - jwt 모듈
-    - Access/Refresh 발급·검증, refresh 블랙리스트 관리(회전/재사용 감지는 후속 고도화)
+    - Access/Refresh 발급·검증, RefreshToken RTR 저장/검증(회전+재사용 감지)
 - oauth 모듈
     - OAuth2 로그인 플로우, provider user info 조회, 로그인 성공/실패 처리
 - Persistence
     - 회원 조회/생성: `member`, `member_oauth_account`
-    - RefreshToken 차단 저장소: RDB(어댑터 패턴으로 Redis 전환 가능)
+    - RefreshToken RTR 저장소: RDB(최신 토큰 해시 저장, 만료/회전/무효화 관리)
 - External/Infra
     - OAuth Provider: code 교환/token/userinfo
-    - Redis: 후속 단계에서 차단 저장소 대체 가능
 
 
 ### **의존성 개요**
@@ -133,10 +132,10 @@ flowchart LR
 
   OAUTH --> OP["OAuth Provider<br/>Authorize/Token"]
   OAUTH --> PRS["Provider Resource Server<br/>User Info"]
-  OAUTH --> OAUTH_REPO["OAuthMember Repository<br/>RDB"]
+  OAUTH --> OAUTH_REPO["MemberOAuthAccount Repository<br/>RDB"]
 
   JWT --> MEMBER_REPO["Member Repository<br/>RDB"]
-  JWT --> BLACKLIST_STORE["RefreshToken Blacklist<br/>RDB<br/>(Adapter→Redis)"]
+  JWT --> REFRESH_STORE["RefreshToken Store(RTR)<br/>RDB"]
   JWT --> JWT_PROVIDER["JWT Provider<br/>signing key"]
 ```
 
@@ -173,15 +172,15 @@ flowchart LR
 | 만료 | 14~30일(운영값 확정 필요) |
 | 전달 | HttpOnly Cookie |
 | 쿠키 | `refreshToken`<br/>- `HttpOnly`<br/>- `SameSite=Strict`<br/>- `Path=/api/v1/auth`<br/>- `Secure`: 운영 필수(환경별 적용) |
-| 서버 신뢰(통제) | 현재: 블랙리스트 기반 차단(로그아웃/탈퇴/보안 이벤트/회전 시 이전 RT 등록)으로 무효화<br/>추후: 화이트리스트(최신 RT 해시 저장) 회전 + 재사용 감지로 고도화 예정 |
-| 저장 | RDB에 refresh 토큰 해시 블랙리스트 저장(평문 미저장), TTL/만료 컬럼으로 정리<br/>어댑터로 Redis 전환 가능(RDB ↔ Redis 무중단 교체) |
+| 서버 신뢰(통제) | RTR(회전+재사용 감지) 기반 통제: 최신 RefreshToken 해시를 DB에 저장하고, 재사용/탈취 감지 시 토큰 패밀리 무효화 |
+| 저장 | RDB에 refresh 토큰 해시 저장(평문 미저장), `expires_at/rotated_at/revoked_at`로 상태 관리 |
 
 <br>
 
 ## **[3-5]로그아웃/세션 종료**
 
 - 무효화 범위: 단일 디바이스
-- 처리: RefreshToken 블랙리스트 등록 + 클라이언트 쿠키 삭제
+- 처리: RefreshToken RTR 저장소에서 토큰 무효화 + 클라이언트 쿠키 삭제
 
 
 <br>
@@ -245,7 +244,7 @@ sequenceDiagram
     10. (15~17) RefreshToken을 발급해 쿠키로 전달하고, `oauth2_auth_request`/`redirect_uri` 쿠키를 삭제한 뒤 프론트로 리다이렉트한다.
 - DB 변경
     - `member`, `member_oauth_account`
-    - refresh 블랙리스트(`refresh_token_blacklist`)
+    - refresh RTR 저장소(`refresh_token`)
 - 비고
     - Provider access token은 user info 조회에만 사용하며 프론트로 전달하지 않는다.
     - 실패 시 실패 핸들러가 쿠키를 정리하고 `/login?error`로 리다이렉트한다.
@@ -255,20 +254,20 @@ sequenceDiagram
 ### **토큰 재발급(Refresh)**
 
 로그인 성공 후 프론트는 Refresh 쿠키를 가진 상태로 `/api/v1/auth/token/refresh`를 호출한다.
-블랙리스트 저장소는 RDB를 기본으로 하고, 어댑터로 Redis 전환이 가능하다.
+RTR 저장소는 RDB에 유지한다.
 
 ```mermaid
 sequenceDiagram
   autonumber
   participant C as 사용자+프론트(SPA)
   participant BE as 백엔드
-  participant BL as 블랙리스트 토큰 저장소(RDB)
+  participant RT as RefreshToken 저장소(RDB)
 
   C->>BE: POST /api/v1/auth/token/refresh (refresh 쿠키 전송)
   BE->>BE: refresh 토큰 유형/만료/회원 활성 검증
-  BE->>BL: 블랙리스트 조회
-  BL-->>BE: 블랙리스트 여부
-  BE->>BL: 기존 refresh 블랙리스트 등록
+  BE->>RT: refresh 토큰 해시 조회/검증
+  RT-->>BE: 토큰 상태(유효/회전/무효)
+  BE->>RT: 기존 refresh 무효화 + 새 refresh 저장
   BE-->>C: 200 JSON {accessToken} + Set-Cookie refreshToken(회전)
   C->>BE: Authorization: Bearer accessToken (보호 API 호출)
   BE->>BE: JwtAuthenticationFilter로 액세스 토큰 검증
@@ -277,11 +276,12 @@ sequenceDiagram
 
 1. (1) `/api/v1/auth/token/refresh` 호출 시 쿠키에서 `refreshToken`을 추출한다.
 2. (2) refresh 토큰 유형/만료/회원 활성 여부를 검증한다.
-3. (3~4) 블랙리스트 조회 후 차단된 토큰이면 401로 종료한다.
-4. (5~6) 기존 refresh를 블랙리스트에 등록하고 새 refresh를 발급/쿠키 재설정한다.
-5. (7~9) 이후 보호 API 호출 시 `JwtAuthenticationFilter`가 Access 토큰을 검증한다.
+3. (3~4) DB에서 refresh 토큰 해시를 조회하고 유효/회전 여부를 검증한다(무효/회전이면 401).
+4. (5~6) 재사용 감지 시 토큰 패밀리를 무효화하고 401을 반환한다.
+5. (7~8) 기존 refresh를 무효화하고 새 refresh를 발급/저장한 뒤 쿠키를 재설정한다.
+6. (9~11) 이후 보호 API 호출 시 `JwtAuthenticationFilter`가 Access 토큰을 검증한다.
 - 실패/복구
-    - 블랙리스트/만료/서명불일치: 401
+    - 재사용 감지/무효/만료/서명불일치: 401
 - 비고
     - 발급된 Access 토큰은 동일 백엔드의 보호 API 호출에 사용된다.
 
@@ -294,16 +294,16 @@ sequenceDiagram
   autonumber
   participant C as 사용자+프론트(SPA)
   participant BE as 백엔드
-  participant BL as 블랙리스트 토큰 저장소(RDB)
+  participant RT as RefreshToken 저장소(RDB)
 
   C->>BE: POST /api/v1/auth/logout (refresh 쿠키 전송)
-  BE->>BL: refresh 토큰 블랙리스트 등록
+  BE->>RT: refresh 토큰 무효화
   BE->>BE: refresh 쿠키 삭제
   BE-->>C: 200 응답
 ```
 
 1. (1) `/api/v1/auth/logout` 요청에서 `refreshToken`을 식별한다.
-2. (2) refresh 토큰을 블랙리스트에 등록한다.
+2. (2) refresh 토큰을 RTR 저장소에서 무효화한다.
 3. (3) refresh 쿠키를 삭제한다.
 4. (4) 200 응답을 반환한다.
 - 비고
@@ -361,24 +361,7 @@ sequenceDiagram
 
 <br>
 
-### `oauth_members`
-
-| 컬럼 | 타입 | Nullable | 키 | 기본값 | 인덱스/제약 | 설명 |
-|---|---|---|---|---|---|---|
-| `id` | BIGINT | N | PK | AUTO_INCREMENT | - | OAuth 계정 식별자 |
-| `provider` | VARCHAR(255) | N | - | - | - | OAuth Provider |
-| `provider_id` | VARCHAR(255) | N | - | - | - | Provider 사용자 식별자 |
-| `member_id` | BIGINT | N | FK | - | FK(`member.id`) | `member.id` |
-| `created_at` | TIMESTAMP | N | - | - | - | 생성 시각 |
-
-**제약/인덱스**
--  `UNIQUE(provider, provider_id)`로 중복 가입/로그인을 방지한다.
-
-<br>
-
-### `member_oauth_account` (SQL.sql 기준)
-
-> 본 저장소 DDL(`SQL.sql`)에는 `oauth_members`가 아닌 `member_oauth_account`가 존재한다. (테이블명/컬럼명 정합성은 Open Questions에서 확정)
+### `member_oauth_account`
 
 | 컬럼 | 타입 | Nullable | 키 | 기본값 | 인덱스/제약 | 설명 |
 |---|---|---|---|---|---|---|
@@ -391,14 +374,12 @@ sequenceDiagram
 
 <br>
 
-## RefreshToken 블랙리스트 저장 구조
+## RefreshToken RTR 저장 구조
 
-- **기본 구현:** RDB 테이블 `refresh_token_blacklist`
-    - 컬럼 예시: `id(PK)`, `refresh_token_hash(VARCHAR, UNIQUE)`, `member_id(BIGINT, Nullable)`, `expires_at(TIMESTAMP)`, `created_at(TIMESTAMP)`
-    - 인덱스: `refresh_token_hash` unique, `expires_at`(정리 배치)
-    - 정책: 평문 저장 금지(sha256/HMAC), 만료 시 배치 정리
-- **전환 대비:** 어댑터로 Redis 구현체를 동일 인터페이스로 제공 가능
-    - Redis 키 패턴: `refresh-token:blacklist:{hash}` → `BLACKLISTED`, TTL은 refresh 만료까지
+- **기본 구현:** RDB 테이블 `refresh_token`
+    - 컬럼 예시: `id(PK)`, `member_id(BIGINT)`, `token_hash(VARCHAR, UNIQUE)`, `token_family_id(VARCHAR)`, `expires_at(TIMESTAMP)`, `rotated_at(TIMESTAMP, Nullable)`, `revoked_at(TIMESTAMP, Nullable)`, `created_at(TIMESTAMP)`
+    - 인덱스: `token_hash` unique, `member_id`, `token_family_id`, `expires_at`
+    - 정책: 평문 저장 금지(sha256/HMAC), 회전 시 `rotated_at` 기록, 재사용 감지 시 `token_family_id` 전체 무효화
 
 
 <br>
@@ -522,14 +503,15 @@ erDiagram
   - **처리 로직:**
     1. Cookie에서 `refreshToken`을 추출한다(없으면 401).
     2. refresh 토큰 형식/서명/만료를 검증한다.
-    3. 블랙리스트에서 차단 여부를 확인한다(차단이면 401).
-    4. 토큰의 `memberId`로 회원을 조회하고 `ACTIVE`만 허용한다.
-    5. 기존 refresh를 블랙리스트에 등록하고 새 refresh/AccessToken을 발급해 쿠키와 JSON으로 응답한다.
+    3. RTR 저장소에서 토큰 해시를 조회하고 유효 여부를 확인한다(무효/회전이면 401).
+    4. 재사용 감지(존재하지 않음/이미 회전됨) 시 토큰 패밀리를 무효화하고 401을 반환한다.
+    5. 토큰의 `memberId`로 회원을 조회하고 `ACTIVE`만 허용한다.
+    6. 기존 refresh를 무효화하고 새 refresh/AccessToken을 발급해 쿠키와 JSON으로 응답한다.
   - **트랜잭션 관리:**
-    - 블랙리스트 등록까지는 DB 단일 트랜잭션으로 처리한다.
+    - refresh 회전(기존 무효화 + 신규 저장)은 DB 단일 트랜잭션으로 처리한다.
   - **동시성/멱등성(필요시):**
     - 동일 RT로 동시 요청 시 1개만 성공하고 나머지는 실패 처리한다.
-  - **에러 코드(주요):** `INVALID_REQUEST`(400), `AUTHENTICATION_REQUIRED`(401), `UNAUTHORIZED`(401), `ACCESS_DENIED`(403), `REFRESH_TOKEN_INVALID`(401), `REFRESH_TOKEN_EXPIRED`(401), `TOO_MANY_REQUESTS`(429), `INTERNAL_SERVER_ERROR`(500)
+  - **에러 코드(주요):** `INVALID_REQUEST`(400), `AUTHENTICATION_REQUIRED`(401), `UNAUTHORIZED`(401), `ACCESS_DENIED`(403), `REFRESH_TOKEN_INVALID`(401), `REFRESH_TOKEN_EXPIRED`(401), `REFRESH_TOKEN_REUSED`(401), `TOO_MANY_REQUESTS`(429), `INTERNAL_SERVER_ERROR`(500)
 
 <br>
 
@@ -556,10 +538,10 @@ erDiagram
     - headers: `Set-Cookie`(refresh 쿠키 삭제, 구현 시)
   - **처리 로직:**
     1. Cookie에서 `refreshToken`을 추출한다(없으면 401 또는 204 멱등 처리; 정책 확정).
-    2. 블랙리스트에 등록한다(이미 등록되어 있어도 멱등하게 처리).
+    2. RTR 저장소에서 refresh 토큰을 무효화한다(이미 무효화되어 있어도 멱등하게 처리).
     3. `refreshToken` 쿠키를 삭제한다.
     4. 200 또는 204로 응답한다.
-  - **트랜잭션 관리:** 블랙리스트 등록은 DB 단일 트랜잭션
+  - **트랜잭션 관리:** refresh 토큰 무효화는 DB 단일 트랜잭션
   - **동시성/멱등성(필요시):** 동일 RT로 중복 로그아웃 호출은 204 또는 200으로 멱등 처리
   - **에러 코드(주요):** `INVALID_REQUEST`(400), `AUTHENTICATION_REQUIRED`(401), `UNAUTHORIZED`(401), `ACCESS_DENIED`(403), `REFRESH_TOKEN_INVALID`(401), `TOO_MANY_REQUESTS`(429), `INTERNAL_SERVER_ERROR`(500)
 
@@ -604,9 +586,9 @@ erDiagram
 | `OAUTH_TOKEN_ISSUE_FAILED` | 500 | provider access token 발급 실패 | yes | API 명세에 존재 |
 | `OAUTH_USER_INFO_FETCH_FAILED` | 500 | provider user info 조회 실패 | yes | API 명세에 존재 |
 | `OAUTH_PROVIDER_ERROR` | 502 | provider 연동 실패(code 교환/userinfo) | yes | timeout/retry 정책 적용 |
-| `REFRESH_TOKEN_INVALID` | 401 | refresh 토큰 위변조/형식 오류/차단 | no | 로그아웃 유도 |
+| `REFRESH_TOKEN_INVALID` | 401 | refresh 토큰 위변조/형식 오류/무효 | no | 로그아웃 유도 |
 | `REFRESH_TOKEN_EXPIRED` | 401 | refresh 만료 | no | 재로그인 유도 |
-| `REFRESH_TOKEN_REUSED` | 401 | (예약) 화이트리스트 회전 도입 시 사용 | no | 현재 미사용 |
+| `REFRESH_TOKEN_REUSED` | 401 | RTR 재사용 감지(토큰 패밀리 무효화) | no | 재로그인 유도 |
 | `INTERNAL_SERVER_ERROR` | 500 | 예기치 못한 서버 오류 | yes | 관측/알람 |
 
 
@@ -618,7 +600,7 @@ erDiagram
 
 - **Backend:** Spring Boot 3, Spring Security(OAuth2 Client), JPA
 - **Database:** RDB (프로젝트 표준)
-- **Cache:** Redis(선택: refresh 차단 저장소로 전환 가능)
+- **Cache:** Redis(선택: RTR 동시성 제어/캐시 활용)
 - **Async/Queue:** Redis Streams(기본), 필요 시 Kafka
 - **Infrastructure:** AWS(운영 기준)
 - **외부 연동:** OAuth Provider(예: Kakao/Google)
@@ -646,12 +628,12 @@ erDiagram
         - 민감정보 로깅 금지
         - token/cookie/authorization 헤더는 로그 마스킹(원문 저장 금지)
     - 공격 대응
-        - 화이트리스트 회전/재사용 감지 도입 시 대응 정책을 함께 정의
+        - RTR 재사용 감지 시 토큰 패밀리 무효화/강제 로그아웃 정책 정의
         - rate limit(특히 authorize/callback/refresh)
 - [ ] **성능/확장성**
     - 보호 API는 DB 조회 없이 AccessToken 검증만 수행(Stateless).
-    - refresh 요청만 저장소 접근(블랙리스트).
-    - 블랙리스트 저장소는 RDB, 필요 시 Redis 전환 가능(무중단 전환 절차 포함).
+    - refresh 요청만 저장소 접근(RTR).
+    - RTR 저장소는 RDB(필수).
 - [ ] **관측성**
     - 주요 키: `memberId`, `provider`, `oauth_error_code`, `request_id/trace_id`
     - 범위: 본 문서(MVP)는 “보안/확장성” 구현이 목적이며, 아래 항목은 **추후 운영 단계에서 필요한 관측성 가이드** 이다.
@@ -669,15 +651,15 @@ erDiagram
     - provider 장애: 로그인 재시도 유도
 - [ ] **결정 기록(Decision Log)**
     - `DEC-01` Stateless 인증 채택: 세션 미사용, AccessToken은 짧은 TTL로만 보호
-    - `DEC-02` RefreshToken은 서버 통제: 블랙리스트 기반 무효화 + 회전(재발급 시 이전 토큰 블랙리스트 등록)
+    - `DEC-02` RefreshToken은 서버 통제: RTR(회전+재사용 감지) + DB 저장
     - `DEC-03` RefreshToken 전달: HttpOnly Cookie 채택(PWA 고려)
 
 <br>
 
 ## **[4-2] 리스크 및 대응 (Risks & Mitigations)**
 
-- **RefreshToken 화이트리스트/재사용 감지 미적용**: 현재는 블랙리스트 기반 차단만 사용하므로, 탈취 RT가 처음 사용될 때까지는 차단이 지연될 수 있다.
-  - 대응: 보안 고도화 단계에서 화이트리스트 회전+재사용 감지(최신 RT 해시 저장)로 전환하고, 전환 절차/마이그레이션을 사전에 준비한다.
+- **RTR 저장소 장애**: refresh 검증/회전이 DB 의존이므로 장애 시 재발급이 불가하다.
+  - 대응: DB 이중화/장애 대응 및 재로그인 UX 가이드를 준비한다.
 - **CSRF 방어 방식 미확정(Refresh Endpoint)**: SameSite만으로 충분한지/추가 토큰이 필요한지에 따라 클라이언트 계약이 달라진다
   - 대응: SameSite=Strict + Origin 검증 + (필요 시) double-submit CSRF 토큰 중 하나로 고정한다.
 - **OAuth Provider 장애 전파**: 로그인 성공률이 외부 장애에 직접 영향을 받는다
@@ -690,8 +672,8 @@ erDiagram
 # **[5] 테스트 (Testing)**
 
 - OAuth 로그인: provider 장애/지연, 쿠키 TTL 만료, redirect_uri allowlist 실패 시나리오
-- 토큰 재발급: refresh 회전 + 블랙리스트, CSRF 방어(정책 확정 후) 시나리오
-- 로그아웃: refresh 블랙리스트 등록, 쿠키 삭제 멱등 시나리오
+- 토큰 재발급: refresh RTR(회전+재사용 감지), CSRF 방어(정책 확정 후) 시나리오
+- 로그아웃: refresh 무효화, 쿠키 삭제 멱등 시나리오
 - 보안: 토큰/쿠키 로그 마스킹, 키/시크릿 미노출, rate limit 적용 시나리오
 
 <br>
@@ -733,7 +715,7 @@ erDiagram
 - **Access Token:** 보호 API 호출 시 `Authorization: Bearer`로 전달되는 JWT
 - **Refresh Token:** AccessToken 재발급을 위해 사용하는 장기 토큰(서버 통제, HttpOnly Cookie 전달)
 - **Rotation(회전):** refresh 재발급 시 기존 RT를 폐기하고 신규 RT를 발급하는 정책
-- **Blacklist:** 무효화된 토큰을 조회로 차단하기 위한 저장소/정책
+- **RTR(Refresh Token Rotation):** refresh 재발급 시 토큰을 회전하고 재사용을 감지해 토큰 패밀리를 무효화하는 정책
 - **PKCE:** Authorization Code 흐름에서 코드 탈취 공격을 완화하기 위한 확장(도입 여부 Open)
 
 <br>
@@ -750,3 +732,4 @@ erDiagram
 | v1.3 | 2026.01.14 | Devon(우승화) - Backend | OAuth 시작 경로 커스텀(`/api/v1/auth/oauth/{provider}`), OAuth 쿠키 HMAC 서명, Refresh 토큰 회전/재사용 감지/Redis 저장 반영 | - |
 | v1.4 | 2026.01.14 | Devon(우승화) - Backend | OAuth/JWT 경로 정합성 수정, 인증 플로우/의존성/토큰 재발급·로그아웃 설명 최신화 | - |
 | v1.5 | 2026.01.16 | Devon(우승화) - Backend | RefreshToken 정책을 “블랙리스트 우선 + 회전”으로 고정, 화이트리스트 회전/재사용 감지는 후속 단계로 분리, 저장소 기본을 RDB로 명시(어댑터로 Redis 전환 가능) | - |
+| v1.6 | 2026.01.17 | Devon(우승화) - Backend | RefreshToken 전략을 RTR(회전+재사용 감지)로 전환, 저장소를 RDB 기반 refresh_token으로 명시, 관련 플로우/정책/API 문서 갱신 | - |

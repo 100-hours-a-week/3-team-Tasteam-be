@@ -10,7 +10,6 @@ import com.tasteam.global.exception.ErrorCode;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
 import com.tasteam.global.swagger.error.code.SwaggerErrorResponseDescription;
 
-import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.info.Info;
@@ -26,7 +25,6 @@ public class SwaggerConfig {
 	@Bean
 	public OpenAPI openAPI() {
 		return new OpenAPI()
-			.components(new Components())
 			.info(apiInfo());
 	}
 

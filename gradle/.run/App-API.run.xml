@@ -1,13 +1,16 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="App-API" type="Application" factoryName="Application">
+  <configuration default="false" name="App-API" type="Application" factoryName="Application" activateToolWindowBeforeRun="false">
     <option name="envFilePaths">
-      <option value="$PROJECT_DIR$/.env.example" />
+      <option value="$PROJECT_DIR$/.env.local" />
     </option>
     <option name="MAIN_CLASS_NAME" value="com.tasteam.ApiApplication" />
     <module name="tasteam.app-api.main" />
-    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=local" />
+    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=local --debug" />
     <method v="2">
       <option name="Make" enabled="true" />
+      <option name="Gradle.BeforeRunTask" enabled="true">
+        <task enabled="true" name=":app-api:spotlessApply" projectPath="$PROJECT_DIR$" />
+      </option>
     </method>
   </configuration>
 </component>

@@ -6,9 +6,10 @@
 
 ## 최상위 구조
 
+- `config/`: 빌드/정적 분석/포맷팅 설정 파일을 모아둔 공간입니다.
+  - `config/formatter/naver-eclipse-formatter.xml`: 포맷터(Eclipse formatter) 설정 파일입니다. Spotless에서 사용합니다.
+  - `config/checkstyle/naver-checkstyle-rules.xml`: Checkstyle 규칙 파일입니다. Gradle Checkstyle에서 사용합니다.
 - `docs/convention/`: 팀의 코딩 컨벤션과 개발 규칙을 모아둔 공간입니다.
-  - `docs/convention/인텔리제이_포맷터/`
-    - `naver-eclipse-formatter.xml`: 네이버 IDE 설정 기반의 포맷터 설정을 담고 있으며, 프로젝트에서 사용할 포맷터 XML을 보관합니다.
   - `docs/convention/커밋 브랜치 전략/`
     - `브랜치_커밋_전략.md`: 브랜치 이름, 커밋 메시지, PR 흐름 등 Git 워크플로우 전략을 문서화한 문서입니다.
   - `docs/convention/코드 스타일/`
@@ -28,5 +29,5 @@
 ## 개발 툴 & Git 후크
 
 - `package.json`: Husky를 설치하고 `prepare` 스크립트를 통해 Git 후크 초기화를 자동화합니다.
-- `.husky/pre-commit`: 커밋 전에 `./gradlew spotlessCheck check -x test`를 실행해 Spotless 검사와 컴파일/정적 검사를 연달아 확인합니다(현재 테스트는 Docker 환경이 필요해 후크에서 제외합니다).
+- `.husky/pre-commit`: 커밋 전에 `spotlessApply`(포맷팅) → `checkstyleMain/checkstyleTest`(규칙 검사)를 실행합니다(현재 테스트는 Docker 환경이 필요해 후크에서 제외합니다).
 - `.husky/commit-msg`: `docs/convention/커밋 브랜치 전략/브랜치_커밋_전략.md`의 커밋 메시지 규칙(타입, 이모지 등)을 자동으로 적용하며, 잘못된 형식이나 `Co-authored-by` 트레일러가 있을 경우 커밋을 막습니다.

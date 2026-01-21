@@ -1,0 +1,89 @@
+name: Bug Report
+description: 재현 가능한 버그 제보
+title: "[BE] "
+labels:
+  - 버그
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐞 버그 요약
+  - type: textarea
+    id: summary
+    attributes:
+      label: 버그 요약
+      description: 무엇이 잘못됐는지 한 문장
+      placeholder: "예: 결제 완료 후 주문 내역이 비어 있음"
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🏷️ Type
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - 기능
+        - 버그
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🔁 재현 절차
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 절차
+      description: 단계별로 작성
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## ✅ 기대 결과
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 결과
+      description: 정상이라면 어떻게 동작해야 하는지
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## ❌ 실제 결과
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제 결과
+      description: 지금 실제로 발생하는 동작
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## ⚠️ 참고사항
+  - type: textarea
+    id: notes
+    attributes:
+      label: 참고사항
+      description: 임시 우회 방법, 로그, 스크린샷 링크 등

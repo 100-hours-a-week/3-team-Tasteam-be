@@ -44,3 +44,4 @@ out/
 application.yaml
 application-*.yaml
 *.log
+*.gz
