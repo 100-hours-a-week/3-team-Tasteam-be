@@ -2,6 +2,7 @@ package com.tasteam.infra.storage.s3;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.util.Assert;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -11,6 +12,7 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.tasteam.infra.storage.StorageProperties;
 
 @Configuration
+@Profile("!test")
 public class S3StorageConfig {
 
 	@Bean

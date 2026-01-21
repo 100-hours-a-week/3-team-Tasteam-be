@@ -12,6 +12,7 @@ import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
@@ -31,6 +32,7 @@ import com.tasteam.infra.storage.StorageProperties;
 import lombok.RequiredArgsConstructor;
 
 @Component
+@Profile("!test")
 @RequiredArgsConstructor
 public class S3StorageClient implements StorageClient {
 
