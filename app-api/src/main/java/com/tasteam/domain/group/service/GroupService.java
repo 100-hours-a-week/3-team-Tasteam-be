@@ -1,26 +1,30 @@
 package com.tasteam.domain.group.service;
 
-import com.tasteam.global.exception.code.GroupErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.group.dto.GroupCreateRequest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
+import com.tasteam.domain.group.dto.GroupEmailVerificationResponse;
 import com.tasteam.domain.group.dto.GroupGetResponse;
 import com.tasteam.domain.group.dto.GroupUpdateRequest;
 import com.tasteam.domain.group.dto.GroupMemberListItem;
 import com.tasteam.domain.group.dto.GroupMemberListResponse;
 import com.tasteam.domain.group.entity.Group;
+import com.tasteam.domain.group.entity.GroupAuthCode;
 import com.tasteam.domain.group.entity.GroupJoinType;
 import com.tasteam.domain.group.entity.GroupMember;
 import com.tasteam.domain.group.entity.GroupStatus;
 import com.tasteam.domain.group.entity.GroupType;
+import com.tasteam.domain.group.repository.GroupAuthCodeRepository;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.code.GroupErrorCode;
+import com.tasteam.global.notification.email.EmailSender;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.function.Consumer;
@@ -31,7 +35,9 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.data.domain.PageRequest;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import lombok.RequiredArgsConstructor;
 
@@ -42,6 +48,8 @@ public class GroupService {
 	private final GroupRepository groupRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final MemberRepository memberRepository;
+	private final GroupAuthCodeRepository groupAuthCodeRepository;
+	private final EmailSender emailSender;
 
 	@Transactional
 	public GroupCreateResponse createGroup(GroupCreateRequest request) {
@@ -85,6 +93,41 @@ public class GroupService {
 		applyStringIfPresent(request.getEmailDomain(), group::updateEmailDomain, true);
 		applyLogoImageUrl(request.getLogoImageUrl(), group);
 		applyStatusIfPresent(request.getStatus(), group);
+	}
+
+	@Transactional
+	public GroupEmailVerificationResponse sendGroupEmailVerification(Long groupId, String email) {
+		Group group = groupRepository.findByIdAndDeletedAtIsNull(groupId)
+			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
+
+		if (group.getJoinType() != GroupJoinType.EMAIL) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		if (group.getEmailDomain() == null) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		validateEmailDomain(email, group.getEmailDomain());
+
+		Instant now = Instant.now();
+		if (groupAuthCodeRepository.existsByGroupIdAndExpiresAtAfterAndVerifiedAtIsNull(groupId, now)) {
+			throw new BusinessException(GroupErrorCode.EMAIL_ALREADY_EXISTS);
+		}
+
+		String code = generateVerificationCode();
+		Instant expiresAt = now.plus(Duration.ofMinutes(10));
+
+		GroupAuthCode authCode = groupAuthCodeRepository.save(GroupAuthCode.builder()
+			.groupId(groupId)
+			.code(code)
+			.email(email)
+			.expiresAt(expiresAt)
+			.build());
+
+		emailSender.sendGroupJoinVerification(email, code, expiresAt);
+
+		return GroupEmailVerificationResponse.from(authCode);
 	}
 
 	@Transactional
@@ -219,6 +262,22 @@ public class GroupService {
 	private Point toPoint(GroupCreateRequest.Location location) {
 		GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 		return geometryFactory.createPoint(new Coordinate(location.getLongitude(), location.getLatitude()));
+	}
+
+	private void validateEmailDomain(String email, String domain) {
+		int atIndex = email.lastIndexOf('@');
+		if (atIndex < 0 || atIndex == email.length() - 1) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+		String emailDomain = email.substring(atIndex + 1);
+		if (!emailDomain.equalsIgnoreCase(domain)) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+	}
+
+	private String generateVerificationCode() {
+		int code = ThreadLocalRandom.current().nextInt(100000, 1000000);
+		return String.valueOf(code);
 	}
 
 	private int resolveSize(Integer size) {

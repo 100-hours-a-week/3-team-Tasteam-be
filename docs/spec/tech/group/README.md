@@ -376,13 +376,15 @@ erDiagram
 
 #### `group_auth_code`
 
-| 컬럼 | 타입 | Nullable | 기본값 | 설명 | 제약/고려사항 |
-|---|---|---|---|---|---|
-| `id` | `BIGINT` | N | `SEQUENCE` | 코드 식별자 | `PK_GROUP_AUTH_CODE` |
-| `group_id` | `BIGINT` | N | - | 그룹 ID | FK(`group.id`) |
-| `code` | `VARCHAR(20)` | N | - | 인증 코드 | - |
-| `expires_at` | `TIMESTAMP` | N | - | 만료 시각 | - |
-| `created_at` | `TIMESTAMP` | N | - | 생성 시각 | - |
+| 컬럼            | 타입             | Nullable | 기본값 | 설명     | 제약/고려사항 |
+|---------------|----------------|----------|---|--------|---|
+| `id`          | `BIGINT`       | N        | `SEQUENCE` | 코드 식별자 | `PK_GROUP_AUTH_CODE` |
+| `group_id`    | `BIGINT`       | N        | - | 그룹 ID  | FK(`group.id`) |
+| `code`        | `VARCHAR(20)`  | N        | - | 인증 코드  | - |
+| `email`       | `VARCHAR(255)` | N        | - | 이메일    | - |
+| `expires_at`  | `TIMESTAMP`    | N        | - | 만료 시각  | - |
+| `created_at`  | `TIMESTAMP`    | N        | - | 생성 시각  | - |
+| `verified_at` | `TIMESTAMP`    | Y        | - | 인증 시각  | - |
 
 #### `subgroup_favorite_restaurant`
 
@@ -851,9 +853,12 @@ erDiagram
         1. `group` 존재 확인
         2. `review`에서 `group_id=groupId` AND `deleted_at is null` 조건으로 cursor 기반 조회
         3. `member` 조인으로 작성자 닉네임/프로필 조회
-        4. `review_keyword` + `keyword`로 키워드 목록 조회(배치 조회)
+        4. `review_keyword` + `keyword`로 키워드 목록 조회
         5. 썸네일 이미지(정책): `review_image.sort_order=0` 또는 첫 번째 이미지를 선택해 `image` 조인
-        6. `data + page` 반환
+        6. `data + page` 반환 
+        7. 정렬 기준: 최신순(id DESC)
+        8. cursor는 review.id 기준
+        9. contentPreview: 리뷰 본문 원문 (프론트에서 truncate) 
     - **트랜잭션 관리:** 없음(읽기)
     - **동시성/멱등성:** 조회 API는 멱등, cursor 기반 pagination만 일관 적용
     - **에러 코드(주요):** `UNAUTHORIZED`(401), `GROUP_NOT_FOUND`(404), `INTERNAL_SERVER_ERROR`(500)
@@ -876,8 +881,7 @@ erDiagram
             - `data[]`: array
                 - `groupId`: number
                 - `name`: string
-                - `logoImage.id`: string
-                - `logoImage.url`: string
+                - `logoImageUrl`: string
                 - `address`: string
                 - `detailAddress`: string | null
                 - `emailDomain`: string | null
@@ -1281,14 +1285,25 @@ erDiagram
     - **처리 로직:**
         1. `group` 조회 및 `join_type=EMAIL` 확인
         2. email 검증
-            - 정책(권장): `email == member.email`만 허용(verify 요청에 email이 없기 때문)
-            - `group.email_domain`이 있으면 도메인 일치 검증
+            - `email` 형식 검증 (RFC 기반)
+            - `group.email_domain`과 도메인 일치 검증
         3. 인증 코드 생성(예: 6자리), TTL 설정(예: 10분)
-        4. Redis 저장: `group:join:email:{groupId}:{email} = code`(TTL)
+        4. `group_auth_code`에 저장
+           - `group_auth_code.group_id`: 그룹 아이디
+           - `group_auth_code.code`: 생성 인증 코드
+           - `group_auth_code.email` :`email` 인증번호를 보낸 이메일 
+           - `group_auth_code.created_at` = `data.createdAt`
+           - `group_auth_code.expires_at`: 만료 시각 (createdAt + TTL)
         5. 이메일 벤더로 발송
         6. 200 반환(`data.expiresAt`)
-    - **트랜잭션 관리:** 없음(외부 연동 + Redis)
-    - **동시성/멱등성:** TTL 내 재발송 제한(409 `EMAIL_ALREADY_EXISTS`)
+    - **트랜잭션 관리:** 
+        - 인증 코드 저장은 트랜잭션 범위에서 처리
+        - 이메일 발송은 트랜잭션 외부에서 처리
+    - **동시성/멱등성:**
+        - 동일 (groupId, email)에 대해
+        - expires_at > now() 이고
+        - 사용되지 않은 인증 코드가 존재할 경우
+        - 재발송 요청은 409 EMAIL_ALREADY_EXISTS 반환
     - **외부 연동 정책(초안):** timeout 3s, retry 2회(지수 backoff), 최종 실패 시 500 + 알람
     - **에러 코드(주요):** `INVALID_REQUEST`(400), `UNAUTHORIZED`(401), `GROUP_NOT_FOUND`(404), `EMAIL_ALREADY_EXISTS`(409), `INTERNAL_SERVER_ERROR`(500)
 
@@ -1323,11 +1338,10 @@ erDiagram
           { "data": { "verified": true, "joinedAt": "2026-01-11T02:25:00+09:00" } }
           ```
     - **처리 로직:**
-        1. `group` 조회 및 `join_type=EMAIL` 확인
-        2. email 결정: `member.email` 사용(발송 단계에서 동일 email 강제)
-        3. Redis에서 code 조회/비교(만료/시도 횟수 제한 포함)
-        4. `group_member` 생성 또는 soft delete 복구
-        5. 201 반환(`data.verified=true`, `joinedAt`)
+        1. `group` 조회 및 `join_type=EMAIL` 확인 
+        2.  Redis에서 code 조회/비교(만료/시도 횟수 제한 포함)
+        3. `group_member` 생성 또는 soft delete 복구
+        4. 201 반환(`data.verified=true`, `joinedAt`)
     - **트랜잭션 관리:** 멤버십 upsert 단일 트랜잭션
     - **동시성/멱등성:** `(group_id, member_id)` 유니크로 중복 가입 방지(충돌 시 멱등 처리 여부 확정)
     - **저장소 변경:** 검증 성공 시 Redis 코드 삭제(재사용 방지)

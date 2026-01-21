@@ -10,17 +10,19 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.domain.group.dto.GroupCreateRequest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
+import com.tasteam.domain.group.dto.GroupEmailVerificationRequest;
+import com.tasteam.domain.group.dto.GroupEmailVerificationResponse;
 import com.tasteam.domain.group.dto.GroupGetResponse;
 import com.tasteam.domain.group.dto.GroupMemberListResponse;
 import com.tasteam.domain.group.dto.GroupUpdateRequest;
 import com.tasteam.domain.group.service.GroupService;
+import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -63,10 +65,18 @@ public class GroupController {
 	@DeleteMapping("/{groupId}/members/me")
 	public SuccessResponse<Void> withdrawGroup(
 		@PathVariable @Positive Long groupId,
-		@RequestHeader("X-Member-Id") Long memberId
+		@CurrentUser Long memberId
 	) {
 		groupService.withdrawGroup(groupId, memberId);
 		return SuccessResponse.success(null);
+	}
+
+	@PostMapping("/{groupId}/email-verifications")
+	public SuccessResponse<GroupEmailVerificationResponse> sendGroupEmailVerification(
+		@PathVariable @Positive Long groupId,
+		@Valid @RequestBody GroupEmailVerificationRequest request
+	) {
+		return SuccessResponse.success(groupService.sendGroupEmailVerification(groupId, request.getEmail()));
 	}
 
 	@GetMapping("/{groupId}/members")
