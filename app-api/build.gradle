@@ -65,6 +65,11 @@ dependencies {
     implementation "net.logstash.logback:logstash-logback-encoder:9.0"
 
     /* ==================================================
+     * Storage (S3)
+     * ================================================== */
+    implementation "com.amazonaws:aws-java-sdk-s3:1.12.538"
+
+    /* ==================================================
      * Developer Productivity
      * ================================================== */
     compileOnly "org.projectlombok:lombok:1.18.42"
