@@ -1,11 +1,9 @@
 package com.tasteam.domain.member.controller;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,6 +12,7 @@ import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
 import com.tasteam.domain.member.service.MemberService;
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,26 +26,26 @@ public class MemberController implements MemberControllerDocs {
 
 	@GetMapping
 	public SuccessResponse<MemberMeResponse> getMyMemberInfo(
-		@RequestHeader("X-Member-Id")
+		@CurrentUser
 		Long memberId) {
 		return SuccessResponse.success(memberService.getMyProfile(memberId));
 	}
 
 	@PatchMapping("/profile")
-	public ResponseEntity<Void> updateMyProfile(
-		@RequestHeader("X-Member-Id")
+	public SuccessResponse<Void> updateMyProfile(
+		@CurrentUser
 		Long memberId,
 		@Valid @RequestBody
 		MemberProfileUpdateRequest request) {
 		memberService.updateMyProfile(memberId, request);
-		return ResponseEntity.noContent().build();
+		return SuccessResponse.success();
 	}
 
 	@DeleteMapping
-	public ResponseEntity<Void> withdraw(
-		@RequestHeader("X-Member-Id")
+	public SuccessResponse<Void> withdraw(
+		@CurrentUser
 		Long memberId) {
 		memberService.withdraw(memberId);
-		return ResponseEntity.noContent().build();
+		return SuccessResponse.success();
 	}
 }
