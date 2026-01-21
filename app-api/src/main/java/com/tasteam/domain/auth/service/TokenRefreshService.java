@@ -1,15 +1,15 @@
-package com.tasteam.global.security.jwt.service;
+package com.tasteam.domain.auth.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.auth.entity.RefreshToken;
-import com.tasteam.domain.auth.store.RefreshTokenStore;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.AuthErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.security.jwt.common.RefreshTokenHasher;
 import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
+import com.tasteam.global.security.jwt.repository.RefreshTokenStore;
 import com.tasteam.global.security.user.repository.UserRepositoryPort;
 
 import lombok.RequiredArgsConstructor;

@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.auth.entity.RefreshToken;
 import com.tasteam.domain.auth.repository.RefreshTokenRepository;
+import com.tasteam.global.security.jwt.repository.RefreshTokenStore;
 
 import lombok.RequiredArgsConstructor;
 

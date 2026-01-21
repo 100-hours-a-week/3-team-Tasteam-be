@@ -7,11 +7,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import com.tasteam.domain.auth.store.RefreshTokenStore;
 import com.tasteam.global.security.common.logout.LogoutAction;
 import com.tasteam.global.security.jwt.common.RefreshTokenHasher;
 import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
 import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
+import com.tasteam.global.security.jwt.repository.RefreshTokenStore;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

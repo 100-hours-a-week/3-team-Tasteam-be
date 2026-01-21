@@ -9,10 +9,10 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import com.tasteam.domain.auth.entity.RefreshToken;
-import com.tasteam.domain.auth.store.RefreshTokenStore;
 import com.tasteam.global.security.jwt.common.RefreshTokenHasher;
 import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
 import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
+import com.tasteam.global.security.jwt.repository.RefreshTokenStore;
 import com.tasteam.global.security.oauth.cookie.OAuth2CookieProvider;
 import com.tasteam.global.security.oauth.dto.CustomOAuthUserDetails;
 import com.tasteam.global.security.oauth.repository.HttpCookieOAuth2AuthorizationRequestRepository;
