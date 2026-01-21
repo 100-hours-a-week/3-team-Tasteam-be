@@ -5,15 +5,21 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.domain.group.dto.GroupCreateRequest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
 import com.tasteam.domain.group.dto.GroupGetResponse;
+import com.tasteam.domain.group.dto.GroupMemberListResponse;
+import com.tasteam.domain.group.dto.GroupUpdateRequest;
 import com.tasteam.domain.group.service.GroupService;
 
 import jakarta.validation.Valid;
@@ -37,5 +43,47 @@ public class GroupController {
 	@GetMapping("/{groupId}")
 	public SuccessResponse<GroupGetResponse> getGroup(@PathVariable @Positive Long groupId) {
 		return SuccessResponse.success(groupService.getGroup(groupId));
+	}
+
+	@PatchMapping("/{groupId}")
+	public SuccessResponse<Void> updateGroup(
+		@PathVariable @Positive Long groupId,
+		@RequestBody GroupUpdateRequest request
+	) {
+		groupService.updateGroup(groupId, request);
+		return SuccessResponse.success(null);
+	}
+
+	@DeleteMapping("/{groupId}")
+	public SuccessResponse<Void> deleteGroup(@PathVariable @Positive Long groupId) {
+		groupService.deleteGroup(groupId);
+		return SuccessResponse.success(null);
+	}
+
+	@DeleteMapping("/{groupId}/members/me")
+	public SuccessResponse<Void> withdrawGroup(
+		@PathVariable @Positive Long groupId,
+		@RequestHeader("X-Member-Id") Long memberId
+	) {
+		groupService.withdrawGroup(groupId, memberId);
+		return SuccessResponse.success(null);
+	}
+
+	@GetMapping("/{groupId}/members")
+	public SuccessResponse<GroupMemberListResponse> getGroupMembers(
+		@PathVariable @Positive Long groupId,
+		@RequestParam(required = false) String cursor,
+		@RequestParam(required = false) Integer size
+	) {
+		return SuccessResponse.success(groupService.getGroupMembers(groupId, cursor, size));
+	}
+
+	@DeleteMapping("/{groupId}/members/{userId}")
+	public SuccessResponse<Void> deleteGroupMember(
+		@PathVariable @Positive Long groupId,
+		@PathVariable @Positive Long userId
+	) {
+		groupService.deleteGroupMember(groupId, userId);
+		return SuccessResponse.success(null);
 	}
 }

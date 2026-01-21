@@ -595,7 +595,7 @@ erDiagram
            
     - **트랜잭션 관리:** `group` insert 단일 트랜잭션(예상)
     - **동시성/멱등성:** 중복 생성 방지 정책(유니크 키/검증) 확정 필요
-    - **에러 코드(주요, API 명세서 기준):** `UNAUTHORIZED`(401), `GROUP_NOT_FOUND`(404), `ALREADY_EXISTS`(409), `INTERNAL_SERVER_ERROR`(500)
+    - **에러 코드(주요, API 명세서 기준):** `INVALID_REQUEST`(400), `UNAUTHORIZED`(401), `ALREADY_EXISTS`(409), `INTERNAL_SERVER_ERROR`(500)
 
 ### **그룹 상세 조회**
 
@@ -659,15 +659,15 @@ erDiagram
                 - `detailAddress`: string | null - 상세 주소
                 - `emailDomain`: string | null - 이메일 가입 도메인 제한
                 - `status`: string | null - 상태(`ACTIVE|INACTIVE`)
-                - `imageIds`: string | null - 로고 이미지 식별자(명세 예시 기준, 타입 확정 필요)
+                - `logoImageURL`: string | null - 로고 이미지 URL
     - **응답**
-        - status: `204`
+        - status: `200`
     - **처리 로직:**
         1. 운영 관리자 권한 확인
         2. `group` 조회(soft delete 제외)
         3. 변경 값 검증(길이/포맷/status enum)
         4. `group` update + `updated_at` 갱신
-        5. 204 반환
+        5. 200 반환
     - **트랜잭션 관리:** update 단일 트랜잭션
     - **동시성/멱등성:** 동시 수정 충돌 정책(낙관락 등) 필요 시 도입(현재 ERD에는 version 컬럼 없음)
     - **에러 코드(주요):** `INVALID_REQUEST`(400), `UNAUTHORIZED`(401), `FORBIDDEN`(403), `GROUP_NOT_FOUND`(404), `INTERNAL_SERVER_ERROR`(500)
@@ -776,7 +776,7 @@ erDiagram
 ### **그룹 멤버 삭제(운영 관리자)**
 
 - **API 명세:**
-    - `GET /groups/{groupId}/members/{userId}` *(API 명세서 기준)*
+    - `DELETE /groups/{groupId}/members/{userId}` *(API 명세서 기준)*
     - API 문서 링크: [API 명세서(3-25)](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BBE-%E2%80%90-API%5D-API-%EB%AA%85%EC%84%B8%EC%84%9C#user-content-api-25)
 - **권한:** 운영 관리자(`member.role=ADMIN`)
 - **구현 상세:**
