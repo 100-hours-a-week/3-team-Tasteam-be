@@ -1,6 +1,8 @@
+## ====== 서버 설정 ======
 server:
   port: ${SERVER_PORT:8080}
 
+## ====== Spring 설정 ======
 spring:
   application:
     name: tasteam-api
@@ -46,6 +48,23 @@ spring:
               - email
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
 
+## ====== 커스텀 설정 ======
+tasteam:
+  storage:
+    region: ${STORAGE_REGION:}
+    bucket: ${STORAGE_BUCKET:}
+    base-url: ${STORAGE_BASE_URL:}
+    access-key: ${STORAGE_ACCESS_KEY:}
+    secret-key: ${STORAGE_SECRET_KEY:}
+    presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:300}
+    temp-upload-prefix: ${STORAGE_TEMP_UPLOAD_PREFIX:uploads/temp}
+  file:
+    cleanup:
+      ttl-seconds: ${FILE_CLEANUP_TTL_SECONDS:86400}
+      fixed-delay-ms: ${FILE_CLEANUP_FIXED_DELAY_MS:3600000}
+
+
+## ====== 운영 & 관리 ======
 management:
   endpoints:
     web:

@@ -12,9 +12,12 @@ public class SecurityConstants {
 	public static final String AUTHORIZATION_HEADER = "Authorization";
 	public static final String BEARER_PREFIX = "Bearer ";
 
+	public static final String HEALTH_CHECK_URL = "/api/v1/health";
+
 	public static final String[] PUBLIC_URLS = {
 		"/", "/**",
 		LOGIN_URL, LOGOUT_URL, SIGNUP_URL, REFRESH_TOKEN_URL,
+		HEALTH_CHECK_URL,
 		OAUTH_URL, OAUTH_API_URL, "/api/*",
 		"/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/index.html", "/swagger-ui/**",
 		"/swagger-resources/**", "/webjars/**", "/actuator/**"
