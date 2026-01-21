@@ -53,6 +53,21 @@ jobs:
 #          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 #        run: ./gradlew sonar
 
+      # 산출물 저장
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar-${{ github.sha }}
+          path: build/libs/backend/*.jar
+          retention-days: 7
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports-${{ github.sha }}
+          path: build/reports/
+          retention-days: 3
+
       # CI 결과 알림 (PR은 항상)
       - name: Notify CI result to Discord
         if: always()
