@@ -17,36 +17,36 @@ spring:
       enabled: ALWAYS
 
   security:
-    jwt:
-      secret: ${JWT_SECRET:local-secret-12skjdfhli2ijfdle2hf3uihci23hfciuhwi32ifhwh39f2fhcl23h}
-      accessTokenExpiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000}
-      refreshTokenExpiration: ${JWT_REFRESH_TOKEN_EXPIRATION:1209600000}
     cors:
-      allowed-origins:
-        - http://localhost:3000
-        - http://localhost:8080
-      allowed-methods:
-        - GET
-        - POST
-        - PUT
-        - DELETE
-        - OPTIONS
-      allowed-headers:
-        - "*"
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+      allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+      allowed-headers: ${CORS_ALLOWED_HEADERS:*}
       allow-credentials: true
       max-age: 3600
-      exposed-headers:
-        - Authorization
+      exposed-headers: ${CORS_EXPOSED_HEADERS:Authorization}
+
+    jwt:
+      secret: ${JWT_SECRET:local-secret-12skjdfhli2ijfdle2hf3uihci23hfciuhwi32ifhwh39f2fhcl23h1234}
+      accessTokenExpiration: ${JWT_ACCESS_TOKEN_EXPIRATION:60000}
+      refreshTokenExpiration: ${JWT_REFRESH_TOKEN_EXPIRATION:180000}
 
     oauth2:
       client:
         registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
-            scope:
-              - email
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - profile_nickname
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
 
 ## ====== 커스텀 설정 ======
 tasteam:
