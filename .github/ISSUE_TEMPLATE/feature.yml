@@ -1,0 +1,89 @@
+name: Feature
+description: 새로운 기능 또는 개선 작업
+title: "[BE] "
+labels:
+  - 기능
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🔗 관련 이슈 / 문서
+  - type: input
+    id: related-issue
+    attributes:
+      label: 관련 이슈
+      description: "예: #123"
+      placeholder: "#"
+  - type: textarea
+    id: reference
+    attributes:
+      label: 참고
+      description: "관련 문서나 링크"
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🏷️ Type
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - 기능
+        - 버그
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 📌 이슈 요약
+  - type: textarea
+    id: summary
+    attributes:
+      label: 이슈 요약
+      description: 무엇을 해야 하는지 한 문장
+      placeholder: "예: 로그인 실패 시 오류 메시지 개선"
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🎯 목표
+  - type: textarea
+    id: goal
+    attributes:
+      label: 목표
+      description: 이슈가 해결됐다고 판단할 수 있는 기준
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🔧 작업 내용
+  - type: checkboxes
+    id: tasks
+    attributes:
+      label: 작업 내용
+      options:
+        - label: 해야 할 작업 1
+        - label: 해야 할 작업 2
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## ⚠️ 참고사항
+  - type: textarea
+    id: notes
+    attributes:
+      label: 참고사항
+      description: 작업 전에 알아야 할 맥락, 제약, 트레이드오프
