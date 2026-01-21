@@ -18,16 +18,22 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const reviewers = [
+            const allReviewers = [
               "kimseonj",
               "Y0unse0",
               "GY102912",
             ];
 
+            // PR 작성자 제외
+            const author = context.payload.pull_request.user.login;
+            const reviewers = allReviewers.filter(reviewer => reviewer !== author);
+
             if (reviewers.length === 0) {
-              core.info("No reviewers configured.");
+              core.info("No reviewers to assign (author excluded).");
               return;
             }
+
+            core.info(`Requesting reviews from: ${reviewers.join(", ")}`);
 
             await github.rest.pulls.requestReviewers({
               owner: context.repo.owner,
