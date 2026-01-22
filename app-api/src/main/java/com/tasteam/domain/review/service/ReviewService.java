@@ -6,8 +6,8 @@ import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
-import com.tasteam.domain.restaurant.support.CursorCodec;
 import com.tasteam.domain.review.repository.ReviewRepository;
+import com.tasteam.global.utils.CursorCodec;
 
 import lombok.RequiredArgsConstructor;
 
