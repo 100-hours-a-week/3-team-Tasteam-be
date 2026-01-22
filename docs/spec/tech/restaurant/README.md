@@ -624,7 +624,7 @@ LIMIT :size;
             "url": "https://cdn.xxx..."
           }
         ],
-        "isFavorite": true,   // v2 이후 제거 예정
+        "isFavorite": true,   
         "recommendStat": {
           "recommendedCount": 78,
           "notRecommendedCount": 12,

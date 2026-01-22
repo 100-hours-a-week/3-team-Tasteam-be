@@ -18,7 +18,6 @@ public class GroupReviewController {
 
 	private final RestaurantService restaurantService;
 
-	// TODO: 그룹 리뷰 목록 페이지 조회 API 구현
 	@ResponseStatus(HttpStatus.OK)
 	@GetMapping
 	public void getGroupReviews() {}

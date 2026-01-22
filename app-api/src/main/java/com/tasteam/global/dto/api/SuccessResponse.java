@@ -1,6 +1,7 @@
 package com.tasteam.global.dto.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,7 +15,8 @@ import lombok.NoArgsConstructor;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SuccessResponse<T> {
 
-	private boolean success;
+	private Boolean success;
+	@JsonInclude(Include.ALWAYS)
 	private T data;
 
 	public static <T> SuccessResponse<T> success(T data) {
@@ -30,4 +32,9 @@ public class SuccessResponse<T> {
 			.build();
 	}
 
+	public static <T> SuccessResponse<T> of(T data) {
+		return SuccessResponse.<T>builder()
+			.data(data)
+			.build();
+	}
 }
