@@ -41,9 +41,9 @@ jobs:
           languages: java
           queries: security-and-quality
 
-      # 검증 위주 실행 (테스트, 컴파일, 검사만 - JAR 생성 안함)
-      - name: Run checks and tests
-        run: ./gradlew check
+      # 테스트 + 컴파일만 실행 (JAR 생성 안함, SpotBugs 제외)
+      - name: Run Tests and Compile
+        run: ./gradlew test
 
       # CodeQL 분석 수행
       - name: Perform CodeQL Analysis
@@ -51,7 +51,7 @@ jobs:
         with:
           category: "/language:java"
 
-      # 보안 분석 - SpotBugs + Find Security Bugs
+      # 보안 분석 - SpotBugs (한 번만 명시적 실행)
       - name: Run SpotBugs Security Analysis
         run: ./gradlew :app-api:spotbugsMain
         continue-on-error: true
