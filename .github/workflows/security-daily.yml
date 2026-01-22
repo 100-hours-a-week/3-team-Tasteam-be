@@ -1,0 +1,54 @@
+name: Daily Security Analysis
+
+on:
+  schedule:
+    # 매일 새벽 3시(KST) 실행 (UTC 18:00)
+    - cron: '0 18 * * *'
+  workflow_dispatch: # 수동 실행 버튼 활성화
+
+jobs:
+  daily-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      # CodeQL 초기화
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: java
+          # 매일 스캔 시에는 더 정밀한 'security-extended' 쿼리 사용 추천
+          queries: security-extended,security-and-quality
+
+      - name: Build for Analysis
+        run: ./gradlew clean classes # JAR 생성 없이 컴파일만 수행
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:java"
+
+      # 실패 시에만 디스코드 알림 (새벽에 성공 알림은 소음이 될 수 있음)
+      - name: Notify Security Failure
+        if: failure()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "🚨 정기 보안 스캔 결과 이상 발생"
+          description: |
+            **상태:** 취약점 발견 또는 분석 실패
+            **대상 브랜치:** ${{ github.ref_name }}
+            **확인 방법:** GitHub Security 탭을 확인하세요.
+          color: 0xff0000

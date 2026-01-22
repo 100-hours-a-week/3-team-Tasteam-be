@@ -29,6 +29,8 @@ import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
+import com.tasteam.domain.review.repository.ReviewRepository;
+import com.tasteam.global.utils.CursorCodec;
 
 import lombok.RequiredArgsConstructor;
 
