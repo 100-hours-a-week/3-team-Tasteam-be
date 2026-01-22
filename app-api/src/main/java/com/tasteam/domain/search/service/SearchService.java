@@ -10,6 +10,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.group.entity.Group;
+import com.tasteam.domain.group.entity.GroupStatus;
+import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.entity.Restaurant;
@@ -21,6 +24,7 @@ import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjec
 import com.tasteam.domain.restaurant.support.CursorCodec;
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.request.SearchRequest;
+import com.tasteam.domain.search.dto.response.SearchGroupSummary;
 import com.tasteam.domain.search.dto.response.SearchResponse;
 import com.tasteam.domain.search.dto.response.SearchRestaurantItem;
 import com.tasteam.domain.search.entity.MemberSearchHistory;
@@ -37,6 +41,7 @@ public class SearchService {
 	private static final int DEFAULT_PAGE_SIZE = 10;
 	private static final int THUMBNAIL_LIMIT = 3;
 
+	private final GroupRepository groupRepository;
 	private final RestaurantRepository restaurantRepository;
 	private final RestaurantImageRepository restaurantImageRepository;
 	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
@@ -54,10 +59,11 @@ public class SearchService {
 
 		recordSearchHistory(memberId, keyword);
 
+		List<SearchGroupSummary> groups = searchGroups(keyword, pageSize);
 		CursorPageResponse<SearchRestaurantItem> restaurants = searchRestaurants(keyword, cursor, pageSize);
 		return new SearchResponse(
 			new SearchResponse.SearchData(
-				List.of(),
+				groups,
 				restaurants,
 				List.of()));
 	}
@@ -114,6 +120,17 @@ public class SearchService {
 				nextCursor,
 				hasNext,
 				items.size()));
+	}
+
+	private List<SearchGroupSummary> searchGroups(String keyword, int pageSize) {
+		List<Group> groups = groupRepository.searchByKeyword(
+			keyword,
+			GroupStatus.ACTIVE,
+			PageRequest.of(0, pageSize));
+
+		return groups.stream()
+			.map(group -> new SearchGroupSummary(group.getId(), group.getName()))
+			.toList();
 	}
 
 	private Map<Long, List<RestaurantImageDto>> findRestaurantThumbnails(List<Long> restaurantIds) {
