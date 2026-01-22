@@ -29,6 +29,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
 
+      # CodeQL 보안 분석 - 빌드 전에 초기화
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+          queries: security-and-quality
+
       # 1주차 생략
       # formatting
       #      - name: Run Spotless Check
@@ -39,9 +46,15 @@ jobs:
       #      - name: Run Checkstyle
       #        run: ./gradlew checkstyleMain checkstyleTest
 
-      # 빌드 + 테스트
+      # 빌드 + 테스트 (CodeQL이 빌드 과정을 추적함)
       - name: Build with Gradle
         run: ./gradlew build
+
+      # CodeQL 분석 수행
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java"
 
       # 보안 분석 - SpotBugs + Find Security Bugs
       - name: Run SpotBugs Security Analysis
@@ -56,18 +69,6 @@ jobs:
           name: spotbugs-report
           path: app-api/build/reports/spotbugs/main/spotbugs.html
           retention-days: 7
-
-      # CodeQL 보안 분석
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: java
-          queries: security-and-quality
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:java"
 
       # 1주차 생략
 #      # 테스트 커버리지 리포트 생성
