@@ -77,16 +77,4 @@ public class Review extends BaseTimeEntity {
 			.deletedAt(null)
 			.build();
 	}
-
-	public void changeContent(String content) {
-		this.content = content;
-	}
-
-	public void changeRecommendation(boolean isRecommended) {
-		this.isRecommended = isRecommended;
-	}
-
-	public void softDelete(Instant deletedAt) {
-		this.deletedAt = deletedAt;
-	}
 }

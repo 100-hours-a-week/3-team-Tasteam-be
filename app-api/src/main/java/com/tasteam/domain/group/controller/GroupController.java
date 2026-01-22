@@ -2,16 +2,7 @@ package com.tasteam.domain.group.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.tasteam.domain.group.dto.GroupCreateRequest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
@@ -23,6 +14,10 @@ import com.tasteam.domain.group.dto.GroupGetResponse;
 import com.tasteam.domain.group.dto.GroupMemberListResponse;
 import com.tasteam.domain.group.dto.GroupUpdateRequest;
 import com.tasteam.domain.group.service.GroupService;
+import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
+import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
+import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
+import com.tasteam.domain.restaurant.service.RestaurantService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
@@ -37,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class GroupController {
 
 	private final GroupService groupService;
+	private final RestaurantService restaurantService;
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
@@ -119,5 +115,15 @@ public class GroupController {
 		Long userId) {
 		groupService.deleteGroupMember(groupId, userId);
 		return SuccessResponse.success(null);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@GetMapping("/{groupId}/reviews/restaurants")
+	public CursorPageResponse<RestaurantListItem> getGroupReviewRestaurants(
+		@PathVariable
+		Long groupId,
+		@Valid @ModelAttribute
+		NearbyRestaurantQueryParams queryParams) {
+		return restaurantService.getGroupRestaurants(groupId, queryParams);
 	}
 }

@@ -31,16 +31,6 @@ public class RestaurantController {
 		return new RestaurantDetailResponse(data);
 	}
 
-	@ResponseStatus(HttpStatus.OK)
-	@GetMapping("/{restaurantId}/reviews")
-	public CursorPageResponse<ReviewResponse> getRestaurantReviews(
-		@PathVariable
-		Long restaurantId,
-		@ModelAttribute
-		RestaurantReviewListRequest request) {
-		return reviewService.getRestaurantReviews(restaurantId, request);
-	}
-
 	@ResponseStatus(HttpStatus.CREATED)
 	@PreAuthorize("hasRole('ADMIN')")
 	@PostMapping
@@ -68,5 +58,15 @@ public class RestaurantController {
 	public void deleteRestaurant(@PathVariable
 	Long restaurantId) {
 		restaurantService.deleteRestaurant(restaurantId);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@GetMapping("/{restaurantId}/reviews")
+	public CursorPageResponse<ReviewResponse> getRestaurantReviews(
+		@PathVariable
+		Long restaurantId,
+		@ModelAttribute
+		RestaurantReviewListRequest request) {
+		return reviewService.getRestaurantReviews(restaurantId, request);
 	}
 }
