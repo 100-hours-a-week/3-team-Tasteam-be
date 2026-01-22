@@ -1,28 +1,14 @@
 package com.tasteam.domain.restaurant.entity;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.hibernate.annotations.Comment;
 import org.locationtech.jts.geom.Point;
 
 import com.tasteam.domain.common.BaseTimeEntity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Builder.Default;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Getter
@@ -45,7 +31,7 @@ public class Restaurant extends BaseTimeEntity {
 	@Column(name = "full_address", nullable = false, length = 255)
 	private String fullAddress;
 
-	@Column(name = "location", nullable = false, columnDefinition = "geometry(Point,4326)")
+	@Column(name = "location", columnDefinition = "geometry(Point,4326)")
 	@Comment("WGS84")
 	private Point location;
 
@@ -53,11 +39,20 @@ public class Restaurant extends BaseTimeEntity {
 	@Comment("소프트 삭제")
 	private Instant deletedAt;
 
-	@OneToMany(mappedBy = "restaurant", fetch = FetchType.LAZY)
-	@Default
-	private List<RestaurantImage> images = new ArrayList<>();
+	public static Restaurant create(String name, String fullAddress, Point location) {
+		return Restaurant.builder()
+			.name(name)
+			.fullAddress(fullAddress)
+			.location(location)
+			.deletedAt(null)
+			.build();
+	}
 
-	@OneToMany(mappedBy = "restaurant", fetch = FetchType.LAZY)
-	@Default
-	private List<RestaurantAddress> addresses = new ArrayList<>();
+	public void changeName(String name) {
+		this.name = name;
+	}
+
+	public void softDelete(Instant deletedAt) {
+		this.deletedAt = deletedAt;
+	}
 }

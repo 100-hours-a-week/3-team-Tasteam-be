@@ -49,4 +49,21 @@ public class RestaurantImage extends BaseCreatedAtEntity {
 
 	@Column(name = "deleted_at")
 	private Instant deletedAt;
+
+	public static RestaurantImage create(Restaurant restaurant, String imageUrl, int sortOrder) {
+		return RestaurantImage.builder()
+			.restaurant(restaurant)
+			.imageUrl(imageUrl)
+			.sortOrder(sortOrder)
+			.deletedAt(null)
+			.build();
+	}
+
+	public void changeSortOrder(int sortOrder) {
+		this.sortOrder = sortOrder;
+	}
+
+	public void softDelete(Instant deletedAt) {
+		this.deletedAt = deletedAt;
+	}
 }

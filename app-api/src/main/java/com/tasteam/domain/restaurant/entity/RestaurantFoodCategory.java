@@ -38,4 +38,11 @@ public class RestaurantFoodCategory {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "food_category_id", nullable = false)
 	private FoodCategory foodCategory;
+
+	public static RestaurantFoodCategory create(Restaurant restaurant, FoodCategory foodCategory) {
+		return RestaurantFoodCategory.builder()
+			.restaurant(restaurant)
+			.foodCategory(foodCategory)
+			.build();
+	}
 }

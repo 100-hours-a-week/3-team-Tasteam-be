@@ -4,15 +4,7 @@ import org.hibernate.annotations.Comment;
 
 import com.tasteam.domain.common.BaseTimeEntity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,8 +25,8 @@ public class RestaurantAddress extends BaseTimeEntity {
 	@Column(name = "id")
 	private Long id;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "restaurant_id", nullable = false)
+	@OneToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "restaurant_id", nullable = false, unique = true)
 	private Restaurant restaurant;
 
 	@Column(name = "sido", length = 20)
@@ -52,4 +44,26 @@ public class RestaurantAddress extends BaseTimeEntity {
 	@Column(name = "postal_code", length = 16)
 	@Comment("우편번호")
 	private String postalCode;
+
+	public static RestaurantAddress create(
+		Restaurant restaurant,
+		String sido,
+		String sigungu,
+		String eupmyeondong,
+		String postalCode) {
+		return RestaurantAddress.builder()
+			.restaurant(restaurant)
+			.sido(sido)
+			.sigungu(sigungu)
+			.eupmyeondong(eupmyeondong)
+			.postalCode(postalCode)
+			.build();
+	}
+
+	public void changeAddress(String sido, String sigungu, String eupmyeondong, String postalCode) {
+		this.sido = sido;
+		this.sigungu = sigungu;
+		this.eupmyeondong = eupmyeondong;
+		this.postalCode = postalCode;
+	}
 }
