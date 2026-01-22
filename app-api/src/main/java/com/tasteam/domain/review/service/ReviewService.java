@@ -18,7 +18,6 @@ import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
-import com.tasteam.domain.restaurant.support.CursorCodec;
 import com.tasteam.domain.review.dto.ReviewCursor;
 import com.tasteam.domain.review.dto.ReviewDetailQueryDto;
 import com.tasteam.domain.review.dto.ReviewMemberQueryDto;
@@ -44,6 +43,7 @@ import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.exception.code.ReviewErrorCode;
+import com.tasteam.global.utils.CursorCodec;
 
 import lombok.RequiredArgsConstructor;
 

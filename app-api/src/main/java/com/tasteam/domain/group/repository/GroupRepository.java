@@ -34,5 +34,6 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
 		@Param("status")
 		GroupStatus status,
 		Pageable pageable);
+
 	boolean existsByIdAndDeletedAtIsNull(Long id);
 }
