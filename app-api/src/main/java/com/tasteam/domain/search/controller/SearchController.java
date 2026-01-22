@@ -1,7 +1,8 @@
 package com.tasteam.domain.search.controller;
 
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,6 +15,7 @@ import com.tasteam.global.security.jwt.annotation.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+@Validated
 @RestController
 @RequestMapping("/api/v1/search")
 @RequiredArgsConstructor
@@ -25,7 +27,7 @@ public class SearchController {
 	public SuccessResponse<SearchResponse> search(
 		@CurrentUser
 		Long memberId,
-		@Valid @RequestBody
+		@Valid @ModelAttribute
 		SearchRequest request) {
 		return SuccessResponse.success(searchService.search(memberId, request));
 	}

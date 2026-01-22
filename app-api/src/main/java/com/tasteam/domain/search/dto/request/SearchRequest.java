@@ -10,6 +10,5 @@ public record SearchRequest(
 	String keyword,
 	String cursor,
 	@Min(1) @Max(100)
-	Integer size,
-	String focus) {
+	Integer size) {
 }
