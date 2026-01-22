@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.domain.group.dto.GroupCreateRequest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
+import com.tasteam.domain.group.dto.GroupEmailAuthenticationRequest;
+import com.tasteam.domain.group.dto.GroupEmailAuthenticationResponse;
 import com.tasteam.domain.group.dto.GroupEmailVerificationRequest;
 import com.tasteam.domain.group.dto.GroupEmailVerificationResponse;
 import com.tasteam.domain.group.dto.GroupGetResponse;
@@ -77,6 +79,18 @@ public class GroupController {
 		@Valid @RequestBody GroupEmailVerificationRequest request
 	) {
 		return SuccessResponse.success(groupService.sendGroupEmailVerification(groupId, request.getEmail()));
+	}
+
+	@PostMapping("/{groupId}/email-authentications")
+	@ResponseStatus(HttpStatus.CREATED)
+	public SuccessResponse<GroupEmailAuthenticationResponse> authenticateGroupByEmail(
+		@PathVariable @Positive Long groupId,
+		@CurrentUser Long memberId,
+		@Valid @RequestBody GroupEmailAuthenticationRequest request
+	) {
+		return SuccessResponse.success(
+			groupService.authenticateGroupByEmail(groupId, memberId, request.getCode())
+		);
 	}
 
 	@GetMapping("/{groupId}/members")

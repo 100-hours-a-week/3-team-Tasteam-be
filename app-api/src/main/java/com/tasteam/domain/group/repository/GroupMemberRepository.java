@@ -15,6 +15,8 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 
 	Optional<GroupMember> findByGroupIdAndMemberIdAndDeletedAtIsNull(Long groupId, Long memberId);
 
+	Optional<GroupMember> findByGroupIdAndMemberId(Long groupId, Long memberId);
+
 	@Query("""
 		select new com.tasteam.domain.group.dto.GroupMemberListItem(
 			gm.id,

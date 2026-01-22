@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.group.dto.GroupCreateRequest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
+import com.tasteam.domain.group.dto.GroupEmailAuthenticationResponse;
 import com.tasteam.domain.group.dto.GroupEmailVerificationResponse;
 import com.tasteam.domain.group.dto.GroupGetResponse;
 import com.tasteam.domain.group.dto.GroupUpdateRequest;
@@ -128,6 +129,40 @@ public class GroupService {
 		emailSender.sendGroupJoinVerification(email, code, expiresAt);
 
 		return GroupEmailVerificationResponse.from(authCode);
+	}
+
+	@Transactional
+	public GroupEmailAuthenticationResponse authenticateGroupByEmail(Long groupId, Long memberId, String code) {
+		Group group = groupRepository.findByIdAndDeletedAtIsNull(groupId)
+			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
+
+		if (group.getJoinType() != GroupJoinType.EMAIL) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		GroupAuthCode authCode = groupAuthCodeRepository
+			.findByGroupIdAndCodeAndExpiresAtAfterAndVerifiedAtIsNull(groupId, code, Instant.now())
+			.orElseThrow(() -> new BusinessException(GroupErrorCode.EMAIL_CODE_MISMATCH));
+
+		GroupMember groupMember = groupMemberRepository
+			.findByGroupIdAndMemberId(groupId, memberId)
+			.orElse(null);
+
+		if (groupMember == null) {
+			groupMember = groupMemberRepository.save(GroupMember.builder()
+				.groupId(groupId)
+				.memberId(memberId)
+				.build());
+		} else if (groupMember.getDeletedAt() != null) {
+			groupMember.restore();
+		}
+
+		authCode.verify(Instant.now());
+
+		return GroupEmailAuthenticationResponse.builder()
+			.verified(true)
+			.joinedAt(groupMember.getCreatedAt())
+			.build();
 	}
 
 	@Transactional
