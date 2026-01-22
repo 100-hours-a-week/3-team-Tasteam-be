@@ -1,5 +1,7 @@
 package com.tasteam.domain.restaurant.entity;
 
+import java.math.BigDecimal;
+
 import org.hibernate.annotations.Comment;
 
 import com.tasteam.domain.common.BaseTimeEntity;
@@ -43,9 +45,10 @@ public class AiRestaurantReviewAnalysis extends BaseTimeEntity {
 
 	@Column(name = "positive_review_ratio", nullable = false, precision = 3, scale = 2)
 	@Comment("긍정 리뷰 비율 (0.00 ~ 1.00)")
-	private double positiveReviewRatio;
+	private BigDecimal positiveReviewRatio;
 
-	public static AiRestaurantReviewAnalysis create(Restaurant restaurant, String summary, double positiveReviewRatio) {
+	public static AiRestaurantReviewAnalysis create(Restaurant restaurant, String summary,
+		BigDecimal positiveReviewRatio) {
 		return AiRestaurantReviewAnalysis.builder()
 			.restaurant(restaurant)
 			.summary(summary)

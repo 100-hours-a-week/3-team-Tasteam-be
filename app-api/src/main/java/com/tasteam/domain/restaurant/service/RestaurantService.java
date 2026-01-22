@@ -2,6 +2,8 @@ package com.tasteam.domain.restaurant.service;
 
 import static java.util.stream.Collectors.groupingBy;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.*;
 import java.util.List;
@@ -103,7 +105,9 @@ public class RestaurantService {
 			.countByRestaurantIdAndIsRecommendedFalseAndDeletedAtIsNull(restaurantId);
 		Long positiveRatio = aiAnalysis
 			.map(AiRestaurantReviewAnalysis::getPositiveReviewRatio)
-			.map(ratio -> Math.round(ratio * 100))
+			.map(ratio -> ratio.multiply(BigDecimal.valueOf(100))
+				.setScale(0, RoundingMode.HALF_UP)
+				.longValueExact())
 			.orElse(null);
 
 		RecommendStatResponse recommendStatResponse = new RecommendStatResponse(
