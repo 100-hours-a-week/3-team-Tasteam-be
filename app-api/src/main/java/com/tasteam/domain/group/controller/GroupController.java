@@ -15,9 +15,12 @@ import com.tasteam.domain.group.dto.GroupMemberListResponse;
 import com.tasteam.domain.group.dto.GroupUpdateRequest;
 import com.tasteam.domain.group.service.GroupService;
 import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
+import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
+import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
 import com.tasteam.domain.restaurant.service.RestaurantService;
+import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
@@ -33,6 +36,7 @@ public class GroupController {
 
 	private final GroupService groupService;
 	private final RestaurantService restaurantService;
+	private final ReviewService reviewService;
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
@@ -115,6 +119,16 @@ public class GroupController {
 		Long userId) {
 		groupService.deleteGroupMember(groupId, userId);
 		return SuccessResponse.success(null);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@GetMapping("/{groupId}/reviews")
+	public CursorPageResponse<ReviewResponse> getGroupReviews(
+		@PathVariable @Positive
+		Long groupId,
+		@ModelAttribute
+		RestaurantReviewListRequest request) {
+		return reviewService.getGroupReviews(groupId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
