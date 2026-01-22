@@ -23,4 +23,6 @@ public interface ReviewKeywordRepository extends JpaRepository<ReviewKeyword, Lo
 	List<ReviewKeywordProjection> findReviewKeywords(
 		@Param("reviewIds")
 		List<Long> reviewIds);
+
+	void deleteByReview_Id(Long reviewId);
 }

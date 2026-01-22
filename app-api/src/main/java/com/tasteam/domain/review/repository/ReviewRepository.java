@@ -13,4 +13,6 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 	long countByRestaurantIdAndIsRecommendedFalseAndDeletedAtIsNull(Long restaurantId);
 
 	List<Review> findByRestaurantIdAndDeletedAtIsNull(long restaurantId);
+
+	java.util.Optional<Review> findByIdAndDeletedAtIsNull(Long id);
 }

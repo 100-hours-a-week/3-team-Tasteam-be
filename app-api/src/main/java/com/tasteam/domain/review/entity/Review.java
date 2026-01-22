@@ -77,4 +77,8 @@ public class Review extends BaseTimeEntity {
 			.deletedAt(null)
 			.build();
 	}
+
+	public void softDelete(Instant deletedAt) {
+		this.deletedAt = deletedAt;
+	}
 }

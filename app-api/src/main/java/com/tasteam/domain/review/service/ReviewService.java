@@ -1,11 +1,15 @@
 package com.tasteam.domain.review.service;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.member.dto.response.MemberPreviewResponse;
 import com.tasteam.domain.member.dto.response.ReviewPreviewResponse;
@@ -16,11 +20,21 @@ import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.restaurant.support.CursorCodec;
 import com.tasteam.domain.review.dto.ReviewCursor;
+import com.tasteam.domain.review.dto.ReviewDetailQueryDto;
 import com.tasteam.domain.review.dto.ReviewMemberQueryDto;
 import com.tasteam.domain.review.dto.ReviewQueryDto;
+import com.tasteam.domain.review.dto.request.ReviewCreateRequest;
+import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
+import com.tasteam.domain.review.dto.response.ReviewDetailResponse;
+import com.tasteam.domain.review.entity.Keyword;
+import com.tasteam.domain.review.entity.Review;
+import com.tasteam.domain.review.entity.ReviewImage;
+import com.tasteam.domain.review.entity.ReviewKeyword;
+import com.tasteam.domain.review.repository.KeywordRepository;
 import com.tasteam.domain.review.repository.ReviewImageRepository;
 import com.tasteam.domain.review.repository.ReviewKeywordRepository;
 import com.tasteam.domain.review.repository.ReviewQueryRepository;
+import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.domain.review.repository.projection.ReviewImageProjection;
 import com.tasteam.domain.review.repository.projection.ReviewKeywordProjection;
 import com.tasteam.global.dto.api.PaginationResponse;
@@ -29,8 +43,7 @@ import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
-import com.tasteam.domain.review.repository.ReviewRepository;
-import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.global.exception.code.ReviewErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -44,10 +57,120 @@ public class ReviewService {
 	private final RestaurantRepository restaurantRepository;
 	private final GroupRepository groupRepository;
 	private final MemberRepository memberRepository;
+	private final ReviewRepository reviewRepository;
+	private final KeywordRepository keywordRepository;
 	private final ReviewQueryRepository reviewQueryRepository;
 	private final ReviewKeywordRepository reviewKeywordRepository;
 	private final ReviewImageRepository reviewImageRepository;
+	private final ImageRepository imageRepository;
 	private final CursorCodec cursorCodec;
+
+	public ReviewDetailResponse getReviewDetail(long reviewId) {
+		ReviewDetailQueryDto review = reviewQueryRepository.findReviewDetail(reviewId);
+		if (review == null) {
+			throw new BusinessException(ReviewErrorCode.REVIEW_NOT_FOUND);
+		}
+
+		List<String> keywords = reviewKeywordRepository
+			.findReviewKeywords(List.of(reviewId))
+			.stream()
+			.map(ReviewKeywordProjection::getKeywordName)
+			.toList();
+
+		List<ReviewDetailResponse.ReviewImageResponse> images = reviewImageRepository
+			.findReviewImages(List.of(reviewId))
+			.stream()
+			.map(image -> new ReviewDetailResponse.ReviewImageResponse(
+				image.getImageId(),
+				image.getImageUrl()))
+			.toList();
+
+		return new ReviewDetailResponse(
+			review.reviewId(),
+			new ReviewDetailResponse.RestaurantResponse(
+				review.restaurantId(),
+				review.restaurantName()),
+			new ReviewDetailResponse.AuthorResponse(
+				review.memberId(),
+				review.memberNickname()),
+			review.content(),
+			review.isRecommended(),
+			keywords,
+			images,
+			review.createdAt(),
+			review.updatedAt());
+	}
+
+	@Transactional
+	public ReviewCreateResponse createReview(
+		long memberId,
+		long restaurantId,
+		ReviewCreateRequest request) {
+		if (!restaurantRepository.existsByIdAndDeletedAtIsNull(restaurantId)) {
+			throw new BusinessException(RestaurantErrorCode.RESTAURANT_NOT_FOUND);
+		}
+		if (!memberRepository.existsByIdAndDeletedAtIsNull(memberId)) {
+			throw new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND);
+		}
+		if (!groupRepository.existsByIdAndDeletedAtIsNull(request.groupId())) {
+			throw new BusinessException(GroupErrorCode.GROUP_NOT_FOUND);
+		}
+
+		List<Keyword> keywords = keywordRepository.findAllById(request.keywordIds());
+		if (keywords.size() != request.keywordIds().size()) {
+			throw new BusinessException(ReviewErrorCode.KEYWORD_NOT_FOUND);
+		}
+
+		Review review = Review.create(
+			restaurantRepository.getReferenceById(restaurantId),
+			memberRepository.getReferenceById(memberId),
+			request.groupId(),
+			request.subgroupId(),
+			request.content(),
+			request.isRecommended());
+		reviewRepository.save(review);
+
+		List<ReviewKeyword> mappings = keywords.stream()
+			.map(keyword -> ReviewKeyword.create(review, keyword))
+			.toList();
+		reviewKeywordRepository.saveAll(mappings);
+
+		if (request.imageIds() != null && !request.imageIds().isEmpty()) {
+			List<ReviewImage> images = new ArrayList<>();
+			for (int index = 0; index < request.imageIds().size(); index++) {
+				imageRepository.findByFileUuid(request.imageIds().get(index))
+					// TODO: storage key -> url 변환 필요
+					.ifPresent(image -> images.add(ReviewImage.create(review, image.getStorageKey())));
+			}
+			reviewImageRepository.saveAll(images);
+		}
+
+		// FIXME: 공통 응답 래퍼 분리
+		return new ReviewCreateResponse(
+			new ReviewCreateResponse.ReviewCreateData(
+				review.getId(),
+				review.getCreatedAt()));
+	}
+
+	@Transactional
+	public void deleteReview(long memberId, long reviewId) {
+		Review review = reviewRepository.findByIdAndDeletedAtIsNull(reviewId)
+			.orElseThrow(() -> new BusinessException(ReviewErrorCode.REVIEW_NOT_FOUND));
+		if (!review.getMember().getId().equals(memberId)) {
+			throw new BusinessException(CommonErrorCode.NO_PERMISSION);
+		}
+
+		// 리뷰 키워드 물리 삭제
+		Instant now = Instant.now();
+		review.softDelete(now);
+		reviewKeywordRepository.deleteByReview_Id(reviewId);
+
+		// 리뷰 이미지 소프트 삭제
+		List<ReviewImage> images = reviewImageRepository.findByReview_IdAndDeletedAtIsNull(reviewId);
+		for (ReviewImage image : images) {
+			image.softDelete(now);
+		}
+	}
 
 	public CursorPageResponse<ReviewResponse> getRestaurantReviews(
 		long restaurantId,
@@ -195,23 +318,6 @@ public class ReviewService {
 				items.size()));
 	}
 
-	private int resolveSize(Integer size) {
-		if (size == null) {
-			return DEFAULT_PAGE_SIZE;
-		}
-		if (size < 1 || size > MAX_PAGE_SIZE) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-		return size;
-	}
-
-	private ReviewCursor parseCursor(String cursor) {
-		if (cursor == null || cursor.isBlank()) {
-			return null;
-		}
-		return cursorCodec.decode(cursor, ReviewCursor.class);
-	}
-
 	public MemberPreviewResponse<ReviewPreviewResponse> getMemberReviews(
 		long memberId,
 		RestaurantReviewListRequest request) {
@@ -254,5 +360,22 @@ public class ReviewService {
 			.build();
 
 		return new MemberPreviewResponse<>(items, page);
+	}
+
+	private int resolveSize(Integer size) {
+		if (size == null) {
+			return DEFAULT_PAGE_SIZE;
+		}
+		if (size < 1 || size > MAX_PAGE_SIZE) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+		return size;
+	}
+
+	private ReviewCursor parseCursor(String cursor) {
+		if (cursor == null || cursor.isBlank()) {
+			return null;
+		}
+		return cursorCodec.decode(cursor, ReviewCursor.class);
 	}
 }

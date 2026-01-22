@@ -18,9 +18,12 @@ public interface ReviewImageRepository extends JpaRepository<ReviewImage, Long> 
 			ri.imageUrl as imageUrl
 		from ReviewImage ri
 		where ri.review.id in :reviewIds
+		  and ri.deletedAt is null
 		order by ri.review.id asc, ri.id asc
 		""")
 	List<ReviewImageProjection> findReviewImages(
 		@Param("reviewIds")
 		List<Long> reviewIds);
+
+	List<ReviewImage> findByReview_IdAndDeletedAtIsNull(Long reviewId);
 }

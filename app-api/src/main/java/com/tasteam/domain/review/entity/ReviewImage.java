@@ -1,7 +1,8 @@
 package com.tasteam.domain.review.entity;
 
+import java.time.Instant;
+
 import org.hibernate.annotations.Comment;
-import org.springframework.util.Assert;
 
 import com.tasteam.domain.common.BaseCreatedAtEntity;
 
@@ -41,19 +42,18 @@ public class ReviewImage extends BaseCreatedAtEntity {
 	@Column(name = "image_url", nullable = false, length = 500)
 	private String imageUrl;
 
+	@Column(name = "deleted_at")
+	private Instant deletedAt;
+
 	public static ReviewImage create(Review review, String imageUrl) {
-		validateCreate(review, imageUrl);
 		return ReviewImage.builder()
 			.review(review)
 			.imageUrl(imageUrl)
+			.deletedAt(null)
 			.build();
 	}
 
-	private static void validateCreate(Review review, String imageUrl) {
-		Assert.notNull(review, "리뷰는 필수입니다");
-		Assert.hasText(imageUrl, "이미지 URL은 필수입니다");
-		if (imageUrl.length() > 500) {
-			throw new IllegalArgumentException("이미지 URL이 너무 깁니다");
-		}
+	public void softDelete(Instant deletedAt) {
+		this.deletedAt = deletedAt;
 	}
 }

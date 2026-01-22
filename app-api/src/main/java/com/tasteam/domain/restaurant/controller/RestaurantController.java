@@ -10,8 +10,12 @@ import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.*;
 import com.tasteam.domain.restaurant.service.RestaurantService;
+import com.tasteam.domain.review.dto.request.ReviewCreateRequest;
+import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.domain.review.service.ReviewService;
+import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -68,5 +72,18 @@ public class RestaurantController {
 		@ModelAttribute
 		RestaurantReviewListRequest request) {
 		return reviewService.getRestaurantReviews(restaurantId, request);
+	}
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@PreAuthorize("hasRole('USER')")
+	@PostMapping("/{restaurantId}/reviews")
+	public ReviewCreateResponse createReview(
+		@PathVariable
+		Long restaurantId,
+		@CurrentUser
+		Long memberId,
+		@Valid @RequestBody
+		ReviewCreateRequest request) {
+		return reviewService.createReview(memberId, restaurantId, request);
 	}
 }

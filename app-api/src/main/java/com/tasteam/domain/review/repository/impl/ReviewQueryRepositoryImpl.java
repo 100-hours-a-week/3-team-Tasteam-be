@@ -10,6 +10,7 @@ import com.tasteam.domain.common.repository.QueryDslSupport;
 import com.tasteam.domain.member.entity.QMember;
 import com.tasteam.domain.restaurant.entity.QRestaurant;
 import com.tasteam.domain.review.dto.ReviewCursor;
+import com.tasteam.domain.review.dto.ReviewDetailQueryDto;
 import com.tasteam.domain.review.dto.ReviewMemberQueryDto;
 import com.tasteam.domain.review.dto.ReviewQueryDto;
 import com.tasteam.domain.review.entity.QReview;
@@ -96,6 +97,34 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 			.orderBy(review.createdAt.desc(), review.id.desc())
 			.limit(size)
 			.fetch();
+	}
+
+	@Override
+	public ReviewDetailQueryDto findReviewDetail(Long reviewId) {
+		QReview review = QReview.review;
+		QRestaurant restaurant = QRestaurant.restaurant;
+		QMember member = QMember.member;
+
+		return getQueryFactory()
+			.select(Projections.constructor(
+				ReviewDetailQueryDto.class,
+				review.id,
+				restaurant.id,
+				restaurant.name,
+				member.id,
+				member.nickname,
+				review.content,
+				review.isRecommended,
+				review.createdAt,
+				review.updatedAt))
+			.from(review)
+			.join(review.restaurant, restaurant)
+			.join(review.member, member)
+			.where(
+				review.id.eq(reviewId),
+				review.deletedAt.isNull(),
+				restaurant.deletedAt.isNull())
+			.fetchOne();
 	}
 
 	private BooleanExpression cursorCondition(ReviewCursor cursor, QReview review) {
