@@ -22,13 +22,18 @@ import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjection;
 import com.tasteam.domain.restaurant.support.CursorCodec;
+import com.tasteam.domain.search.dto.RecentSearchCursor;
 import com.tasteam.domain.search.dto.SearchCursor;
+import com.tasteam.domain.search.dto.request.RecentSearchQueryParams;
 import com.tasteam.domain.search.dto.request.SearchRequest;
+import com.tasteam.domain.search.dto.response.RecentSearchListResponse;
 import com.tasteam.domain.search.dto.response.SearchGroupSummary;
 import com.tasteam.domain.search.dto.response.SearchResponse;
 import com.tasteam.domain.search.dto.response.SearchRestaurantItem;
 import com.tasteam.domain.search.entity.MemberSearchHistory;
 import com.tasteam.domain.search.repository.MemberSearchHistoryRepository;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.SearchErrorCode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -68,12 +73,67 @@ public class SearchService {
 				List.of()));
 	}
 
+	@Transactional(readOnly = true)
+	public RecentSearchListResponse getRecentSearches(Long memberId, RecentSearchQueryParams params) {
+		int pageSize = params.size() == null ? DEFAULT_PAGE_SIZE : params.size();
+		RecentSearchCursor cursor = decodeRecentCursorOrNull(params.cursor());
+		if (params.cursor() != null && cursor == null) {
+			return new RecentSearchListResponse(List.of(), new RecentSearchListResponse.PageInfo(null, 0, false));
+		}
+
+		List<MemberSearchHistory> results = memberSearchHistoryRepository.findRecentSearches(
+			memberId,
+			cursor == null ? null : cursor.updatedAt(),
+			cursor == null ? null : cursor.id(),
+			PageRequest.of(0, pageSize + 1));
+
+		boolean hasNext = results.size() > pageSize;
+		List<MemberSearchHistory> pageContent = hasNext ? results.subList(0, pageSize) : results;
+
+		String nextCursor = null;
+		if (hasNext && !pageContent.isEmpty()) {
+			MemberSearchHistory last = pageContent.getLast();
+			nextCursor = cursorCodec.encode(new RecentSearchCursor(last.getUpdatedAt(), last.getId()));
+		}
+
+		List<RecentSearchListResponse.RecentSearchItem> data = pageContent.stream()
+			.map(history -> new RecentSearchListResponse.RecentSearchItem(
+				history.getId(),
+				history.getKeyword(),
+				history.getCount(),
+				history.getUpdatedAt()))
+			.toList();
+
+		return new RecentSearchListResponse(
+			data,
+			new RecentSearchListResponse.PageInfo(nextCursor, data.size(), hasNext));
+	}
+
+	@Transactional
+	public void deleteRecentSearch(Long memberId, Long historyId) {
+		MemberSearchHistory history = memberSearchHistoryRepository
+			.findByIdAndMemberIdAndDeletedAtIsNull(historyId, memberId)
+			.orElseThrow(() -> new BusinessException(SearchErrorCode.RECENT_SEARCH_NOT_FOUND));
+		history.delete();
+	}
+
 	private SearchCursor decodeCursorOrNull(String cursor) {
 		if (cursor == null || cursor.isBlank()) {
 			return null;
 		}
 		try {
 			return cursorCodec.decode(cursor, SearchCursor.class);
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+
+	private RecentSearchCursor decodeRecentCursorOrNull(String cursor) {
+		if (cursor == null || cursor.isBlank()) {
+			return null;
+		}
+		try {
+			return cursorCodec.decode(cursor, RecentSearchCursor.class);
 		} catch (Exception ex) {
 			return null;
 		}

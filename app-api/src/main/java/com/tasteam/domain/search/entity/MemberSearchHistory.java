@@ -56,4 +56,8 @@ public class MemberSearchHistory extends BaseTimeEntity {
 	public void incrementCount() {
 		this.count = this.count + 1L;
 	}
+
+	public void delete() {
+		this.deletedAt = Instant.now();
+	}
 }
