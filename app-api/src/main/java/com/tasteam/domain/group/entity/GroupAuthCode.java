@@ -43,4 +43,8 @@ public class GroupAuthCode extends BaseCreatedAtEntity {
 
 	@Column(name = "expires_at", nullable = false)
 	private Instant expiresAt;
+
+	public void verify(Instant verifiedAt) {
+		this.verifiedAt = verifiedAt;
+	}
 }

@@ -1326,6 +1326,25 @@ erDiagram
                 - `code`: string - 이메일로 받은 인증번호
             - 예시(JSON)
               ```json
+              { "code": "123456" }### **그룹 가입: 이메일 인증번호 검증 후 가입**
+
+- **API 명세:**
+    - `POST /groups/{groupId}/email-authentications`
+    - API 문서 링크: [API 명세서(3-42)](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BBE-%E2%80%90-API%5D-API-%EB%AA%85%EC%84%B8%EC%84%9C#user-content-api-42)
+- **권한:** 로그인 사용자
+- **구현 상세:**
+    - **요청**
+        - **Path Params**
+            - `groupId`: number
+        - **Headers:**
+            - `Authorization`: string - `Bearer {accessToken}`
+            - `Content-Type`: string - `application/json; charset=utf-8`
+        - **Request Body**
+            - content-type: `application/json`
+            - 스키마(필드 정의)
+                - `code`: string - 이메일로 받은 인증번호
+            - 예시(JSON)
+              ```json
               { "code": "123456" }
               ```
     - **응답**
@@ -1338,13 +1357,16 @@ erDiagram
           { "data": { "verified": true, "joinedAt": "2026-01-11T02:25:00+09:00" } }
           ```
     - **처리 로직:**
-        1. `group` 조회 및 `join_type=EMAIL` 확인 
-        2.  Redis에서 code 조회/비교(만료/시도 횟수 제한 포함)
-        3. `group_member` 생성 또는 soft delete 복구
-        4. 201 반환(`data.verified=true`, `joinedAt`)
+        1. `group` 조회 및 `join_type=EMAIL` 확인
+           - `group.id` = `groupId`
+           - `deleted_at` IS NULL
+           - `join_type` = EMAIL
+           아니면 GROUP_NOT_FOUND / INVALID_REQUEST
+        2.  `group_auth_code.code`와 rquest의 `code` 비교
+        3. `group_member` 생성 또는 soft delete NULL로 변경
+        4. 201 반환(`data.verified=true`, `joinedAt`, `group_auth_code.verified_at`= now())
     - **트랜잭션 관리:** 멤버십 upsert 단일 트랜잭션
     - **동시성/멱등성:** `(group_id, member_id)` 유니크로 중복 가입 방지(충돌 시 멱등 처리 여부 확정)
-    - **저장소 변경:** 검증 성공 시 Redis 코드 삭제(재사용 방지)
     - **에러 코드(주요):** `INVALID_REQUEST`(400), `UNAUTHORIZED`(401), `GROUP_NOT_FOUND`(404), `EMAIL_CODE_MISMATCH`(409), `INTERNAL_SERVER_ERROR`(500)
 
 ### **그룹 가입: 비밀번호 검증 후 가입**

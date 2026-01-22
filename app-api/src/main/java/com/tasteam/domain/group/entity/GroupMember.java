@@ -42,4 +42,8 @@ public class GroupMember extends BaseCreatedAtEntity {
 	public void delete(Instant deletedAt) {
 		this.deletedAt = deletedAt;
 	}
+
+	public void restore() {
+		this.deletedAt = null;
+	}
 }
