@@ -123,12 +123,12 @@ public class GroupController {
 
 	@ResponseStatus(HttpStatus.OK)
 	@GetMapping("/{groupId}/reviews")
-	public CursorPageResponse<ReviewResponse> getGroupReviews(
+	public SuccessResponse<CursorPageResponse<ReviewResponse>> getGroupReviews(
 		@PathVariable @Positive
 		Long groupId,
 		@ModelAttribute
 		RestaurantReviewListRequest request) {
-		return reviewService.getGroupReviews(groupId, request);
+		return SuccessResponse.success(reviewService.getGroupReviews(groupId, request));
 	}
 
 	@ResponseStatus(HttpStatus.OK)

@@ -147,9 +147,8 @@ public class ReviewService {
 
 		// FIXME: 공통 응답 래퍼 분리
 		return new ReviewCreateResponse(
-			new ReviewCreateResponse.ReviewCreateData(
-				review.getId(),
-				review.getCreatedAt()));
+			review.getId(),
+			review.getCreatedAt());
 	}
 
 	@Transactional

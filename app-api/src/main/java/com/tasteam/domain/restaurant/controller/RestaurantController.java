@@ -13,6 +13,7 @@ import com.tasteam.domain.restaurant.service.RestaurantService;
 import com.tasteam.domain.review.dto.request.ReviewCreateRequest;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.domain.review.service.ReviewService;
+import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
 import jakarta.validation.Valid;
@@ -28,32 +29,29 @@ public class RestaurantController {
 
 	@ResponseStatus(HttpStatus.OK)
 	@GetMapping("/{restaurantId}")
-	public RestaurantDetailResponse getRestaurant(
+	public SuccessResponse<RestaurantDetailResponse> getRestaurant(
 		@PathVariable
 		Long restaurantId) {
-		RestaurantDetailResponse.RestaurantDetailData data = restaurantService.getRestaurantDetail(restaurantId);
-		return new RestaurantDetailResponse(data);
+		return SuccessResponse.success(restaurantService.getRestaurantDetail(restaurantId));
 	}
 
 	@ResponseStatus(HttpStatus.CREATED)
 	@PreAuthorize("hasRole('ADMIN')")
 	@PostMapping
-	public RestaurantCreateResponse createRestaurant(@RequestBody
+	public SuccessResponse<RestaurantCreateResponse> createRestaurant(@RequestBody
 	RestaurantCreateRequest request) {
-		RestaurantCreateResponse.RestaurantCreateData data = restaurantService.createRestaurant(request);
-		return new RestaurantCreateResponse(data);
+		return SuccessResponse.success(restaurantService.createRestaurant(request));
 	}
 
 	@ResponseStatus(HttpStatus.OK)
 	@PreAuthorize("hasRole('ADMIN')")
 	@PatchMapping("/{restaurantId}")
-	public RestaurantUpdateResponse updateRestaurant(
+	public SuccessResponse<RestaurantUpdateResponse> updateRestaurant(
 		@PathVariable
 		Long restaurantId,
 		@RequestBody
 		RestaurantUpdateRequest request) {
-		RestaurantUpdateResponse.RestaurantUpdateData data = restaurantService.updateRestaurant(restaurantId, request);
-		return new RestaurantUpdateResponse(data);
+		return SuccessResponse.success(restaurantService.updateRestaurant(restaurantId, request));
 	}
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -66,24 +64,24 @@ public class RestaurantController {
 
 	@ResponseStatus(HttpStatus.OK)
 	@GetMapping("/{restaurantId}/reviews")
-	public CursorPageResponse<ReviewResponse> getRestaurantReviews(
+	public SuccessResponse<CursorPageResponse<ReviewResponse>> getRestaurantReviews(
 		@PathVariable
 		Long restaurantId,
 		@ModelAttribute
 		RestaurantReviewListRequest request) {
-		return reviewService.getRestaurantReviews(restaurantId, request);
+		return SuccessResponse.success(reviewService.getRestaurantReviews(restaurantId, request));
 	}
 
 	@ResponseStatus(HttpStatus.CREATED)
 	@PreAuthorize("hasRole('USER')")
 	@PostMapping("/{restaurantId}/reviews")
-	public ReviewCreateResponse createReview(
+	public SuccessResponse<ReviewCreateResponse> createReview(
 		@PathVariable
 		Long restaurantId,
 		@CurrentUser
 		Long memberId,
 		@Valid @RequestBody
 		ReviewCreateRequest request) {
-		return reviewService.createReview(memberId, restaurantId, request);
+		return SuccessResponse.success(reviewService.createReview(memberId, restaurantId, request));
 	}
 }
