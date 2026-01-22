@@ -21,8 +21,7 @@ public class GroupMemberListItem {
 		Long memberId,
 		String nickname,
 		String profileImageUrl,
-		Instant createdAt
-	) {
+		Instant createdAt) {
 		this.cursorId = cursorId;
 		this.memberId = memberId;
 		this.nickname = nickname;

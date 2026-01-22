@@ -1,16 +1,28 @@
 package com.tasteam.domain.group.service;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
+
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.tasteam.domain.group.dto.GroupCreateRequest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
 import com.tasteam.domain.group.dto.GroupEmailAuthenticationResponse;
 import com.tasteam.domain.group.dto.GroupEmailVerificationResponse;
 import com.tasteam.domain.group.dto.GroupGetResponse;
-import com.tasteam.domain.group.dto.GroupUpdateRequest;
 import com.tasteam.domain.group.dto.GroupMemberListItem;
 import com.tasteam.domain.group.dto.GroupMemberListResponse;
+import com.tasteam.domain.group.dto.GroupUpdateRequest;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.entity.GroupAuthCode;
 import com.tasteam.domain.group.entity.GroupJoinType;
@@ -21,24 +33,11 @@ import com.tasteam.domain.group.repository.GroupAuthCodeRepository;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.member.repository.MemberRepository;
-import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
+import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.notification.email.EmailSender;
-import com.fasterxml.jackson.databind.JsonNode;
-
-import java.util.function.Consumer;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
-import org.springframework.data.domain.PageRequest;
-
-import java.time.Instant;
-import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 import lombok.RequiredArgsConstructor;
 
@@ -178,8 +177,7 @@ public class GroupService {
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 		GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberIdAndDeletedAtIsNull(
 			group.getId(),
-			memberId
-		).orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
+			memberId).orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 		groupMember.delete(Instant.now());
 	}
 
@@ -194,8 +192,7 @@ public class GroupService {
 		List<GroupMemberListItem> items = groupMemberRepository.findGroupMembers(
 			groupId,
 			cursorId,
-			PageRequest.of(0, resolvedSize + 1)
-		);
+			PageRequest.of(0, resolvedSize + 1));
 
 		boolean hasNext = items.size() > resolvedSize;
 		if (hasNext) {
@@ -222,8 +219,7 @@ public class GroupService {
 			.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 		GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberIdAndDeletedAtIsNull(
 			groupId,
-			userId
-		).orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
+			userId).orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 		groupMember.delete(Instant.now());
 	}
 

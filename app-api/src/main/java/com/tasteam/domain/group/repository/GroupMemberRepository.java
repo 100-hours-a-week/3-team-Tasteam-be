@@ -3,13 +3,13 @@ package com.tasteam.domain.group.repository;
 import java.util.List;
 import java.util.Optional;
 
-import com.tasteam.domain.group.dto.GroupMemberListItem;
-import com.tasteam.domain.group.entity.GroupMember;
-
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.tasteam.domain.group.dto.GroupMemberListItem;
+import com.tasteam.domain.group.entity.GroupMember;
 
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
 
@@ -33,8 +33,9 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 		order by gm.id desc
 		""")
 	List<GroupMemberListItem> findGroupMembers(
-		@Param("groupId") Long groupId,
-		@Param("cursor") Long cursor,
-		Pageable pageable
-	);
+		@Param("groupId")
+		Long groupId,
+		@Param("cursor")
+		Long cursor,
+		Pageable pageable);
 }

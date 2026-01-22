@@ -2,8 +2,9 @@ package com.tasteam.domain.group.entity;
 
 import java.time.Instant;
 
-import com.tasteam.domain.common.BaseTimeEntity;
 import org.locationtech.jts.geom.Point;
+
+import com.tasteam.domain.common.BaseTimeEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

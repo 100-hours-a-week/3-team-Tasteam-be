@@ -35,7 +35,6 @@ public class GroupMember extends BaseCreatedAtEntity {
 	@Column(name = "member_id", nullable = false)
 	private Long memberId;
 
-
 	@Column(name = "deleted_at")
 	private Instant deletedAt;
 

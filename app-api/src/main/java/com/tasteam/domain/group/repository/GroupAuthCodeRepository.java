@@ -13,6 +13,5 @@ public interface GroupAuthCodeRepository extends JpaRepository<GroupAuthCode, Lo
 	java.util.Optional<GroupAuthCode> findByGroupIdAndCodeAndExpiresAtAfterAndVerifiedAtIsNull(
 		Long groupId,
 		String code,
-		Instant now
-	);
+		Instant now);
 }
