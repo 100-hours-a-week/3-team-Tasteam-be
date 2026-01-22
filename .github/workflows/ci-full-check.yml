@@ -10,6 +10,9 @@ jobs:
   quick-check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout source code
@@ -39,6 +42,32 @@ jobs:
       # 빌드 + 테스트
       - name: Build with Gradle
         run: ./gradlew build
+
+      # 보안 분석 - SpotBugs + Find Security Bugs
+      - name: Run SpotBugs Security Analysis
+        run: ./gradlew :app-api:spotbugsMain
+        continue-on-error: true
+
+      # SpotBugs 리포트 업로드
+      - name: Upload SpotBugs Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spotbugs-report
+          path: app-api/build/reports/spotbugs/main/spotbugs.html
+          retention-days: 7
+
+      # CodeQL 보안 분석
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+          queries: security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java"
 
       # 1주차 생략
 #      # 테스트 커버리지 리포트 생성
