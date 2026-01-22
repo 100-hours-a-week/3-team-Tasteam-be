@@ -37,12 +37,12 @@ import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
 import com.tasteam.domain.restaurant.repository.*;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjection;
-import com.tasteam.domain.restaurant.support.CursorCodec;
 import com.tasteam.domain.restaurant.validator.GroupRestaurantSearchConditionValidator;
 import com.tasteam.domain.restaurant.validator.RestaurantFoodCategoryValidator;
 import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
+import com.tasteam.global.utils.CursorCodec;
 
 import lombok.RequiredArgsConstructor;
 
@@ -143,13 +143,8 @@ public class RestaurantService {
 		 */
 
 		// 커서 변환
-		RestaurantCursor cursor = null;
-		try {
-			if (queryParam.cursor() != null) {
-				cursor = cursorCodec.decode(queryParam.cursor(), RestaurantCursor.class);
-			}
-
-		} catch (Exception e) {
+		RestaurantCursor cursor = cursorCodec.decodeOrNull(queryParam.cursor(), RestaurantCursor.class);
+		if (queryParam.cursor() != null && cursor == null) {
 			// 유효하지 않은 커서인 경우 다음 페이지 없음으로 해석
 			return CursorPageResponse.empty();
 		}

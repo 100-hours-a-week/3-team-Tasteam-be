@@ -21,7 +21,6 @@ import com.tasteam.domain.restaurant.repository.RestaurantImageRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjection;
-import com.tasteam.domain.restaurant.support.CursorCodec;
 import com.tasteam.domain.search.dto.RecentSearchCursor;
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.request.RecentSearchQueryParams;
@@ -34,6 +33,7 @@ import com.tasteam.domain.search.entity.MemberSearchHistory;
 import com.tasteam.domain.search.repository.MemberSearchHistoryRepository;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.SearchErrorCode;
+import com.tasteam.global.utils.CursorCodec;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +57,7 @@ public class SearchService {
 	public SearchResponse search(Long memberId, SearchRequest request) {
 		String keyword = request.keyword().trim();
 		int pageSize = request.size() == null ? DEFAULT_PAGE_SIZE : request.size();
-		SearchCursor cursor = decodeCursorOrNull(request.cursor());
+		SearchCursor cursor = cursorCodec.decodeOrNull(request.cursor(), SearchCursor.class);
 		if (request.cursor() != null && cursor == null) {
 			return emptyResponse();
 		}
@@ -76,7 +76,7 @@ public class SearchService {
 	@Transactional(readOnly = true)
 	public RecentSearchListResponse getRecentSearches(Long memberId, RecentSearchQueryParams params) {
 		int pageSize = params.size() == null ? DEFAULT_PAGE_SIZE : params.size();
-		RecentSearchCursor cursor = decodeRecentCursorOrNull(params.cursor());
+		RecentSearchCursor cursor = cursorCodec.decodeOrNull(params.cursor(), RecentSearchCursor.class);
 		if (params.cursor() != null && cursor == null) {
 			return new RecentSearchListResponse(List.of(), new RecentSearchListResponse.PageInfo(null, 0, false));
 		}
@@ -115,28 +115,6 @@ public class SearchService {
 			.findByIdAndMemberIdAndDeletedAtIsNull(historyId, memberId)
 			.orElseThrow(() -> new BusinessException(SearchErrorCode.RECENT_SEARCH_NOT_FOUND));
 		history.delete();
-	}
-
-	private SearchCursor decodeCursorOrNull(String cursor) {
-		if (cursor == null || cursor.isBlank()) {
-			return null;
-		}
-		try {
-			return cursorCodec.decode(cursor, SearchCursor.class);
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-
-	private RecentSearchCursor decodeRecentCursorOrNull(String cursor) {
-		if (cursor == null || cursor.isBlank()) {
-			return null;
-		}
-		try {
-			return cursorCodec.decode(cursor, RecentSearchCursor.class);
-		} catch (Exception ex) {
-			return null;
-		}
 	}
 
 	private CursorPageResponse<SearchRestaurantItem> searchRestaurants(

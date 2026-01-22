@@ -1,4 +1,4 @@
-package com.tasteam.domain.restaurant.support;
+package com.tasteam.global.utils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -36,6 +36,17 @@ public class CursorCodec {
 
 		} catch (IllegalArgumentException | JsonProcessingException e) {
 			throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	public <T> T decodeOrNull(String cursor, Class<T> type) {
+		if (cursor == null || cursor.isBlank()) {
+			return null;
+		}
+		try {
+			return decode(cursor, type);
+		} catch (Exception ex) {
+			return null;
 		}
 	}
 }
