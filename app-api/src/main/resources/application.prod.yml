@@ -80,3 +80,9 @@ management:
     health:
       probes:
         enabled: true
+
+naver:
+  maps:
+    base-url: https://naveropenapi.apigw.ntruss.com
+    api-key-id: ${NAVER_MAPS_API_KEY_ID:dummy}
+    api-key: ${NAVER_MAPS_API_KEY:dummy}
