@@ -45,3 +45,9 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
+
+naver:
+  maps:
+    base-url: https://naveropenapi.apigw.ntruss.com
+    api-key-id: ${NAVER_MAPS_API_KEY_ID:dummy}
+    api-key: ${NAVER_MAPS_API_KEY:dummy}

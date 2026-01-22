@@ -144,14 +144,14 @@ public class GroupService {
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.EMAIL_CODE_MISMATCH));
 
 		GroupMember groupMember = groupMemberRepository
-			.findByGroupIdAndMemberId(groupId, memberId)
+			.findByGroupIdAndMember_Id(groupId, memberId)
 			.orElse(null);
 
 		if (groupMember == null) {
-			groupMember = groupMemberRepository.save(GroupMember.builder()
-				.groupId(groupId)
-				.memberId(memberId)
-				.build());
+			groupMember = groupMemberRepository.save(GroupMember.create(
+				groupId,
+				memberRepository.findByIdAndDeletedAtIsNull(memberId)
+					.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND))));
 		} else if (groupMember.getDeletedAt() != null) {
 			groupMember.restore();
 		}
@@ -175,10 +175,10 @@ public class GroupService {
 	public void withdrawGroup(Long groupId, Long memberId) {
 		Group group = groupRepository.findByIdAndDeletedAtIsNull(groupId)
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
-		GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberIdAndDeletedAtIsNull(
+		GroupMember groupMember = groupMemberRepository.findByGroupIdAndMember_IdAndDeletedAtIsNull(
 			group.getId(),
 			memberId).orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
-		groupMember.delete(Instant.now());
+		groupMember.softDelete(Instant.now());
 	}
 
 	@Transactional(readOnly = true)
@@ -217,10 +217,10 @@ public class GroupService {
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 		memberRepository.findByIdAndDeletedAtIsNull(userId)
 			.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
-		GroupMember groupMember = groupMemberRepository.findByGroupIdAndMemberIdAndDeletedAtIsNull(
+		GroupMember groupMember = groupMemberRepository.findByGroupIdAndMember_IdAndDeletedAtIsNull(
 			groupId,
 			userId).orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
-		groupMember.delete(Instant.now());
+		groupMember.softDelete(Instant.now());
 	}
 
 	private void validateCreateRequest(GroupCreateRequest request) {

@@ -13,20 +13,20 @@ import com.tasteam.domain.group.entity.GroupMember;
 
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
 
-	Optional<GroupMember> findByGroupIdAndMemberIdAndDeletedAtIsNull(Long groupId, Long memberId);
+	Optional<GroupMember> findByGroupIdAndMember_IdAndDeletedAtIsNull(Long groupId, Long memberId);
 
-	Optional<GroupMember> findByGroupIdAndMemberId(Long groupId, Long memberId);
+	Optional<GroupMember> findByGroupIdAndMember_Id(Long groupId, Long memberId);
 
 	@Query("""
 		select new com.tasteam.domain.group.dto.GroupMemberListItem(
 			gm.id,
-			gm.memberId,
+			gm.member.id,
 			m.nickname,
 			m.profileImageUrl,
 			gm.createdAt
 		)
 		from GroupMember gm
-		join com.tasteam.domain.member.entity.Member m on gm.memberId = m.id
+		join gm.member m
 		where gm.groupId = :groupId
 			and gm.deletedAt is null
 			and (:cursor is null or gm.id < :cursor)
