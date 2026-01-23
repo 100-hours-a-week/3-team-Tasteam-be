@@ -1,6 +1,7 @@
 plugins {
     id 'org.springframework.boot'
     id 'io.spring.dependency-management'
+    id 'com.github.spotbugs' version '6.0.26'
 }
 
 dependencies {
@@ -94,6 +95,9 @@ dependencies {
     testImplementation "org.mockito:mockito-core:5.17.0"
 
     testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.12.2"
+
+    // Find Security Bugs
+    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.13.0'
 }
 
 tasks.withType(Test).configureEach {
@@ -109,5 +113,43 @@ tasks.jacocoTestReport {
         html.required = true
         xml.required = true
         csv.required = false
+    }
+}
+
+// SpotBugs 설정 (보안 체크)
+spotbugs {
+    ignoreFailures = true
+    showStackTraces = true
+    showProgress = true
+    effort = 'max'
+    reportLevel = 'low'
+}
+
+spotbugsMain {
+    classDirs = files(sourceSets.main.output.classesDirs)
+    auxClassPaths = configurations.compileClasspath + configurations.runtimeClasspath
+
+    reports {
+        html {
+            required = true
+            outputLocation = file("$buildDir/reports/spotbugs/main/spotbugs.html")
+            stylesheet = 'fancy-hist.xsl'
+        }
+        xml {
+            required = false
+        }
+    }
+}
+
+spotbugsTest {
+    reports {
+        html {
+            required = true
+            outputLocation = file("$buildDir/reports/spotbugs/test/spotbugs.html")
+            stylesheet = 'fancy-hist.xsl'
+        }
+        xml {
+            required = false
+        }
     }
 }

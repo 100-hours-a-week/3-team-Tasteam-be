@@ -24,12 +24,12 @@ import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
 import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
-import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse.RestaurantCreateData;
+import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
+import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse.RecommendStatResponse;
-import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse.RestaurantDetailData;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
-import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse.RestaurantUpdateData;
+import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
 import com.tasteam.domain.restaurant.entity.*;
 import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
 import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
@@ -37,12 +37,12 @@ import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
 import com.tasteam.domain.restaurant.repository.*;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjection;
-import com.tasteam.domain.restaurant.support.CursorCodec;
 import com.tasteam.domain.restaurant.validator.GroupRestaurantSearchConditionValidator;
 import com.tasteam.domain.restaurant.validator.RestaurantFoodCategoryValidator;
 import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
+import com.tasteam.global.utils.CursorCodec;
 
 import lombok.RequiredArgsConstructor;
 
@@ -68,7 +68,7 @@ public class RestaurantService {
 	private final NaverGeocodingClient naverGeocodingClient;
 
 	@Transactional(readOnly = true)
-	public RestaurantDetailData getRestaurantDetail(long restaurantId) {
+	public RestaurantDetailResponse getRestaurantDetail(long restaurantId) {
 
 		// 음식점
 		Restaurant restaurant = restaurantRepository.findByIdAndDeletedAtIsNull(restaurantId)
@@ -115,7 +115,7 @@ public class RestaurantService {
 			notRecommendedCount,
 			positiveRatio);
 
-		return new RestaurantDetailData(
+		return new RestaurantDetailResponse(
 			restaurant.getId(),
 			restaurant.getName(),
 			restaurant.getFullAddress(),
@@ -143,13 +143,8 @@ public class RestaurantService {
 		 */
 
 		// 커서 변환
-		RestaurantCursor cursor = null;
-		try {
-			if (queryParam.cursor() != null) {
-				cursor = cursorCodec.decode(queryParam.cursor(), RestaurantCursor.class);
-			}
-
-		} catch (Exception e) {
+		RestaurantCursor cursor = cursorCodec.decodeOrNull(queryParam.cursor(), RestaurantCursor.class);
+		if (queryParam.cursor() != null && cursor == null) {
 			// 유효하지 않은 커서인 경우 다음 페이지 없음으로 해석
 			return CursorPageResponse.empty();
 		}
@@ -242,7 +237,7 @@ public class RestaurantService {
 	}
 
 	@Transactional
-	public RestaurantCreateData createRestaurant(RestaurantCreateRequest request) {
+	public RestaurantCreateResponse createRestaurant(RestaurantCreateRequest request) {
 
 		// 음식 카테고리 요청 검증
 		restaurantFoodCategoryValidator.validate(request.foodCategoryIds());
@@ -286,11 +281,11 @@ public class RestaurantService {
 		// 음식점 생성 이벤트 발행
 		eventPublisher.publishRestaurantCreated(restaurant.getId());
 
-		return new RestaurantCreateData(restaurant.getId(), restaurant.getCreatedAt());
+		return new RestaurantCreateResponse(restaurant.getId(), restaurant.getCreatedAt());
 	}
 
 	@Transactional
-	public RestaurantUpdateData updateRestaurant(long restaurantId, RestaurantUpdateRequest request) {
+	public RestaurantUpdateResponse updateRestaurant(long restaurantId, RestaurantUpdateRequest request) {
 
 		Restaurant restaurant = restaurantRepository.findByIdAndDeletedAtIsNull(restaurantId)
 			.orElseThrow(() -> new BusinessException(RestaurantErrorCode.RESTAURANT_NOT_FOUND));
@@ -327,7 +322,10 @@ public class RestaurantService {
 
 		saveImagesIfPresent(restaurant, request.imageIds());
 
-		return new RestaurantUpdateData(restaurant.getId(), restaurant.getCreatedAt(), restaurant.getUpdatedAt());
+		return new RestaurantUpdateResponse(
+			restaurant.getId(),
+			restaurant.getCreatedAt(),
+			restaurant.getUpdatedAt());
 	}
 
 	@Transactional
