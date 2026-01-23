@@ -74,6 +74,22 @@ tasteam:
         enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:true}
       service-performance:
         enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:true}
+    webhook:
+      enabled: ${TASTEAM_AOP_WEBHOOK_ENABLED:true}
+  webhook:
+    enabled: ${WEBHOOK_ENABLED:false}
+    provider: ${WEBHOOK_PROVIDER:discord}
+    include-stack-trace: ${WEBHOOK_INCLUDE_STACK_TRACE:false}
+    discord:
+      url: ${DISCORD_WEBHOOK_URL:}
+    slack:
+      url: ${SLACK_WEBHOOK_URL:}
+    retry:
+      max-attempts: ${WEBHOOK_RETRY_MAX:3}
+      backoff-ms: ${WEBHOOK_RETRY_BACKOFF:1000}
+    filters:
+      min-http-status: ${WEBHOOK_MIN_HTTP_STATUS:500}
+      exclude-error-codes: ${WEBHOOK_EXCLUDE_ERROR_CODES:}
 
 
 ## ====== 운영 & 관리 ======

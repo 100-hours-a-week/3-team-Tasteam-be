@@ -23,7 +23,8 @@ public class SecurityConstants {
 		"/api/v1/restaurants/*/reviews", "/api/v1/restaurants/*",
 		"/api/v1/reviews/*",
 		"/groups", "/groups/**",
-		"/api/v1/files/**"
+		"/api/v1/files/**",
+		"/api/v1/test/**"
 	};
 
 	public static final String[] SECURE_URLS = {
