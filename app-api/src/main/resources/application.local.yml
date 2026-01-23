@@ -41,13 +41,4 @@ naver:
 
 tasteam:
   webhook:
-    enabled: true
-    provider: discord
-    discord:
-      url: ${DISCORD_WEBHOOK_URL:}
-    retry:
-      max-attempts: 3
-      backoff-ms: 1000
-    filters:
-      min-http-status: 400
-      exclude-error-codes:
+    enabled: false
