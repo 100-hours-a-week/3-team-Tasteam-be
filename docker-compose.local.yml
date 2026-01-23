@@ -1,6 +1,7 @@
 services:
   db:
-    image: postgres:17
+    image: postgis/postgis:17-3.4
+
     container_name: tasteam-db
     environment:
       POSTGRES_DB: tasteam
@@ -11,24 +12,25 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgis/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tasteam"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # redis:
-  #   image: redis:7
-  #   container_name: tasteam-redis
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redis_data:/data
-  #   healthcheck:
-  #     test: ["CMD", "redis-cli", "ping"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  redis:
+   image: redis:7
+   container_name: tasteam-redis
+   ports:
+     - "6379:6379"
+   volumes:
+     - redis_data:/data
+   healthcheck:
+     test: ["CMD", "redis-cli", "ping"]
+     interval: 10s
+     timeout: 5s
+     retries: 5
 
   api:
     build:
@@ -50,12 +52,12 @@ services:
       SPRING_DATASOURCE_PASSWORD: tasteam
 
       # Redis
-      # SPRING_DATA_REDIS_HOST: redis
-      # SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
 
       # JWT
       JWT_SECRET: local-secret
 
 volumes:
   postgres_data:
-  # redis_data:
+  redis_data:
