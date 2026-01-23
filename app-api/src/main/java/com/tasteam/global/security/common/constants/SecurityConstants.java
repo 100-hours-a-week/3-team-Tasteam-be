@@ -9,7 +9,7 @@ public class SecurityConstants {
 	public static final String AUTH_COOKIE_PATH = "/api/v1/auth";
 	public static final String OAUTH_URL = "/oauth2/**";
 	public static final String OAUTH_API_URL = "/api/v1/auth/oauth/**";
-	public static final String OAUTH_CALLBACK_URL = "/login/oauth2/code/*";
+	public static final String OAUTH_CALLBACK_URL = "/api/v1/auth/oauth/callback/*";
 	public static final String AUTHORIZATION_HEADER = "Authorization";
 	public static final String BEARER_PREFIX = "Bearer ";
 
