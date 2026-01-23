@@ -33,7 +33,7 @@ public class OAuth2SecurityConfig {
 			.authorizationEndpoint(auth -> auth
 				.baseUri("/api/v1/auth/oauth")
 				.authorizationRequestRepository(authorizationRequestRepository))
-			.redirectionEndpoint(redir -> redir.baseUri("/login/oauth2/code/*"))
+			.redirectionEndpoint(redir -> redir.baseUri("/api/v1/auth/oauth/callback/*"))
 			.successHandler(oAuthLoginSuccessHandler)
 			.failureHandler(oAuthLoginFailureHandler));
 	}
