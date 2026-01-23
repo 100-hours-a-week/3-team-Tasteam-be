@@ -1,6 +1,7 @@
 ## ====== 서버 설정 ======
 server:
   port: ${SERVER_PORT:8080}
+  forward-headers-strategy: framework
 
 ## ====== Spring 설정 ======
 spring:
