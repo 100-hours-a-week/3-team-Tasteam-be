@@ -1,6 +1,7 @@
 services:
   db:
-    image: postgres:17
+    image: postgis/postgis:17-3.4
+
     container_name: tasteam-db
     env_file:
       - .env.local
@@ -13,6 +14,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgis/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
       interval: 10s
@@ -39,7 +41,7 @@ services:
     image: tasteam-api:local
     container_name: tasteam-api
     ports:
-      - "8081:8080"
+      - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
