@@ -1,5 +1,7 @@
 package com.tasteam.infra.webhook.event;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -18,7 +20,8 @@ public record ErrorContext(
 	String requestPath,
 	String userAgent,
 	Instant timestamp,
-	String exceptionClass) {
+	String exceptionClass,
+	String stackTrace) {
 
 	public static ErrorContext from(BusinessException e, HttpServletRequest request) {
 		return new ErrorContext(
@@ -30,7 +33,8 @@ public record ErrorContext(
 			request != null ? request.getRequestURI() : "UNKNOWN",
 			request != null ? Optional.ofNullable(request.getHeader("User-Agent")).orElse("Unknown") : "Unknown",
 			Instant.now(),
-			e.getClass().getSimpleName());
+			e.getClass().getSimpleName(),
+			getStackTraceAsString(e));
 	}
 
 	public static ErrorContext from(Exception e, HttpServletRequest request) {
@@ -43,7 +47,8 @@ public record ErrorContext(
 			request != null ? request.getRequestURI() : "UNKNOWN",
 			request != null ? Optional.ofNullable(request.getHeader("User-Agent")).orElse("Unknown") : "Unknown",
 			Instant.now(),
-			e.getClass().getSimpleName());
+			e.getClass().getSimpleName(),
+			getStackTraceAsString(e));
 	}
 
 	public static ErrorContext fromValidation(Exception e, HttpServletRequest request) {
@@ -56,6 +61,14 @@ public record ErrorContext(
 			request != null ? request.getRequestURI() : "UNKNOWN",
 			request != null ? Optional.ofNullable(request.getHeader("User-Agent")).orElse("Unknown") : "Unknown",
 			Instant.now(),
-			e.getClass().getSimpleName());
+			e.getClass().getSimpleName(),
+			getStackTraceAsString(e));
+	}
+
+	private static String getStackTraceAsString(Throwable throwable) {
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		throwable.printStackTrace(pw);
+		return sw.toString();
 	}
 }

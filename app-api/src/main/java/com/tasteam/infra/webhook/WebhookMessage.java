@@ -8,5 +8,6 @@ public record WebhookMessage(
 	String description,
 	Map<String, String> fields,
 	String color,
-	Instant timestamp) {
+	Instant timestamp,
+	String stackTrace) {
 }

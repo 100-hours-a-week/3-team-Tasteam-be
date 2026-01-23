@@ -25,6 +25,7 @@ public class BusinessExceptionTemplate implements WebhookMessageTemplate<ErrorCo
 			context.message(),
 			fields,
 			"#FFA500",
-			context.timestamp());
+			context.timestamp(),
+			context.stackTrace());
 	}
 }

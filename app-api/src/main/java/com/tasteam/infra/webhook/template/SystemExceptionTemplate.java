@@ -24,6 +24,7 @@ public class SystemExceptionTemplate implements WebhookMessageTemplate<ErrorCont
 			context.message(),
 			fields,
 			"#FF0000",
-			context.timestamp());
+			context.timestamp(),
+			context.stackTrace());
 	}
 }
