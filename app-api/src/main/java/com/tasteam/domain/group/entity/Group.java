@@ -5,6 +5,9 @@ import java.time.Instant;
 import org.locationtech.jts.geom.Point;
 
 import com.tasteam.domain.common.BaseTimeEntity;
+import com.tasteam.domain.group.type.GroupJoinType;
+import com.tasteam.domain.group.type.GroupStatus;
+import com.tasteam.domain.group.type.GroupType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

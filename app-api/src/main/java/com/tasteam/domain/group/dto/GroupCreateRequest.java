@@ -1,8 +1,8 @@
 package com.tasteam.domain.group.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.tasteam.domain.group.entity.GroupJoinType;
-import com.tasteam.domain.group.entity.GroupType;
+import com.tasteam.domain.group.type.GroupJoinType;
+import com.tasteam.domain.group.type.GroupType;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
