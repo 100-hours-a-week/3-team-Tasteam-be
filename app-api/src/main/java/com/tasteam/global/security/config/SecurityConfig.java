@@ -57,6 +57,7 @@ public class SecurityConfig {
 				.anyRequest().authenticated())
 
 			.formLogin(AbstractHttpConfigurer::disable)
+			.httpBasic(AbstractHttpConfigurer::disable)
 
 			/// [필터 체인 전역 예외 헨들러] : 모든 예외
 			.addFilterBefore(
