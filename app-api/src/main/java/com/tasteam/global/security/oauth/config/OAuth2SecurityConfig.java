@@ -28,6 +28,7 @@ public class OAuth2SecurityConfig {
 			return;
 		}
 		http.oauth2Login(oauth2 -> oauth2
+			.loginPage("/api/v1/auth/oauth")
 			.userInfoEndpoint(userInfo -> userInfo.userService(oAuthLoginService))
 			.authorizationEndpoint(auth -> auth
 				.baseUri("/api/v1/auth/oauth")
