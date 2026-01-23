@@ -17,7 +17,9 @@ class WebhookErrorEventPublisherTest {
 	@Test
 	void publishSecurityException_publishesSecurityContext() {
 		ApplicationEventPublisher eventPublisher = org.mockito.Mockito.mock(ApplicationEventPublisher.class);
-		WebhookErrorEventPublisher publisher = new WebhookErrorEventPublisher(eventPublisher);
+		WebhookProperties webhookProperties = new WebhookProperties();
+		webhookProperties.setIncludeStackTrace(false);
+		WebhookErrorEventPublisher publisher = new WebhookErrorEventPublisher(eventPublisher, webhookProperties);
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod("GET");

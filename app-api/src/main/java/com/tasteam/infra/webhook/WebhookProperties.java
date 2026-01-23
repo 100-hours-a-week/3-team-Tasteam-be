@@ -21,6 +21,7 @@ public class WebhookProperties {
 	private SlackProperties slack = new SlackProperties();
 	private RetryProperties retry = new RetryProperties();
 	private FilterProperties filters = new FilterProperties();
+	private boolean includeStackTrace = false;
 
 	@Getter
 	@Setter

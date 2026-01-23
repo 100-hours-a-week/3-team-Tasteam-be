@@ -79,6 +79,7 @@ tasteam:
   webhook:
     enabled: ${WEBHOOK_ENABLED:false}
     provider: ${WEBHOOK_PROVIDER:discord}
+    include-stack-trace: ${WEBHOOK_INCLUDE_STACK_TRACE:false}
     discord:
       url: ${DISCORD_WEBHOOK_URL:}
     slack:
