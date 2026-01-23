@@ -74,6 +74,8 @@ tasteam:
         enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:true}
       service-performance:
         enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:true}
+    webhook:
+      enabled: ${TASTEAM_AOP_WEBHOOK_ENABLED:true}
   webhook:
     enabled: ${WEBHOOK_ENABLED:false}
     provider: ${WEBHOOK_PROVIDER:discord}
