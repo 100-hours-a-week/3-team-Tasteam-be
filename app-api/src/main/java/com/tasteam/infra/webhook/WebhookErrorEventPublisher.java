@@ -2,6 +2,7 @@ package com.tasteam.infra.webhook;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import com.tasteam.global.exception.business.BusinessException;
@@ -44,6 +45,16 @@ public class WebhookErrorEventPublisher {
 			eventPublisher.publishEvent(new ErrorOccurredEvent(context));
 		} catch (Exception ex) {
 			log.error("검증 예외 이벤트 발행 실패", ex);
+		}
+	}
+
+	public void publishSecurityException(Exception e, HttpServletRequest request, HttpStatus httpStatus,
+		String errorCode) {
+		try {
+			ErrorContext context = ErrorContext.fromSecurity(e, request, httpStatus, errorCode);
+			eventPublisher.publishEvent(new ErrorOccurredEvent(context));
+		} catch (Exception ex) {
+			log.error("보안 예외 이벤트 발행 실패", ex);
 		}
 	}
 }

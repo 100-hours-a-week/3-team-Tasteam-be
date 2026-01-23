@@ -65,6 +65,21 @@ public record ErrorContext(
 			getStackTraceAsString(e));
 	}
 
+	public static ErrorContext fromSecurity(Exception e, HttpServletRequest request, HttpStatus httpStatus,
+		String errorCode) {
+		return new ErrorContext(
+			"SECURITY",
+			errorCode,
+			e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName(),
+			httpStatus,
+			request != null ? request.getMethod() : "UNKNOWN",
+			request != null ? request.getRequestURI() : "UNKNOWN",
+			request != null ? Optional.ofNullable(request.getHeader("User-Agent")).orElse("Unknown") : "Unknown",
+			Instant.now(),
+			e.getClass().getSimpleName(),
+			getStackTraceAsString(e));
+	}
+
 	private static String getStackTraceAsString(Throwable throwable) {
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);

@@ -49,5 +49,12 @@ public class SecurityResponseSender {
 		response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
 	}
 
-	public void sendError(HttpServletResponse response, AuthErrorCode authErrorCode) {}
+	public void sendError(HttpServletResponse response, AuthErrorCode authErrorCode) throws IOException {
+		response.setStatus(authErrorCode.getHttpStatus().value());
+		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+		response.setCharacterEncoding("UTF-8");
+
+		ErrorResponse<Void> errorResponse = ErrorResponse.of(authErrorCode.toString(), authErrorCode.getMessage());
+		response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+	}
 }

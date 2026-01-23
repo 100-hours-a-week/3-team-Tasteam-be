@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import com.tasteam.global.exception.code.AuthErrorCode;
 import com.tasteam.global.security.common.util.SecurityResponseSender;
+import com.tasteam.global.security.exception.notifier.SecurityErrorNotifier;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,10 +23,13 @@ import lombok.RequiredArgsConstructor;
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 
 	private final SecurityResponseSender securityResponseSender;
+	private final SecurityErrorNotifier securityErrorNotifier;
 
 	@Override
 	public void handle(HttpServletRequest request, HttpServletResponse response,
 		AccessDeniedException accessDeniedException) throws IOException, ServletException {
+
+		securityErrorNotifier.notify(AuthErrorCode.ACCESS_DENIED, accessDeniedException, request);
 
 		// 403 Forbidden 응답 전송
 		securityResponseSender.sendError(response, AuthErrorCode.ACCESS_DENIED);
