@@ -46,7 +46,7 @@ public class ApiLoggingAspect {
 		log.info("ID={} | {} {} | IP={}",
 			requestId,
 			request.getMethod(),
-			request.getRequestURI(),
+			sanitizeForLog(request.getRequestURI()),
 			request.getRemoteAddr());
 
 		Object result = joinPoint.proceed();
@@ -55,5 +55,15 @@ public class ApiLoggingAspect {
 		log.info("ID={} | Time={}ms", requestId, duration);
 
 		return result;
+	}
+
+	private static String sanitizeForLog(String value) {
+		if (value == null) {
+			return null;
+		}
+		return value.chars()
+			.filter(c -> !Character.isISOControl(c))
+			.collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+			.toString();
 	}
 }
