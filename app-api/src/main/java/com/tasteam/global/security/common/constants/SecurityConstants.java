@@ -15,12 +15,15 @@ public class SecurityConstants {
 	public static final String HEALTH_CHECK_URL = "/api/v1/health";
 
 	public static final String[] PUBLIC_URLS = {
-		"/", "/**",
 		LOGIN_URL, LOGOUT_URL, SIGNUP_URL, REFRESH_TOKEN_URL,
 		HEALTH_CHECK_URL,
-		OAUTH_URL, OAUTH_API_URL, "/api/*",
+		OAUTH_URL, OAUTH_API_URL,
 		"/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/index.html", "/swagger-ui/**",
-		"/swagger-resources/**", "/webjars/**", "/actuator/**"
+		"/swagger-resources/**", "/webjars/**", "/actuator/**",
+		"/api/v1/restaurants/*/reviews", "/api/v1/restaurants/*",
+		"/api/v1/reviews/*",
+		"/groups", "/groups/**",
+		"/api/v1/files/**"
 	};
 
 	public static final String[] SECURE_URLS = {
