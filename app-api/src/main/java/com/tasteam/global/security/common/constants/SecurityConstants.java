@@ -9,6 +9,7 @@ public class SecurityConstants {
 	public static final String AUTH_COOKIE_PATH = "/api/v1/auth";
 	public static final String OAUTH_URL = "/oauth2/**";
 	public static final String OAUTH_API_URL = "/api/v1/auth/oauth/**";
+	public static final String OAUTH_CALLBACK_URL = "/login/oauth2/code/*";
 	public static final String AUTHORIZATION_HEADER = "Authorization";
 	public static final String BEARER_PREFIX = "Bearer ";
 
@@ -17,7 +18,7 @@ public class SecurityConstants {
 	public static final String[] PUBLIC_URLS = {
 		LOGIN_URL, LOGOUT_URL, SIGNUP_URL, REFRESH_TOKEN_URL,
 		HEALTH_CHECK_URL,
-		OAUTH_URL, OAUTH_API_URL,
+		OAUTH_URL, OAUTH_API_URL, OAUTH_CALLBACK_URL,
 		"/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/index.html", "/swagger-ui/**",
 		"/swagger-resources/**", "/webjars/**", "/actuator/**",
 		"/api/v1/restaurants/*/reviews", "/api/v1/restaurants/*",
