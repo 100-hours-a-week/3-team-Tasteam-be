@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "tasteam.webhook", name = {"enabled", "provider"}, havingValue = "true")
+@ConditionalOnProperty(prefix = "tasteam.webhook", name = "enabled", havingValue = "true")
 public class DiscordWebhookClient implements WebhookClient {
 
 	private final RestTemplate webhookRestTemplate;
