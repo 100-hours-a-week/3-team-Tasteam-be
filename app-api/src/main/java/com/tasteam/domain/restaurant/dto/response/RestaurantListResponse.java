@@ -2,7 +2,7 @@ package com.tasteam.domain.restaurant.dto.response;
 
 import java.util.List;
 
-public record RestaurantListResponse(List<RestaurantSummaryResponse> data, CursorPageResponse page) {
+public record RestaurantListResponse(List<RestaurantSummaryResponse> items, CursorPageResponse page) {
 
 	public record RestaurantSummaryResponse(
 		long id,
