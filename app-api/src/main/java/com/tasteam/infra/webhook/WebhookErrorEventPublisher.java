@@ -24,7 +24,7 @@ public class WebhookErrorEventPublisher {
 
 	public void publishBusinessException(BusinessException e, HttpServletRequest request) {
 		try {
-			ErrorContext context = ErrorContext.from(e, request, webhookProperties.isIncludeStackTrace());
+			ErrorContext context = ErrorContext.fromException(e, request, webhookProperties.isIncludeStackTrace());
 			eventPublisher.publishEvent(new ErrorOccurredEvent(context));
 		} catch (Exception ex) {
 			log.error("비즈니스 예외 이벤트 발행 실패", ex);
@@ -33,7 +33,7 @@ public class WebhookErrorEventPublisher {
 
 	public void publishSystemException(Exception e, HttpServletRequest request) {
 		try {
-			ErrorContext context = ErrorContext.from(e, request, webhookProperties.isIncludeStackTrace());
+			ErrorContext context = ErrorContext.fromException(e, request, webhookProperties.isIncludeStackTrace());
 			eventPublisher.publishEvent(new ErrorOccurredEvent(context));
 		} catch (Exception ex) {
 			log.error("시스템 예외 이벤트 발행 실패", ex);

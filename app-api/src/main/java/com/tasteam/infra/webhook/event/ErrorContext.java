@@ -26,31 +26,14 @@ public record ErrorContext(
 	String exceptionClass,
 	String stackTrace) {
 
-	public static ErrorContext from(BusinessException e, HttpServletRequest request) {
-		return from(e, request, true);
+	public static ErrorContext fromException(Exception e, HttpServletRequest request) {
+		return fromException(e, request, true);
 	}
 
-	public static ErrorContext from(BusinessException e, HttpServletRequest request, boolean includeStackTrace) {
-		String traceId = resolveTraceId(request);
-		String message = withTraceId(maskSensitive(e.getMessage()), traceId);
-		return new ErrorContext(
-			"BUSINESS",
-			e.getErrorCode().toString(),
-			message,
-			e.getHttpStatus(),
-			request != null ? request.getMethod() : "UNKNOWN",
-			request != null ? request.getRequestURI() : "UNKNOWN",
-			request != null ? Optional.ofNullable(request.getHeader("User-Agent")).orElse("Unknown") : "Unknown",
-			Instant.now(),
-			e.getClass().getSimpleName(),
-			resolveStackTrace(e, includeStackTrace));
-	}
-
-	public static ErrorContext from(Exception e, HttpServletRequest request) {
-		return from(e, request, true);
-	}
-
-	public static ErrorContext from(Exception e, HttpServletRequest request, boolean includeStackTrace) {
+	public static ErrorContext fromException(Exception e, HttpServletRequest request, boolean includeStackTrace) {
+		if (e instanceof BusinessException businessException) {
+			return fromBusinessException(businessException, request, includeStackTrace);
+		}
 		String traceId = resolveTraceId(request);
 		String message = withTraceId(maskSensitive(coreMessage(e)), traceId);
 		return new ErrorContext(
@@ -100,6 +83,23 @@ public record ErrorContext(
 			errorCode,
 			message,
 			httpStatus,
+			request != null ? request.getMethod() : "UNKNOWN",
+			request != null ? request.getRequestURI() : "UNKNOWN",
+			request != null ? Optional.ofNullable(request.getHeader("User-Agent")).orElse("Unknown") : "Unknown",
+			Instant.now(),
+			e.getClass().getSimpleName(),
+			resolveStackTrace(e, includeStackTrace));
+	}
+
+	private static ErrorContext fromBusinessException(BusinessException e, HttpServletRequest request,
+		boolean includeStackTrace) {
+		String traceId = resolveTraceId(request);
+		String message = withTraceId(maskSensitive(e.getMessage()), traceId);
+		return new ErrorContext(
+			"BUSINESS",
+			e.getErrorCode().toString(),
+			message,
+			e.getHttpStatus(),
 			request != null ? request.getMethod() : "UNKNOWN",
 			request != null ? request.getRequestURI() : "UNKNOWN",
 			request != null ? Optional.ofNullable(request.getHeader("User-Agent")).orElse("Unknown") : "Unknown",

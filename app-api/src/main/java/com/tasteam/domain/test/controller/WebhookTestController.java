@@ -20,16 +20,4 @@ public class WebhookTestController {
 	public String testSystemException() {
 		throw new RuntimeException("테스트용 시스템 예외 발생");
 	}
-
-	@GetMapping("/error/null-pointer")
-	public String testNullPointerException() {
-		String value = null;
-		return value.toString();
-	}
-
-	@GetMapping("/error/arithmetic")
-	public String testArithmeticException() {
-		int result = 10 / 0;
-		return "result: " + result;
-	}
 }

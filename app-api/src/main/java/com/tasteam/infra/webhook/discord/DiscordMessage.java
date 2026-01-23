@@ -41,6 +41,10 @@ public record DiscordMessage(
 
 	private static int hexToInt(String hex) {
 		String cleanHex = hex.startsWith("#") ? hex.substring(1) : hex;
-		return Integer.parseInt(cleanHex, 16);
+		try {
+			return Integer.parseInt(cleanHex, 16);
+		} catch (NumberFormatException e) {
+			return 0x000000;
+		}
 	}
 }
