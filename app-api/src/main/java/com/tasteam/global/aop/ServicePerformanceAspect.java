@@ -16,7 +16,8 @@ import org.springframework.stereotype.Component;
  */
 @Aspect
 @Component
-@ConditionalOnProperty(name = "aop.service-performance.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "tasteam.aop.logging", name = {"enabled",
+	"service-performance.enabled"}, havingValue = "true", matchIfMissing = false)
 public class ServicePerformanceAspect {
 
 	private static final Logger log = LoggerFactory.getLogger("spring.aop.Service");

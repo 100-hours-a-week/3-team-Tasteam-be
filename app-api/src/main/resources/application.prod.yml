@@ -70,6 +70,18 @@ tasteam:
     cleanup:
       ttl-seconds: ${FILE_CLEANUP_TTL_SECONDS:}
       fixed-delay-ms: ${FILE_CLEANUP_FIXED_DELAY_MS:}
+  aop:
+    logging:
+      enabled: ${TASTEAM_AOP_LOGGING_ENABLED:false}
+      api-logging:
+        enabled: ${TASTEAM_AOP_LOGGING_API_LOGGING_ENABLED:false}
+      exception-logging:
+        enabled: ${TASTEAM_AOP_LOGGING_EXCEPTION_LOGGING_ENABLED:false}
+      transactional-query-logging:
+        enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:false}
+      service-performance:
+        enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:false}
+
 
 management:
   endpoints:

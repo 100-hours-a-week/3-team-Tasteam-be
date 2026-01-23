@@ -20,7 +20,8 @@ import jakarta.servlet.http.HttpServletRequest;
  */
 @Aspect
 @Component
-@ConditionalOnProperty(name = "aop.api-logging.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "tasteam.aop.logging", name = {"enabled",
+	"api-logging.enabled"}, havingValue = "true", matchIfMissing = false)
 public class ApiLoggingAspect {
 
 	private static final Logger log = LoggerFactory.getLogger("spring.aop.API");

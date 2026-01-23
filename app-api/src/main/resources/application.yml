@@ -63,6 +63,17 @@ tasteam:
     cleanup:
       ttl-seconds: ${FILE_CLEANUP_TTL_SECONDS:86400}
       fixed-delay-ms: ${FILE_CLEANUP_FIXED_DELAY_MS:3600000}
+  aop:
+    logging:
+      enabled: ${TASTEAM_AOP_LOGGING_ENABLED:true}
+      api-logging:
+        enabled: ${TASTEAM_AOP_LOGGING_API_LOGGING_ENABLED:true}
+      exception-logging:
+        enabled: ${TASTEAM_AOP_LOGGING_EXCEPTION_LOGGING_ENABLED:true}
+      transactional-query-logging:
+        enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:true}
+      service-performance:
+        enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:true}
 
 
 ## ====== 운영 & 관리 ======

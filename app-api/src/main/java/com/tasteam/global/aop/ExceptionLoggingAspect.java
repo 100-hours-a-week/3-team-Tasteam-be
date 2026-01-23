@@ -22,7 +22,8 @@ import lombok.RequiredArgsConstructor;
 @Aspect
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "aop.exception-logging.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "tasteam.aop.logging", name = {"enabled",
+	"exception-logging.enabled"}, havingValue = "true", matchIfMissing = false)
 public class ExceptionLoggingAspect {
 
 	private static final Logger log = LoggerFactory.getLogger("spring.aop.Exception");

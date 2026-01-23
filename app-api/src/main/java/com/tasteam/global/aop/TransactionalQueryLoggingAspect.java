@@ -22,7 +22,8 @@ import lombok.RequiredArgsConstructor;
 @Aspect
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "aop.transactional-query-logging.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "tasteam.aop.logging", name = {"enabled",
+	"transactional-query-logging.enabled"}, havingValue = "true", matchIfMissing = false)
 public class TransactionalQueryLoggingAspect {
 
 	private static final Logger log = LoggerFactory.getLogger("spring.aop.Transaction");
