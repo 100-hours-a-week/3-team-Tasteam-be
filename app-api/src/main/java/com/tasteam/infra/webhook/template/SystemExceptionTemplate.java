@@ -14,13 +14,11 @@ public class SystemExceptionTemplate implements WebhookMessageTemplate<ErrorCont
 	@Override
 	public WebhookMessage build(ErrorContext context) {
 		Map<String, String> fields = new LinkedHashMap<>();
-		fields.put("HTTP Status", "500 Internal Server Error");
-		fields.put("Request", context.requestMethod() + " " + context.requestPath());
-		fields.put("Exception", context.exceptionClass());
-		fields.put("Timestamp", context.timestamp().toString());
+		fields.put("Endpoint", context.requestMethod() + " " + context.requestPath());
+		fields.put("Time", context.timestamp().toString());
 
 		return new WebhookMessage(
-			"🚨 시스템 예외 발생",
+			"🚨 " + context.errorCode(),
 			context.message(),
 			fields,
 			"#FF0000",

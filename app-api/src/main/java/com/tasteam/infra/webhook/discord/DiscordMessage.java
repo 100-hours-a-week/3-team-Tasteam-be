@@ -26,7 +26,7 @@ public record DiscordMessage(
 		int colorInt = hexToInt(message.color());
 
 		List<Field> fields = message.fields().entrySet().stream()
-			.map(entry -> new Field(entry.getKey(), entry.getValue(), false))
+			.map(entry -> new Field(entry.getKey(), entry.getValue(), true))
 			.toList();
 
 		Embed embed = new Embed(
