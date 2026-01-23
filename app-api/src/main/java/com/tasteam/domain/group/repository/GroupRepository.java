@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.tasteam.domain.group.entity.Group;
-import com.tasteam.domain.group.entity.GroupStatus;
+import com.tasteam.domain.group.type.GroupStatus;
 
 public interface GroupRepository extends JpaRepository<Group, Long> {
 

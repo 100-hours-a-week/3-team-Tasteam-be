@@ -1,4 +1,4 @@
-package com.tasteam.domain.group.entity;
+package com.tasteam.domain.subgroup.entity;
 
 import java.time.Instant;
 
@@ -28,19 +28,19 @@ import lombok.NoArgsConstructor;
 @Builder(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "group_member", uniqueConstraints = {
-	@UniqueConstraint(name = "uk_group_member_group_id_member_id", columnNames = {"group_id", "member_id"})
+@Table(name = "subgroup_member", uniqueConstraints = {
+	@UniqueConstraint(name = "uk_subgroup_member_subgroup_id_member_id", columnNames = {"subgroup_id", "member_id"})
 })
-@Comment("특정 그룹에 가입한 회원들의 가입, 탈퇴 상태를 관리하는 매핑 테이블")
-public class GroupMember extends BaseCreatedAtEntity {
+@Comment("하위그룹에 가입한 회원들의 가입, 탈퇴 상태를 관리하는 매핑 테이블")
+public class SubgroupMember extends BaseCreatedAtEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.SEQUENCE)
 	@Column(name = "id")
 	private Long id;
 
-	@Column(name = "group_id", nullable = false)
-	private Long groupId;
+	@Column(name = "subgroup_id", nullable = false)
+	private Long subgroupId;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "member_id", nullable = false)
@@ -49,9 +49,9 @@ public class GroupMember extends BaseCreatedAtEntity {
 	@Column(name = "deleted_at")
 	private Instant deletedAt;
 
-	public static GroupMember create(Long groupId, Member member) {
-		return GroupMember.builder()
-			.groupId(groupId)
+	public static SubgroupMember create(Long subgroupId, Member member) {
+		return SubgroupMember.builder()
+			.subgroupId(subgroupId)
 			.member(member)
 			.deletedAt(null)
 			.build();

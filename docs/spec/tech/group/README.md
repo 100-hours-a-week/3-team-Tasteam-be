@@ -355,7 +355,6 @@ erDiagram
 | `subgroup_id` | `BIGINT` | N | - | 하위그룹 ID | FK(`subgroup.id`) |
 | `created_at` | `TIMESTAMP` | N | - | 가입 시각 | - |
 | `deleted_at` | `TIMESTAMP` | Y | - | 탈퇴 시각(soft delete) | - |
-
 #### `group_request`
 
 | 컬럼 | 타입 | Nullable | 기본값 | 설명 | 제약/고려사항 |
