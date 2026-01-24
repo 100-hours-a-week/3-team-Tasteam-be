@@ -22,6 +22,7 @@ public final class ApiEndpoints {
 	public static final String LOGIN = AUTH + "/login";
 	public static final String LOGOUT = AUTH + "/logout";
 	public static final String SIGNUP = AUTH + "/signup";
+	public static final String AUTH_TOKEN = AUTH + "/token";
 	public static final String REFRESH_TOKEN = AUTH + "/token/refresh";
 	public static final String AUTH_OAUTH = AUTH + "/oauth";
 	public static final String AUTH_OAUTH_ALL = AUTH_OAUTH + ALL;
@@ -32,11 +33,11 @@ public final class ApiEndpoints {
 	public static final String HEALTH_CHECK = API_V1 + "/health";
 
 	// Swagger
-	public static final String API_DOCS = "/v3/api-docs" + ALL;
-	public static final String SWAGGER_UI = "/swagger-ui.html";
-	public static final String SWAGGER_UI_INDEX = "/swagger-ui/index.html";
-	public static final String SWAGGER_UI_ASSETS = "/swagger-ui" + ALL;
-	public static final String SWAGGER_RESOURCES = "/swagger-resources" + ALL;
+	public static final String API_DOCS = "/api/v3/api-docs" + ALL;
+	public static final String SWAGGER_UI = "/api/swagger-ui.html";
+	public static final String SWAGGER_UI_INDEX = "/api/swagger-ui/index.html";
+	public static final String SWAGGER_UI_ASSETS = "/api/swagger-ui" + ALL;
+	public static final String SWAGGER_RESOURCES = "/api/swagger-resources" + ALL;
 	public static final String WEBJARS = "/webjars" + ALL;
 	public static final String ACTUATOR = "/actuator" + ALL;
 	public static final String ACTUATOR_HEALTH = "/actuator/health";
