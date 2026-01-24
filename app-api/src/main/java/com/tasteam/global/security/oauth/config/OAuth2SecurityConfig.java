@@ -8,7 +8,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 
 import com.tasteam.global.security.oauth.handler.OAuthLoginFailureHandler;
 import com.tasteam.global.security.oauth.handler.OAuthLoginSuccessHandler;
-import com.tasteam.global.security.oauth.repository.HttpCookieOAuth2AuthorizationRequestRepository;
+import com.tasteam.global.security.oauth.repository.ServerSideOAuth2AuthorizationRequestRepository;
 import com.tasteam.global.security.oauth.service.OAuthLoginService;
 
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ public class OAuth2SecurityConfig {
 	private final OAuthLoginSuccessHandler oAuthLoginSuccessHandler;
 	private final OAuthLoginFailureHandler oAuthLoginFailureHandler;
 	private final OAuthLoginService oAuthLoginService;
-	private final HttpCookieOAuth2AuthorizationRequestRepository authorizationRequestRepository;
+	private final ServerSideOAuth2AuthorizationRequestRepository authorizationRequestRepository;
 	private final ClientRegistrationRepository clientRegistrationRepository;
 
 	public void configure(HttpSecurity http) throws Exception {
