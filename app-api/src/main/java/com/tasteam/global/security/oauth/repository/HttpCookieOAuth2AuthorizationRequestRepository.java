@@ -33,12 +33,10 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 			.orElse(null);
 	}
 
-	/** OAuth2 인증 요청을 쿠키에 저장합니다. */
 	@Override
 	public void saveAuthorizationRequest(OAuth2AuthorizationRequest authorizationRequest, HttpServletRequest request,
 		HttpServletResponse response) {
 		if (authorizationRequest == null) {
-			removeAuthorizationRequestCookies(response);
 			return;
 		}
 		oAuth2CookieProvider.addOAuth2AuthorizationRequestCookie(response,
@@ -48,14 +46,12 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 		if (StringUtils.hasText(redirectUriAfterLogin)) {
 			if (!redirectUriValidator.isValidRedirectUri(redirectUriAfterLogin)) {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-				removeAuthorizationRequestCookies(response);
 				return;
 			}
 			oAuth2CookieProvider.addRedirectUriCookie(response, redirectUriAfterLogin);
 		}
 	}
 
-	/** OAuth2 인증 요청을 쿠키에서 제거합니다. */
 	@Override
 	public OAuth2AuthorizationRequest removeAuthorizationRequest(HttpServletRequest request,
 		HttpServletResponse response) {
