@@ -26,6 +26,9 @@ spring:
       ddl-auto: update
 
   security:
+    cookie:
+      secure: true
+
     jwt:
       secret: ${JWT_SECRET}
     oauth2:
