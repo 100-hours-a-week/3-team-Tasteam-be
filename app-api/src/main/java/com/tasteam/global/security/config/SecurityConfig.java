@@ -11,7 +11,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.web.cors.CorsConfigurationSource;
 
-import com.tasteam.global.security.common.constants.SecurityConstants;
+import com.tasteam.global.security.common.constants.ApiEndpointSecurityPolicy;
 import com.tasteam.global.security.exception.filter.FilterChainExceptionFilter;
 import com.tasteam.global.security.exception.handler.CustomAccessDeniedHandler;
 import com.tasteam.global.security.exception.handler.CustomAuthenticationEntryPoint;
@@ -50,12 +50,15 @@ public class SecurityConfig {
 				.requestCache(new NullRequestCache()))
 
 			/// [Request 권한 설정]
-			.authorizeHttpRequests(auth -> auth
-				.requestMatchers(SecurityConstants.PUBLIC_URLS).permitAll()
-				.requestMatchers(SecurityConstants.SECURE_URLS).hasRole("USER")
-				.requestMatchers(SecurityConstants.ADMIN_URLS).hasRole("ADMIN")
-				.anyRequest().authenticated())
+			.authorizeHttpRequests(auth -> {
+				ApiEndpointSecurityPolicy.publicEndpoints().forEach(endpoint -> {
+					auth.requestMatchers(endpoint.method(), endpoint.pattern()).permitAll();
+				});
 
+				auth.requestMatchers(ApiEndpointSecurityPolicy.userEndpoints()).hasRole("USER");
+				auth.requestMatchers(ApiEndpointSecurityPolicy.adminEndpoints()).hasRole("ADMIN");
+				auth.anyRequest().authenticated();
+			})
 			.formLogin(AbstractHttpConfigurer::disable)
 			.httpBasic(AbstractHttpConfigurer::disable)
 

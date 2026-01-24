@@ -1,0 +1,90 @@
+package com.tasteam.global.security.common.constants;
+
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
+
+import java.util.List;
+
+import org.springframework.http.HttpMethod;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+/**
+ * 보안 정책 정의 - 어떤 엔드포인트를 누가 접근할 수 있는지
+ */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class ApiEndpointSecurityPolicy {
+
+	/**
+	 * 인증 없이 접근 가능한 엔드포인트
+	 */
+	public static List<EndpointPermission> publicEndpoints() {
+		return List.of(
+
+			// 인증
+			permit(POST, ApiEndpoints.LOGIN),
+			permit(POST, ApiEndpoints.SIGNUP),
+			permit(POST, ApiEndpoints.LOGOUT),
+			permit(POST, ApiEndpoints.REFRESH_TOKEN),
+
+			permit(GET, ApiEndpoints.AUTH_OAUTH_ALL),
+			permit(GET, ApiEndpoints.AUTH_OAUTH_CALLBACK),
+			permit(GET, ApiEndpoints.OAUTH2_ALL),
+
+			// 음식점 조회
+			permit(GET, ApiEndpoints.RESTAURANTS),
+			permit(GET, ApiEndpoints.RESTAURANTS_DETAIL),
+			permit(GET, ApiEndpoints.RESTAURANTS_REVIEWS),
+
+			// 리뷰 조회
+			permit(GET, ApiEndpoints.REVIEWS),
+			permit(GET, ApiEndpoints.REVIEWS_DETAIL),
+			permit(GET, ApiEndpoints.GROUPS_REVIEWS),
+			permit(GET, ApiEndpoints.SUBGROUPS_REVIEWS),
+			permit(GET, ApiEndpoints.MEMBERS_REVIEWS),
+
+			// Swagger
+			permit(GET, ApiEndpoints.SWAGGER_UI),
+			permit(GET, ApiEndpoints.SWAGGER_UI_INDEX),
+			permit(GET, ApiEndpoints.SWAGGER_RESOURCES),
+			permit(GET, ApiEndpoints.SWAGGER_UI_ASSETS),
+			permit(GET, ApiEndpoints.API_DOCS),
+			permit(GET, ApiEndpoints.WEBJARS),
+
+			// 모니터링
+			permit(GET, ApiEndpoints.ACTUATOR),
+			permit(GET, ApiEndpoints.HEALTH_CHECK),
+
+			// Test
+			permit(GET, ApiEndpoints.TEST));
+	}
+
+	/**
+	 * USER 권한 필요
+	 */
+	public static String[] userEndpoints() {
+		return new String[] {
+			ApiEndpoints.FILES_ALL,
+			ApiEndpoints.GROUPS_ALL,
+			ApiEndpoints.SUBGROUPS_ALL,
+			ApiEndpoints.MEMBERS_ALL
+		};
+	}
+
+	/**
+	 * ADMIN 권한 필요
+	 */
+	public static String[] adminEndpoints() {
+		return new String[] {
+			ApiEndpoints.ADMIN_ALL
+		};
+	}
+
+	private static EndpointPermission permit(HttpMethod method, String pattern) {
+		return new EndpointPermission(method, pattern);
+	}
+
+	public record EndpointPermission(HttpMethod method, String pattern) {
+	}
+}
