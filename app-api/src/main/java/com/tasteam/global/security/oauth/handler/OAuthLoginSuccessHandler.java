@@ -7,30 +7,32 @@ import java.util.UUID;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import com.tasteam.domain.auth.entity.RefreshToken;
 import com.tasteam.domain.auth.store.RefreshTokenStore;
 import com.tasteam.global.security.jwt.common.RefreshTokenHasher;
 import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
 import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
+import com.tasteam.global.security.oauth.cookie.OAuth2CookieProvider;
 import com.tasteam.global.security.oauth.dto.CustomOAuthUserDetails;
-import com.tasteam.global.security.oauth.repository.ServerSideOAuth2AuthorizationRequestRepository;
+import com.tasteam.global.security.oauth.repository.HttpCookieOAuth2AuthorizationRequestRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * OAuth2 로그인 성공 핸들러
+ */
 @Component
 @RequiredArgsConstructor
 public class OAuthLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-	private static final String DEFAULT_REDIRECT_URI = "http://localhost:3000/oauth/callback";
-
 	private final JwtTokenProvider jwtTokenProvider;
 	private final JwtCookieProvider jwtCookieProvider;
 	private final RefreshTokenStore refreshTokenStore;
-	private final ServerSideOAuth2AuthorizationRequestRepository authorizationRequestRepository;
+	private final OAuth2CookieProvider oAuth2CookieProvider;
+	private final HttpCookieOAuth2AuthorizationRequestRepository authorizationRequestRepository;
 
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -51,15 +53,13 @@ public class OAuthLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHand
 			jwtTokenProvider.getExpiration(refreshToken).toInstant()));
 
 		String redirectUri = determineTargetUrl(request);
+		authorizationRequestRepository.removeAuthorizationRequestCookies(response);
+
 		getRedirectStrategy().sendRedirect(request, response, redirectUri);
 	}
 
 	private String determineTargetUrl(HttpServletRequest request) {
-		String state = request.getParameter("state");
-		if (!StringUtils.hasText(state)) {
-			return DEFAULT_REDIRECT_URI;
-		}
-		String redirectUri = authorizationRequestRepository.getRedirectUri(state);
-		return StringUtils.hasText(redirectUri) ? redirectUri : DEFAULT_REDIRECT_URI;
+		return oAuth2CookieProvider.getRedirectUriCookie(request)
+			.orElse("http://localhost:3000/oauth/callback");
 	}
 }

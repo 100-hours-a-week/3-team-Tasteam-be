@@ -35,18 +35,13 @@ public class RedirectUriValidator {
 			boolean valid = allowedOrigins.contains(origin);
 
 			if (!valid) {
-				log.warn("허용되지 않은 리다이렉트 URI 거부: {}", sanitizeForLog(redirectUri));
+				log.warn("허용되지 않은 리다이렉트 URI 거부: {}", redirectUri);
 			}
 
 			return valid;
 		} catch (Exception e) {
-			log.warn("리다이렉트 URI 형식이 올바르지 않습니다: {}", sanitizeForLog(redirectUri), e);
+			log.warn("리다이렉트 URI 형식이 올바르지 않습니다: {}", redirectUri, e);
 			return false;
 		}
-	}
-
-	private String sanitizeForLog(String value) {
-		// Replace all control characters to prevent log injection.
-		return value.replaceAll("\\p{Cntrl}", "_");
 	}
 }
