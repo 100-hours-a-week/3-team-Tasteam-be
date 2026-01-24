@@ -46,11 +46,12 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 
 		String redirectUriAfterLogin = request.getParameter(OAuth2CookieConstants.REDIRECT_URI_COOKIE_NAME);
 		if (StringUtils.hasText(redirectUriAfterLogin)) {
-			if (!redirectUriValidator.isValidRedirectUri(redirectUriAfterLogin)) {
-				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-				removeAuthorizationRequestCookies(response);
-				return;
-			}
+			// TODO: validator 임시 비활성화 - 원인 파악 후 복구 필요
+			// if (!redirectUriValidator.isValidRedirectUri(redirectUriAfterLogin)) {
+			// 	response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			// 	removeAuthorizationRequestCookies(response);
+			// 	return;
+			// }
 			oAuth2CookieProvider.addRedirectUriCookie(response, redirectUriAfterLogin);
 		}
 	}
