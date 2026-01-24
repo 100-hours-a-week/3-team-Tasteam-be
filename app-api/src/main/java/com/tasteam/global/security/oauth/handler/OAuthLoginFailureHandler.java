@@ -2,10 +2,14 @@ package com.tasteam.global.security.oauth.handler;
 
 import java.io.IOException;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tasteam.global.dto.api.ErrorResponse;
 import com.tasteam.global.security.oauth.repository.HttpCookieOAuth2AuthorizationRequestRepository;
 
 import jakarta.servlet.ServletException;
@@ -23,13 +27,22 @@ import lombok.extern.slf4j.Slf4j;
 public class OAuthLoginFailureHandler extends SimpleUrlAuthenticationFailureHandler {
 
 	private final HttpCookieOAuth2AuthorizationRequestRepository authorizationRequestRepository;
+	private final ObjectMapper objectMapper;
 
 	@Override
 	public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
 		AuthenticationException exception) throws IOException, ServletException {
 		authorizationRequestRepository.removeAuthorizationRequestCookies(response);
 		log.warn("OAuth2 login failed: {}", exception.getMessage());
-		super.setDefaultFailureUrl("/login?error");
-		super.onAuthenticationFailure(request, response, exception);
+		sendErrorResponse(response, exception);
+	}
+
+	private void sendErrorResponse(HttpServletResponse response, AuthenticationException exception) throws IOException {
+		response.setStatus(HttpStatus.UNAUTHORIZED.value());
+		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+		response.setCharacterEncoding("UTF-8");
+
+		ErrorResponse<Void> errorResponse = ErrorResponse.of("OAUTH_LOGIN_FAILED", exception.getMessage());
+		response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
 	}
 }
