@@ -32,6 +32,7 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.tool.schema: debug
+    org.springframework.security: DEBUG
 
 naver:
   maps:
