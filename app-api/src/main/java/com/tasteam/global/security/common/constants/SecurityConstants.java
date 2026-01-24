@@ -19,6 +19,7 @@ public class SecurityConstants {
 		LOGIN_URL, LOGOUT_URL, SIGNUP_URL, REFRESH_TOKEN_URL,
 		HEALTH_CHECK_URL,
 		OAUTH_URL, OAUTH_API_URL, OAUTH_CALLBACK_URL,
+		"/api/v3/api-docs/**", "/api/swagger-ui.html", "/api/swagger-ui/**",
 		"/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/index.html", "/swagger-ui/**",
 		"/swagger-resources/**", "/webjars/**", "/actuator/**",
 		"/api/v1/restaurants/*/reviews", "/api/v1/restaurants/*",
