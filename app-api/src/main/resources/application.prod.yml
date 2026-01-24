@@ -34,6 +34,9 @@ spring:
       max-age: 3600
       exposed-headers: ${CORS_EXPOSED_HEADERS:Authorization}
 
+    cookie:
+      secure: true
+
     jwt:
       secret: ${JWT_SECRET}
       accessTokenExpiration: ${JWT_ACCESS_TOKEN_EXPIRATION}
