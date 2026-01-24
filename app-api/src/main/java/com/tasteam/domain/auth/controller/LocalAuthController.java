@@ -39,7 +39,9 @@ public class LocalAuthController {
 			request.nickname());
 
 		jwtCookieProvider.addRefreshTokenCookie(response, tokenPair.refreshToken());
-		LocalAuthTokenResponse tokenResponse = new LocalAuthTokenResponse(tokenPair.accessToken());
+		LocalAuthTokenResponse tokenResponse = new LocalAuthTokenResponse(
+			tokenPair.accessToken(),
+			tokenPair.memberId());
 
 		return SuccessResponse.success(tokenResponse);
 	}

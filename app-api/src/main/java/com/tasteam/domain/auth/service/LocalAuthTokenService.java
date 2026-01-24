@@ -33,7 +33,7 @@ public class LocalAuthTokenService {
 		String accessToken = jwtTokenProvider.generateAccessToken(member.getId(), member.getRole().name());
 		String refreshToken = jwtTokenProvider.generateRefreshToken(member.getId());
 
-		return new TokenPair(accessToken, refreshToken);
+		return new TokenPair(accessToken, refreshToken, member.getId());
 	}
 
 	private Member registerMember(String email, String nickname) {
@@ -48,6 +48,6 @@ public class LocalAuthTokenService {
 				MemberOAuthAccount.create(DEV_PROVIDER, email, email, member)));
 	}
 
-	public record TokenPair(String accessToken, String refreshToken) {
+	public record TokenPair(String accessToken, String refreshToken, Long memberId) {
 	}
 }
