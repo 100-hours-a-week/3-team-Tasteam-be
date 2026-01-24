@@ -1,5 +1,7 @@
 package com.tasteam.domain.subgroup.entity;
 
+import java.time.Instant;
+
 import com.tasteam.domain.common.BaseTimeEntity;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.subgroup.type.SubgroupJoinType;
@@ -57,4 +59,41 @@ public class Subgroup extends BaseTimeEntity {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "status", nullable = false, length = 20)
 	private SubgroupStatus status;
+
+	@Column(name = "member_count", nullable = false)
+	private Integer memberCount;
+
+	@Column(name = "deleted_at")
+	private Instant deletedAt;
+
+	public void updateName(String name) {
+		this.name = name;
+	}
+
+	public void updateDescription(String description) {
+		this.description = description;
+	}
+
+	public void updateProfileImageUrl(String profileImageUrl) {
+		this.profileImageUrl = profileImageUrl;
+	}
+
+	public void increaseMemberCount() {
+		if (this.memberCount == null) {
+			this.memberCount = 0;
+		}
+		this.memberCount = this.memberCount + 1;
+	}
+
+	public void decreaseMemberCount() {
+		if (this.memberCount == null || this.memberCount <= 0) {
+			this.memberCount = 0;
+			return;
+		}
+		this.memberCount = this.memberCount - 1;
+	}
+
+	public void delete(Instant deletedAt) {
+		this.deletedAt = deletedAt;
+	}
 }

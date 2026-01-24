@@ -29,7 +29,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/groups")
+@RequestMapping("api/v1/groups")
 @RequiredArgsConstructor
 @Validated
 public class GroupController {
