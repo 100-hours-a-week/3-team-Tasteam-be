@@ -5,7 +5,7 @@ import com.tasteam.domain.member.entity.Member;
 public record MemberMeResponse(
 	MemberSummaryResponse member,
 	MemberPreviewResponse<GroupRequestPreviewResponse> groupRequests,
-	MemberPreviewResponse<ReviewPreviewResponse> reviews) {
+	MemberPreviewResponse<ReviewSummaryResponse> reviews) {
 	public static MemberMeResponse from(Member member) {
 		return new MemberMeResponse(
 			MemberSummaryResponse.from(member),

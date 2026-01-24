@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.*;
 import com.tasteam.domain.member.controller.docs.MemberControllerDocs;
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
-import com.tasteam.domain.member.dto.response.MemberPreviewResponse;
-import com.tasteam.domain.member.dto.response.ReviewPreviewResponse;
+import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
 import com.tasteam.domain.member.service.MemberService;
 import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
+import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.global.dto.api.SuccessResponse;
 
@@ -50,7 +50,7 @@ public class MemberController implements MemberControllerDocs {
 	}
 
 	@GetMapping("/reviews")
-	public SuccessResponse<MemberPreviewResponse<ReviewPreviewResponse>> getMyReviews(
+	public SuccessResponse<CursorPageResponse<ReviewSummaryResponse>> getMyReviews(
 		@RequestHeader("X-Member-Id")
 		Long memberId,
 		@ModelAttribute
