@@ -38,7 +38,7 @@ public final class ApiEndpoints {
 	public static final String SWAGGER_UI_INDEX = "/api/swagger-ui/index.html";
 	public static final String SWAGGER_UI_ASSETS = "/api/swagger-ui" + ALL;
 	public static final String SWAGGER_RESOURCES = "/api/swagger-resources" + ALL;
-  
+
 	public static final String WEBJARS = "/webjars" + ALL;
 	public static final String ACTUATOR = "/actuator" + ALL;
 	public static final String ACTUATOR_HEALTH = "/actuator/health";
