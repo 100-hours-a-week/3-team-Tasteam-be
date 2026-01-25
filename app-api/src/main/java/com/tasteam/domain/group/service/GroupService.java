@@ -3,8 +3,11 @@ package com.tasteam.domain.group.service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -33,6 +36,10 @@ import com.tasteam.domain.group.type.GroupJoinType;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.group.type.GroupType;
 import com.tasteam.domain.member.repository.MemberRepository;
+import com.tasteam.domain.subgroup.entity.Subgroup;
+import com.tasteam.domain.subgroup.entity.SubgroupMember;
+import com.tasteam.domain.subgroup.repository.SubgroupMemberRepository;
+import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
@@ -50,6 +57,8 @@ public class GroupService {
 	private final MemberRepository memberRepository;
 	private final GroupAuthCodeRepository groupAuthCodeRepository;
 	private final EmailSender emailSender;
+	private final SubgroupMemberRepository subgroupMemberRepository;
+	private final SubgroupRepository subgroupRepository;
 
 	@Transactional
 	public GroupCreateResponse createGroup(GroupCreateRequest request) {
@@ -179,6 +188,29 @@ public class GroupService {
 			group.getId(),
 			memberId).orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 		groupMember.softDelete(Instant.now());
+
+		List<SubgroupMember> subgroupMembers = subgroupMemberRepository.findActiveMembersByMemberAndGroup(
+			groupId,
+			memberId);
+		if (subgroupMembers.isEmpty()) {
+			return;
+		}
+
+		List<Long> subgroupIds = subgroupMembers.stream()
+			.map(SubgroupMember::getSubgroupId)
+			.toList();
+
+		Map<Long, Subgroup> subgroupMap = subgroupRepository.findAllById(subgroupIds).stream()
+			.collect(Collectors.toMap(Subgroup::getId, Function.identity()));
+
+		Instant now = Instant.now();
+		for (SubgroupMember subgroupMember : subgroupMembers) {
+			subgroupMember.softDelete(now);
+			Subgroup subgroup = subgroupMap.get(subgroupMember.getSubgroupId());
+			if (subgroup != null) {
+				subgroup.decreaseMemberCount();
+			}
+		}
 	}
 
 	@Transactional(readOnly = true)
