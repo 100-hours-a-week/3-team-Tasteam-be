@@ -4,52 +4,34 @@ import java.time.Instant;
 
 import com.tasteam.domain.group.entity.Group;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class GroupGetResponse {
-
-	private GroupData data;
+public record GroupGetResponse(GroupData data) {
 
 	public static GroupGetResponse from(Group group) {
-		return GroupGetResponse.builder()
-			.data(GroupData.from(group))
-			.build();
+		return new GroupGetResponse(GroupData.from(group));
 	}
 
-	@Getter
-	@Builder
-	@NoArgsConstructor
-	@AllArgsConstructor
-	public static class GroupData {
-		private Long groupId;
-		private String name;
-		private String logoImageUrl;
-		private String address;
-		private String detailAddress;
-		private String emailDomain;
-		private String status;
-		private Instant createdAt;
-		private Instant updatedAt;
+	public record GroupData(
+		Long groupId,
+		String name,
+		String logoImageUrl,
+		String address,
+		String detailAddress,
+		String emailDomain,
+		String status,
+		Instant createdAt,
+		Instant updatedAt) {
 
 		private static GroupData from(Group group) {
-			return GroupData.builder()
-				.groupId(group.getId())
-				.name(group.getName())
-				.logoImageUrl(group.getLogoImageUrl())
-				.address(group.getAddress())
-				.detailAddress(group.getDetailAddress())
-				.emailDomain(group.getEmailDomain())
-				.status("ACTIVE")
-				.createdAt(group.getCreatedAt())
-				.updatedAt(group.getUpdatedAt())
-				.build();
+			return new GroupData(
+				group.getId(),
+				group.getName(),
+				group.getLogoImageUrl(),
+				group.getAddress(),
+				group.getDetailAddress(),
+				group.getEmailDomain(),
+				"ACTIVE",
+				group.getCreatedAt(),
+				group.getUpdatedAt());
 		}
 	}
 }

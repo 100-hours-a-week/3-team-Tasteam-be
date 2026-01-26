@@ -4,34 +4,15 @@ import java.time.Instant;
 
 import com.tasteam.domain.subgroup.entity.Subgroup;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class SubgroupCreateResponse {
-
-	private SubgroupCreateData data;
+public record SubgroupCreateResponse(SubgroupCreateData data) {
 
 	public static SubgroupCreateResponse from(Subgroup subgroup) {
-		return SubgroupCreateResponse.builder()
-			.data(SubgroupCreateData.builder()
-				.id(subgroup.getId())
-				.createdAt(subgroup.getCreatedAt())
-				.build())
-			.build();
+		return new SubgroupCreateResponse(
+			new SubgroupCreateData(
+				subgroup.getId(),
+				subgroup.getCreatedAt()));
 	}
 
-	@Getter
-	@Builder
-	@NoArgsConstructor
-	@AllArgsConstructor
-	public static class SubgroupCreateData {
-		private Long id;
-		private Instant createdAt;
+	public record SubgroupCreateData(Long id, Instant createdAt) {
 	}
 }
