@@ -38,6 +38,9 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.RESTAURANTS_DETAIL),
 			permit(GET, ApiEndpoints.RESTAURANTS_REVIEWS),
 
+			// 메인
+			permit(GET, ApiEndpoints.MAIN),
+
 			// 리뷰 조회
 			permit(GET, ApiEndpoints.REVIEWS),
 			permit(GET, ApiEndpoints.REVIEWS_DETAIL),
