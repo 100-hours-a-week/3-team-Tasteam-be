@@ -37,6 +37,14 @@ out/
 ### VS Code ###
 .vscode/
 
+### Agents ###
+agent-dist/
+agent-work/
+CLAUDE.md
+.claude
+*CLAUDE*
+*.claude
+
 ### Environment / Secrets ###
 .env
 .env.*

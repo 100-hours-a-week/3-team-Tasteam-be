@@ -6,7 +6,7 @@ import java.util.Optional;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
-import com.tasteam.global.security.common.constants.SecurityConstants;
+import com.tasteam.global.security.common.constants.ApiEndpoints;
 import com.tasteam.global.security.config.properties.SecurityCookieProperties;
 import com.tasteam.global.security.jwt.common.JwtCookieConstants;
 import com.tasteam.global.security.jwt.properties.JwtProperties;
@@ -29,7 +29,7 @@ public class JwtCookieProvider {
 	public void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
 		long maxAgeInSeconds = jwtProperties.getRefreshTokenExpiration() / 1000;
 		addCookie(response, JwtCookieConstants.REFRESH_TOKEN_COOKIE_NAME, refreshToken,
-			SecurityConstants.AUTH_COOKIE_PATH, maxAgeInSeconds);
+			ApiEndpoints.AUTH, maxAgeInSeconds);
 	}
 
 	public Optional<String> getRefreshTokenFromCookie(HttpServletRequest request) {
@@ -37,7 +37,7 @@ public class JwtCookieProvider {
 	}
 
 	public void deleteRefreshTokenCookie(HttpServletResponse response) {
-		deleteCookie(response, JwtCookieConstants.REFRESH_TOKEN_COOKIE_NAME, SecurityConstants.AUTH_COOKIE_PATH);
+		deleteCookie(response, JwtCookieConstants.REFRESH_TOKEN_COOKIE_NAME, ApiEndpoints.AUTH);
 	}
 
 	private void addCookie(HttpServletResponse response, String name, String value, String path, long maxAge) {

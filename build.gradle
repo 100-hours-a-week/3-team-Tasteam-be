@@ -1,7 +1,7 @@
 plugins {
     id 'org.springframework.boot' version '3.5.9' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
-    id 'com.diffplug.spotless' version '6.19.0' apply false
+    id 'com.diffplug.spotless' version '7.0.0.BETA4' apply false
 }
 
 allprojects {
@@ -51,7 +51,8 @@ subprojects {
     spotless {
         java {
             target 'src/**/*.java'
-            eclipse().configFile(file("$rootDir/config/formatter/naver-eclipse-formatter.xml"))
+            // Eclipse 버전 명시 (HTTPS 프로토콜 문제 해결)
+            eclipse('4.31').configFile(file("$rootDir/config/formatter/naver-eclipse-formatter.xml"))
             importOrder('java', 'javax', 'org', 'net', 'com')
             removeUnusedImports()
         }

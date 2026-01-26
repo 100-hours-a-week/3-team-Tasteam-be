@@ -1,14 +1,14 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="ApiApplication" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
+  <configuration default="false" name="DockerComposeLocal" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
     <deployment type="docker-compose.yml">
       <settings>
         <option name="services">
           <list>
             <option value="api" />
             <option value="db" />
-            <option value="redis" />
           </list>
         </option>
+        <option name="envFilePath" value="$PROJECT_DIR$/.env.local" />
         <option name="sourceFilePath" value="docker-compose.local.yml" />
         <option name="upDetach" value="false" />
       </settings>
