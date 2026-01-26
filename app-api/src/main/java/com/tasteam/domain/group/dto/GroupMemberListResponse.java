@@ -2,27 +2,10 @@ package com.tasteam.domain.group.dto;
 
 import java.util.List;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+public record GroupMemberListResponse(
+	List<GroupMemberListItem> data,
+	PageInfo page) {
 
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class GroupMemberListResponse {
-
-	private List<GroupMemberListItem> data;
-	private PageInfo page;
-
-	@Getter
-	@Builder
-	@NoArgsConstructor
-	@AllArgsConstructor
-	public static class PageInfo {
-		private String nextCursor;
-		private Integer size;
-		private Boolean hasNext;
+	public record PageInfo(String nextCursor, Integer size, Boolean hasNext) {
 	}
 }

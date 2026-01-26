@@ -181,7 +181,7 @@ flowchart LR
         - 가입 시 사용자의 이메일 도메인이 그룹의 `email_domain`과 일치해야 한다.
         - 이메일 인증 절차를 통과하지 못한 사용자는 가입할 수 없다.
     - `PASSWORD` 유형 그룹 생성 시:
-        - 그룹 비밀번호는 필수이며, 서버에 해시 처리하여 저장한다.
+        - 그룹 비밀번호는 필수이며, 현재는 `group_auth_code.code`에 평문으로 저장한다.
         - 가입 시 입력한 비밀번호 검증 성공 시에만 가입을 허용한다.
     - 그룹은 생성 직후 기본 상태를 `ACTIVE`로 가진다.
     - 동일한 이름의 그룹 중복 생성은 허용하지 않는다(정책 기준, 제약 방식은 DB/애플리케이션 레벨에서 강제).
@@ -380,8 +380,8 @@ erDiagram
 | `id`          | `BIGINT`       | N        | `SEQUENCE` | 코드 식별자 | `PK_GROUP_AUTH_CODE` |
 | `group_id`    | `BIGINT`       | N        | - | 그룹 ID  | FK(`group.id`) |
 | `code`        | `VARCHAR(20)`  | N        | - | 인증 코드  | - |
-| `email`       | `VARCHAR(255)` | N        | - | 이메일    | - |
-| `expires_at`  | `TIMESTAMP`    | N        | - | 만료 시각  | - |
+| `email`       | `VARCHAR(255)` | Y        | - | 이메일    | PASSWORD 그룹용 코드는 NULL 허용 |
+| `expires_at`  | `TIMESTAMP`    | Y        | - | 만료 시각  | PASSWORD 그룹용 코드는 NULL 허용 |
 | `created_at`  | `TIMESTAMP`    | N        | - | 생성 시각  | - |
 | `verified_at` | `TIMESTAMP`    | Y        | - | 인증 시각  | - |
 
@@ -534,6 +534,7 @@ erDiagram
                 - `location.longitude`: number - 경도
                 - `joinType`: string (enum: `PASSWORD|EMAIL`) - 가입 방식(명세 기준)
                 - `emailDomain`: string | null - 이메일 가입 도메인 제한(이메일 가입 방식일 때)
+                - `code`: string | null - PASSWORD 가입용 그룹 비밀번호(EMAIL일 때는 null)
             - 예시(JSON)
               ```json
               {
@@ -546,7 +547,8 @@ erDiagram
                   "longitude": 127.108622
                 },
                 "joinType": "PASSWORD",
-                "emailDomain": null
+                "emailDomain": null,
+                "code": "123456"
               }
               ```
     - **응답**
@@ -574,9 +576,16 @@ erDiagram
            - 그룹 타입이 OFFICIAL인 경우:
                - joinType은 EMAIL이어야 함
                - emailDomain은 필수
+               - code는 반드시 null
            - 그룹 타입이 UNOFFICIAL인 경우:
                - joinType은 PASSWORD이어야함
                - emailDomain 은 NULL이어야 함
+               - code는 필수
+           - joinType이 PASSWORD인 경우 `group_auth_code` 생성
+               - `group_auth_code.group_id` = 생성된 그룹 id
+               - `group_auth_code.code` = 요청 code
+               - `group_auth_code.email` = null
+               - `group_auth_code.expires_at` = null
 
            - 생성된 그룹의 초기 status는 ACTIVE로 설정
         3. Repository 조회 조건:
@@ -1399,12 +1408,20 @@ erDiagram
           { "data": { "verified": true, "joinedAt": "2026-01-11T02:25:00+09:00" } }
           ```
     - **처리 로직:**
-        1. `group` 조회 및 `join_type=PASSWORD` 확인
-        2. 그룹 비밀번호 저장 위치/정책 확인(현재 ERD에 부재 → Open Questions)
-        3. 검증 성공 시 `group_member` 생성 또는 복구
-        4. 201 반환
+        1. `group` 조회 및 상태/타입 검증
+           - `group.id` = `groupId`
+           - `deleted_at` IS NULL
+           - `status` = ACTIVE
+           - `join_type` = PASSWORD
+           - `type` = UNOFFICIAL
+           아니면 GROUP_NOT_FOUND / INVALID_REQUEST
+        2. `group_auth_code.code`와 request의 `code` 비교
+           - `group_auth_code.group_id` = `groupId`
+           - 불일치 시 GROUP_PASSWORD_MISMATCH
+        3. `group_member` 생성 또는 soft delete NULL로 복구
+        4. 201 반환(`data.verified=true`, `joinedAt`)
     - **트랜잭션 관리:** 멤버십 upsert 단일 트랜잭션
-    - **동시성/멱등성:** `(group_id, member_id)` 유니크로 중복 가입 방지
+    - **동시성/멱등성:** `(group_id, member_id)` 유니크로 중복 가입 방지, 이미 가입된 경우 201 멱등 처리
     - **에러 코드(주요):** `INVALID_REQUEST`(400), `UNAUTHORIZED`(401), `GROUP_NOT_FOUND`(404), `GROUP_PASSWORD_MISMATCH`(409), `INTERNAL_SERVER_ERROR`(500)
 
 ## **[3-6] 도메인 에러 코드(공통 정의)**

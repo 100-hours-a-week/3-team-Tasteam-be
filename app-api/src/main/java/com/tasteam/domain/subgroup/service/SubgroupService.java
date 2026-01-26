@@ -104,17 +104,15 @@ public class SubgroupService {
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.NO_PERMISSION));
 		}
 
-		return SubgroupDetailResponse.builder()
-			.data(SubgroupDetailResponse.SubgroupDetail.builder()
-				.groupId(subgroup.getGroup().getId())
-				.subgroupId(subgroup.getId())
-				.name(subgroup.getName())
-				.description(subgroup.getDescription())
-				.memberCount(subgroup.getMemberCount())
-				.profileImageUrl(subgroup.getProfileImageUrl())
-				.createdAt(subgroup.getCreatedAt())
-				.build())
-			.build();
+		return new SubgroupDetailResponse(
+			new SubgroupDetailResponse.SubgroupDetail(
+				subgroup.getGroup().getId(),
+				subgroup.getId(),
+				subgroup.getName(),
+				subgroup.getDescription(),
+				subgroup.getMemberCount(),
+				subgroup.getProfileImageUrl(),
+				subgroup.getCreatedAt()));
 	}
 
 	@Transactional
@@ -193,12 +191,10 @@ public class SubgroupService {
 			throw new BusinessException(SubgroupErrorCode.SUBGROUP_ALREADY_JOINED);
 		}
 
-		return SubgroupJoinResponse.builder()
-			.data(SubgroupJoinResponse.JoinData.builder()
-				.subgroupId(subgroupId)
-				.joinedAt(joinedAt)
-				.build())
-			.build();
+		return new SubgroupJoinResponse(
+			new SubgroupJoinResponse.JoinData(
+				subgroupId,
+				joinedAt));
 	}
 
 	@Transactional
@@ -253,15 +249,13 @@ public class SubgroupService {
 			nextCursor = encodeCursor(lastItem.getName(), lastItem.getSubgroupId());
 		}
 
-		return SubgroupListResponse.builder()
-			.data(items)
-			.page(SubgroupListResponse.PageInfo.builder()
-				.sort(SORT_NAME_ASC_ID_ASC)
-				.nextCursor(nextCursor)
-				.size(resolvedSize)
-				.hasNext(hasNext)
-				.build())
-			.build();
+		return new SubgroupListResponse(
+			items,
+			new SubgroupListResponse.PageInfo(
+				SORT_NAME_ASC_ID_ASC,
+				nextCursor,
+				resolvedSize,
+				hasNext));
 	}
 
 	private void validateAuthenticated(Long memberId) {

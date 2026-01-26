@@ -7,47 +7,28 @@ import com.tasteam.domain.group.type.GroupType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-public class GroupCreateRequest {
-
+public record GroupCreateRequest(
 	@NotBlank
-	private String name;
-
+	String name,
+	@NotBlank @JsonProperty("logoImageURL")
+	String logoImageUrl,
+	@NotNull
+	GroupType type,
 	@NotBlank
-	@JsonProperty("logoImageURL")
-	private String logoImageUrl;
-
+	String address,
+	String detailAddress,
+	@NotNull @Valid
+	Location location,
 	@NotNull
-	private GroupType type;
+	GroupJoinType joinType,
+	String emailDomain,
+	String code) {
 
-	@NotBlank
-	private String address;
-
-	private String detailAddress;
-
-	@NotNull
-	@Valid
-	private Location location;
-
-	@NotNull
-	private GroupJoinType joinType;
-
-	private String emailDomain;
-
-	@Getter
-	@NoArgsConstructor
-	@AllArgsConstructor
-	public static class Location {
+	public record Location(
 		@NotNull
-		private Double latitude;
-
+		Double latitude,
 		@NotNull
-		private Double longitude;
+		Double longitude) {
 	}
 }

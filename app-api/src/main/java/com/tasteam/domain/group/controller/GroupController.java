@@ -12,6 +12,8 @@ import com.tasteam.domain.group.dto.GroupEmailVerificationRequest;
 import com.tasteam.domain.group.dto.GroupEmailVerificationResponse;
 import com.tasteam.domain.group.dto.GroupGetResponse;
 import com.tasteam.domain.group.dto.GroupMemberListResponse;
+import com.tasteam.domain.group.dto.GroupPasswordAuthenticationRequest;
+import com.tasteam.domain.group.dto.GroupPasswordAuthenticationResponse;
 import com.tasteam.domain.group.dto.GroupUpdateRequest;
 import com.tasteam.domain.group.service.GroupService;
 import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
@@ -84,7 +86,7 @@ public class GroupController {
 		Long groupId,
 		@Valid @RequestBody
 		GroupEmailVerificationRequest request) {
-		return SuccessResponse.success(groupService.sendGroupEmailVerification(groupId, request.getEmail()));
+		return SuccessResponse.success(groupService.sendGroupEmailVerification(groupId, request.email()));
 	}
 
 	@PostMapping("/{groupId}/email-authentications")
@@ -97,7 +99,20 @@ public class GroupController {
 		@Valid @RequestBody
 		GroupEmailAuthenticationRequest request) {
 		return SuccessResponse.success(
-			groupService.authenticateGroupByEmail(groupId, memberId, request.getCode()));
+			groupService.authenticateGroupByEmail(groupId, memberId, request.code()));
+	}
+
+	@PostMapping("/{groupId}/password-authentications")
+	@ResponseStatus(HttpStatus.CREATED)
+	public SuccessResponse<GroupPasswordAuthenticationResponse> authenticateGroupByPassword(
+		@PathVariable @Positive
+		Long groupId,
+		@CurrentUser
+		Long memberId,
+		@Valid @RequestBody
+		GroupPasswordAuthenticationRequest request) {
+		return SuccessResponse.success(
+			groupService.authenticateGroupByPassword(groupId, memberId, request.code()));
 	}
 
 	@GetMapping("/{groupId}/members")

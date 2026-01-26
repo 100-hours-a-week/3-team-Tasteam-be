@@ -14,4 +14,6 @@ public interface GroupAuthCodeRepository extends JpaRepository<GroupAuthCode, Lo
 		Long groupId,
 		String code,
 		Instant now);
+
+	java.util.Optional<GroupAuthCode> findByGroupId(Long groupId);
 }
