@@ -1,4 +1,4 @@
-package com.tasteam.domain.auth.store;
+package com.tasteam.global.security.jwt.repository;
 
 import java.time.Instant;
 import java.util.Optional;

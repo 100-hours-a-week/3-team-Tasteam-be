@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.domain.auth.controller.docs.AuthApiDocs;
 import com.tasteam.domain.auth.dto.response.RefreshTokenResponse;
+import com.tasteam.domain.auth.service.TokenRefreshService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.RefreshToken;
 import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
-import com.tasteam.global.security.jwt.service.TokenRefreshService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
