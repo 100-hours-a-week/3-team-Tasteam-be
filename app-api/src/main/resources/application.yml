@@ -58,9 +58,9 @@ spring:
 
 springdoc:
   api-docs:
-    path: /api/v3/api-docs
+    path: /api/v1/v3/api-docs
   swagger-ui:
-    path: /api/swagger-ui.html
+    path: /api/v1/swagger-ui.html
 
 ## ====== 커스텀 설정 ======
 tasteam:
