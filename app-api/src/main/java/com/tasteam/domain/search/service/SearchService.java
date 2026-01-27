@@ -19,7 +19,6 @@ import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.repository.RestaurantImageRepository;
-import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjection;
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.request.SearchRequest;
@@ -28,7 +27,9 @@ import com.tasteam.domain.search.dto.response.SearchGroupSummary;
 import com.tasteam.domain.search.dto.response.SearchResponse;
 import com.tasteam.domain.search.dto.response.SearchRestaurantItem;
 import com.tasteam.domain.search.entity.MemberSearchHistory;
+import com.tasteam.domain.search.repository.MemberSearchHistoryQueryRepository;
 import com.tasteam.domain.search.repository.MemberSearchHistoryRepository;
+import com.tasteam.domain.search.repository.SearchQueryRepository;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.dto.pagination.OffsetPagination;
 import com.tasteam.global.exception.business.BusinessException;
@@ -49,9 +50,10 @@ public class SearchService {
 
 	private final GroupRepository groupRepository;
 	private final GroupMemberRepository groupMemberRepository;
-	private final RestaurantRepository restaurantRepository;
 	private final RestaurantImageRepository restaurantImageRepository;
 	private final MemberSearchHistoryRepository memberSearchHistoryRepository;
+	private final MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository;
+	private final SearchQueryRepository searchQueryRepository;
 	private final CursorCodec cursorCodec;
 
 	@Transactional
@@ -76,11 +78,10 @@ public class SearchService {
 			throw new BusinessException(CommonErrorCode.AUTHENTICATION_REQUIRED);
 		}
 
-		List<MemberSearchHistory> results = memberSearchHistoryRepository.findRecentSearches(
+		List<MemberSearchHistory> results = memberSearchHistoryQueryRepository.findRecentSearches(
 			memberId,
 			null,
-			null,
-			PageRequest.of(0, DEFAULT_PAGE_SIZE));
+			DEFAULT_PAGE_SIZE);
 
 		List<RecentSearchItem> data = results.stream()
 			.map(history -> new RecentSearchItem(
@@ -109,11 +110,10 @@ public class SearchService {
 		String keyword,
 		SearchCursor cursor,
 		int pageSize) {
-		List<Restaurant> result = restaurantRepository.searchByKeyword(
+		List<Restaurant> result = searchQueryRepository.searchRestaurantsByKeyword(
 			keyword,
-			cursor == null ? null : cursor.updatedAt(),
-			cursor == null ? null : cursor.id(),
-			PageRequest.of(0, pageSize + 1));
+			cursor,
+			pageSize + 1);
 
 		boolean hasNext = result.size() > pageSize;
 		List<Restaurant> pageContent = hasNext ? result.subList(0, pageSize) : result;
