@@ -1,5 +1,7 @@
 package com.tasteam.domain.member.controller;
 
+import java.util.List;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.domain.member.controller.docs.MemberControllerDocs;
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
+import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
 import com.tasteam.domain.member.service.MemberService;
 import com.tasteam.global.dto.api.SuccessResponse;
@@ -29,6 +32,13 @@ public class MemberController implements MemberControllerDocs {
 		@CurrentUser
 		Long memberId) {
 		return SuccessResponse.success(memberService.getMyProfile(memberId));
+	}
+
+	@GetMapping("/groups/summary")
+	public SuccessResponse<List<MemberGroupSummaryResponse>> getMyGroupSummaries(
+		@CurrentUser
+		Long memberId) {
+		return SuccessResponse.success(memberService.getMyGroupSummaries(memberId));
 	}
 
 	@PatchMapping("/profile")
