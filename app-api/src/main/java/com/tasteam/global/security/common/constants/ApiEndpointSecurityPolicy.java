@@ -45,6 +45,12 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.SUBGROUPS_REVIEWS),
 			permit(GET, ApiEndpoints.MEMBERS_REVIEWS),
 
+			// 검색 (토큰 유무 무관)
+			permit(POST, ApiEndpoints.SEARCH),
+
+			// 메인 (토큰 유무 무관)
+			permit(GET, ApiEndpoints.MAIN),
+
 			// Swagger
 			permit(GET, ApiEndpoints.SWAGGER_UI),
 			permit(GET, ApiEndpoints.SWAGGER_UI_INDEX),

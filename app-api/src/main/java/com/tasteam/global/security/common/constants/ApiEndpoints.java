@@ -70,6 +70,12 @@ public final class ApiEndpoints {
 	public static final String SUBGROUPS_DETAIL = SUBGROUPS + DETAIL;
 	public static final String SUBGROUPS_REVIEWS = SUBGROUPS_DETAIL + "/reviews";
 
+	// Search
+	public static final String SEARCH = API_V1 + "/search";
+
+	// Main
+	public static final String MAIN = API_V1 + "/main";
+
 	// File
 	public static final String FILES = API_V1 + "/files";
 	public static final String FILES_ALL = FILES + ALL;
