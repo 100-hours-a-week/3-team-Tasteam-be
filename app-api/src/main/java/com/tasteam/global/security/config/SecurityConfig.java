@@ -21,7 +21,7 @@ import com.tasteam.global.security.oauth.config.OAuth2SecurityConfig;
 
 import lombok.RequiredArgsConstructor;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
