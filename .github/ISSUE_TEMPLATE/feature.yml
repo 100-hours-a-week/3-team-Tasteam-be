@@ -1,7 +1,8 @@
-name: Feature
-description: 새로운 기능 또는 개선 작업
+name: Feature Development
+description: 새로운 기능 개발을 위한 이슈 템플릿
 title: "[BE] "
 labels:
+  - 기능-개발
   - 기능
 assignees: []
 
@@ -9,45 +10,19 @@ body:
   - type: markdown
     attributes:
       value: |
-        ## 🔗 관련 이슈 / 문서
-  - type: input
-    id: related-issue
-    attributes:
-      label: 관련 이슈
-      description: "예: #123"
-      placeholder: "#"
-  - type: textarea
-    id: reference
-    attributes:
-      label: 참고
-      description: "관련 문서나 링크"
-
+        ---
   - type: markdown
     attributes:
       value: |
-        ---
-        ## 🏷️ Type
-  - type: dropdown
-    id: type
-    attributes:
-      label: Type
-      options:
-        - 기능
-        - 버그
-    validations:
-      required: true
-
-  - type: markdown
-    attributes:
-      value: |
-        ---
-        ## 📌 이슈 요약
+        ## 1. ✨ 기능 개발 요약 (필수)
   - type: textarea
     id: summary
     attributes:
-      label: 이슈 요약
-      description: 무엇을 해야 하는지 한 문장
-      placeholder: "예: 로그인 실패 시 오류 메시지 개선"
+      label: 기능 요약
+      description: 한 문장으로 어떤 기능인지, 누구를 위해 어떤 가치/효과를 내는지 설명
+      placeholder: |
+        예: 예약 완료 모달을 개선해서 실패 시에도 재시도 버튼을 보여줌
+        예: 고객사 목록을 API로 가져와 검색할 수 있도록 UI 전면에 추가
     validations:
       required: true
 
@@ -55,12 +30,20 @@ body:
     attributes:
       value: |
         ---
-        ## 🎯 목표
-  - type: textarea
-    id: goal
+  - type: markdown
     attributes:
-      label: 목표
-      description: 이슈가 해결됐다고 판단할 수 있는 기준
+      value: |
+        ## 2. 🔍 기능 상세 (필수)
+  - type: textarea
+    id: detail
+    attributes:
+      label: 기능 상세
+      description: 화면/엔드포인트 구조, 입력값/출력값, 의존 서비스, 사용자 흐름을 포함해 구체적으로 적어주세요.
+      placeholder: |
+        - 화면: `/admin/feature`에서 수정 버튼을 누르면 팝업
+        - 입력: 사용자 이메일, 권한 레벨
+        - 출력: API 응답 `{"success":true}`
+        - 사용자 흐름: 관리자 → 설정 페이지 → 기능 토글
     validations:
       required: true
 
@@ -68,22 +51,51 @@ body:
     attributes:
       value: |
         ---
-        ## 🔧 작업 내용
-  - type: checkboxes
-    id: tasks
+  - type: markdown
     attributes:
-      label: 작업 내용
-      options:
-        - label: 해야 할 작업 1
-        - label: 해야 할 작업 2
+      value: |
+        ## 3. 📝 TODO 리스트 (선택)
+  - type: textarea
+    id: todo
+    attributes:
+      label: TODO 리스트
+      description: 구체적으로 어떤 작업을 해야 하는지 나열하세요. 체크리스트 형태로 기록하면 팀 공유가 편합니다.
+      placeholder: |
+        1. API 스펙 정의
+        2. 프론트 티켓에 작업할 컴포넌트 연결
+        3. 테스트 케이스 작성
 
   - type: markdown
     attributes:
       value: |
         ---
-        ## ⚠️ 참고사항
-  - type: textarea
-    id: notes
+  - type: markdown
     attributes:
-      label: 참고사항
-      description: 작업 전에 알아야 할 맥락, 제약, 트레이드오프
+      value: |
+        ## 4. 📚 참고자료 (선택)
+  - type: textarea
+    id: reference
+    attributes:
+      label: 참고자료
+      description: 디자인 시안, 기술 문서, API 레퍼런스를 링크하거나 요약해서 적어주세요.
+      placeholder: |
+        - Figma: https://...
+        - OpenAPI: /docs/features#create
+        - 참고 레퍼런스: 기존 기능
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+  - type: markdown
+    attributes:
+      value: |
+        ## 5. 🔗 연관 이슈/링크 (선택)
+  - type: textarea
+    id: related
+    attributes:
+      label: 연관 이슈/링크
+      description: 관련된 다른 이슈, PR, 태스크 등을 모두 연결하세요.
+      placeholder: |
+        - CBS-123 (백엔드 개선)
+        - #456 프론트 페이지 리팩토링
