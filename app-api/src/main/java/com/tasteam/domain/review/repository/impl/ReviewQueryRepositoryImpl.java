@@ -75,6 +75,31 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 	}
 
 	@Override
+	public List<ReviewQueryDto> findSubgroupReviews(Long subgroupId, ReviewCursor cursor, int size) {
+		QReview review = QReview.review;
+		QMember member = QMember.member;
+
+		return getQueryFactory()
+			.select(Projections.constructor(
+				ReviewQueryDto.class,
+				review.id,
+				member.id,
+				member.nickname,
+				review.content,
+				review.isRecommended,
+				review.createdAt))
+			.from(review)
+			.join(review.member, member)
+			.where(
+				review.subgroupId.eq(subgroupId),
+				review.deletedAt.isNull(),
+				cursorCondition(cursor, review))
+			.orderBy(review.createdAt.desc(), review.id.desc())
+			.limit(size)
+			.fetch();
+	}
+
+	@Override
 	public List<ReviewMemberQueryDto> findMemberReviews(Long memberId, ReviewCursor cursor, int size) {
 		QReview review = QReview.review;
 		QRestaurant restaurant = QRestaurant.restaurant;

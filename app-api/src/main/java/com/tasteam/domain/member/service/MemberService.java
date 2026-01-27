@@ -1,9 +1,14 @@
 package com.tasteam.domain.member.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.group.repository.GroupMemberRepository;
+import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
+import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
@@ -17,11 +22,19 @@ import lombok.RequiredArgsConstructor;
 public class MemberService {
 
 	private final MemberRepository memberRepository;
+	private final GroupMemberRepository groupMemberRepository;
 
 	@Transactional(readOnly = true)
 	public MemberMeResponse getMyProfile(Long memberId) {
 		Member member = getActiveMember(memberId);
 		return MemberMeResponse.from(member);
+	}
+
+	@Transactional(readOnly = true)
+	public List<MemberGroupSummaryResponse> getMyGroupSummaries(Long memberId) {
+		// 멤버 존재 여부를 먼저 확인해 404를 일관되게 유지합니다.
+		getActiveMember(memberId);
+		return groupMemberRepository.findMemberGroupSummaries(memberId, GroupStatus.ACTIVE);
 	}
 
 	@Transactional

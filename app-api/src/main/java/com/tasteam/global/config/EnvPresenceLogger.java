@@ -19,6 +19,8 @@ public class EnvPresenceLogger {
 		return args -> {
 			logPresence(environment, "GOOGLE_CLIENT_ID");
 			logPresence(environment, "GOOGLE_CLIENT_SECRET");
+			logPresence(environment, "NAVER_MAPS_API_KEY_ID");
+			logPresence(environment, "NAVER_MAPS_API_KEY");
 			logClientRegistration(clientRegistrationRepository, "google");
 		};
 	}

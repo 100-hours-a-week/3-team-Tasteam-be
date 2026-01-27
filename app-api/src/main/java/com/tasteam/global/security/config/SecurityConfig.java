@@ -11,16 +11,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.web.cors.CorsConfigurationSource;
 
-import com.tasteam.global.security.common.constants.SecurityConstants;
+import com.tasteam.global.security.common.constants.ApiEndpointSecurityPolicy;
 import com.tasteam.global.security.exception.filter.FilterChainExceptionFilter;
 import com.tasteam.global.security.exception.handler.CustomAccessDeniedHandler;
 import com.tasteam.global.security.exception.handler.CustomAuthenticationEntryPoint;
 import com.tasteam.global.security.jwt.config.JwtSecurityConfig;
+import com.tasteam.global.security.logout.filter.CustomLogoutFilter;
 import com.tasteam.global.security.oauth.config.OAuth2SecurityConfig;
 
 import lombok.RequiredArgsConstructor;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -31,6 +32,7 @@ public class SecurityConfig {
 	private final FilterChainExceptionFilter filterChainExceptionFilter;
 	private final JwtSecurityConfig jwtSecurityConfig;
 	private final OAuth2SecurityConfig oAuth2SecurityConfig;
+	private final CustomLogoutFilter customLogoutFilter;
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -50,14 +52,22 @@ public class SecurityConfig {
 				.requestCache(new NullRequestCache()))
 
 			/// [Request 권한 설정]
-			.authorizeHttpRequests(auth -> auth
-				.requestMatchers(SecurityConstants.PUBLIC_URLS).permitAll()
-				.requestMatchers(SecurityConstants.SECURE_URLS).hasRole("USER")
-				.requestMatchers(SecurityConstants.ADMIN_URLS).hasRole("ADMIN")
-				.anyRequest().authenticated())
+			.authorizeHttpRequests(auth -> {
+				ApiEndpointSecurityPolicy.publicEndpoints().forEach(endpoint -> {
+					auth.requestMatchers(endpoint.method(), endpoint.pattern()).permitAll();
+				});
 
+				auth.requestMatchers(ApiEndpointSecurityPolicy.userEndpoints()).hasRole("USER");
+				auth.requestMatchers(ApiEndpointSecurityPolicy.adminEndpoints()).hasRole("ADMIN");
+				auth.anyRequest().authenticated();
+			})
 			.formLogin(AbstractHttpConfigurer::disable)
 			.httpBasic(AbstractHttpConfigurer::disable)
+
+			/// 로그아웃 필터
+			.addFilterBefore(
+				customLogoutFilter,
+				UsernamePasswordAuthenticationFilter.class)
 
 			/// [필터 체인 전역 예외 헨들러] : 모든 예외
 			.addFilterBefore(

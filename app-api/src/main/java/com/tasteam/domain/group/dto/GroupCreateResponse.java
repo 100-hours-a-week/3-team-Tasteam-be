@@ -4,26 +4,15 @@ import java.time.Instant;
 
 import com.tasteam.domain.group.entity.Group;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class GroupCreateResponse {
-
-	private Long id;
-	private String status;
-	private Instant createdAt;
+public record GroupCreateResponse(
+	Long id,
+	String status,
+	Instant createdAt) {
 
 	public static GroupCreateResponse from(Group group) {
-		return GroupCreateResponse.builder()
-			.id(group.getId())
-			.status(group.getStatus().name())
-			.createdAt(group.getCreatedAt())
-			.build();
+		return new GroupCreateResponse(
+			group.getId(),
+			group.getStatus().name(),
+			group.getCreatedAt());
 	}
 }

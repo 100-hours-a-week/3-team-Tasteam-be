@@ -3,8 +3,11 @@ package com.tasteam.domain.group.service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -22,6 +25,7 @@ import com.tasteam.domain.group.dto.GroupEmailVerificationResponse;
 import com.tasteam.domain.group.dto.GroupGetResponse;
 import com.tasteam.domain.group.dto.GroupMemberListItem;
 import com.tasteam.domain.group.dto.GroupMemberListResponse;
+import com.tasteam.domain.group.dto.GroupPasswordAuthenticationResponse;
 import com.tasteam.domain.group.dto.GroupUpdateRequest;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.entity.GroupAuthCode;
@@ -33,6 +37,10 @@ import com.tasteam.domain.group.type.GroupJoinType;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.group.type.GroupType;
 import com.tasteam.domain.member.repository.MemberRepository;
+import com.tasteam.domain.subgroup.entity.Subgroup;
+import com.tasteam.domain.subgroup.entity.SubgroupMember;
+import com.tasteam.domain.subgroup.repository.SubgroupMemberRepository;
+import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
@@ -50,28 +58,38 @@ public class GroupService {
 	private final MemberRepository memberRepository;
 	private final GroupAuthCodeRepository groupAuthCodeRepository;
 	private final EmailSender emailSender;
+	private final SubgroupMemberRepository subgroupMemberRepository;
+	private final SubgroupRepository subgroupRepository;
 
 	@Transactional
 	public GroupCreateResponse createGroup(GroupCreateRequest request) {
-		if (groupRepository.existsByNameAndDeletedAtIsNull(request.getName())) {
+		if (groupRepository.existsByNameAndDeletedAtIsNull(request.name())) {
 			throw new BusinessException(GroupErrorCode.ALREADY_EXISTS);
 		}
 
 		validateCreateRequest(request);
 
 		Group group = Group.builder()
-			.name(request.getName())
-			.type(request.getType())
-			.logoImageUrl(request.getLogoImageUrl())
-			.address(request.getAddress())
-			.detailAddress(request.getDetailAddress())
-			.location(toPoint(request.getLocation()))
-			.joinType(request.getJoinType())
-			.emailDomain(request.getEmailDomain())
+			.name(request.name())
+			.type(request.type())
+			.logoImageUrl(request.logoImageUrl())
+			.address(request.address())
+			.detailAddress(request.detailAddress())
+			.location(toPoint(request.location()))
+			.joinType(request.joinType())
+			.emailDomain(request.emailDomain())
 			.status(GroupStatus.ACTIVE)
 			.build();
 
 		Group savedGroup = groupRepository.save(group);
+		if (savedGroup.getJoinType() == GroupJoinType.PASSWORD) {
+			groupAuthCodeRepository.save(GroupAuthCode.builder()
+				.groupId(savedGroup.getId())
+				.code(request.code())
+				.email(null)
+				.expiresAt(null)
+				.build());
+		}
 		return GroupCreateResponse.from(savedGroup);
 	}
 
@@ -87,12 +105,12 @@ public class GroupService {
 		Group group = groupRepository.findByIdAndDeletedAtIsNull(groupId)
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 
-		applyStringIfPresent(request.getName(), group::updateName, false);
-		applyStringIfPresent(request.getAddress(), group::updateAddress, false);
-		applyStringIfPresent(request.getDetailAddress(), group::updateDetailAddress, true);
-		applyStringIfPresent(request.getEmailDomain(), group::updateEmailDomain, true);
-		applyLogoImageUrl(request.getLogoImageUrl(), group);
-		applyStatusIfPresent(request.getStatus(), group);
+		applyStringIfPresent(request.name(), group::updateName, false);
+		applyStringIfPresent(request.address(), group::updateAddress, false);
+		applyStringIfPresent(request.detailAddress(), group::updateDetailAddress, true);
+		applyStringIfPresent(request.emailDomain(), group::updateEmailDomain, true);
+		applyLogoImageUrl(request.logoImageUrl(), group);
+		applyStatusIfPresent(request.status(), group);
 	}
 
 	@Transactional
@@ -158,10 +176,47 @@ public class GroupService {
 
 		authCode.verify(Instant.now());
 
-		return GroupEmailAuthenticationResponse.builder()
-			.verified(true)
-			.joinedAt(groupMember.getCreatedAt())
-			.build();
+		return new GroupEmailAuthenticationResponse(
+			true,
+			groupMember.getCreatedAt());
+	}
+
+	@Transactional
+	public GroupPasswordAuthenticationResponse authenticateGroupByPassword(Long groupId, Long memberId, String code) {
+		Group group = groupRepository.findByIdAndDeletedAtIsNull(groupId)
+			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
+
+		if (group.getJoinType() != GroupJoinType.PASSWORD || group.getType() != GroupType.UNOFFICIAL) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		if (group.getStatus() != GroupStatus.ACTIVE) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		GroupAuthCode authCode = groupAuthCodeRepository.findByGroupId(groupId)
+			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_PASSWORD_MISMATCH));
+
+		if (!authCode.getCode().equals(code)) {
+			throw new BusinessException(GroupErrorCode.GROUP_PASSWORD_MISMATCH);
+		}
+
+		GroupMember groupMember = groupMemberRepository
+			.findByGroupIdAndMember_Id(groupId, memberId)
+			.orElse(null);
+
+		if (groupMember == null) {
+			groupMember = groupMemberRepository.save(GroupMember.create(
+				groupId,
+				memberRepository.findByIdAndDeletedAtIsNull(memberId)
+					.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND))));
+		} else if (groupMember.getDeletedAt() != null) {
+			groupMember.restore();
+		}
+
+		return new GroupPasswordAuthenticationResponse(
+			true,
+			groupMember.getCreatedAt());
 	}
 
 	@Transactional
@@ -179,6 +234,29 @@ public class GroupService {
 			group.getId(),
 			memberId).orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 		groupMember.softDelete(Instant.now());
+
+		List<SubgroupMember> subgroupMembers = subgroupMemberRepository.findActiveMembersByMemberAndGroup(
+			groupId,
+			memberId);
+		if (subgroupMembers.isEmpty()) {
+			return;
+		}
+
+		List<Long> subgroupIds = subgroupMembers.stream()
+			.map(SubgroupMember::getSubgroupId)
+			.toList();
+
+		Map<Long, Subgroup> subgroupMap = subgroupRepository.findAllById(subgroupIds).stream()
+			.collect(Collectors.toMap(Subgroup::getId, Function.identity()));
+
+		Instant now = Instant.now();
+		for (SubgroupMember subgroupMember : subgroupMembers) {
+			subgroupMember.softDelete(now);
+			Subgroup subgroup = subgroupMap.get(subgroupMember.getSubgroupId());
+			if (subgroup != null) {
+				subgroup.decreaseMemberCount();
+			}
+		}
 	}
 
 	@Transactional(readOnly = true)
@@ -199,16 +277,14 @@ public class GroupService {
 			items = items.subList(0, resolvedSize);
 		}
 
-		String nextCursor = hasNext ? String.valueOf(items.get(items.size() - 1).getCursorId()) : null;
+		String nextCursor = hasNext ? String.valueOf(items.get(items.size() - 1).cursorId()) : null;
 
-		return GroupMemberListResponse.builder()
-			.data(items)
-			.page(GroupMemberListResponse.PageInfo.builder()
-				.nextCursor(nextCursor)
-				.size(resolvedSize)
-				.hasNext(hasNext)
-				.build())
-			.build();
+		return new GroupMemberListResponse(
+			items,
+			new GroupMemberListResponse.PageInfo(
+				nextCursor,
+				resolvedSize,
+				hasNext));
 	}
 
 	@Transactional
@@ -224,21 +300,27 @@ public class GroupService {
 	}
 
 	private void validateCreateRequest(GroupCreateRequest request) {
-		if (request.getType() == GroupType.OFFICIAL) {
-			if (request.getJoinType() != GroupJoinType.EMAIL) {
+		if (request.type() == GroupType.OFFICIAL) {
+			if (request.joinType() != GroupJoinType.EMAIL) {
 				throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 			}
-			if (request.getEmailDomain() == null || request.getEmailDomain().isBlank()) {
+			if (request.emailDomain() == null || request.emailDomain().isBlank()) {
+				throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+			}
+			if (request.code() != null) {
 				throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 			}
 			return;
 		}
 
-		if (request.getType() == GroupType.UNOFFICIAL) {
-			if (request.getJoinType() != GroupJoinType.PASSWORD) {
+		if (request.type() == GroupType.UNOFFICIAL) {
+			if (request.joinType() != GroupJoinType.PASSWORD) {
 				throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 			}
-			if (request.getEmailDomain() != null) {
+			if (request.emailDomain() != null) {
+				throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+			}
+			if (request.code() == null || request.code().isBlank()) {
 				throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 			}
 		}
@@ -292,7 +374,7 @@ public class GroupService {
 
 	private Point toPoint(GroupCreateRequest.Location location) {
 		GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
-		return geometryFactory.createPoint(new Coordinate(location.getLongitude(), location.getLatitude()));
+		return geometryFactory.createPoint(new Coordinate(location.longitude(), location.latitude()));
 	}
 
 	private void validateEmailDomain(String email, String domain) {

@@ -35,13 +35,13 @@ public class GroupAuthCode extends BaseCreatedAtEntity {
 	@Column(name = "code", nullable = false, length = 20)
 	private String code;
 
-	@Column(name = "email", nullable = false, length = 255)
+	@Column(name = "email", length = 255)
 	private String email;
 
 	@Column(name = "verified_at")
 	private Instant verifiedAt;
 
-	@Column(name = "expires_at", nullable = false)
+	@Column(name = "expires_at")
 	private Instant expiresAt;
 
 	public void verify(Instant verifiedAt) {

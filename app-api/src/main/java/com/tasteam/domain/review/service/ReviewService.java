@@ -11,8 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
-import com.tasteam.domain.member.dto.response.MemberPreviewResponse;
-import com.tasteam.domain.member.dto.response.ReviewPreviewResponse;
+import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
@@ -25,7 +24,9 @@ import com.tasteam.domain.review.dto.ReviewQueryDto;
 import com.tasteam.domain.review.dto.request.ReviewCreateRequest;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.domain.review.dto.response.ReviewDetailResponse;
+import com.tasteam.domain.review.dto.response.ReviewKeywordItemResponse;
 import com.tasteam.domain.review.entity.Keyword;
+import com.tasteam.domain.review.entity.KeywordType;
 import com.tasteam.domain.review.entity.Review;
 import com.tasteam.domain.review.entity.ReviewImage;
 import com.tasteam.domain.review.entity.ReviewKeyword;
@@ -36,13 +37,15 @@ import com.tasteam.domain.review.repository.ReviewQueryRepository;
 import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.domain.review.repository.projection.ReviewImageProjection;
 import com.tasteam.domain.review.repository.projection.ReviewKeywordProjection;
-import com.tasteam.global.dto.api.PaginationResponse;
+import com.tasteam.domain.subgroup.repository.SubgroupRepository;
+import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.exception.code.ReviewErrorCode;
+import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
 
 import lombok.RequiredArgsConstructor;
@@ -56,6 +59,7 @@ public class ReviewService {
 
 	private final RestaurantRepository restaurantRepository;
 	private final GroupRepository groupRepository;
+	private final SubgroupRepository subgroupRepository;
 	private final MemberRepository memberRepository;
 	private final ReviewRepository reviewRepository;
 	private final KeywordRepository keywordRepository;
@@ -64,6 +68,16 @@ public class ReviewService {
 	private final ReviewImageRepository reviewImageRepository;
 	private final ImageRepository imageRepository;
 	private final CursorCodec cursorCodec;
+
+	@Transactional(readOnly = true)
+	public List<ReviewKeywordItemResponse> getReviewKeywords(KeywordType type) {
+		List<Keyword> keywords = (type == null)
+			? keywordRepository.findAllByOrderByIdAsc()
+			: keywordRepository.findByTypeOrderByIdAsc(type);
+		return keywords.stream()
+			.map(ReviewKeywordItemResponse::from)
+			.toList();
+	}
 
 	public ReviewDetailResponse getReviewDetail(long reviewId) {
 		ReviewDetailQueryDto review = reviewQueryRepository.findReviewDetail(reviewId);
@@ -145,7 +159,6 @@ public class ReviewService {
 			reviewImageRepository.saveAll(images);
 		}
 
-		// FIXME: 공통 응답 래퍼 분리
 		return new ReviewCreateResponse(
 			review.getId(),
 			review.getCreatedAt());
@@ -171,6 +184,7 @@ public class ReviewService {
 		}
 	}
 
+	@Transactional(readOnly = true)
 	public CursorPageResponse<ReviewResponse> getRestaurantReviews(
 		long restaurantId,
 		RestaurantReviewListRequest request) {
@@ -188,66 +202,10 @@ public class ReviewService {
 			cursor,
 			resolvedSize + 1);
 
-		if (reviewList.isEmpty()) {
-			return CursorPageResponse.empty();
-		}
-
-		// 다음 커서 생성
-		boolean hasNext = reviewList.size() > resolvedSize;
-		List<ReviewQueryDto> pageContent = hasNext ? reviewList.subList(0, resolvedSize) : reviewList;
-
-		String nextCursor = null;
-		if (hasNext) {
-			ReviewQueryDto last = pageContent.get(pageContent.size() - 1);
-			nextCursor = cursorCodec.encode(new ReviewCursor(last.createdAt(), last.reviewId()));
-		}
-
-		// 리뷰 아이디 목록
-		List<Long> reviewIds = pageContent.stream()
-			.map(ReviewQueryDto::reviewId)
-			.toList();
-
-		// 리뷰 키워드 목록
-		Map<Long, List<String>> reviewKeywords = reviewKeywordRepository
-			.findReviewKeywords(reviewIds)
-			.stream()
-			.collect(Collectors.groupingBy(
-				ReviewKeywordProjection::getReviewId,
-				Collectors.mapping(ReviewKeywordProjection::getKeywordName, Collectors.toList())));
-
-		// 리뷰 대표 이미지 (최대 1장)
-		Map<Long, ReviewResponse.ReviewImageResponse> reviewThumbnails = reviewImageRepository
-			.findReviewImages(reviewIds)
-			.stream()
-			.collect(Collectors.groupingBy(
-				ReviewImageProjection::getReviewId,
-				Collectors.collectingAndThen(
-					Collectors.toList(),
-					images -> {
-						ReviewImageProjection first = images.get(0);
-						return new ReviewResponse.ReviewImageResponse(first.getImageId(), first.getImageUrl());
-					})));
-
-		// 리뷰 관련 정보 조립
-		List<ReviewResponse> items = pageContent.stream()
-			.map(review -> new ReviewResponse(
-				review.reviewId(),
-				new ReviewResponse.AuthorResponse(review.memberName()),
-				review.content(),
-				review.isRecommended(),
-				reviewKeywords.getOrDefault(review.reviewId(), List.of()),
-				reviewThumbnails.get(review.reviewId()),
-				review.createdAt()))
-			.toList();
-
-		return new CursorPageResponse<>(
-			items,
-			new CursorPageResponse.Pagination(
-				nextCursor,
-				hasNext,
-				items.size()));
+		return buildReviewPage(reviewList, resolvedSize);
 	}
 
+	@Transactional(readOnly = true)
 	public CursorPageResponse<ReviewResponse> getGroupReviews(
 		long groupId,
 		RestaurantReviewListRequest request) {
@@ -262,62 +220,30 @@ public class ReviewService {
 			parsedCursor,
 			resolvedSize + 1);
 
-		if (reviewList.isEmpty()) {
-			return CursorPageResponse.empty();
-		}
-
-		boolean hasNext = reviewList.size() > resolvedSize;
-		List<ReviewQueryDto> pageContent = hasNext ? reviewList.subList(0, resolvedSize) : reviewList;
-
-		String nextCursor = null;
-		if (hasNext) {
-			ReviewQueryDto last = pageContent.get(pageContent.size() - 1);
-			nextCursor = cursorCodec.encode(new ReviewCursor(last.createdAt(), last.reviewId()));
-		}
-
-		List<Long> reviewIds = pageContent.stream()
-			.map(ReviewQueryDto::reviewId)
-			.toList();
-
-		Map<Long, List<String>> reviewKeywords = reviewKeywordRepository
-			.findReviewKeywords(reviewIds)
-			.stream()
-			.collect(Collectors.groupingBy(
-				ReviewKeywordProjection::getReviewId,
-				Collectors.mapping(ReviewKeywordProjection::getKeywordName, Collectors.toList())));
-
-		Map<Long, ReviewResponse.ReviewImageResponse> reviewThumbnails = reviewImageRepository
-			.findReviewImages(reviewIds)
-			.stream()
-			.collect(Collectors.groupingBy(
-				ReviewImageProjection::getReviewId,
-				Collectors.collectingAndThen(
-					Collectors.toList(),
-					images -> {
-						ReviewImageProjection first = images.get(0);
-						return new ReviewResponse.ReviewImageResponse(first.getImageId(), first.getImageUrl());
-					})));
-
-		List<ReviewResponse> items = pageContent.stream()
-			.map(review -> new ReviewResponse(
-				review.reviewId(),
-				new ReviewResponse.AuthorResponse(review.memberName()),
-				review.content(),
-				review.isRecommended(),
-				reviewKeywords.getOrDefault(review.reviewId(), List.of()),
-				reviewThumbnails.get(review.reviewId()),
-				review.createdAt()))
-			.toList();
-
-		return new CursorPageResponse<>(
-			items,
-			new CursorPageResponse.Pagination(
-				nextCursor,
-				hasNext,
-				items.size()));
+		return buildReviewPage(reviewList, resolvedSize);
 	}
 
-	public MemberPreviewResponse<ReviewPreviewResponse> getMemberReviews(
+	@Transactional(readOnly = true)
+	public CursorPageResponse<ReviewResponse> getSubgroupReviews(
+		long subgroupId,
+		RestaurantReviewListRequest request) {
+		if (!subgroupRepository.existsByIdAndStatus(subgroupId, SubgroupStatus.ACTIVE)) {
+			throw new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND);
+		}
+
+		int resolvedSize = resolveSize(request.size());
+		ReviewCursor parsedCursor = parseCursor(request.cursor());
+
+		List<ReviewQueryDto> reviewList = reviewQueryRepository.findSubgroupReviews(
+			subgroupId,
+			parsedCursor,
+			resolvedSize + 1);
+
+		return buildReviewPage(reviewList, resolvedSize);
+	}
+
+	@Transactional(readOnly = true)
+	public CursorPageResponse<ReviewSummaryResponse> getMemberReviews(
 		long memberId,
 		RestaurantReviewListRequest request) {
 		memberRepository.findByIdAndDeletedAtIsNull(memberId)
@@ -331,34 +257,11 @@ public class ReviewService {
 			parsedCursor,
 			resolvedSize + 1);
 
-		boolean hasNext = reviewList.size() > resolvedSize;
-		List<ReviewMemberQueryDto> pageContent = hasNext ? reviewList.subList(0, resolvedSize) : reviewList;
-
-		if (pageContent.isEmpty()) {
-			return MemberPreviewResponse.empty();
+		if (reviewList.isEmpty()) {
+			return CursorPageResponse.empty();
 		}
 
-		String nextCursor = null;
-		if (hasNext) {
-			ReviewMemberQueryDto last = pageContent.get(pageContent.size() - 1);
-			nextCursor = cursorCodec.encode(new ReviewCursor(last.createdAt(), last.reviewId()));
-		}
-
-		List<ReviewPreviewResponse> items = pageContent.stream()
-			.map(review -> new ReviewPreviewResponse(
-				review.reviewId(),
-				review.restaurantName(),
-				review.restaurantAddress(),
-				review.content()))
-			.toList();
-
-		PaginationResponse page = PaginationResponse.builder()
-			.nextCursor(nextCursor)
-			.size(items.size())
-			.hasNext(hasNext)
-			.build();
-
-		return new MemberPreviewResponse<>(items, page);
+		return buildReviewSummaryPage(reviewList, resolvedSize);
 	}
 
 	private int resolveSize(Integer size) {
@@ -376,5 +279,131 @@ public class ReviewService {
 			return null;
 		}
 		return cursorCodec.decode(cursor, ReviewCursor.class);
+	}
+
+	private CursorPageResponse<ReviewResponse> buildReviewPage(
+		List<ReviewQueryDto> reviewList,
+		int resolvedSize) {
+		if (reviewList.isEmpty()) {
+			return CursorPageResponse.empty();
+		}
+
+		boolean hasNext = reviewList.size() > resolvedSize;
+		List<ReviewQueryDto> pageContent = sliceContent(reviewList, resolvedSize);
+		String nextCursor = buildNextCursor(pageContent, hasNext);
+
+		List<Long> reviewIds = extractReviewIds(pageContent);
+		Map<Long, List<String>> reviewKeywords = loadReviewKeywords(reviewIds);
+		Map<Long, ReviewResponse.ReviewImageResponse> reviewThumbnails = loadReviewThumbnails(reviewIds);
+
+		List<ReviewResponse> items = buildReviewResponses(pageContent, reviewKeywords, reviewThumbnails);
+
+		return new CursorPageResponse<>(
+			items,
+			new CursorPageResponse.Pagination(
+				nextCursor,
+				hasNext,
+				items.size()));
+	}
+
+	private List<ReviewQueryDto> sliceContent(List<ReviewQueryDto> reviewList, int resolvedSize) {
+		boolean hasNext = reviewList.size() > resolvedSize;
+		return hasNext ? reviewList.subList(0, resolvedSize) : reviewList;
+	}
+
+	private String buildNextCursor(List<ReviewQueryDto> pageContent, boolean hasNext) {
+		if (!hasNext) {
+			return null;
+		}
+		ReviewQueryDto last = pageContent.get(pageContent.size() - 1);
+		return cursorCodec.encode(new ReviewCursor(last.createdAt(), last.reviewId()));
+	}
+
+	private List<Long> extractReviewIds(List<ReviewQueryDto> pageContent) {
+		return pageContent.stream()
+			.map(ReviewQueryDto::reviewId)
+			.toList();
+	}
+
+	private List<ReviewResponse> buildReviewResponses(
+		List<ReviewQueryDto> pageContent,
+		Map<Long, List<String>> reviewKeywords,
+		Map<Long, ReviewResponse.ReviewImageResponse> reviewThumbnails) {
+		return pageContent.stream()
+			.map(review -> new ReviewResponse(
+				review.reviewId(),
+				new ReviewResponse.AuthorResponse(review.memberName()),
+				review.content(),
+				review.isRecommended(),
+				reviewKeywords.getOrDefault(review.reviewId(), List.of()),
+				reviewThumbnails.get(review.reviewId()),
+				review.createdAt()))
+			.toList();
+	}
+
+	private CursorPageResponse<ReviewSummaryResponse> buildReviewSummaryPage(
+		List<ReviewMemberQueryDto> reviewList,
+		int resolvedSize) {
+		boolean hasNext = reviewList.size() > resolvedSize;
+		List<ReviewMemberQueryDto> pageContent = sliceMemberContent(reviewList, resolvedSize);
+		String nextCursor = buildMemberNextCursor(pageContent, hasNext);
+
+		List<ReviewSummaryResponse> items = buildReviewSummaryResponses(pageContent);
+
+		return new CursorPageResponse<>(
+			items,
+			buildMemberPagination(nextCursor, hasNext, items.size()));
+	}
+
+	private List<ReviewMemberQueryDto> sliceMemberContent(
+		List<ReviewMemberQueryDto> reviewList,
+		int resolvedSize) {
+		boolean hasNext = reviewList.size() > resolvedSize;
+		return hasNext ? reviewList.subList(0, resolvedSize) : reviewList;
+	}
+
+	private String buildMemberNextCursor(List<ReviewMemberQueryDto> pageContent, boolean hasNext) {
+		if (!hasNext) {
+			return null;
+		}
+		ReviewMemberQueryDto last = pageContent.get(pageContent.size() - 1);
+		return cursorCodec.encode(new ReviewCursor(last.createdAt(), last.reviewId()));
+	}
+
+	private List<ReviewSummaryResponse> buildReviewSummaryResponses(List<ReviewMemberQueryDto> pageContent) {
+		return pageContent.stream()
+			.map(review -> new ReviewSummaryResponse(
+				review.reviewId(),
+				review.restaurantName(),
+				review.restaurantAddress(),
+				review.content()))
+			.toList();
+	}
+
+	private CursorPageResponse.Pagination buildMemberPagination(String nextCursor, boolean hasNext, int size) {
+		return new CursorPageResponse.Pagination(nextCursor, hasNext, size);
+	}
+
+	private Map<Long, List<String>> loadReviewKeywords(List<Long> reviewIds) {
+		return reviewKeywordRepository
+			.findReviewKeywords(reviewIds)
+			.stream()
+			.collect(Collectors.groupingBy(
+				ReviewKeywordProjection::getReviewId,
+				Collectors.mapping(ReviewKeywordProjection::getKeywordName, Collectors.toList())));
+	}
+
+	private Map<Long, ReviewResponse.ReviewImageResponse> loadReviewThumbnails(List<Long> reviewIds) {
+		return reviewImageRepository
+			.findReviewImages(reviewIds)
+			.stream()
+			.collect(Collectors.groupingBy(
+				ReviewImageProjection::getReviewId,
+				Collectors.collectingAndThen(
+					Collectors.toList(),
+					images -> {
+						ReviewImageProjection first = images.get(0);
+						return new ReviewResponse.ReviewImageResponse(first.getImageId(), first.getImageUrl());
+					})));
 	}
 }

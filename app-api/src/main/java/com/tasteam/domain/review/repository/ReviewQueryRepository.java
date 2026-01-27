@@ -19,6 +19,11 @@ public interface ReviewQueryRepository {
 		ReviewCursor cursor,
 		int size);
 
+	List<ReviewQueryDto> findSubgroupReviews(
+		Long subgroupId,
+		ReviewCursor cursor,
+		int size);
+
 	List<ReviewMemberQueryDto> findMemberReviews(
 		Long memberId,
 		ReviewCursor cursor,

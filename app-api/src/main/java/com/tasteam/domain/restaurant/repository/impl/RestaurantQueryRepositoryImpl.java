@@ -32,14 +32,18 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 		String sql = """
 			SELECT
 			  r.id AS id,
+			  r.name AS name,
+			  r.full_address AS address,
 			  ST_Distance(
 			    r.location::geography,
 			    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
 			  ) AS distance_meter
 			FROM restaurant r
 			JOIN restaurant_food_category rfc
-			  ON rfc.restaurant_id = r.id
-			 AND rfc.category_name IN (:categories)
+			     ON rfc.restaurant_id = r.id
+			JOIN food_category fc
+			     ON fc.id = rfc.food_category_id
+			         AND fc.name IN (:categories)
 			WHERE r.deleted_at IS NULL
 			AND ST_DWithin(
 			  r.location::geography,

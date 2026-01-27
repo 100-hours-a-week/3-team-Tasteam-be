@@ -1,15 +1,8 @@
 package com.tasteam.domain.group.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-public class GroupEmailAuthenticationRequest {
-
+public record GroupEmailAuthenticationRequest(
 	@NotBlank
-	private String code;
+	String code) {
 }
