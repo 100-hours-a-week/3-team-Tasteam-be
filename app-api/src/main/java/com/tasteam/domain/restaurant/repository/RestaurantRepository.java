@@ -17,21 +17,21 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
 	boolean existsByIdAndDeletedAtIsNull(Long id);
 
-	@Query("""
-		select r
-		from Restaurant r
-		where r.deletedAt is null
+	@Query(value = """
+		select *
+		from restaurant r
+		where r.deleted_at is null
 		  and (
 		    lower(r.name) like lower(concat('%', :keyword, '%'))
-		    or lower(r.fullAddress) like lower(concat('%', :keyword, '%'))
+		    or lower(r.full_address) like lower(concat('%', :keyword, '%'))
 		  )
 		  and (
-		    :cursorUpdatedAt is null
-		    or r.updatedAt < :cursorUpdatedAt
-		    or (r.updatedAt = :cursorUpdatedAt and r.id < :cursorId)
+		    cast(:cursorUpdatedAt as timestamptz) is null
+		    or r.updated_at < :cursorUpdatedAt
+		    or (r.updated_at = :cursorUpdatedAt and r.id < :cursorId)
 		  )
-		order by r.updatedAt desc, r.id desc
-		""")
+		order by r.updated_at desc, r.id desc
+		""", nativeQuery = true)
 	List<Restaurant> searchByKeyword(
 		@Param("keyword")
 		String keyword,

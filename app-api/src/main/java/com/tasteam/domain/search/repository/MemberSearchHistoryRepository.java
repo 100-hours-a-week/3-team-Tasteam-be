@@ -17,18 +17,18 @@ public interface MemberSearchHistoryRepository extends JpaRepository<MemberSearc
 
 	Optional<MemberSearchHistory> findByIdAndMemberIdAndDeletedAtIsNull(Long id, Long memberId);
 
-	@Query("""
-		select msh
-		from MemberSearchHistory msh
-		where msh.memberId = :memberId
-		  and msh.deletedAt is null
+	@Query(value = """
+		select *
+		from member_serach_history msh
+		where msh.member_id = :memberId
+		  and msh.deleted_at is null
 		  and (
-		    :cursorUpdatedAt is null
-		    or msh.updatedAt < :cursorUpdatedAt
-		    or (msh.updatedAt = :cursorUpdatedAt and msh.id < :cursorId)
+		    cast(:cursorUpdatedAt as timestamptz) is null
+		    or msh.updated_at < :cursorUpdatedAt
+		    or (msh.updated_at = :cursorUpdatedAt and msh.id < :cursorId)
 		  )
-		order by msh.updatedAt desc, msh.id desc
-		""")
+		order by msh.updated_at desc, msh.id desc
+		""", nativeQuery = true)
 	List<MemberSearchHistory> findRecentSearches(
 		@Param("memberId")
 		Long memberId,
