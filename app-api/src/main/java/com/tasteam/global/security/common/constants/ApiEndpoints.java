@@ -33,11 +33,11 @@ public final class ApiEndpoints {
 	public static final String HEALTH_CHECK = API_V1 + "/health";
 
 	// Swagger
-	public static final String API_DOCS = "/api/v3/api-docs" + ALL;
-	public static final String SWAGGER_UI = "/api/swagger-ui.html";
-	public static final String SWAGGER_UI_INDEX = "/api/swagger-ui/index.html";
-	public static final String SWAGGER_UI_ASSETS = "/api/swagger-ui" + ALL;
-	public static final String SWAGGER_RESOURCES = "/api/swagger-resources" + ALL;
+	public static final String API_DOCS = "/api/v1/v3/api-docs" + ALL;
+	public static final String SWAGGER_UI = "/api/v1/swagger-ui.html";
+	public static final String SWAGGER_UI_INDEX = "/api/v1/swagger-ui/index.html";
+	public static final String SWAGGER_UI_ASSETS = "/api/v1/swagger-ui" + ALL;
+	public static final String SWAGGER_RESOURCES = "/api/v1/swagger-resources" + ALL;
 
 	public static final String WEBJARS = "/webjars" + ALL;
 	public static final String ACTUATOR = "/actuator" + ALL;
