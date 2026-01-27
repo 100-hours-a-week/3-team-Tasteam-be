@@ -16,6 +16,7 @@ import com.tasteam.global.security.exception.filter.FilterChainExceptionFilter;
 import com.tasteam.global.security.exception.handler.CustomAccessDeniedHandler;
 import com.tasteam.global.security.exception.handler.CustomAuthenticationEntryPoint;
 import com.tasteam.global.security.jwt.config.JwtSecurityConfig;
+import com.tasteam.global.security.logout.filter.CustomLogoutFilter;
 import com.tasteam.global.security.oauth.config.OAuth2SecurityConfig;
 
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class SecurityConfig {
 	private final FilterChainExceptionFilter filterChainExceptionFilter;
 	private final JwtSecurityConfig jwtSecurityConfig;
 	private final OAuth2SecurityConfig oAuth2SecurityConfig;
+	private final CustomLogoutFilter customLogoutFilter;
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -61,6 +63,11 @@ public class SecurityConfig {
 			})
 			.formLogin(AbstractHttpConfigurer::disable)
 			.httpBasic(AbstractHttpConfigurer::disable)
+
+			/// 로그아웃 필터
+			.addFilterBefore(
+				customLogoutFilter,
+				UsernamePasswordAuthenticationFilter.class)
 
 			/// [필터 체인 전역 예외 헨들러] : 모든 예외
 			.addFilterBefore(
