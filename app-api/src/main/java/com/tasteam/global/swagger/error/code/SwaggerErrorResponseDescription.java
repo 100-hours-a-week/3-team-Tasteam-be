@@ -4,6 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.tasteam.global.exception.ErrorCode;
+import com.tasteam.global.exception.code.AuthErrorCode;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 
@@ -32,6 +33,14 @@ public enum SwaggerErrorResponseDescription {
 		MemberErrorCode.EMAIL_ALREADY_EXISTS))),
 	MEMBER_WITHDRAW(new LinkedHashSet<>(Set.of(
 		MemberErrorCode.MEMBER_NOT_FOUND))),
+	AUTH_TOKEN_REFRESH(new LinkedHashSet<>(Set.of(
+		AuthErrorCode.AUTHENTICATION_REQUIRED,
+		AuthErrorCode.REFRESH_TOKEN_NOT_FOUND,
+		AuthErrorCode.REFRESH_TOKEN_INVALID,
+		AuthErrorCode.REFRESH_TOKEN_EXPIRED,
+		AuthErrorCode.REFRESH_TOKEN_REUSED,
+		MemberErrorCode.MEMBER_NOT_FOUND,
+		MemberErrorCode.MEMBER_INACTIVE))),
 		;
 
 	private final Set<ErrorCode> errorCodeList;
