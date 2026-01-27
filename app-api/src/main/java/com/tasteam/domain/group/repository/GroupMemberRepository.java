@@ -11,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 import com.tasteam.domain.group.dto.GroupMemberListItem;
 import com.tasteam.domain.group.entity.GroupMember;
 import com.tasteam.domain.group.repository.projection.GroupMemberCountProjection;
+import com.tasteam.domain.group.type.GroupStatus;
+import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
 
@@ -52,4 +54,23 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 	List<GroupMemberCountProjection> findMemberCounts(
 		@Param("groupIds")
 		List<Long> groupIds);
+
+	@Query("""
+		select new com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse(
+			g.id,
+			g.name
+		)
+		from GroupMember gm
+		join com.tasteam.domain.group.entity.Group g on g.id = gm.groupId
+		where gm.member.id = :memberId
+			and gm.deletedAt is null
+			and g.deletedAt is null
+			and g.status = :activeStatus
+		order by gm.id desc
+		""")
+	List<MemberGroupSummaryResponse> findMemberGroupSummaries(
+		@Param("memberId")
+		Long memberId,
+		@Param("activeStatus")
+		GroupStatus activeStatus);
 }

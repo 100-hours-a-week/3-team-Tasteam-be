@@ -1,5 +1,7 @@
 package com.tasteam.domain.review.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -7,9 +9,12 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.domain.review.dto.response.ReviewDetailResponse;
+import com.tasteam.domain.review.dto.response.ReviewKeywordItemResponse;
+import com.tasteam.domain.review.entity.KeywordType;
 import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
@@ -24,6 +29,13 @@ import lombok.RequiredArgsConstructor;
 public class ReviewController {
 
 	private final ReviewService reviewService;
+
+	@GetMapping("/keywords")
+	public SuccessResponse<List<ReviewKeywordItemResponse>> getReviewKeywords(
+		@RequestParam(required = false)
+		KeywordType type) {
+		return SuccessResponse.success(reviewService.getReviewKeywords(type));
+	}
 
 	@GetMapping("/{reviewId}")
 	public SuccessResponse<ReviewDetailResponse> getReview(

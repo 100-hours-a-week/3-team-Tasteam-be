@@ -3,7 +3,7 @@ spring:
     activate:
       on-profile: local
     import:
-      - optional:file:../.env.local[.properties]
+      - optional:file:.env.local[.properties]
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/tasteam}
@@ -30,8 +30,8 @@ spring:
 
   security:
     jwt:
-      accessTokenExpiration: 60000    # 1분
-      refreshTokenExpiration: 180000  # 3분
+      accessTokenExpiration: 600000   # 10분
+      refreshTokenExpiration: 1800000 # 30분
 
 logging:
   level:
@@ -41,7 +41,7 @@ logging:
 
 naver:
   maps:
-    base-url: https://naveropenapi.apigw.ntruss.com
+    base-url: https://maps.apigw.ntruss.com
     api-key-id: ${NAVER_MAPS_API_KEY_ID:dummy}
     api-key: ${NAVER_MAPS_API_KEY:dummy}
 

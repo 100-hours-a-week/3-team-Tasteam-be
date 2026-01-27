@@ -24,7 +24,9 @@ import com.tasteam.domain.review.dto.ReviewQueryDto;
 import com.tasteam.domain.review.dto.request.ReviewCreateRequest;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.domain.review.dto.response.ReviewDetailResponse;
+import com.tasteam.domain.review.dto.response.ReviewKeywordItemResponse;
 import com.tasteam.domain.review.entity.Keyword;
+import com.tasteam.domain.review.entity.KeywordType;
 import com.tasteam.domain.review.entity.Review;
 import com.tasteam.domain.review.entity.ReviewImage;
 import com.tasteam.domain.review.entity.ReviewKeyword;
@@ -66,6 +68,16 @@ public class ReviewService {
 	private final ReviewImageRepository reviewImageRepository;
 	private final ImageRepository imageRepository;
 	private final CursorCodec cursorCodec;
+
+	@Transactional(readOnly = true)
+	public List<ReviewKeywordItemResponse> getReviewKeywords(KeywordType type) {
+		List<Keyword> keywords = (type == null)
+			? keywordRepository.findAllByOrderByIdAsc()
+			: keywordRepository.findByTypeOrderByIdAsc(type);
+		return keywords.stream()
+			.map(ReviewKeywordItemResponse::from)
+			.toList();
+	}
 
 	public ReviewDetailResponse getReviewDetail(long reviewId) {
 		ReviewDetailQueryDto review = reviewQueryRepository.findReviewDetail(reviewId);

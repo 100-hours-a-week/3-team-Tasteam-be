@@ -1,6 +1,9 @@
 package com.tasteam.domain.member.controller.docs;
 
+import java.util.List;
+
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
+import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
@@ -21,6 +24,13 @@ public interface MemberControllerDocs {
 	@ApiResponse(responseCode = "200", description = "성공", content = @Content(schema = @Schema(implementation = MemberMeResponse.class)))
 	@CustomErrorResponseDescription(SwaggerErrorResponseDescription.MEMBER_ME)
 	SuccessResponse<MemberMeResponse> getMyMemberInfo(
+		@CurrentUser
+		Long memberId);
+
+	@Operation(summary = "내 그룹 요약 목록 조회", description = "현재 로그인 사용자의 그룹 목록을 {groupId, name} 형태로 조회합니다.")
+	@ApiResponse(responseCode = "200", description = "성공", content = @Content(schema = @Schema(implementation = MemberGroupSummaryResponse.class)))
+	@CustomErrorResponseDescription(SwaggerErrorResponseDescription.MEMBER_ME)
+	SuccessResponse<List<MemberGroupSummaryResponse>> getMyGroupSummaries(
 		@CurrentUser
 		Long memberId);
 
