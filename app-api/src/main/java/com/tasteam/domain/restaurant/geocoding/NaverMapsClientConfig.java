@@ -17,8 +17,8 @@ public class NaverMapsClientConfig {
 		return RestClient.builder()
 			.baseUrl(properties.getBaseUrl())
 			.defaultHeader("Accept", "application/json")
-			.defaultHeader("x-ncp-apigw-api-key-id", properties.getApiKeyId())
-			.defaultHeader("x-ncp-apigw-api-key", properties.getApiKey())
+			.defaultHeader("X-NCP-APIGW-API-KEY-ID", properties.getApiKeyId())
+			.defaultHeader("X-NCP-APIGW-API-KEY", properties.getApiKey())
 			.build();
 	}
 }

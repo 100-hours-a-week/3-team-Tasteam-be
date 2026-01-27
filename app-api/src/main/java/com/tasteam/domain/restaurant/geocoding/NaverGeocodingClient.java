@@ -60,7 +60,14 @@ public class NaverGeocodingClient {
 				response.errorMessage());
 		}
 
-		return extract(response.addresses().getFirst());
+		List<Address> addresses = response.addresses();
+		if (addresses == null || addresses.isEmpty()) {
+			throw new BusinessException(
+				CommonErrorCode.INVALID_REQUEST,
+				"Geocoding 결과가 없습니다");
+		}
+
+		return extract(addresses.getFirst());
 	}
 
 	private GeocodingResult extract(Address address) {
