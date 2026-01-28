@@ -4,6 +4,7 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
 import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
@@ -25,27 +26,18 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Positive;
 
 @Tag(name = "Restaurant", description = "음식점 조회/관리 API")
 public interface RestaurantControllerDocs {
 
-	@Operation(summary = "음식점 목록 조회 (Mock)", description = "프론트 연동 테스트용 Mock 음식점 목록을 조회합니다.")
+	@Operation(summary = "그룹 음식점 목록 조회", description = "지정한 그룹과 위치 조건으로 주변 음식점을 커서 기반으로 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
-	SuccessResponse<CursorPageResponse<RestaurantListItem>> getRestaurantsMock(
-		@Parameter(description = "위도", example = "37.5665") @RequestParam(required = false)
-		Double latitude,
-		@Parameter(description = "경도", example = "126.9780") @RequestParam(required = false)
-		Double longitude,
-		@Parameter(description = "위도 (축약)", example = "37.5665") @RequestParam(required = false)
-		Double lat,
-		@Parameter(description = "경도 (축약)", example = "126.9780") @RequestParam(required = false)
-		Double lng,
-		@Parameter(description = "페이지 크기", example = "20") @RequestParam(required = false)
-		Integer size,
-		@Parameter(description = "커서", example = "cursor") @RequestParam(required = false)
-		String cursor,
-		@Parameter(description = "카테고리", example = "한식") @RequestParam(required = false)
-		String category);
+	SuccessResponse<CursorPageResponse<RestaurantListItem>> getRestaurants(
+		@Parameter(description = "그룹 ID", example = "2001") @RequestParam @Positive
+		Long groupId,
+		@ParameterObject
+		NearbyRestaurantQueryParams queryParams);
 
 	@Operation(summary = "음식점 상세 조회", description = "음식점 상세 정보를 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = RestaurantDetailResponse.class)))
