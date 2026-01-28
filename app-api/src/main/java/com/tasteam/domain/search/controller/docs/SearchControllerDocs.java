@@ -1,6 +1,7 @@
 package com.tasteam.domain.search.controller.docs;
 
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.validation.annotation.Validated;
 
 import com.tasteam.domain.search.dto.request.SearchRequest;
 import com.tasteam.domain.search.dto.response.SearchResponse;
@@ -12,7 +13,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 
 @Tag(name = "Search", description = "검색 API")
 public interface SearchControllerDocs {
@@ -22,6 +22,6 @@ public interface SearchControllerDocs {
 	SuccessResponse<SearchResponse> search(
 		@CurrentUser
 		Long memberId,
-		@Valid @ParameterObject
+		@Validated @ParameterObject
 		SearchRequest request);
 }

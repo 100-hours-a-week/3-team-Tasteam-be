@@ -4,7 +4,7 @@ import com.tasteam.domain.auth.dto.response.RefreshTokenResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.RefreshToken;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
-import com.tasteam.global.swagger.error.code.SwaggerErrorResponseDescription;
+import com.tasteam.global.swagger.error.code.auth.AuthSwaggerErrorResponseDescription;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,7 +19,7 @@ public interface AuthApiDocs {
 
 	@Operation(summary = "액세스 토큰 갱신", description = "리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다.")
 	@ApiResponse(responseCode = "200", description = "토큰 갱신 성공", content = @Content(schema = @Schema(implementation = RefreshTokenResponse.class)))
-	@CustomErrorResponseDescription(SwaggerErrorResponseDescription.AUTH_TOKEN_REFRESH)
+	@CustomErrorResponseDescription(value = AuthSwaggerErrorResponseDescription.class, group = "AUTH_TOKEN_REFRESH")
 	SuccessResponse<RefreshTokenResponse> refreshToken(
 		@RefreshToken
 		String refreshToken,
