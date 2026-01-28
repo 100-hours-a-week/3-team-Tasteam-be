@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class LocalAuthTokenService {
+public class DevAuthTokenService {
 
 	private static final String DEV_PROVIDER = "DEV";
 
