@@ -27,7 +27,6 @@ import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
@@ -43,7 +42,7 @@ public class GroupController implements GroupControllerDocs {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public SuccessResponse<GroupCreateResponse> createGroup(@Valid @RequestBody
+	public SuccessResponse<GroupCreateResponse> createGroup(@RequestBody
 	GroupCreateRequest request) {
 		return SuccessResponse.success(groupService.createGroup(request));
 	}
@@ -85,7 +84,7 @@ public class GroupController implements GroupControllerDocs {
 	public SuccessResponse<GroupEmailVerificationResponse> sendGroupEmailVerification(
 		@PathVariable @Positive
 		Long groupId,
-		@Valid @RequestBody
+		@RequestBody
 		GroupEmailVerificationRequest request) {
 		return SuccessResponse.success(groupService.sendGroupEmailVerification(groupId, request.email()));
 	}
@@ -97,7 +96,7 @@ public class GroupController implements GroupControllerDocs {
 		Long groupId,
 		@CurrentUser
 		Long memberId,
-		@Valid @RequestBody
+		@RequestBody
 		GroupEmailAuthenticationRequest request) {
 		return SuccessResponse.success(
 			groupService.authenticateGroupByEmail(groupId, memberId, request.code()));
@@ -110,7 +109,7 @@ public class GroupController implements GroupControllerDocs {
 		Long groupId,
 		@CurrentUser
 		Long memberId,
-		@Valid @RequestBody
+		@RequestBody
 		GroupPasswordAuthenticationRequest request) {
 		return SuccessResponse.success(
 			groupService.authenticateGroupByPassword(groupId, memberId, request.code()));
@@ -152,7 +151,7 @@ public class GroupController implements GroupControllerDocs {
 	public CursorPageResponse<RestaurantListItem> getGroupReviewRestaurants(
 		@PathVariable
 		Long groupId,
-		@Valid @ModelAttribute
+		@ModelAttribute
 		NearbyRestaurantQueryParams queryParams) {
 		return restaurantService.getGroupRestaurants(groupId, queryParams);
 	}

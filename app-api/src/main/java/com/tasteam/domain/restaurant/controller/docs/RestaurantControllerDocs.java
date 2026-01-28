@@ -26,6 +26,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 
 @Tag(name = "Restaurant", description = "음식점 조회/관리 API")
@@ -36,7 +37,7 @@ public interface RestaurantControllerDocs {
 	SuccessResponse<CursorPageResponse<RestaurantListItem>> getRestaurants(
 		@Parameter(description = "그룹 ID", example = "2001") @RequestParam @Positive
 		Long groupId,
-		@ParameterObject
+		@Valid @ParameterObject
 		NearbyRestaurantQueryParams queryParams);
 
 	@Operation(summary = "음식점 상세 조회", description = "음식점 상세 정보를 조회합니다.")
@@ -81,5 +82,6 @@ public interface RestaurantControllerDocs {
 		Long restaurantId,
 		@CurrentUser
 		Long memberId,
+		@Valid
 		ReviewCreateRequest request);
 }

@@ -21,7 +21,6 @@ import com.tasteam.domain.restaurant.dto.response.RestaurantMenuResponse;
 import com.tasteam.domain.restaurant.service.MenuService;
 import com.tasteam.global.dto.api.SuccessResponse;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -50,7 +49,7 @@ public class MenuController implements MenuControllerDocs {
 	public SuccessResponse<Long> createMenuCategory(
 		@PathVariable
 		Long restaurantId,
-		@Valid @RequestBody
+		@RequestBody
 		MenuCategoryCreateRequest request) {
 		return SuccessResponse.success(menuService.createMenuCategory(restaurantId, request));
 	}
@@ -61,7 +60,7 @@ public class MenuController implements MenuControllerDocs {
 	public SuccessResponse<Long> createMenu(
 		@PathVariable
 		Long restaurantId,
-		@Valid @RequestBody
+		@RequestBody
 		MenuCreateRequest request) {
 		return SuccessResponse.success(menuService.createMenu(restaurantId, request));
 	}
@@ -72,7 +71,7 @@ public class MenuController implements MenuControllerDocs {
 	public SuccessResponse<List<Long>> createMenusBulk(
 		@PathVariable
 		Long restaurantId,
-		@Valid @RequestBody
+		@RequestBody
 		MenuBulkCreateRequest request) {
 		return SuccessResponse.success(menuService.createMenusBulk(restaurantId, request));
 	}

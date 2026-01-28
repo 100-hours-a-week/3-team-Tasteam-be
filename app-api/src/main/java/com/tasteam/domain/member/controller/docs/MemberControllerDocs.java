@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Member", description = "회원 마이페이지 API")
 public interface MemberControllerDocs {
@@ -41,6 +42,7 @@ public interface MemberControllerDocs {
 	SuccessResponse<Void> updateMyProfile(
 		@CurrentUser
 		Long memberId,
+		@Valid
 		MemberProfileUpdateRequest request);
 
 	@Operation(summary = "회원 탈퇴", description = "현재 로그인 사용자의 계정을 탈퇴 처리합니다.")

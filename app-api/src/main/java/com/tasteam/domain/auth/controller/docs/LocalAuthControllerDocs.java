@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 
 @Tag(name = "Auth", description = "인증 관련 API")
 public interface LocalAuthControllerDocs {
@@ -19,6 +20,7 @@ public interface LocalAuthControllerDocs {
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = LocalAuthTokenRequest.class)))
 	@ApiResponse(responseCode = "200", description = "토큰 발급 성공", content = @Content(schema = @Schema(implementation = LocalAuthTokenResponse.class)))
 	SuccessResponse<LocalAuthTokenResponse> issueLocalToken(
+		@Valid
 		LocalAuthTokenRequest request,
 		HttpServletResponse response);
 }

@@ -17,7 +17,6 @@ import com.tasteam.domain.subgroup.service.SubgroupService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
@@ -75,7 +74,7 @@ public class SubgroupManagementController implements SubgroupManagementControlle
 		Long groupId,
 		@CurrentUser
 		Long memberId,
-		@Valid @RequestBody
+		@RequestBody
 		SubgroupCreateRequest request) {
 		return SuccessResponse.success(subgroupService.createSubgroup(groupId, memberId, request));
 	}

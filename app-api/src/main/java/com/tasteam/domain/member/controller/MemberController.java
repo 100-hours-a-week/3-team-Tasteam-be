@@ -17,7 +17,6 @@ import com.tasteam.domain.member.service.MemberService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -45,7 +44,7 @@ public class MemberController implements MemberControllerDocs {
 	public SuccessResponse<Void> updateMyProfile(
 		@CurrentUser
 		Long memberId,
-		@Valid @RequestBody
+		@RequestBody
 		MemberProfileUpdateRequest request) {
 		memberService.updateMyProfile(memberId, request);
 		return SuccessResponse.success();
