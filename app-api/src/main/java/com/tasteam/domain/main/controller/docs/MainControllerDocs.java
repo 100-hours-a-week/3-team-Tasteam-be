@@ -1,6 +1,7 @@
 package com.tasteam.domain.main.controller.docs;
 
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.validation.annotation.Validated;
 
 import com.tasteam.domain.main.dto.request.MainPageRequest;
 import com.tasteam.domain.main.dto.response.MainPageResponse;
@@ -12,7 +13,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 
 @Tag(name = "Main", description = "메인 페이지 API")
 public interface MainControllerDocs {
@@ -22,6 +22,6 @@ public interface MainControllerDocs {
 	SuccessResponse<MainPageResponse> getMain(
 		@CurrentUser
 		Long memberId,
-		@Valid @ParameterObject
+		@Validated @ParameterObject
 		MainPageRequest request);
 }

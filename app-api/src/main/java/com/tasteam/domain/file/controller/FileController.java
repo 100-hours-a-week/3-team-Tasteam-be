@@ -1,5 +1,6 @@
 package com.tasteam.domain.file.controller;
 
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/files")
+@Validated
 @RequiredArgsConstructor
 public class FileController implements FileControllerDocs {
 

@@ -1,6 +1,7 @@
 package com.tasteam.domain.restaurant.controller.docs;
 
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -18,6 +19,8 @@ import com.tasteam.domain.review.dto.request.ReviewCreateRequest;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
+import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.error.code.restaurant.RestaurantSwaggerErrorResponseDescription;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,7 +29,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 
 @Tag(name = "Restaurant", description = "음식점 조회/관리 API")
@@ -37,11 +39,12 @@ public interface RestaurantControllerDocs {
 	SuccessResponse<CursorPageResponse<RestaurantListItem>> getRestaurants(
 		@Parameter(description = "그룹 ID", example = "2001") @RequestParam @Positive
 		Long groupId,
-		@Valid @ParameterObject
+		@Validated @ParameterObject
 		NearbyRestaurantQueryParams queryParams);
 
 	@Operation(summary = "음식점 상세 조회", description = "음식점 상세 정보를 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = RestaurantDetailResponse.class)))
+	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_DETAIL")
 	SuccessResponse<RestaurantDetailResponse> getRestaurant(
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
 		Long restaurantId);
@@ -49,12 +52,14 @@ public interface RestaurantControllerDocs {
 	@Operation(summary = "음식점 등록", description = "관리자 권한으로 음식점을 등록합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = RestaurantCreateRequest.class)))
 	@ApiResponse(responseCode = "201", description = "등록 완료", content = @Content(schema = @Schema(implementation = RestaurantCreateResponse.class)))
+	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_CREATE")
 	SuccessResponse<RestaurantCreateResponse> createRestaurant(
 		RestaurantCreateRequest request);
 
 	@Operation(summary = "음식점 수정", description = "관리자 권한으로 음식점을 수정합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = RestaurantUpdateRequest.class)))
 	@ApiResponse(responseCode = "200", description = "수정 완료", content = @Content(schema = @Schema(implementation = RestaurantUpdateResponse.class)))
+	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_UPDATE")
 	SuccessResponse<RestaurantUpdateResponse> updateRestaurant(
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
 		Long restaurantId,
@@ -62,12 +67,14 @@ public interface RestaurantControllerDocs {
 
 	@Operation(summary = "음식점 삭제", description = "관리자 권한으로 음식점을 삭제합니다.")
 	@ApiResponse(responseCode = "204", description = "삭제 완료")
+	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_DELETE")
 	void deleteRestaurant(
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
 		Long restaurantId);
 
 	@Operation(summary = "음식점 리뷰 목록 조회", description = "음식점 리뷰를 커서 기반으로 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
+	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_REVIEWS")
 	SuccessResponse<CursorPageResponse<ReviewResponse>> getRestaurantReviews(
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
 		Long restaurantId,
@@ -77,11 +84,12 @@ public interface RestaurantControllerDocs {
 	@Operation(summary = "리뷰 등록", description = "사용자 권한으로 음식점 리뷰를 작성합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = ReviewCreateRequest.class)))
 	@ApiResponse(responseCode = "201", description = "리뷰 등록 완료", content = @Content(schema = @Schema(implementation = ReviewCreateResponse.class)))
+	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_REVIEW_CREATE")
 	SuccessResponse<ReviewCreateResponse> createReview(
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
 		Long restaurantId,
 		@CurrentUser
 		Long memberId,
-		@Valid
+		@Validated
 		ReviewCreateRequest request);
 }
