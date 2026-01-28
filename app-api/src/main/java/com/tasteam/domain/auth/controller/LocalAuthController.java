@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.auth.controller.docs.LocalAuthControllerDocs;
 import com.tasteam.domain.auth.dto.request.LocalAuthTokenRequest;
 import com.tasteam.domain.auth.dto.response.LocalAuthTokenResponse;
 import com.tasteam.domain.auth.service.LocalAuthTokenService;
@@ -23,7 +24,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
-public class LocalAuthController {
+public class LocalAuthController implements LocalAuthControllerDocs {
 
 	private final LocalAuthTokenService localAuthTokenService;
 	private final JwtCookieProvider jwtCookieProvider;
