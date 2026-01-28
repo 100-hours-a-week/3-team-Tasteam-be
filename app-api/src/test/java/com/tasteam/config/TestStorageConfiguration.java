@@ -1,4 +1,4 @@
-package com.tasteam;
+package com.tasteam.config;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -14,7 +14,7 @@ import com.tasteam.infra.storage.StorageClient;
 
 @TestConfiguration(proxyBeanMethods = false)
 @Profile("test")
-class TestStorageConfiguration {
+public class TestStorageConfiguration {
 
 	@Bean
 	StorageClient storageClient() {
@@ -35,8 +35,6 @@ class TestStorageConfiguration {
 		}
 
 		@Override
-		public void deleteObject(String objectKey) {
-			// no-op
-		}
+		public void deleteObject(String objectKey) {}
 	}
 }
