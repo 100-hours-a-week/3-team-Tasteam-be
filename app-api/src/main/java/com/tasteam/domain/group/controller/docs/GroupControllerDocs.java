@@ -30,6 +30,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Group", description = "그룹 관리 API")
 public interface GroupControllerDocs {
@@ -37,7 +38,8 @@ public interface GroupControllerDocs {
 	@Operation(summary = "그룹 생성", description = "새 그룹을 생성합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = GroupCreateRequest.class)))
 	@ApiResponse(responseCode = "201", description = "그룹 생성 완료", content = @Content(schema = @Schema(implementation = GroupCreateResponse.class)))
-	SuccessResponse<GroupCreateResponse> createGroup(GroupCreateRequest request);
+	SuccessResponse<GroupCreateResponse> createGroup(@Valid
+	GroupCreateRequest request);
 
 	@Operation(summary = "그룹 상세 조회", description = "그룹 ID로 그룹 정보를 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = GroupGetResponse.class)))
@@ -73,6 +75,7 @@ public interface GroupControllerDocs {
 	SuccessResponse<GroupEmailVerificationResponse> sendGroupEmailVerification(
 		@Parameter(description = "그룹 ID", example = "101") @PathVariable
 		Long groupId,
+		@Valid
 		GroupEmailVerificationRequest request);
 
 	@Operation(summary = "그룹 이메일 인증", description = "이메일 인증 코드를 검증하여 그룹에 가입합니다.")
@@ -83,6 +86,7 @@ public interface GroupControllerDocs {
 		Long groupId,
 		@CurrentUser
 		Long memberId,
+		@Valid
 		GroupEmailAuthenticationRequest request);
 
 	@Operation(summary = "그룹 비밀번호 인증", description = "그룹 비밀번호 코드를 검증하여 그룹에 가입합니다.")
@@ -93,6 +97,7 @@ public interface GroupControllerDocs {
 		Long groupId,
 		@CurrentUser
 		Long memberId,
+		@Valid
 		GroupPasswordAuthenticationRequest request);
 
 	@Operation(summary = "그룹 멤버 목록 조회", description = "그룹 멤버를 커서 기반으로 조회합니다.")
@@ -126,6 +131,6 @@ public interface GroupControllerDocs {
 	CursorPageResponse<RestaurantListItem> getGroupReviewRestaurants(
 		@Parameter(description = "그룹 ID", example = "101") @PathVariable
 		Long groupId,
-		@ParameterObject
+		@Valid @ParameterObject
 		NearbyRestaurantQueryParams queryParams);
 }

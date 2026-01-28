@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Subgroup", description = "소모임 관리 API")
 public interface SubgroupManagementControllerDocs {
@@ -68,6 +69,7 @@ public interface SubgroupManagementControllerDocs {
 		Long groupId,
 		@CurrentUser
 		Long memberId,
+		@Valid
 		SubgroupCreateRequest request);
 
 	@Operation(summary = "소모임 가입", description = "소모임에 가입합니다. 비공개 소모임인 경우 비밀번호를 포함합니다.")

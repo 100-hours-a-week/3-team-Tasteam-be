@@ -18,7 +18,6 @@ import com.tasteam.domain.file.dto.response.PresignedUploadResponse;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.global.dto.api.SuccessResponse;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -30,14 +29,14 @@ public class FileController implements FileControllerDocs {
 
 	@PostMapping("/uploads/presigned")
 	public SuccessResponse<PresignedUploadResponse> createPresignedUploads(
-		@Valid @RequestBody
+		@RequestBody
 		PresignedUploadRequest request) {
 		return SuccessResponse.success(fileService.createPresignedUploads(request));
 	}
 
 	@PostMapping("/domain-links")
 	public SuccessResponse<DomainImageLinkResponse> linkDomainImage(
-		@Valid @RequestBody
+		@RequestBody
 		DomainImageLinkRequest request) {
 		return SuccessResponse.success(fileService.linkDomainImage(request));
 	}
@@ -51,7 +50,7 @@ public class FileController implements FileControllerDocs {
 
 	@PostMapping("/summary")
 	public SuccessResponse<ImageSummaryResponse> getImageSummary(
-		@Valid @RequestBody
+		@RequestBody
 		ImageSummaryRequest request) {
 		return SuccessResponse.success(fileService.getImageSummary(request));
 	}

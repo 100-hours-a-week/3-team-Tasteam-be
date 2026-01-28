@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Restaurant", description = "음식점 메뉴 API")
 public interface MenuControllerDocs {
@@ -38,6 +39,7 @@ public interface MenuControllerDocs {
 	SuccessResponse<Long> createMenuCategory(
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
 		Long restaurantId,
+		@Valid
 		MenuCategoryCreateRequest request);
 
 	@Operation(summary = "메뉴 생성", description = "관리자 권한으로 단일 메뉴를 등록합니다.")
@@ -46,6 +48,7 @@ public interface MenuControllerDocs {
 	SuccessResponse<Long> createMenu(
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
 		Long restaurantId,
+		@Valid
 		MenuCreateRequest request);
 
 	@Operation(summary = "메뉴 일괄 생성", description = "관리자 권한으로 여러 메뉴를 한 번에 등록합니다.")
@@ -54,5 +57,6 @@ public interface MenuControllerDocs {
 	SuccessResponse<List<Long>> createMenusBulk(
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
 		Long restaurantId,
+		@Valid
 		MenuBulkCreateRequest request);
 }

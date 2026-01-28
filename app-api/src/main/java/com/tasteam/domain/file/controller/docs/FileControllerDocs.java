@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "File", description = "파일 업로드/연결/조회 API")
 public interface FileControllerDocs {
@@ -25,12 +26,14 @@ public interface FileControllerDocs {
 	@Operation(summary = "Presigned 업로드 생성", description = "Presigned POST 정보를 생성합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = PresignedUploadRequest.class)))
 	@ApiResponse(responseCode = "200", description = "Presigned 업로드 생성 성공", content = @Content(schema = @Schema(implementation = PresignedUploadResponse.class)))
-	SuccessResponse<PresignedUploadResponse> createPresignedUploads(PresignedUploadRequest request);
+	SuccessResponse<PresignedUploadResponse> createPresignedUploads(@Valid
+	PresignedUploadRequest request);
 
 	@Operation(summary = "도메인 이미지 연결", description = "도메인과 파일을 연결하고 상태를 ACTIVE로 전환합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = DomainImageLinkRequest.class)))
 	@ApiResponse(responseCode = "200", description = "도메인 이미지 연결 성공", content = @Content(schema = @Schema(implementation = DomainImageLinkResponse.class)))
-	SuccessResponse<DomainImageLinkResponse> linkDomainImage(DomainImageLinkRequest request);
+	SuccessResponse<DomainImageLinkResponse> linkDomainImage(@Valid
+	DomainImageLinkRequest request);
 
 	@Operation(summary = "이미지 상세 조회", description = "fileUuid 기준 상세 정보를 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "이미지 상세 조회 성공", content = @Content(schema = @Schema(implementation = ImageDetailResponse.class)))
@@ -41,5 +44,6 @@ public interface FileControllerDocs {
 	@Operation(summary = "도메인용 이미지 요약 조회", description = "fileUuid 목록으로 요약 정보를 조회합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = ImageSummaryRequest.class)))
 	@ApiResponse(responseCode = "200", description = "이미지 요약 조회 성공", content = @Content(schema = @Schema(implementation = ImageSummaryResponse.class)))
-	SuccessResponse<ImageSummaryResponse> getImageSummary(ImageSummaryRequest request);
+	SuccessResponse<ImageSummaryResponse> getImageSummary(@Valid
+	ImageSummaryRequest request);
 }
