@@ -6,6 +6,9 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tasteam.global.security.common.util.SecurityResponseSender;
+import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
 import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
 import com.tasteam.global.security.jwt.resolver.CurrentUserArgumentResolver;
 import com.tasteam.global.security.logout.handler.LogoutHandler;
@@ -64,6 +67,21 @@ public class TestSecurityConfig {
 	@Primary
 	public JwtTokenProvider jwtTokenProvider() {
 		return Mockito.mock(JwtTokenProvider.class);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public JwtCookieProvider jwtCookieProvider() {
+		return Mockito.mock(JwtCookieProvider.class);
+	}
+
+	/**
+	 * WebMvcTest에서 SecurityResponseSender가 필요하므로 테스트용 빈을 등록한다.
+	 */
+	@Bean
+	@ConditionalOnMissingBean
+	public SecurityResponseSender securityResponseSender(ObjectMapper objectMapper) {
+		return new SecurityResponseSender(objectMapper);
 	}
 
 }
