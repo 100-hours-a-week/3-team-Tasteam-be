@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Main", description = "메인 페이지 API")
 public interface MainControllerDocs {
@@ -21,6 +22,6 @@ public interface MainControllerDocs {
 	SuccessResponse<MainPageResponse> getMain(
 		@CurrentUser
 		Long memberId,
-		@ParameterObject
+		@Valid @ParameterObject
 		MainPageRequest request);
 }

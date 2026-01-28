@@ -13,7 +13,6 @@ import com.tasteam.domain.main.service.MainService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @Validated
@@ -28,7 +27,7 @@ public class MainController implements MainControllerDocs {
 	public SuccessResponse<MainPageResponse> getMain(
 		@CurrentUser
 		Long memberId,
-		@Valid @ModelAttribute
+		@ModelAttribute
 		MainPageRequest request) {
 		return SuccessResponse.success(mainService.getMain(memberId, request));
 	}
