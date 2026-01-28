@@ -1013,9 +1013,13 @@ LIMIT :size;
         - 이미지 정보가 포함된 경우:
             - `restaurant_image`에 메타 정보만 저장한다.
             - 실제 이미지 업로드는 본 API의 책임이 아니다.
-    8. **트랜잭션 커밋**
+    8. **주간 영업 시간 저장**
+        - 주간 스케줄 정보가 포함된 경우:
+            - `restaurant_weekly_schedule` 테이블에 요일별 영업 시간을 저장한다.
+            - 각 항목은 `dayOfWeek`(1~7), `openTime`, `closeTime`, `isClosed`, `effectiveFrom`, `effectiveTo`를 포함한다.
+    9. **트랜잭션 커밋**
         - 음식점 및 연관 데이터 생성은 **단일 트랜잭션으로 원자적 처리**된다.
-    9. **비동기 이벤트 발행**
+    10. **비동기 이벤트 발행**
         - 트랜잭션 커밋 이후 `RestaurantCreatedEvent(restaurantId)`를 발행한다.
         - 이벤트는 다음 작업의 트리거로 사용된다.
             - Geocoding 좌표 보정
