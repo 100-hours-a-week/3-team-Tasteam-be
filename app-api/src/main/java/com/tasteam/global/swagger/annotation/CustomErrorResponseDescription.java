@@ -14,5 +14,7 @@ import com.tasteam.global.swagger.error.code.SwaggerErrorResponseDescription;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CustomErrorResponseDescription{
 
-	SwaggerErrorResponseDescription value();
+	Class<? extends SwaggerErrorResponseDescription> value();
+
+	String group();
 }

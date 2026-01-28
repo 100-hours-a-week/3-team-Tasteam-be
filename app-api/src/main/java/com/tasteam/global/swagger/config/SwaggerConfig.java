@@ -100,7 +100,10 @@ public class SwaggerConfig {
 			return;
 		}
 
-		SwaggerErrorResponseDescription responseDescription = annotation.value();
+		SwaggerErrorResponseDescription responseDescription = resolveErrorDescription(annotation);
+		if (responseDescription == null) {
+			return;
+		}
 		ApiResponses apiResponses = operation.getResponses();
 
 		for (ErrorCode errorCode : responseDescription.getErrorCodeList()) {
@@ -108,6 +111,24 @@ public class SwaggerConfig {
 			ApiResponse apiResponse = createErrorApiResponse(errorCode);
 			apiResponses.addApiResponse(statusCode, apiResponse);
 		}
+	}
+
+	private SwaggerErrorResponseDescription resolveErrorDescription(CustomErrorResponseDescription annotation) {
+		Class<? extends SwaggerErrorResponseDescription> enumClass = annotation.value();
+		String group = annotation.group();
+
+		if (!enumClass.isEnum()) {
+			return null;
+		}
+
+		SwaggerErrorResponseDescription[] constants = enumClass.getEnumConstants();
+		for (SwaggerErrorResponseDescription constant : constants) {
+			if (constant instanceof Enum<?> enumConstant && enumConstant.name().equals(group)) {
+				return constant;
+			}
+		}
+
+		return null;
 	}
 
 	private ApiResponse createErrorApiResponse(ErrorCode errorCode) {

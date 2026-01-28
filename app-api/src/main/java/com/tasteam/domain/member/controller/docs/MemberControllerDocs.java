@@ -8,7 +8,7 @@ import com.tasteam.domain.member.dto.response.MemberMeResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
-import com.tasteam.global.swagger.error.code.SwaggerErrorResponseDescription;
+import com.tasteam.global.swagger.error.code.member.MemberSwaggerErrorResponseDescription;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,14 +22,14 @@ public interface MemberControllerDocs {
 
 	@Operation(summary = "마이페이지 회원 정보 조회", description = "현재 로그인 사용자의 프로필 정보를 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "성공", content = @Content(schema = @Schema(implementation = MemberMeResponse.class)))
-	@CustomErrorResponseDescription(SwaggerErrorResponseDescription.MEMBER_ME)
+	@CustomErrorResponseDescription(value = MemberSwaggerErrorResponseDescription.class, group = "MEMBER_ME")
 	SuccessResponse<MemberMeResponse> getMyMemberInfo(
 		@CurrentUser
 		Long memberId);
 
 	@Operation(summary = "내 그룹 요약 목록 조회", description = "현재 로그인 사용자의 그룹 목록을 {groupId, name} 형태로 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "성공", content = @Content(schema = @Schema(implementation = MemberGroupSummaryResponse.class)))
-	@CustomErrorResponseDescription(SwaggerErrorResponseDescription.MEMBER_ME)
+	@CustomErrorResponseDescription(value = MemberSwaggerErrorResponseDescription.class, group = "MEMBER_GROUP_SUMMARIES")
 	SuccessResponse<List<MemberGroupSummaryResponse>> getMyGroupSummaries(
 		@CurrentUser
 		Long memberId);
@@ -37,7 +37,7 @@ public interface MemberControllerDocs {
 	@Operation(summary = "회원 정보 수정", description = "프로필 이미지와 이메일을 수정합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = MemberProfileUpdateRequest.class)))
 	@ApiResponse(responseCode = "204", description = "수정 완료")
-	@CustomErrorResponseDescription(SwaggerErrorResponseDescription.MEMBER_PROFILE_UPDATE)
+	@CustomErrorResponseDescription(value = MemberSwaggerErrorResponseDescription.class, group = "MEMBER_PROFILE_UPDATE")
 	SuccessResponse<Void> updateMyProfile(
 		@CurrentUser
 		Long memberId,
@@ -45,7 +45,7 @@ public interface MemberControllerDocs {
 
 	@Operation(summary = "회원 탈퇴", description = "현재 로그인 사용자의 계정을 탈퇴 처리합니다.")
 	@ApiResponse(responseCode = "204", description = "탈퇴 완료")
-	@CustomErrorResponseDescription(SwaggerErrorResponseDescription.MEMBER_WITHDRAW)
+	@CustomErrorResponseDescription(value = MemberSwaggerErrorResponseDescription.class, group = "MEMBER_WITHDRAW")
 	SuccessResponse<Void> withdraw(
 		@CurrentUser
 		Long memberId);
