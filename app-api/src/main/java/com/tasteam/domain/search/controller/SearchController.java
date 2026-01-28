@@ -13,7 +13,6 @@ import com.tasteam.domain.search.service.SearchService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @Validated
@@ -28,7 +27,7 @@ public class SearchController implements SearchControllerDocs {
 	public SuccessResponse<SearchResponse> search(
 		@CurrentUser
 		Long memberId,
-		@Valid @ModelAttribute
+		@ModelAttribute
 		SearchRequest request) {
 		return SuccessResponse.success(searchService.search(memberId, request));
 	}

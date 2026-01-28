@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Search", description = "검색 API")
 public interface SearchControllerDocs {
@@ -21,6 +22,6 @@ public interface SearchControllerDocs {
 	SuccessResponse<SearchResponse> search(
 		@CurrentUser
 		Long memberId,
-		@ParameterObject
+		@Valid @ParameterObject
 		SearchRequest request);
 }
