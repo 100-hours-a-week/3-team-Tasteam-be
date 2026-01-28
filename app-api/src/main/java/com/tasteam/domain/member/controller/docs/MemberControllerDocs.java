@@ -27,7 +27,7 @@ public interface MemberControllerDocs {
 		@CurrentUser
 		Long memberId);
 
-	@Operation(summary = "내 그룹 요약 목록 조회", description = "현재 로그인 사용자의 그룹 목록을 {groupId, name} 형태로 조회합니다.")
+	@Operation(summary = "내 그룹 요약 목록 조회", description = "현재 로그인 사용자의 그룹과 가입한 하위 그룹 목록을 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "성공", content = @Content(schema = @Schema(implementation = MemberGroupSummaryResponse.class)))
 	@CustomErrorResponseDescription(SwaggerErrorResponseDescription.MEMBER_ME)
 	SuccessResponse<List<MemberGroupSummaryResponse>> getMyGroupSummaries(

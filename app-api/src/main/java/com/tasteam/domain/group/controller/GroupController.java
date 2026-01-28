@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import com.tasteam.domain.group.controller.docs.GroupControllerDocs;
 import com.tasteam.domain.group.dto.GroupCreateRequest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
 import com.tasteam.domain.group.dto.GroupEmailAuthenticationRequest;
@@ -34,7 +35,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("api/v1/groups")
 @RequiredArgsConstructor
 @Validated
-public class GroupController {
+public class GroupController implements GroupControllerDocs {
 
 	private final GroupService groupService;
 	private final RestaurantService restaurantService;

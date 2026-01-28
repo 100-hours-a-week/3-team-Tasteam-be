@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.review.controller.docs.ReviewControllerDocs;
 import com.tasteam.domain.review.dto.response.ReviewDetailResponse;
 import com.tasteam.domain.review.dto.response.ReviewKeywordItemResponse;
 import com.tasteam.domain.review.entity.KeywordType;
@@ -26,7 +27,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/reviews")
 @RequiredArgsConstructor
 @Validated
-public class ReviewController {
+public class ReviewController implements ReviewControllerDocs {
 
 	private final ReviewService reviewService;
 

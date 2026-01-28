@@ -19,6 +19,7 @@ import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
+import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateRequest;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupDetailResponse;
@@ -26,6 +27,7 @@ import com.tasteam.domain.subgroup.dto.SubgroupJoinRequest;
 import com.tasteam.domain.subgroup.dto.SubgroupJoinResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
+import com.tasteam.domain.subgroup.dto.SubgroupMemberListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
 import com.tasteam.domain.subgroup.entity.Subgroup;
 import com.tasteam.domain.subgroup.entity.SubgroupMember;
@@ -119,6 +121,34 @@ public class SubgroupService {
 				subgroup.getMemberCount(),
 				subgroup.getProfileImageUrl(),
 				subgroup.getCreatedAt()));
+	}
+
+	@Transactional(readOnly = true)
+	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, String cursor, Integer size) {
+		subgroupRepository.findByIdAndDeletedAtIsNull(subgroupId)
+			.orElseThrow(() -> new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND));
+
+		int resolvedSize = resolveSize(size);
+		Long cursorId = parseCursor(cursor);
+
+		List<SubgroupMemberListItem> items = subgroupMemberRepository.findSubgroupMembers(
+			subgroupId,
+			cursorId,
+			PageRequest.of(0, resolvedSize + 1));
+
+		boolean hasNext = items.size() > resolvedSize;
+		if (hasNext) {
+			items = items.subList(0, resolvedSize);
+		}
+
+		String nextCursor = hasNext ? String.valueOf(items.get(items.size() - 1).cursorId()) : null;
+
+		return new CursorPageResponse<>(
+			items,
+			new CursorPageResponse.Pagination(
+				nextCursor,
+				hasNext,
+				items.size()));
 	}
 
 	@Transactional
@@ -350,6 +380,17 @@ public class SubgroupService {
 			return null;
 		}
 		return keyword.strip();
+	}
+
+	private Long parseCursor(String cursor) {
+		if (cursor == null || cursor.isBlank()) {
+			return null;
+		}
+		try {
+			return Long.parseLong(cursor);
+		} catch (NumberFormatException e) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
 	}
 
 	private String encodeCursor(String name, Long id) {
