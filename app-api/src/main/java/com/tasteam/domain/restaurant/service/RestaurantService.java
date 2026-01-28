@@ -23,6 +23,7 @@ import com.tasteam.domain.restaurant.dto.RestaurantDistanceQueryDto;
 import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
 import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
+import com.tasteam.domain.restaurant.dto.response.BusinessHourWeekItem;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
@@ -66,6 +67,7 @@ public class RestaurantService {
 	private final RestaurantFoodCategoryValidator restaurantFoodCategoryValidator;
 	private final GeometryFactory geometryFactory;
 	private final NaverGeocodingClient naverGeocodingClient;
+	private final RestaurantScheduleService restaurantScheduleService;
 
 	@Transactional(readOnly = true)
 	public RestaurantDetailResponse getRestaurantDetail(long restaurantId) {
@@ -81,7 +83,7 @@ public class RestaurantService {
 			.map(FoodCategory::getName)
 			.toList();
 
-		// TODO: 영업시간 목록 조회
+		List<BusinessHourWeekItem> businessHoursWeek = restaurantScheduleService.getBusinessHoursWeek(restaurantId);
 
 		// 음식점 대표 이미지 (최대 1장)
 		RestaurantImage firstImage = restaurantImageRepository
@@ -120,7 +122,7 @@ public class RestaurantService {
 			restaurant.getName(),
 			restaurant.getFullAddress(),
 			foodCategories,
-			List.of(),
+			businessHoursWeek,
 			image,
 			null,
 			recommendStatResponse,
