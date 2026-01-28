@@ -56,17 +56,20 @@ public class SubgroupService {
 	private final PasswordEncoder passwordEncoder;
 
 	@Transactional(readOnly = true)
-	public SubgroupListResponse getMySubgroups(Long groupId, Long memberId, String cursor, Integer size) {
+	public SubgroupListResponse getMySubgroups(Long groupId, Long memberId, String keyword, String cursor,
+		Integer size) {
 		validateAuthenticated(memberId);
 		Group group = getGroup(groupId);
 		validateGroupMember(group.getId(), memberId);
 
 		int resolvedSize = resolveSize(size);
 		CursorKey cursorKey = decodeCursor(cursor);
+		String resolvedKeyword = resolveKeyword(keyword);
 
 		List<SubgroupListItem> items = subgroupRepository.findMySubgroupsByGroup(
 			groupId,
 			memberId,
+			resolvedKeyword,
 			cursorKey == null ? null : cursorKey.name(),
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
@@ -75,16 +78,19 @@ public class SubgroupService {
 	}
 
 	@Transactional(readOnly = true)
-	public SubgroupListResponse getGroupSubgroups(Long groupId, Long memberId, String cursor, Integer size) {
+	public SubgroupListResponse getGroupSubgroups(Long groupId, Long memberId, String keyword, String cursor,
+		Integer size) {
 		validateAuthenticated(memberId);
 		getGroup(groupId);
 
 		int resolvedSize = resolveSize(size);
 		CursorKey cursorKey = decodeCursor(cursor);
+		String resolvedKeyword = resolveKeyword(keyword);
 
 		List<SubgroupListItem> items = subgroupRepository.findSubgroupsByGroup(
 			groupId,
 			SubgroupStatus.ACTIVE,
+			resolvedKeyword,
 			cursorKey == null ? null : cursorKey.name(),
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
@@ -337,6 +343,13 @@ public class SubgroupService {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 		return size;
+	}
+
+	private String resolveKeyword(String keyword) {
+		if (keyword == null || keyword.isBlank()) {
+			return null;
+		}
+		return keyword.strip();
 	}
 
 	private String encodeCursor(String name, Long id) {

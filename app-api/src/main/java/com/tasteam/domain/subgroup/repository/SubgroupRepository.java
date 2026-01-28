@@ -37,6 +37,7 @@ public interface SubgroupRepository extends JpaRepository<Subgroup, Long> {
 		where s.group.id = :groupId
 			and s.status = :status
 			and s.deletedAt is null
+			and (:keyword is null or s.name like %:keyword%)
 			and (
 				:cursorName is null
 				or (s.name > :cursorName)
@@ -49,6 +50,8 @@ public interface SubgroupRepository extends JpaRepository<Subgroup, Long> {
 		Long groupId,
 		@Param("status")
 		SubgroupStatus status,
+		@Param("keyword")
+		String keyword,
 		@Param("cursorName")
 		String cursorName,
 		@Param("cursorId")
@@ -70,6 +73,7 @@ public interface SubgroupRepository extends JpaRepository<Subgroup, Long> {
 			and sm.deletedAt is null
 			and s.group.id = :groupId
 			and s.deletedAt is null
+			and (:keyword is null or s.name like %:keyword%)
 			and (
 				:cursorName is null
 				or (s.name > :cursorName)
@@ -82,6 +86,8 @@ public interface SubgroupRepository extends JpaRepository<Subgroup, Long> {
 		Long groupId,
 		@Param("memberId")
 		Long memberId,
+		@Param("keyword")
+		String keyword,
 		@Param("cursorName")
 		String cursorName,
 		@Param("cursorId")

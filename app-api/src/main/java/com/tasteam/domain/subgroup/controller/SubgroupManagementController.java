@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import com.tasteam.domain.subgroup.controller.docs.SubgroupManagementControllerDocs;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateRequest;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupDetailResponse;
@@ -24,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 @Validated
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-public class SubgroupManagementController {
+public class SubgroupManagementController implements SubgroupManagementControllerDocs {
 
 	private final SubgroupService subgroupService;
 
@@ -35,10 +36,12 @@ public class SubgroupManagementController {
 		@CurrentUser
 		Long memberId,
 		@RequestParam(required = false)
+		String keyword,
+		@RequestParam(required = false)
 		String cursor,
 		@RequestParam(required = false)
 		Integer size) {
-		return SuccessResponse.success(subgroupService.getMySubgroups(groupId, memberId, cursor, size));
+		return SuccessResponse.success(subgroupService.getMySubgroups(groupId, memberId, keyword, cursor, size));
 	}
 
 	@GetMapping("/groups/{groupId}/subgroups")
@@ -48,10 +51,12 @@ public class SubgroupManagementController {
 		@CurrentUser
 		Long memberId,
 		@RequestParam(required = false)
+		String keyword,
+		@RequestParam(required = false)
 		String cursor,
 		@RequestParam(required = false)
 		Integer size) {
-		return SuccessResponse.success(subgroupService.getGroupSubgroups(groupId, memberId, cursor, size));
+		return SuccessResponse.success(subgroupService.getGroupSubgroups(groupId, memberId, keyword, cursor, size));
 	}
 
 	@GetMapping("/subgroups/{subgroupId}")

@@ -13,6 +13,7 @@ import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.review.service.ReviewService;
+import com.tasteam.domain.subgroup.controller.docs.SubgroupControllerDocs;
 import com.tasteam.global.dto.api.SuccessResponse;
 
 import jakarta.validation.constraints.Positive;
@@ -22,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/subgroups")
 @RequiredArgsConstructor
 @Validated
-public class SubgroupController {
+public class SubgroupController implements SubgroupControllerDocs {
 
 	private final ReviewService reviewService;
 
