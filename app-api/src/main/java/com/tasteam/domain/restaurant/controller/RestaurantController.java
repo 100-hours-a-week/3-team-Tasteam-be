@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.tasteam.domain.restaurant.controller.docs.RestaurantControllerDocs;
 import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
@@ -24,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/restaurants")
-public class RestaurantController {
+public class RestaurantController implements RestaurantControllerDocs {
 
 	private final RestaurantService restaurantService;
 	private final ReviewService reviewService;

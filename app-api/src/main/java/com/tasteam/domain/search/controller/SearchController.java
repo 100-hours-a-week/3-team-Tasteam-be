@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.search.controller.docs.SearchControllerDocs;
 import com.tasteam.domain.search.dto.request.SearchRequest;
 import com.tasteam.domain.search.dto.response.SearchResponse;
 import com.tasteam.domain.search.service.SearchService;
@@ -19,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/v1/search")
 @RequiredArgsConstructor
-public class SearchController {
+public class SearchController implements SearchControllerDocs {
 
 	private final SearchService searchService;
 

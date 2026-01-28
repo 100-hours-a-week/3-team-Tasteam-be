@@ -4,12 +4,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.test.controller.docs.WebhookTestControllerDocs;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.MemberErrorCode;
 
 @RestController
 @RequestMapping("/api/v1/test")
-public class WebhookTestController {
+public class WebhookTestController implements WebhookTestControllerDocs {
 
 	@GetMapping("/error/business")
 	public String testBusinessException() {
