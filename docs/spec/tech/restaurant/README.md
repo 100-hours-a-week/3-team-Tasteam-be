@@ -6,8 +6,8 @@
 | 문서 목적 | 음식점 도메인의 요구사항·데이터 모델·위치 기반 조회 규약·AI 연계·배치 정책을 정의하여 구현/리뷰/테스트의 기준 문서로 활용한다. |
 | 작성 및 관리 | Backend Team |
 | 최초 작성일 | 2026.01.16 |
-| 최종 수정일 | 2026.01.17 |
-| 문서 버전 | **v1.1** |
+| 최종 수정일 | 2026.01.28 |
+| 문서 버전 | **v1.2** |
 
 ---
 
@@ -193,7 +193,7 @@ flowchart LR
 
 - 좌표계: **WGS84 (SRID 4326)**
 - 저장 타입: `geometry(Point, 4326)`
-- 기준 좌표: 사용자 현재 위치 (`lat`, `lng`)
+- 기준 좌표: 사용자 현재 위치 (`latitude`, `longitude`)
 - 거리 단위: **meter**
 - 거리 계산 책임: **DB(PostGIS)**
 
@@ -216,7 +216,8 @@ ST_Distance(
 
 ### 반경 제한
 
-- 최대 반경: **3,000m**
+- 기본 반경: **3,000m**
+- 최대 반경: **20,000m**
 - 반경 초과 요청 시: `INVALID_REQUEST (400)`
 
 ---
@@ -228,32 +229,115 @@ ST_Distance(
 - Request Body를 통한 좌표 전달은 허용하지 않는다.
 
 ```
-GET /api/v1/restaurants?lat=37.395&lng=127.11
+GET /api/v1/restaurants?latitude=37.395&longitude=127.11&radiusMeter=3000
 ```
 
 ### 유효성 규칙
 
-- `lat`, `lng`는 **항상 함께 전달되어야 한다**
+- `latitude`, `longitude`는 **항상 함께 전달되어야 한다**
 - 하나만 전달된 경우: `INVALID_LOCATION (400)`
 - 범위:
-    - `90.0 ≤ latitude ≤ 90.0`
-    - `180.0 ≤ longitude ≤ 180.0`
+    - `-90.0 ≤ latitude ≤ 90.0`
+    - `-180.0 ≤ longitude ≤ 180.0`
 
 ---
 
+### [3-3-1] 영업 시간(정기/예외) 설계
+
+음식점의 영업 시간은 “요일 단위의 정기 정책(weekly)”과 “특정 날짜의 예외 정책(override)”으로 분리한다.
+
+- 정기 영업 시간: `restaurant_weekly_schedules`
+  - `day_of_week(1=월 ~ 7=일)` 기준으로 오픈/마감 및 휴무 여부 관리
+  - `effective_from/effective_to`로 정책 유효 기간 관리(시즌별 시간표 교체 대응)
+- 예외 영업 시간: `restaurant_schedule_overrides`
+  - 특정 날짜(`date`)에 한해 정기 정책을 덮어쓴다(휴무, 단축 영업, 임시 연장 등)
+
+#### 우선순위 규칙(중요)
+
+1) 동일 날짜에 override가 존재하면 **override가 우선**이다.  
+2) override가 없으면, 해당 날짜의 요일에 대해 weekly 스케줄을 선택한다.  
+3) weekly 스케줄이 여러 건 매칭되면(기간 겹침 등) 아래 tie-breaker로 1건을 선택한다.
+   - `effective_from`이 더 최신인 레코드 우선(둘 다 NULL이면 동일)
+4) weekly 스케줄이 없으면 응답에서는 `source=NONE`으로 내려 “정보 없음”으로 표시한다.
+
+#### 응답에서 “주간 영업 시간”을 보여주는 방식
+
+UI/클라이언트는 보통 “이번 주/다가오는 7일” 형태로 표시한다.  
+따라서 상세 API에서는 **오늘(서버 기준, Asia/Seoul)부터 7일치**를 계산해 내려준다.
+
+- 응답 필드명(권장): `businessHoursWeek`
+- 길이: 7 (오늘 포함 7일)
+- 각 원소는 “날짜 기반”으로 제공(요일만 제공하면 override 표시가 어려움)
+
+`businessHoursWeek` 아이템(권장)
+
+- `dayOfWeek`: `MON|TUE|WED|THU|FRI|SAT|SUN` (클라이언트에서 요일 텍스트/표시를 위해 반드시 포함)
+- `isClosed`: boolean
+- `openTime`: `HH:mm` | null
+- `closeTime`: `HH:mm` | null
+- `source`: `OVERRIDE|WEEKLY|NONE` (필요 시)
+- `reason`: string | null (override의 휴무/변경 사유, 필요한 경우만)
+- `date`: `YYYY-MM-DD` (필요한 경우만, 부가 정보)
+- `isClosed`: boolean
+- `openTime`: `HH:mm` | null
+- `closeTime`: `HH:mm` | null
+- `source`: `OVERRIDE|WEEKLY|NONE`
+- `reason`: string | null (override의 휴무/변경 사유)
+
+#### 계산 로직(요약)
+
+1) `restaurantId`로 음식점 존재 확인(`deleted_at is null`)
+2) 기준 날짜 `today`를 Asia/Seoul로 계산
+3) `[today .. today+6]` 각각에 대해
+   - override 조회: `restaurant_schedule_overrides(restaurant_id, date)`
+     - 있으면 그 값을 사용(`source=OVERRIDE`)
+   - 없으면 weekly 조회: `restaurant_weekly_schedules`
+     - `restaurant_id`, `day_of_week`, `effective_from/to` 조건으로 1건 선택(`source=WEEKLY`)
+   - 둘 다 없으면 `source=NONE`(영업시간 미정)
+
+#### 조회 쿼리(권장, 개념)
+
+1) overrides는 범위로 한 번에 조회
+2) weekly는 요일 7개에 대해 “현재 유효한 정책”을 가져오도록 조회(또는 애플리케이션에서 필터)
+
+> NOTE: `updated_at`은 DB에서 자동 갱신되지 않을 수 있으므로, 스케줄 변경 시 애플리케이션에서 명시적으로 갱신한다(또는 DB 트리거 도입).
+
+---
+
+### [3-3-2] 메뉴(카테고리/메뉴) 설계
+
+음식점 메뉴는 “카테고리(메인/음료 등) → 메뉴 항목”의 2단 구조로 관리한다.
+
+- 메뉴 카테고리: `menu_categories`
+  - 정렬: `display_order asc`
+- 메뉴 항목: `menus`
+  - 정렬: `display_order asc`, tie-breaker `id asc`
+  - 추천 메뉴: `is_recommended=true` (배지/상단 노출에 활용 가능)
+  - 소속 음식점: `menus.category_id -> menu_categories.restaurant_id`로 유도(정합성 우선)
+
+#### “음식점 메뉴 디스플레이” 규칙(권장)
+
+1) 카테고리 단위로 섹션을 구성한다. (예: “메인”, “음료”)
+2) 각 카테고리 내부에서 메뉴는 `display_order asc`로 정렬한다.
+3) `is_recommended=true`는 “추천” 배지로 표시한다.
+   - (옵션) 추천 메뉴는 카테고리 상단에 먼저 노출하고, 그 다음 일반 메뉴를 노출한다.
+4) `image_url`이 존재하면 썸네일을 노출한다(없으면 placeholder).
+
+
 ### 음식 카테고리 필터
 
-- 카테고리 값은 **Enum 기반**으로 관리한다.
-- DB에는 다음과 같은 코드 값으로 저장한다.
+- 음식 카테고리는 **`food_category` 기준 데이터(엔티티)**로 관리한다.
+- 음식점은 `restaurant_food_category` 매핑을 통해 카테고리를 가진다.
+- 필터는 `foodCategoryIds`(복수)로 전달하며 OR 조건으로 동작한다.
+
+예시
 
 ```
-KOREAN, CHINESE, JAPANESE, WESTERN,
-ASIAN, SNACK, FAST_FOOD, CAFE,
-DESSERT, BAR, BBQ
+GET /api/v1/restaurants?latitude=37.395&longitude=127.11&radiusMeter=3000&foodCategoryIds=1,3,9
 ```
 
-- 요청 시 존재하지 않는 카테고리 값이 포함되면:
-    - `INVALID_REQUEST (400)`
+- 요청 시 존재하지 않는 `foodCategoryId`가 포함되면:
+    - `INVALID_REQUEST (400)` (권장)
 
 ---
 
@@ -330,6 +414,10 @@ erDiagram
     Restaurant ||--o{ RestaurantImage : has
     Restaurant ||--o{ RestaurantFoodCategory : "mapped by"
     RestaurantFoodCategory }o--|| FoodCategory : "refers to"
+    Restaurant ||--o{ MenuCategory : has
+    MenuCategory ||--o{ Menu : has
+    Restaurant ||--o{ RestaurantWeeklySchedule : maintains
+    Restaurant ||--o{ RestaurantScheduleOverride : overrides
 ```
 
 ---
@@ -371,13 +459,13 @@ SELECT
     :user_point::geography
   )AS distance
 FROM restaurant r
-WHERE r.deleted_atISNULL
+WHERE r.deleted_at IS NULL
 AND ST_DWithin(
     r.location::geography,
     :user_point::geography,
-    :radius
+    :radiusMeter
   )
-ORDERBY r.location<-> :user_point
+ORDER BY r.location <-> :user_point
 LIMIT :size;
 ```
 
@@ -509,7 +597,10 @@ LIMIT :size;
 
 - 카테고리 데이터는 **운영자가 관리하는 기준 데이터**다.
 - 사용자 생성/수정은 허용하지 않는다.
-- 카테고리 이름은 시스템 전반에서 **불변 값에 가깝게 취급**한다.
+- 카테고리는 `food_category` 엔티티로 관리하며, 음식점과의 관계는 `restaurant_food_category` 매핑으로 표현한다.
+- 조회/필터링/저장은 **ID 기반**으로 동작한다. (권장)
+  - 사용자 응답에는 `id + name` 형태로 제공한다.
+- 기준 데이터이므로 운영 환경에서는 값 변경을 최소화하고, 변경이 필요한 경우 별도 정책(비활성화/마이그레이션)을 둔다.
 
 삭제 정책
 
@@ -570,27 +661,103 @@ LIMIT :size;
 
 ---
 
+### [3-7-6] **menu_categories**
+
+역할
+
+- 음식점별 메뉴 카테고리(예: 메인/음료)를 관리한다.
+- 카테고리 노출 순서(`display_order`)를 관리하여 UI 정렬 기준을 제공한다.
+
+핵심 구현 전제
+
+- 카테고리의 소속은 `restaurant_id`로 결정된다.
+- 카테고리 정렬은 `display_order asc`, tie-breaker `id asc`를 따른다.
+- `display_order`는 0 이상 정수(권장).
+
+인덱스 사용 규칙
+
+- `INDEX (restaurant_id, display_order)` 기반으로 조회한다.
+
+---
+
+### [3-7-7] **menus**
+
+역할
+
+- 음식점 메뉴 항목(이름/가격/설명/이미지/추천 여부)을 관리한다.
+
+핵심 구현 전제
+
+- 메뉴의 소속 음식점은 `menus.category_id -> menu_categories.restaurant_id`로 유도한다. (정합성 우선)
+- 메뉴 정렬은 `display_order asc`, tie-breaker `id asc`를 따른다.
+- `price`는 0 이상 정수(권장), `display_order`는 0 이상 정수(권장).
+
+인덱스 사용 규칙
+
+- `INDEX (category_id, display_order)` 기반으로 조회한다.
+
+---
+
+### [3-7-8] **restaurant_weekly_schedules**
+
+역할
+
+- 요일별 정기 영업 시간(오픈/마감/휴무)을 관리한다.
+- `effective_from/effective_to`로 정책 유효 기간을 관리한다.
+
+핵심 구현 전제
+
+- `day_of_week`는 1~7(월~일) 범위를 사용한다.
+- `is_closed=true`이면 `open_time/close_time`은 NULL(권장), `is_closed=false`이면 둘 다 NOT NULL + `open_time < close_time`(권장).
+- `effective_from/effective_to`가 둘 다 존재하면 `effective_from <= effective_to`(권장).
+
+인덱스 사용 규칙
+
+- `INDEX (restaurant_id, day_of_week, effective_from, effective_to)` 기반으로 “현재 유효한 정책”을 조회한다.
+
+---
+
+### [3-7-9] **restaurant_schedule_overrides**
+
+역할
+
+- 특정 날짜 단위로 정기 영업 시간을 덮어쓰는 예외 정책(휴무/단축 영업)을 관리한다.
+
+핵심 구현 전제
+
+- 동일 음식점의 동일 날짜에는 예외 정책이 1건만 존재해야 한다. (권장: `UNIQUE (restaurant_id, date)`)
+- `is_closed=true`이면 `open_time/close_time`은 NULL(권장), `is_closed=false`이면 둘 다 NOT NULL + `open_time < close_time`(권장).
+- 예외 정책은 상세 응답의 `businessHoursWeek` 계산에서 최우선으로 적용한다.
+
+인덱스 사용 규칙
+
+- `UNIQUE (restaurant_id, date)` 기반으로 조회한다.
+
+---
+
 ### [3-8] API 명세 (API Specifications)
 
-### [3-8-1] 음식점 단건 조회 (GET /api/v1/restaurants/{restaurantId}?lat=37.395&lng=127.11)
+### [3-8-1] 음식점 단건 조회 (GET /api/v1/restaurants/{restaurantId}?latitude=37.395&longitude=127.11)
 
 - **권한**
     - PUBLIC
 - **요청/응답 및 에러 코드**
     - [8. 음식점 단건 조회 (GET /api/v1/restaurants/{restaurantId})](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BBE-%E2%80%90-API%5D-API-%EB%AA%85%EC%84%B8%EC%84%9C#api-8)
-- **처리 로직**
-    1. restaurantId로 음식점 단건 조회 (deleted_at IS NULL)
-    2. 조회 실패 시 RESTAURANT_NOT_FOUND (404)
-    3. lat/lng가 전달된 경우
-    4. DB에서 거리 계산 (ST_Distance)
-    5. 전달되지 않은 경우 distanceMeter = null
-    6. 음식 카테고리 목록 조회
-    7. 영업 시간 목록 조회 (요일 기준 정렬)
-    8. 사용자 컨텍스트가 있는 경우
-    9. 즐겨찾기 여부 조회
-    10. 추천 통계 집계
-    11. AI 분석/요약 데이터 조회 (Optional)
-    12. 이미지 목록 조회
+	- **처리 로직**
+	    1. restaurantId로 음식점 단건 조회 (deleted_at IS NULL)
+	    2. 조회 실패 시 RESTAURANT_NOT_FOUND (404)
+	    3. latitude/longitude가 전달된 경우
+	    4. DB에서 거리 계산 (ST_Distance)
+	    5. 전달되지 않은 경우 distanceMeter = null
+	    6. 음식 카테고리 목록 조회
+	    7. 영업 시간 조회 및 `businessHoursWeek` 계산
+	        - 정기 정책(`restaurant_weekly_schedules`) + 예외 정책(`restaurant_schedule_overrides`) 조합
+	        - 오늘부터 7일치(총 7개) 생성, override 우선 적용
+	    8. 사용자 컨텍스트가 있는 경우
+	    9. 즐겨찾기 여부 조회
+	    10. 추천 통계 집계
+	    11. AI 분석/요약 데이터 조회 (Optional)
+	    12. 이미지 목록 조회
     13. deleted_at IS NULL
     14. sort_order ASC
     15. 이미지 storage_key → 조회용 URL 조합
@@ -606,18 +773,21 @@ LIMIT :size;
           "latitude": 37.395,
           "longitude": 127.11
         },
-        "distanceMeter": 870,
+	        "distanceMeter": 870,
         "foodCategories": [
-          "패스트푸드",
-          "햄버거"
+          "패스트푸드"
         ],
-        "businessHours": [
-          {
-            "day": "MON",
-            "open": "09:00",
-            "close": "22:00"
-          }
-        ],
+	        "businessHoursWeek": [
+	          {
+	            "date": "2026-01-28",
+	            "dayOfWeek": "WED",
+	            "isClosed": false,
+	            "openTime": "09:00",
+	            "closeTime": "22:00",
+	            "source": "WEEKLY",
+	            "reason": null
+	          }
+	        ],
         "images": [
           {
             "id": "a3f1c9e0-7a9b...",
@@ -638,11 +808,12 @@ LIMIT :size;
     }
     ```
 
-- 주의사항
-    - 단건 조회에서는 **반경 필터링(ST_DWithin)을 수행하지 않는다.**
-    - 단건 조회는 **거리 계산만 수행 가능**하다.
-    - 외부 도메인 데이터(AI, 추천)는 조회 실패 시:
-        - 전체 API 실패로 전파하지 않는다.
+	- 주의사항
+	    - 단건 조회에서는 **반경 필터링(ST_DWithin)을 수행하지 않는다.**
+	    - 단건 조회는 **거리 계산만 수행 가능**하다.
+    - 메뉴 목록은 별도 API(`GET /api/v1/restaurants/{restaurantId}/menus`)로 조회한다.
+	    - 외부 도메인 데이터(AI, 추천)는 조회 실패 시:
+	        - 전체 API 실패로 전파하지 않는다.
 - **트랜잭션 범위**
     - 없음 (Read-only)
 - **동시성/멱등성**
@@ -651,15 +822,15 @@ LIMIT :size;
 
 ---
 
-### [3-8-2] 음식점 목록 조회 (GET /api/v1/restaurants?lat=...&lng=...&radius=...&categories=...&cursor=…)
+### [3-8-2] 음식점 목록 조회 (GET /api/v1/restaurants?latitude=...&longitude=...&radiusMeter=...&foodCategoryIds=...&cursor=…)
 
 - **권한**
     - PUBLIC
 - **요청/응답 및 에러 코드**
     - [9. 음식점 목록 조회 (GET /api/v1/restaurants)](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BBE-%E2%80%90-API%5D-API-%EB%AA%85%EC%84%B8%EC%84%9C#api-9)
 - **처리 로직**
-    1. `lat/lng` 필수 검증
-    2. 반경 제한 적용 (≤ 3000m)
+    1. `latitude/longitude` 필수 검증
+    2. 반경 제한 적용 (기본 3000m, 최대 20000m)
     3. 음식 카테고리 필터 적용 (OR)
     4. 정렬 (거리 → 이름)
     5. 정렬 키 기반 cursor 페이징 적용
@@ -673,9 +844,9 @@ LIMIT :size;
               "name": "판교 버거킹",
               "address": "경기 성남시 분당구",
               "distanceMeter": 870,
-              "foodCategories": [
-                "패스트푸드"
-              ],
+	              "foodCategories": [
+	                "패스트푸드"
+	              ],
               "thumbnailImage": {
                 "id": "a3f1c9e0-7a9b...",
                 "url": "https://cdn.xxx..."
@@ -698,7 +869,73 @@ LIMIT :size;
 
 ---
 
-### [3-8-3] 음식점 리뷰 목록 조회 (GET /restaurants/{restaurantId}/reviews)
+### [3-8-3] 음식점 메뉴 목록 조회 (GET /api/v1/restaurants/{restaurantId}/menus)
+
+- **권한**
+    - PUBLIC
+- **요청**
+    - Path Variable
+        - `restaurantId`: number
+    - Query (optional)
+        - `includeEmptyCategories`: boolean (default: false)
+        - `recommendedFirst`: boolean (default: true)
+- **응답**
+    - status: 200
+    - body (요약)
+        - `data.restaurantId`: number
+        - `data.categories[]`
+            - `id`: number
+            - `name`: string
+            - `displayOrder`: number
+            - `menus[]`
+                - `id`: number
+                - `name`: string
+                - `description`: string | null
+                - `price`: number
+                - `imageUrl`: string | null
+                - `isRecommended`: boolean
+                - `displayOrder`: number
+    - 예시(JSON)
+      ```json
+      {
+        "data": {
+          "restaurantId": 10,
+          "categories": [
+            {
+              "id": 3,
+              "name": "메인",
+              "displayOrder": 0,
+              "menus": [
+                {
+                  "id": 101,
+                  "name": "와퍼",
+                  "description": "불맛 패티와 신선한 야채",
+                  "price": 7900,
+                  "imageUrl": "https://cdn.xxx/menu/101.png",
+                  "isRecommended": true,
+                  "displayOrder": 0
+                }
+              ]
+            }
+          ]
+        }
+      }
+      ```
+- **처리 로직(요약)**
+    1. `restaurantId`로 음식점 존재 확인(`deleted_at is null`)
+    2. `menu_categories` 조회 (`restaurant_id = :restaurantId`, `display_order asc, id asc`)
+    3. `menus` 조회 (`category_id in (...)`)
+        - 기본 정렬: `display_order asc, id asc`
+        - `recommendedFirst=true`면 (권장) `is_recommended desc`를 우선 적용하고 나머지 정렬을 유지
+    4. 카테고리별로 메뉴를 그룹핑하여 DTO 반환
+- **트랜잭션 범위**
+    - 없음 (Read-only)
+- **동시성/멱등성**
+    - Read API로서 멱등
+
+---
+
+### [3-8-4] 음식점 리뷰 목록 조회 (GET /restaurants/{restaurantId}/reviews)
 
 - 권한
     - **PUBLIC**
@@ -744,7 +981,7 @@ LIMIT :size;
 
 ---
 
-### [3-8-4] 음식점 생성(내부) (POST /restaurants)
+### [3-8-5] 음식점 생성(내부) (POST /restaurants)
 
 - 권한
     - **ADMIN**
@@ -776,9 +1013,13 @@ LIMIT :size;
         - 이미지 정보가 포함된 경우:
             - `restaurant_image`에 메타 정보만 저장한다.
             - 실제 이미지 업로드는 본 API의 책임이 아니다.
-    8. **트랜잭션 커밋**
+    8. **주간 영업 시간 저장**
+        - 주간 스케줄 정보가 포함된 경우:
+            - `restaurant_weekly_schedule` 테이블에 요일별 영업 시간을 저장한다.
+            - 각 항목은 `dayOfWeek`(1~7), `openTime`, `closeTime`, `isClosed`, `effectiveFrom`, `effectiveTo`를 포함한다.
+    9. **트랜잭션 커밋**
         - 음식점 및 연관 데이터 생성은 **단일 트랜잭션으로 원자적 처리**된다.
-    9. **비동기 이벤트 발행**
+    10. **비동기 이벤트 발행**
         - 트랜잭션 커밋 이후 `RestaurantCreatedEvent(restaurantId)`를 발행한다.
         - 이벤트는 다음 작업의 트리거로 사용된다.
             - Geocoding 좌표 보정
@@ -796,7 +1037,7 @@ LIMIT :size;
 
 ---
 
-### [3-8-5] 음식점 수정(내부) (PATCH /restaurants/{restaurantId})
+### [3-8-6] 음식점 수정(내부) (PATCH /restaurants/{restaurantId})
 
 - 권한
     - **ADMIN**
@@ -839,7 +1080,7 @@ LIMIT :size;
 
 ---
 
-### [3-8-6] 음식점 삭제(내부) (DELETE /restaurants/{restaurantId})
+### [3-8-7] 음식점 삭제(내부) (DELETE /restaurants/{restaurantId})
 
 - 권한
     - **ADMIN**

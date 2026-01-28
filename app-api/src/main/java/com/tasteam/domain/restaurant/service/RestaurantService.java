@@ -23,6 +23,8 @@ import com.tasteam.domain.restaurant.dto.RestaurantDistanceQueryDto;
 import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
 import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
+import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
+import com.tasteam.domain.restaurant.dto.response.BusinessHourWeekItem;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
@@ -66,6 +68,8 @@ public class RestaurantService {
 	private final RestaurantFoodCategoryValidator restaurantFoodCategoryValidator;
 	private final GeometryFactory geometryFactory;
 	private final NaverGeocodingClient naverGeocodingClient;
+	private final RestaurantScheduleService restaurantScheduleService;
+	private final RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
 
 	@Transactional(readOnly = true)
 	public RestaurantDetailResponse getRestaurantDetail(long restaurantId) {
@@ -81,7 +85,7 @@ public class RestaurantService {
 			.map(FoodCategory::getName)
 			.toList();
 
-		// TODO: 영업시간 목록 조회
+		List<BusinessHourWeekItem> businessHoursWeek = restaurantScheduleService.getBusinessHoursWeek(restaurantId);
 
 		// 음식점 대표 이미지 (최대 1장)
 		RestaurantImage firstImage = restaurantImageRepository
@@ -120,7 +124,7 @@ public class RestaurantService {
 			restaurant.getName(),
 			restaurant.getFullAddress(),
 			foodCategories,
-			List.of(),
+			businessHoursWeek,
 			image,
 			null,
 			recommendStatResponse,
@@ -278,6 +282,9 @@ public class RestaurantService {
 		// 음식점 이미지 추가
 		saveImagesIfPresent(restaurant, request.imageIds());
 
+		// 음식점 주간 스케줄 추가
+		saveWeeklySchedulesIfPresent(restaurant, request.weeklySchedules());
+
 		// 음식점 생성 이벤트 발행
 		eventPublisher.publishRestaurantCreated(restaurant.getId());
 
@@ -365,6 +372,24 @@ public class RestaurantService {
 					image -> images.add(RestaurantImage.create(restaurant, image.getStorageKey(), finalIndex + 1)));
 		}
 		restaurantImageRepository.saveAll(images);
+	}
+
+	private void saveWeeklySchedulesIfPresent(Restaurant restaurant, List<WeeklyScheduleRequest> schedules) {
+		if (schedules == null || schedules.isEmpty()) {
+			return;
+		}
+
+		List<RestaurantWeeklySchedule> weeklySchedules = schedules.stream()
+			.map(s -> RestaurantWeeklySchedule.create(
+				restaurant,
+				s.dayOfWeek(),
+				s.openTime(),
+				s.closeTime(),
+				s.isClosed(),
+				s.effectiveFrom(),
+				s.effectiveTo()))
+			.toList();
+		weeklyScheduleRepository.saveAll(weeklySchedules);
 	}
 
 	private GroupRestaurantSearchCondition toGroupRestaurantSearchCondition(

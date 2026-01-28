@@ -7,5 +7,6 @@ public record RestaurantCreateRequest(
 	String name,
 	String address,
 	List<Long> foodCategoryIds,
-	List<UUID> imageIds) {
+	List<UUID> imageIds,
+	List<WeeklyScheduleRequest> weeklySchedules) {
 }
