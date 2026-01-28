@@ -75,7 +75,7 @@ public class SubgroupManagementController {
 		return SuccessResponse.success(subgroupService.createSubgroup(groupId, memberId, request));
 	}
 
-	@PostMapping("/groups/{groupId}/subgroups/{subgroupId}/member")
+	@PostMapping("/groups/{groupId}/subgroups/{subgroupId}/members")
 	public SuccessResponse<SubgroupJoinResponse> joinSubgroup(
 		@PathVariable @Positive
 		Long groupId,

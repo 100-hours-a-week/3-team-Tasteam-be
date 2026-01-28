@@ -12,7 +12,7 @@ import com.tasteam.domain.group.dto.GroupMemberListItem;
 import com.tasteam.domain.group.entity.GroupMember;
 import com.tasteam.domain.group.repository.projection.GroupMemberCountProjection;
 import com.tasteam.domain.group.type.GroupStatus;
-import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
+import com.tasteam.domain.member.dto.response.MemberGroupSummaryRow;
 
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
 
@@ -56,7 +56,7 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 		List<Long> groupIds);
 
 	@Query("""
-		select new com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse(
+		select new com.tasteam.domain.member.dto.response.MemberGroupSummaryRow(
 			g.id,
 			g.name
 		)
@@ -68,7 +68,7 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 			and g.status = :activeStatus
 		order by gm.id desc
 		""")
-	List<MemberGroupSummaryResponse> findMemberGroupSummaries(
+	List<MemberGroupSummaryRow> findMemberGroupSummaries(
 		@Param("memberId")
 		Long memberId,
 		@Param("activeStatus")
