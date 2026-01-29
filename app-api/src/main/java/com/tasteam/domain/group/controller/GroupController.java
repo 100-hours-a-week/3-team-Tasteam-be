@@ -42,7 +42,7 @@ public class GroupController implements GroupControllerDocs {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public SuccessResponse<GroupCreateResponse> createGroup(@RequestBody
+	public SuccessResponse<GroupCreateResponse> createGroup(@RequestBody @Validated
 	GroupCreateRequest request) {
 		return SuccessResponse.success(groupService.createGroup(request));
 	}
@@ -57,7 +57,7 @@ public class GroupController implements GroupControllerDocs {
 	public SuccessResponse<Void> updateGroup(
 		@PathVariable @Positive
 		Long groupId,
-		@RequestBody
+		@RequestBody @Validated
 		GroupUpdateRequest request) {
 		groupService.updateGroup(groupId, request);
 		return SuccessResponse.success(null);
@@ -84,7 +84,7 @@ public class GroupController implements GroupControllerDocs {
 	public SuccessResponse<GroupEmailVerificationResponse> sendGroupEmailVerification(
 		@PathVariable @Positive
 		Long groupId,
-		@RequestBody
+		@RequestBody @Validated
 		GroupEmailVerificationRequest request) {
 		return SuccessResponse.success(groupService.sendGroupEmailVerification(groupId, request.email()));
 	}
@@ -96,7 +96,7 @@ public class GroupController implements GroupControllerDocs {
 		Long groupId,
 		@CurrentUser
 		Long memberId,
-		@RequestBody
+		@RequestBody @Validated
 		GroupEmailAuthenticationRequest request) {
 		return SuccessResponse.success(
 			groupService.authenticateGroupByEmail(groupId, memberId, request.code()));
@@ -109,7 +109,7 @@ public class GroupController implements GroupControllerDocs {
 		Long groupId,
 		@CurrentUser
 		Long memberId,
-		@RequestBody
+		@RequestBody @Validated
 		GroupPasswordAuthenticationRequest request) {
 		return SuccessResponse.success(
 			groupService.authenticateGroupByPassword(groupId, memberId, request.code()));
@@ -149,9 +149,9 @@ public class GroupController implements GroupControllerDocs {
 	@ResponseStatus(HttpStatus.OK)
 	@GetMapping("/{groupId}/reviews/restaurants")
 	public CursorPageResponse<RestaurantListItem> getGroupReviewRestaurants(
-		@PathVariable
+		@PathVariable @Positive
 		Long groupId,
-		@ModelAttribute
+		@ModelAttribute @Validated
 		NearbyRestaurantQueryParams queryParams) {
 		return restaurantService.getGroupRestaurants(groupId, queryParams);
 	}

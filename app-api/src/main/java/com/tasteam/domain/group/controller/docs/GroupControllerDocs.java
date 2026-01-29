@@ -33,6 +33,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Positive;
 
 @Tag(name = "Group", description = "그룹 관리 API")
 public interface GroupControllerDocs {
@@ -48,7 +49,7 @@ public interface GroupControllerDocs {
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = GroupGetResponse.class)))
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_GET")
 	SuccessResponse<GroupGetResponse> getGroup(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId);
 
 	@Operation(summary = "그룹 정보 수정", description = "그룹 이름/설명을 수정합니다.")
@@ -56,7 +57,7 @@ public interface GroupControllerDocs {
 	@ApiResponse(responseCode = "200", description = "수정 완료")
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_UPDATE")
 	SuccessResponse<Void> updateGroup(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@Validated
 		GroupUpdateRequest request);
@@ -65,14 +66,14 @@ public interface GroupControllerDocs {
 	@ApiResponse(responseCode = "200", description = "삭제 완료")
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_DELETE")
 	SuccessResponse<Void> deleteGroup(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId);
 
 	@Operation(summary = "그룹 탈퇴", description = "현재 로그인 사용자가 그룹에서 탈퇴합니다.")
 	@ApiResponse(responseCode = "200", description = "탈퇴 완료")
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_WITHDRAW")
 	SuccessResponse<Void> withdrawGroup(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@CurrentUser
 		Long memberId);
@@ -82,7 +83,7 @@ public interface GroupControllerDocs {
 	@ApiResponse(responseCode = "200", description = "이메일 인증 코드 발송 성공", content = @Content(schema = @Schema(implementation = GroupEmailVerificationResponse.class)))
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_EMAIL_VERIFICATION")
 	SuccessResponse<GroupEmailVerificationResponse> sendGroupEmailVerification(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@Validated
 		GroupEmailVerificationRequest request);
@@ -92,7 +93,7 @@ public interface GroupControllerDocs {
 	@ApiResponse(responseCode = "201", description = "이메일 인증 성공", content = @Content(schema = @Schema(implementation = GroupEmailAuthenticationResponse.class)))
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_EMAIL_AUTHENTICATION")
 	SuccessResponse<GroupEmailAuthenticationResponse> authenticateGroupByEmail(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@CurrentUser
 		Long memberId,
@@ -104,7 +105,7 @@ public interface GroupControllerDocs {
 	@ApiResponse(responseCode = "201", description = "비밀번호 인증 성공", content = @Content(schema = @Schema(implementation = GroupPasswordAuthenticationResponse.class)))
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_PASSWORD_AUTHENTICATION")
 	SuccessResponse<GroupPasswordAuthenticationResponse> authenticateGroupByPassword(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@CurrentUser
 		Long memberId,
@@ -115,7 +116,7 @@ public interface GroupControllerDocs {
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = GroupMemberListResponse.class)))
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_MEMBERS")
 	SuccessResponse<GroupMemberListResponse> getGroupMembers(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@Parameter(description = "페이징 커서", example = "cursor") @RequestParam(required = false)
 		String cursor,
@@ -126,16 +127,16 @@ public interface GroupControllerDocs {
 	@ApiResponse(responseCode = "200", description = "강퇴 완료")
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_MEMBER_DELETE")
 	SuccessResponse<Void> deleteGroupMember(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
-		@Parameter(description = "대상 사용자 ID", example = "2001") @PathVariable
+		@Parameter(description = "대상 사용자 ID", example = "2001") @PathVariable @Positive
 		Long userId);
 
 	@Operation(summary = "그룹 리뷰 목록 조회", description = "그룹에 속한 리뷰를 커서 기반으로 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_REVIEWS")
 	SuccessResponse<CursorPageResponse<ReviewResponse>> getGroupReviews(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@ParameterObject
 		RestaurantReviewListRequest request);
@@ -144,7 +145,7 @@ public interface GroupControllerDocs {
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_REVIEW_RESTAURANTS")
 	CursorPageResponse<RestaurantListItem> getGroupReviewRestaurants(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@Validated @ParameterObject
 		NearbyRestaurantQueryParams queryParams);
