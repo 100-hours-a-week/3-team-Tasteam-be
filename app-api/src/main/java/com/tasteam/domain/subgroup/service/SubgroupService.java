@@ -124,9 +124,11 @@ public class SubgroupService {
 	}
 
 	@Transactional(readOnly = true)
-	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, String cursor, Integer size) {
-		subgroupRepository.findByIdAndDeletedAtIsNull(subgroupId)
-			.orElseThrow(() -> new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND));
+	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, String cursor,
+		Integer size) {
+		if (!subgroupRepository.existsByIdAndStatus(subgroupId, SubgroupStatus.ACTIVE)) {
+			throw new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND);
+		}
 
 		int resolvedSize = resolveSize(size);
 		Long cursorId = parseCursor(cursor);
@@ -145,10 +147,7 @@ public class SubgroupService {
 
 		return new CursorPageResponse<>(
 			items,
-			new CursorPageResponse.Pagination(
-				nextCursor,
-				hasNext,
-				items.size()));
+			new CursorPageResponse.Pagination(nextCursor, hasNext, items.size()));
 	}
 
 	@Transactional
@@ -376,10 +375,11 @@ public class SubgroupService {
 	}
 
 	private String resolveKeyword(String keyword) {
-		if (keyword == null || keyword.isBlank()) {
+		if (keyword == null) {
 			return null;
 		}
-		return keyword.strip();
+		String trimmed = keyword.trim();
+		return trimmed.isBlank() ? null : trimmed;
 	}
 
 	private Long parseCursor(String cursor) {

@@ -2,6 +2,8 @@ package com.tasteam.domain.subgroup.dto;
 
 import java.time.Instant;
 
+import com.tasteam.domain.subgroup.type.SubgroupJoinType;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,5 +20,6 @@ public class SubgroupListItem {
 	private String description;
 	private Integer memberCount;
 	private String profileImageUrl;
+	private SubgroupJoinType joinType;
 	private Instant createdAt;
 }
