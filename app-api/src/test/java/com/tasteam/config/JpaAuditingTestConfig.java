@@ -26,7 +26,7 @@ public class JpaAuditingTestConfig {
 	}
 
 	@Bean
-	public DateTimeProvider testDateTimeProvider(TestClock testClock) {
+	public DateTimeProvider testDateTimeProvider() {
 		return () -> Optional.of(FIXED_TEST_TIME);
 	}
 
