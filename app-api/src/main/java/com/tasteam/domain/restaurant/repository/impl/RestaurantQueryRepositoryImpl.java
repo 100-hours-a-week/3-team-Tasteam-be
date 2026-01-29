@@ -1,6 +1,7 @@
 package com.tasteam.domain.restaurant.repository.impl;
 
 import java.awt.*;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,16 +73,18 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			LIMIT :pageSize
 			""";
 
+		Map<String, Object> params = new HashMap<>();
+		params.put("latitude", latitude);
+		params.put("longitude", longitude);
+		params.put("radiusMeter", radiusMeter);
+		params.put("categories", categories);
+		params.put("cursorDistance", cursor == null ? null : cursor.distanceMeter());
+		params.put("cursorId", cursor == null ? null : cursor.id());
+		params.put("pageSize", pageSize);
+
 		return namedJdbcTemplate.query(
 			sql,
-			Map.of(
-				"latitude", latitude,
-				"longitude", longitude,
-				"radiusMeter", radiusMeter,
-				"categories", categories,
-				"cursorDistance", cursor == null ? null : cursor.distanceMeter(),
-				"cursorId", cursor == null ? null : cursor.id(),
-				"pageSize", pageSize),
+			params,
 			(rs, rowNum) -> new RestaurantDistanceQueryDto(
 				rs.getLong("id"),
 				rs.getString("name"),
@@ -148,17 +151,19 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			LIMIT :pageSize
 			""";
 
+		Map<String, Object> params = new HashMap<>();
+		params.put("latitude", latitude);
+		params.put("longitude", longitude);
+		params.put("radiusMeter", radiusMeter);
+		params.put("categories", categories);
+		params.put("groupId", groupId);
+		params.put("cursorDistance", cursor == null ? null : cursor.distanceMeter());
+		params.put("cursorId", cursor == null ? null : cursor.id());
+		params.put("pageSize", pageSize);
+
 		return namedJdbcTemplate.query(
 			sql,
-			Map.of(
-				"latitude", latitude,
-				"longitude", longitude,
-				"radiusMeter", radiusMeter,
-				"categories", categories,
-				"groupId", groupId,
-				"cursorDistance", cursor == null ? null : cursor.distanceMeter(),
-				"cursorId", cursor == null ? null : cursor.id(),
-				"pageSize", pageSize),
+			params,
 			(rs, rowNum) -> new RestaurantDistanceQueryDto(
 				rs.getLong("id"),
 				rs.getString("name"),
