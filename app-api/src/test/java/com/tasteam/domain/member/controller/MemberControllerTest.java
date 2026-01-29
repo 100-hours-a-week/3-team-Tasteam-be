@@ -1,6 +1,7 @@
 package com.tasteam.domain.member.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -9,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
@@ -22,13 +24,18 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
+import com.tasteam.domain.favorite.service.FavoriteService;
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
 import com.tasteam.domain.member.dto.response.MemberPreviewResponse;
 import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberSummaryResponse;
+import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
 import com.tasteam.domain.member.service.MemberService;
+import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
+import com.tasteam.domain.review.service.ReviewService;
 
 @ControllerWebMvcTest(MemberController.class)
 class MemberControllerTest {
@@ -41,6 +48,12 @@ class MemberControllerTest {
 
 	@MockitoBean
 	private MemberService memberService;
+
+	@MockitoBean
+	private ReviewService reviewService;
+
+	@MockitoBean
+	private FavoriteService favoriteService;
 
 	@Nested
 	@DisplayName("내 정보 조회")
@@ -125,6 +138,88 @@ class MemberControllerTest {
 				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true));
+		}
+	}
+
+	@Nested
+	@DisplayName("내 리뷰 목록 조회")
+	class GetMyReviews {
+
+		@Test
+		@DisplayName("내 리뷰를 조회하면 커서 페이징 결과를 반환한다")
+		void 내_리뷰_조회_성공() throws Exception {
+			// given
+			CursorPageResponse<ReviewSummaryResponse> response = new CursorPageResponse<>(
+				List.of(new ReviewSummaryResponse(1L, "버거킹 판교점", "성남시 분당구 대왕판교로", "최고의 맛집. 추천합니다.")),
+				new CursorPageResponse.Pagination(null, false, 1));
+
+			given(reviewService.getMemberReviews(anyLong(), any())).willReturn(response);
+
+			// when & then
+			mockMvc.perform(get("/api/v1/members/me/reviews"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.items[0].id").value(1))
+				.andExpect(jsonPath("$.data.items[0].restaurantName").value("버거킹 판교점"))
+				.andExpect(jsonPath("$.data.items[0].restaurantAddress").value("성남시 분당구 대왕판교로"))
+				.andExpect(jsonPath("$.data.items[0].reviewContent").value("최고의 맛집. 추천합니다."))
+				.andExpect(jsonPath("$.data.pagination.hasNext").value(false));
+		}
+
+		@Test
+		@DisplayName("리뷰가 없으면 빈 목록을 반환한다")
+		void 리뷰_없을때_빈_목록() throws Exception {
+			// given
+			given(reviewService.getMemberReviews(anyLong(), any())).willReturn(CursorPageResponse.empty());
+
+			// when & then
+			mockMvc.perform(get("/api/v1/members/me/reviews"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.items").isEmpty())
+				.andExpect(jsonPath("$.data.pagination.hasNext").value(false));
+		}
+	}
+
+	@Nested
+	@DisplayName("내 찜 음식점 목록 조회")
+	class GetMyFavoriteRestaurants {
+
+		@Test
+		@DisplayName("내 찜 음식점을 조회하면 커서 페이징 결과를 반환한다")
+		void 내_찜_음식점_조회_성공() throws Exception {
+			// given
+			Instant now = Instant.now();
+			CursorPageResponse<FavoriteRestaurantItem> response = new CursorPageResponse<>(
+				List.of(new FavoriteRestaurantItem(101L, "국밥집", "https://cdn.example.com/restaurants/101.jpg", now)),
+				new CursorPageResponse.Pagination(null, false, 1));
+
+			given(favoriteService.getMyFavoriteRestaurants(any(), any())).willReturn(response);
+
+			// when & then
+			mockMvc.perform(get("/api/v1/members/me/favorites/restaurants"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.items[0].restaurantId").value(101))
+				.andExpect(jsonPath("$.data.items[0].name").value("국밥집"))
+				.andExpect(
+					jsonPath("$.data.items[0].thumbnailUrl").value("https://cdn.example.com/restaurants/101.jpg"))
+				.andExpect(jsonPath("$.data.items[0].createdAt").exists())
+				.andExpect(jsonPath("$.data.pagination.hasNext").value(false));
+		}
+
+		@Test
+		@DisplayName("찜한 음식점이 없으면 빈 목록을 반환한다")
+		void 찜_없을때_빈_목록() throws Exception {
+			// given
+			given(favoriteService.getMyFavoriteRestaurants(any(), any())).willReturn(CursorPageResponse.empty());
+
+			// when & then
+			mockMvc.perform(get("/api/v1/members/me/favorites/restaurants"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.items").isEmpty())
+				.andExpect(jsonPath("$.data.pagination.hasNext").value(false));
 		}
 	}
 
