@@ -23,6 +23,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Positive;
 
 @Tag(name = "Subgroup", description = "소모임 관리 API")
 public interface SubgroupManagementControllerDocs {
@@ -31,7 +32,7 @@ public interface SubgroupManagementControllerDocs {
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = SubgroupListResponse.class)))
 	@CustomErrorResponseDescription(value = SubgroupSwaggerErrorResponseDescription.class, group = "SUBGROUP_LIST_MY")
 	SuccessResponse<SubgroupListResponse> getMySubgroups(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@CurrentUser
 		Long memberId,
@@ -46,7 +47,7 @@ public interface SubgroupManagementControllerDocs {
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = SubgroupListResponse.class)))
 	@CustomErrorResponseDescription(value = SubgroupSwaggerErrorResponseDescription.class, group = "SUBGROUP_LIST_GROUP")
 	SuccessResponse<SubgroupListResponse> getGroupSubgroups(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@CurrentUser
 		Long memberId,
@@ -61,7 +62,7 @@ public interface SubgroupManagementControllerDocs {
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = SubgroupDetailResponse.class)))
 	@CustomErrorResponseDescription(value = SubgroupSwaggerErrorResponseDescription.class, group = "SUBGROUP_DETAIL")
 	SuccessResponse<SubgroupDetailResponse> getSubgroup(
-		@Parameter(description = "소모임 ID", example = "301") @PathVariable
+		@Parameter(description = "소모임 ID", example = "301") @PathVariable @Positive
 		Long subgroupId,
 		@CurrentUser
 		Long memberId);
@@ -71,7 +72,7 @@ public interface SubgroupManagementControllerDocs {
 	@ApiResponse(responseCode = "201", description = "생성 완료", content = @Content(schema = @Schema(implementation = SubgroupCreateResponse.class)))
 	@CustomErrorResponseDescription(value = SubgroupSwaggerErrorResponseDescription.class, group = "SUBGROUP_CREATE")
 	SuccessResponse<SubgroupCreateResponse> createSubgroup(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@CurrentUser
 		Long memberId,
@@ -83,9 +84,9 @@ public interface SubgroupManagementControllerDocs {
 	@ApiResponse(responseCode = "200", description = "가입 완료", content = @Content(schema = @Schema(implementation = SubgroupJoinResponse.class)))
 	@CustomErrorResponseDescription(value = SubgroupSwaggerErrorResponseDescription.class, group = "SUBGROUP_JOIN")
 	SuccessResponse<SubgroupJoinResponse> joinSubgroup(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
-		@Parameter(description = "소모임 ID", example = "301") @PathVariable
+		@Parameter(description = "소모임 ID", example = "301") @PathVariable @Positive
 		Long subgroupId,
 		@CurrentUser
 		Long memberId,
@@ -95,7 +96,7 @@ public interface SubgroupManagementControllerDocs {
 	@ApiResponse(responseCode = "204", description = "탈퇴 완료")
 	@CustomErrorResponseDescription(value = SubgroupSwaggerErrorResponseDescription.class, group = "SUBGROUP_WITHDRAW")
 	org.springframework.http.ResponseEntity<Void> withdrawSubgroup(
-		@Parameter(description = "소모임 ID", example = "301") @PathVariable
+		@Parameter(description = "소모임 ID", example = "301") @PathVariable @Positive
 		Long subgroupId,
 		@CurrentUser
 		Long memberId);
@@ -105,9 +106,9 @@ public interface SubgroupManagementControllerDocs {
 	@ApiResponse(responseCode = "200", description = "수정 완료")
 	@CustomErrorResponseDescription(value = SubgroupSwaggerErrorResponseDescription.class, group = "SUBGROUP_UPDATE")
 	SuccessResponse<Void> updateSubgroup(
-		@Parameter(description = "그룹 ID", example = "101") @PathVariable
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
-		@Parameter(description = "소모임 ID", example = "301") @PathVariable
+		@Parameter(description = "소모임 ID", example = "301") @PathVariable @Positive
 		Long subgroupId,
 		@CurrentUser
 		Long memberId,

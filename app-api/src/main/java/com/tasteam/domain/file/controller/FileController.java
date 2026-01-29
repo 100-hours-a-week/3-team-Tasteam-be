@@ -31,14 +31,14 @@ public class FileController implements FileControllerDocs {
 
 	@PostMapping("/uploads/presigned")
 	public SuccessResponse<PresignedUploadResponse> createPresignedUploads(
-		@RequestBody
+		@RequestBody @Validated
 		PresignedUploadRequest request) {
 		return SuccessResponse.success(fileService.createPresignedUploads(request));
 	}
 
 	@PostMapping("/domain-links")
 	public SuccessResponse<DomainImageLinkResponse> linkDomainImage(
-		@RequestBody
+		@RequestBody @Validated
 		DomainImageLinkRequest request) {
 		return SuccessResponse.success(fileService.linkDomainImage(request));
 	}
@@ -52,7 +52,7 @@ public class FileController implements FileControllerDocs {
 
 	@PostMapping("/summary")
 	public SuccessResponse<ImageSummaryResponse> getImageSummary(
-		@RequestBody
+		@RequestBody @Validated
 		ImageSummaryRequest request) {
 		return SuccessResponse.success(fileService.getImageSummary(request));
 	}

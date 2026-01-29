@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.tasteam.domain.search.controller.docs.RecentSearchControllerDocs;
 import com.tasteam.domain.search.dto.response.RecentSearchItem;
 import com.tasteam.domain.search.service.SearchService;
 import com.tasteam.global.dto.api.SuccessResponse;
@@ -19,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/v1/recent-searches")
 @RequiredArgsConstructor
-public class RecentSearchController implements RecentSearchControllerDocs {
+public class RecentSearchController {
 
 	private final SearchService searchService;
 

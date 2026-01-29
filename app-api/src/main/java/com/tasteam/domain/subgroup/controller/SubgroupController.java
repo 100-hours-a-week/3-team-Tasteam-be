@@ -36,7 +36,7 @@ public class SubgroupController implements SubgroupControllerDocs {
 	public SuccessResponse<CursorPageResponse<ReviewResponse>> getSubgroupReviews(
 		@PathVariable @Positive
 		Long subgroupId,
-		@ModelAttribute
+		@ModelAttribute @Validated
 		RestaurantReviewListRequest request) {
 		return SuccessResponse.success(reviewService.getSubgroupReviews(subgroupId, request));
 	}

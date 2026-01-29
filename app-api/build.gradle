@@ -85,6 +85,7 @@ dependencies {
      * Test Fixtures
      * ================================================== */
     testFixturesImplementation "org.assertj:assertj-core:3.27.6"
+    testFixturesImplementation "com.fasterxml.jackson.core:jackson-databind"
 
     /* ==================================================
      * Test

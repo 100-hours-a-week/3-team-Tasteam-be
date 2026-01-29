@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @Tag(name = "Auth", description = "인증 관련 API")
 public interface TestAuthControllerDocs {
@@ -31,5 +32,6 @@ public interface TestAuthControllerDocs {
 		    }
 		}
 		""")))
-	SuccessResponse<TestAuthTokenResponse> issueTestToken(TestAuthTokenRequest request);
+	SuccessResponse<TestAuthTokenResponse> issueTestToken(@Valid
+	TestAuthTokenRequest request);
 }

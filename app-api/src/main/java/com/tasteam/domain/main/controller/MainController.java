@@ -27,7 +27,7 @@ public class MainController implements MainControllerDocs {
 	public SuccessResponse<MainPageResponse> getMain(
 		@CurrentUser
 		Long memberId,
-		@ModelAttribute
+		@ModelAttribute @Validated
 		MainPageRequest request) {
 		return SuccessResponse.success(mainService.getMain(memberId, request));
 	}
