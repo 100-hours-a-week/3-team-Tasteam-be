@@ -51,7 +51,7 @@ public class MenuController implements MenuControllerDocs {
 	public SuccessResponse<Long> createMenuCategory(
 		@PathVariable
 		Long restaurantId,
-		@RequestBody
+		@RequestBody @Validated
 		MenuCategoryCreateRequest request) {
 		return SuccessResponse.success(menuService.createMenuCategory(restaurantId, request));
 	}
@@ -62,7 +62,7 @@ public class MenuController implements MenuControllerDocs {
 	public SuccessResponse<Long> createMenu(
 		@PathVariable
 		Long restaurantId,
-		@RequestBody
+		@RequestBody @Validated
 		MenuCreateRequest request) {
 		return SuccessResponse.success(menuService.createMenu(restaurantId, request));
 	}
@@ -73,7 +73,7 @@ public class MenuController implements MenuControllerDocs {
 	public SuccessResponse<List<Long>> createMenusBulk(
 		@PathVariable
 		Long restaurantId,
-		@RequestBody
+		@RequestBody @Validated
 		MenuBulkCreateRequest request) {
 		return SuccessResponse.success(menuService.createMenusBulk(restaurantId, request));
 	}

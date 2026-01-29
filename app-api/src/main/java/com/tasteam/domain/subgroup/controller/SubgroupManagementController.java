@@ -74,7 +74,7 @@ public class SubgroupManagementController implements SubgroupManagementControlle
 		Long groupId,
 		@CurrentUser
 		Long memberId,
-		@RequestBody
+		@RequestBody @Validated
 		SubgroupCreateRequest request) {
 		return SuccessResponse.success(subgroupService.createSubgroup(groupId, memberId, request));
 	}
@@ -110,7 +110,7 @@ public class SubgroupManagementController implements SubgroupManagementControlle
 		Long subgroupId,
 		@CurrentUser
 		Long memberId,
-		@RequestBody
+		@RequestBody @Validated
 		SubgroupUpdateRequest request) {
 		subgroupService.updateSubgroup(groupId, subgroupId, memberId, request);
 		return SuccessResponse.success(null);

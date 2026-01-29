@@ -29,7 +29,7 @@ public class LocalAuthController implements LocalAuthControllerDocs {
 
 	@PostMapping("/token")
 	public SuccessResponse<LocalAuthTokenResponse> issueLocalToken(
-		@RequestBody
+		@RequestBody @Validated
 		LocalAuthTokenRequest request,
 		HttpServletResponse response) {
 		LocalAuthTokenService.TokenPair tokenPair = localAuthTokenService.issueTokens(

@@ -4,7 +4,7 @@ import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
-import com.tasteam.domain.restaurant.dto.GroupRestaurantSearchCondition;
+import com.tasteam.domain.restaurant.dto.RestaurantSearchCondition;
 import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
@@ -18,7 +18,7 @@ public class GroupRestaurantSearchConditionValidator {
 	// private final GroupRepository groupRepository;
 	private final FoodCategoryRepository foodCategoryRepository;
 
-	public void validate(GroupRestaurantSearchCondition condition) {
+	public void validate(RestaurantSearchCondition condition) {
 		// validateGroupExists(condition.groupId());
 		validateFoodCategories(condition.foodCategories());
 	}

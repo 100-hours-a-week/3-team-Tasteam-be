@@ -19,7 +19,6 @@ import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -34,12 +33,10 @@ public class RestaurantController implements RestaurantControllerDocs {
 	@ResponseStatus(HttpStatus.OK)
 	@GetMapping
 	public SuccessResponse<CursorPageResponse<RestaurantListItem>> getRestaurants(
-		@RequestParam @Positive
-		Long groupId,
-		@ModelAttribute
+		@ModelAttribute @Validated
 		NearbyRestaurantQueryParams queryParams) {
 
-		return SuccessResponse.success(restaurantService.getGroupRestaurants(groupId, queryParams));
+		return SuccessResponse.success(restaurantService.getRestaurants(queryParams));
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -95,7 +92,7 @@ public class RestaurantController implements RestaurantControllerDocs {
 		Long restaurantId,
 		@CurrentUser
 		Long memberId,
-		@RequestBody
+		@RequestBody @Validated
 		ReviewCreateRequest request) {
 		return SuccessResponse.success(reviewService.createReview(memberId, restaurantId, request));
 	}

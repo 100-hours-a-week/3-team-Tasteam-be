@@ -46,7 +46,7 @@ public class MemberController implements MemberControllerDocs {
 	public SuccessResponse<Void> updateMyProfile(
 		@CurrentUser
 		Long memberId,
-		@RequestBody
+		@RequestBody @Validated
 		MemberProfileUpdateRequest request) {
 		memberService.updateMyProfile(memberId, request);
 		return SuccessResponse.success();

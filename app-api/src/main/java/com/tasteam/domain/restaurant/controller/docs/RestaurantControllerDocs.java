@@ -3,7 +3,6 @@ package com.tasteam.domain.restaurant.controller.docs;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
 import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
@@ -29,16 +28,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.Positive;
 
 @Tag(name = "Restaurant", description = "음식점 조회/관리 API")
 public interface RestaurantControllerDocs {
 
-	@Operation(summary = "그룹 음식점 목록 조회", description = "지정한 그룹과 위치 조건으로 주변 음식점을 커서 기반으로 조회합니다.")
+	@Operation(summary = "음식점 목록 조회", description = "지정한 위치 조건으로 주변 음식점을 커서 기반으로 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
 	SuccessResponse<CursorPageResponse<RestaurantListItem>> getRestaurants(
-		@Parameter(description = "그룹 ID", example = "2001") @RequestParam @Positive
-		Long groupId,
 		@Validated @ParameterObject
 		NearbyRestaurantQueryParams queryParams);
 

@@ -1,3 +1,9 @@
 package com.tasteam.domain.restaurant.dto;
 
-sealed interface RestaurantSearchCondition permits GroupRestaurantSearchCondition {}
+import java.util.Set;
+
+public sealed interface RestaurantSearchCondition
+	permits GroupRestaurantSearchCondition, NearbyRestaurantSearchCondition {
+
+	Set<String> foodCategories();
+}

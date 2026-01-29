@@ -27,7 +27,7 @@ public class SearchController implements SearchControllerDocs {
 	public SuccessResponse<SearchResponse> search(
 		@CurrentUser
 		Long memberId,
-		@ModelAttribute
+		@ModelAttribute @Validated
 		SearchRequest request) {
 		return SuccessResponse.success(searchService.search(memberId, request));
 	}

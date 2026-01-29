@@ -8,9 +8,11 @@ import org.springframework.context.annotation.Primary;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.global.security.common.util.SecurityResponseSender;
+import com.tasteam.global.security.jwt.annotation.RefreshToken;
 import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
 import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
 import com.tasteam.global.security.jwt.resolver.CurrentUserArgumentResolver;
+import com.tasteam.global.security.jwt.resolver.RefreshTokenArgumentResolver;
 import com.tasteam.global.security.logout.handler.LogoutHandler;
 
 /**
@@ -73,6 +75,26 @@ public class TestSecurityConfig {
 	@ConditionalOnMissingBean
 	public JwtCookieProvider jwtCookieProvider() {
 		return Mockito.mock(JwtCookieProvider.class);
+	}
+
+	@Bean
+	@Primary
+	public RefreshTokenArgumentResolver testRefreshTokenArgumentResolver() {
+		return new RefreshTokenArgumentResolver(null) {
+			@Override
+			public boolean supportsParameter(org.springframework.core.MethodParameter parameter) {
+				return parameter.hasParameterAnnotation(RefreshToken.class)
+					&& parameter.getParameterType().equals(String.class);
+			}
+
+			@Override
+			public Object resolveArgument(org.springframework.core.MethodParameter parameter,
+				org.springframework.web.method.support.ModelAndViewContainer mavContainer,
+				org.springframework.web.context.request.NativeWebRequest webRequest,
+				org.springframework.web.bind.support.WebDataBinderFactory binderFactory) {
+				return "test-refresh-token";
+			}
+		};
 	}
 
 	/**
