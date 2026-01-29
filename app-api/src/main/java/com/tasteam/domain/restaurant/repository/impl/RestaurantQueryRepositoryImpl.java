@@ -22,6 +22,75 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 
 	@Override
 	public List<RestaurantDistanceQueryDto> findRestaurantsWithDistance(
+		double latitude,
+		double longitude,
+		double radiusMeter,
+		Set<String> categories,
+		RestaurantCursor cursor,
+		int pageSize) {
+		String sql = """
+			SELECT
+			  r.id AS id,
+			  r.name AS name,
+			  r.full_address AS address,
+			  ST_Distance(
+			    r.location::geography,
+			    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
+			  ) AS distance_meter
+			FROM restaurant r
+			JOIN restaurant_food_category rfc
+			     ON rfc.restaurant_id = r.id
+			JOIN food_category fc
+			     ON fc.id = rfc.food_category_id
+			         AND fc.name IN (:categories)
+			WHERE r.deleted_at IS NULL
+			AND ST_DWithin(
+			  r.location::geography,
+			  ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
+			  :radiusMeter
+			)
+			-- 커서 조건 (cursor != null 인 경우만)
+			AND (
+			  :cursorDistance IS NULL
+			  OR (
+			    ST_Distance(
+			      r.location::geography,
+			      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
+			    ) > :cursorDistance
+			    OR (
+			      ST_Distance(
+			        r.location::geography,
+			        ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
+			      ) = :cursorDistance
+			      AND r.id > :cursorId
+			    )
+			  )
+			)
+			ORDER BY
+			  distance_meter ASC,
+			  r.id ASC
+			LIMIT :pageSize
+			""";
+
+		return namedJdbcTemplate.query(
+			sql,
+			Map.of(
+				"latitude", latitude,
+				"longitude", longitude,
+				"radiusMeter", radiusMeter,
+				"categories", categories,
+				"cursorDistance", cursor == null ? null : cursor.distanceMeter(),
+				"cursorId", cursor == null ? null : cursor.id(),
+				"pageSize", pageSize),
+			(rs, rowNum) -> new RestaurantDistanceQueryDto(
+				rs.getLong("id"),
+				rs.getString("name"),
+				rs.getString("full_address"),
+				rs.getDouble("distance_meter")));
+	}
+
+	@Override
+	public List<RestaurantDistanceQueryDto> findRestaurantsWithDistance(
 		Long groupId,
 		double latitude,
 		double longitude,

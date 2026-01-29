@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.dto.GroupRestaurantSearchCondition;
+import com.tasteam.domain.restaurant.dto.NearbyRestaurantSearchCondition;
 import com.tasteam.domain.restaurant.dto.RestaurantCursor;
 import com.tasteam.domain.restaurant.dto.RestaurantDistanceQueryDto;
 import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
@@ -209,12 +210,109 @@ public class RestaurantService {
 				result.size()));
 	}
 
+	@Transactional(readOnly = true)
+	public CursorPageResponse<RestaurantListItem> getRestaurants(
+		NearbyRestaurantQueryParams queryParam) {
+
+		// 커서 변환
+		RestaurantCursor cursor = cursorCodec.decodeOrNull(queryParam.cursor(), RestaurantCursor.class);
+		if (queryParam.cursor() != null && cursor == null) {
+			// 유효하지 않은 커서인 경우 다음 페이지 없음으로 해석
+			return CursorPageResponse.empty();
+		}
+
+		// 검색 조건 생성 및 검증
+		NearbyRestaurantSearchCondition condition = toRestaurantSearchCondition(queryParam, cursor);
+		groupRestaurantSearchConditionValidator.validate(condition);
+
+		// 음식점 검색 결과
+		CursorQueryResult<RestaurantDistanceQueryDto> result = searchNearbyRestaurant(condition);
+
+		// 음식점 아이디 목록
+		List<Long> restaurantIds = result.items().stream()
+			.map(RestaurantDistanceQueryDto::id)
+			.toList();
+
+		// 음식점 대표 이미지 (최대 3장)
+		Map<Long, List<RestaurantImageDto>> restaurantThumbnails = restaurantImageRepository
+			.findRestaurantImages(restaurantIds)
+			.stream()
+			.collect(Collectors.groupingBy(
+				RestaurantImageProjection::getRestaurantId,
+				Collectors.collectingAndThen(
+					Collectors.mapping(
+						p -> new RestaurantImageDto(
+							p.getImageId(),
+							p.getImageUrl()),
+						Collectors.toList()),
+					list -> list.size() > 3 ? list.subList(0, 3) : list)));
+
+		// 음식점 음식 카테고리
+		Map<Long, List<String>> restaurantCategories = restaurantFoodCategoryRepository
+			.findCategoriesByRestaurantIds(restaurantIds)
+			.stream()
+			.collect(groupingBy(
+				RestaurantCategoryProjection::getRestaurantId,
+				Collectors.mapping(
+					RestaurantCategoryProjection::getCategoryName,
+					Collectors.toList())));
+
+		// 음식점 정보 조립
+		List<RestaurantListItem> items = result.items().stream()
+			.map(r -> new RestaurantListItem(
+				r.id(),
+				r.name(),
+				r.address(),
+				r.distanceMeter(),
+				restaurantCategories.getOrDefault(r.id(), List.of()),
+				restaurantThumbnails.get(r.id())))
+			.toList();
+
+		// 음식점 목록 조회 결과 조립
+		return new CursorPageResponse<>(
+			items,
+			new CursorPageResponse.Pagination(
+				result.nextCursor(),
+				result.hasNext(),
+				result.size()));
+	}
+
 	public CursorQueryResult<RestaurantDistanceQueryDto> searchNearbyGroupRestaurant(
 		GroupRestaurantSearchCondition condition) {
 		// 거리순 음식점 페이징 조회
 		List<RestaurantDistanceQueryDto> pageResult = restaurantQueryRepository
 			.findRestaurantsWithDistance(
 				condition.groupId(),
+				condition.latitude(),
+				condition.longitude(),
+				condition.radiusMeter(),
+				condition.foodCategories(),
+				condition.cursor(),
+				condition.pageSize() + 1);
+
+		boolean hasNext = pageResult.size() > condition.pageSize();
+		List<RestaurantDistanceQueryDto> pageContent = hasNext ? pageResult.subList(0, condition.pageSize())
+			: pageResult;
+
+		String nextCursor = null;
+		if (hasNext) {
+			RestaurantDistanceQueryDto last = pageContent.getLast();
+			nextCursor = cursorCodec.encode(
+				new RestaurantCursor(last.distanceMeter(), last.id()));
+		}
+
+		return new CursorQueryResult<>(
+			pageContent,
+			nextCursor,
+			hasNext,
+			pageContent.size());
+	}
+
+	public CursorQueryResult<RestaurantDistanceQueryDto> searchNearbyRestaurant(
+		NearbyRestaurantSearchCondition condition) {
+		// 거리순 음식점 페이징 조회
+		List<RestaurantDistanceQueryDto> pageResult = restaurantQueryRepository
+			.findRestaurantsWithDistance(
 				condition.latitude(),
 				condition.longitude(),
 				condition.radiusMeter(),
@@ -423,6 +521,43 @@ public class RestaurantService {
 
 		return new GroupRestaurantSearchCondition(
 			groupId,
+			latitude,
+			longitude,
+			radiusMeter,
+			foodCategories,
+			restaurantCursor,
+			pageSize);
+	}
+
+	private NearbyRestaurantSearchCondition toRestaurantSearchCondition(
+		NearbyRestaurantQueryParams q,
+		RestaurantCursor restaurantCursor) {
+		double latitude = q.latitude();
+		double longitude = q.longitude();
+
+		// 반경 기본값
+		Integer radiusMeter = q.radius();
+		if (radiusMeter == null ||
+			radiusMeter > RestaurantSearchPolicy.MAX_RADIUS_METER) {
+			radiusMeter = RestaurantSearchPolicy.DEFAULT_RADIUS_METER;
+		}
+
+		// 음식 카테고리 이름 정규화
+		Set<String> foodCategories = q.categories() == null
+			? Set.of()
+			: q.categories().stream()
+				.map(String::trim)
+				.filter(s -> !s.isEmpty())
+				.collect(Collectors.toUnmodifiableSet());
+
+		// 페이지 크기 기본값
+		Integer pageSize = q.size();
+		if (pageSize == null ||
+			pageSize > RestaurantSearchPolicy.MAX_PAGE_SIZE) {
+			pageSize = RestaurantSearchPolicy.DEFAULT_PAGE_SIZE;
+		}
+
+		return new NearbyRestaurantSearchCondition(
 			latitude,
 			longitude,
 			radiusMeter,

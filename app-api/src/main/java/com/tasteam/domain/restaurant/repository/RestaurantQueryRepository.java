@@ -9,6 +9,14 @@ import com.tasteam.domain.restaurant.dto.RestaurantDistanceQueryDto;
 public interface RestaurantQueryRepository {
 
 	List<RestaurantDistanceQueryDto> findRestaurantsWithDistance(
+		double latitude,
+		double longitude,
+		double radiusMeter,
+		Set<String> categories,
+		RestaurantCursor cursor,
+		int pageSize);
+
+	List<RestaurantDistanceQueryDto> findRestaurantsWithDistance(
 		Long groupId,
 		double latitude,
 		double longitude,
