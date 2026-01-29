@@ -61,8 +61,14 @@ class RestaurantControllerTest {
 		void 음식점_목록_조회_성공() throws Exception {
 			// given
 			CursorPageResponse<RestaurantListItem> response = new CursorPageResponse<>(
-				List.of(new RestaurantListItem(1L, "맛집식당", "서울시 강남구", 500.0,
-					List.of("한식"), List.of(new RestaurantImageDto(1L, "https://example.com/img.jpg")))),
+				List.of(new RestaurantListItem(
+					1L,
+					"맛집식당",
+					"서울시 강남구",
+					500.0,
+					List.of("한식"),
+					List.of(new RestaurantImageDto(1L, "https://example.com/img.jpg")),
+					"맛집으로 유명한 식당입니다.")),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(restaurantService.getRestaurants(any())).willReturn(response);
@@ -85,8 +91,14 @@ class RestaurantControllerTest {
 		void groupId_없이_조회_성공() throws Exception {
 			// given
 			CursorPageResponse<RestaurantListItem> response = new CursorPageResponse<>(
-				List.of(new RestaurantListItem(1L, "맛집식당", "서울시 강남구", 500.0,
-					List.of("한식"), List.of(new RestaurantImageDto(1L, "https://example.com/img.jpg")))),
+				List.of(new RestaurantListItem(
+					1L,
+					"맛집식당",
+					"서울시 강남구",
+					500.0,
+					List.of("한식"),
+					List.of(new RestaurantImageDto(1L, "https://example.com/img.jpg")),
+					"맛집으로 유명한 식당입니다.")),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(restaurantService.getRestaurants(any())).willReturn(response);

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.dto.GroupRestaurantSearchCondition;
 import com.tasteam.domain.restaurant.dto.NearbyRestaurantSearchCondition;
@@ -44,6 +45,7 @@ import com.tasteam.domain.restaurant.validator.GroupRestaurantSearchConditionVal
 import com.tasteam.domain.restaurant.validator.RestaurantFoodCategoryValidator;
 import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.utils.CursorCodec;
 
@@ -63,6 +65,7 @@ public class RestaurantService {
 	private final AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
 	private final ReviewRepository reviewRepository;
 	private final ImageRepository imageRepository;
+	private final GroupRepository groupRepository;
 	private final RestaurantEventPublisher eventPublisher;
 	private final CursorCodec cursorCodec;
 	private final GroupRestaurantSearchConditionValidator groupRestaurantSearchConditionValidator;
@@ -140,12 +143,10 @@ public class RestaurantService {
 		long groupId,
 		NearbyRestaurantQueryParams queryParam) {
 
-		/*
-		if (groupRepository
-				.existsByIdAndDeletedAtIsNull(groupId)) {
+		if (!groupRepository
+			.existsByIdAndDeletedAtIsNull(groupId)) {
 			throw new BusinessException(GroupErrorCode.GROUP_NOT_FOUND);
 		}
-		 */
 
 		// 커서 변환
 		RestaurantCursor cursor = cursorCodec.decodeOrNull(queryParam.cursor(), RestaurantCursor.class);
@@ -190,6 +191,14 @@ public class RestaurantService {
 					RestaurantCategoryProjection::getCategoryName,
 					Collectors.toList())));
 
+		// 음식점 AI 리뷰 요약
+		Map<Long, String> reviewSummaries = aiRestaurantReviewAnalysisRepository
+			.findByRestaurantIdIn(restaurantIds)
+			.stream()
+			.collect(Collectors.toMap(
+				AiRestaurantReviewAnalysis::getRestaurantId,
+				AiRestaurantReviewAnalysis::getSummary));
+
 		// 음식점 정보 조립
 		List<RestaurantListItem> items = result.items().stream()
 			.map(r -> new RestaurantListItem(
@@ -198,7 +207,8 @@ public class RestaurantService {
 				r.address(),
 				r.distanceMeter(),
 				restaurantCategories.getOrDefault(r.id(), List.of()),
-				restaurantThumbnails.get(r.id())))
+				restaurantThumbnails.get(r.id()),
+				reviewSummaries.getOrDefault(r.id(), "리뷰가 더 모이면 AI 요약이 제공됩니다.")))
 			.toList();
 
 		// 그룹 음식점 목록 조회 결과 조립
@@ -257,6 +267,14 @@ public class RestaurantService {
 					RestaurantCategoryProjection::getCategoryName,
 					Collectors.toList())));
 
+		// 음식점 AI 리뷰 요약
+		Map<Long, String> reviewSummaries = aiRestaurantReviewAnalysisRepository
+			.findByRestaurantIdIn(restaurantIds)
+			.stream()
+			.collect(Collectors.toMap(
+				AiRestaurantReviewAnalysis::getRestaurantId,
+				AiRestaurantReviewAnalysis::getSummary));
+
 		// 음식점 정보 조립
 		List<RestaurantListItem> items = result.items().stream()
 			.map(r -> new RestaurantListItem(
@@ -265,7 +283,8 @@ public class RestaurantService {
 				r.address(),
 				r.distanceMeter(),
 				restaurantCategories.getOrDefault(r.id(), List.of()),
-				restaurantThumbnails.get(r.id())))
+				restaurantThumbnails.get(r.id()),
+				reviewSummaries.getOrDefault(r.id(), "리뷰가 더 모이면 AI 요약이 제공됩니다.")))
 			.toList();
 
 		// 음식점 목록 조회 결과 조립
@@ -504,13 +523,18 @@ public class RestaurantService {
 			radiusMeter = RestaurantSearchPolicy.DEFAULT_RADIUS_METER;
 		}
 
-		// 음식 카테고리 이름 정규화
+		// 음식 카테고리 이름 정규화 (비어있으면 전체 카테고리로 대체)
 		Set<String> foodCategories = q.categories() == null
 			? Set.of()
 			: q.categories().stream()
 				.map(String::trim)
 				.filter(s -> !s.isEmpty())
 				.collect(Collectors.toUnmodifiableSet());
+		if (foodCategories.isEmpty()) {
+			foodCategories = foodCategoryRepository.findAll().stream()
+				.map(FoodCategory::getName)
+				.collect(Collectors.toUnmodifiableSet());
+		}
 
 		// 페이지 크기 기본값
 		Integer pageSize = q.size();

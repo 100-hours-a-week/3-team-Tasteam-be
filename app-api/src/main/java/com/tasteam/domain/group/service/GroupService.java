@@ -96,7 +96,18 @@ public class GroupService {
 	@Transactional(readOnly = true)
 	public GroupGetResponse getGroup(Long groupId) {
 		return groupRepository.findByIdAndDeletedAtIsNull(groupId)
-			.map(GroupGetResponse::from)
+			.map(group -> new GroupGetResponse(
+				new GroupGetResponse.GroupData(
+					group.getId(),
+					group.getName(),
+					group.getLogoImageUrl(),
+					group.getAddress(),
+					group.getDetailAddress(),
+					group.getEmailDomain(),
+					groupMemberRepository.countByGroupIdAndDeletedAtIsNull(group.getId()),
+					group.getStatus().name(),
+					group.getCreatedAt(),
+					group.getUpdatedAt())))
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 	}
 

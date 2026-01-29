@@ -92,7 +92,7 @@ class GroupControllerTest {
 			GroupGetResponse response = new GroupGetResponse(
 				new GroupGetResponse.GroupData(
 					1L, "테스트그룹", "https://example.com/logo.jpg",
-					"서울시 강남구", null, "test.com", "ACTIVE",
+					"서울시 강남구", null, "test.com", 3L, "ACTIVE",
 					Instant.now(), Instant.now()));
 
 			given(groupService.getGroup(1L)).willReturn(response);
@@ -308,8 +308,14 @@ class GroupControllerTest {
 		void 그룹_리뷰_음식점_목록_조회_성공() throws Exception {
 			// given
 			CursorPageResponse<RestaurantListItem> response = new CursorPageResponse<>(
-				List.of(new RestaurantListItem(1L, "맛집식당", "서울시 강남구", 500.0,
-					List.of("한식"), List.of(new RestaurantImageDto(1L, "https://example.com/img.jpg")))),
+				List.of(new RestaurantListItem(
+					1L,
+					"맛집식당",
+					"서울시 강남구",
+					500.0,
+					List.of("한식"),
+					List.of(new RestaurantImageDto(1L, "https://example.com/img.jpg")),
+					"맛집으로 유명한 식당입니다.")),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(restaurantService.getGroupRestaurants(eq(1L), any())).willReturn(response);

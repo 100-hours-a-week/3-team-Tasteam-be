@@ -52,18 +52,18 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			)
 			-- 커서 조건 (cursor != null 인 경우만)
 			AND (
-			  :cursorDistance IS NULL
+			  CAST(:cursorDistance AS double precision) IS NULL
 			  OR (
 			    ST_Distance(
 			      r.location::geography,
 			      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-			    ) > :cursorDistance
+			    ) > CAST(:cursorDistance AS double precision)
 			    OR (
 			      ST_Distance(
 			        r.location::geography,
 			        ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-			      ) = :cursorDistance
-			      AND r.id > :cursorId
+			      ) = CAST(:cursorDistance AS double precision)
+			      AND r.id > CAST(:cursorId AS bigint)
 			    )
 			  )
 			)
@@ -88,7 +88,7 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			(rs, rowNum) -> new RestaurantDistanceQueryDto(
 				rs.getLong("id"),
 				rs.getString("name"),
-				rs.getString("full_address"),
+				rs.getString("address"),
 				rs.getDouble("distance_meter")));
 	}
 
@@ -130,18 +130,18 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			)
 			-- 커서 조건 (cursor != null 인 경우만)
 			AND (
-			  :cursorDistance IS NULL
+			  CAST(:cursorDistance AS double precision) IS NULL
 			  OR (
 			    ST_Distance(
 			      r.location::geography,
 			      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-			    ) > :cursorDistance
+			    ) > CAST(:cursorDistance AS double precision)
 			    OR (
 			      ST_Distance(
 			        r.location::geography,
 			        ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-			      ) = :cursorDistance
-			      AND r.id > :cursorId
+			      ) = CAST(:cursorDistance AS double precision)
+			      AND r.id > CAST(:cursorId AS bigint)
 			    )
 			  )
 			)
@@ -167,7 +167,7 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			(rs, rowNum) -> new RestaurantDistanceQueryDto(
 				rs.getLong("id"),
 				rs.getString("name"),
-				rs.getString("full_address"),
+				rs.getString("address"),
 				rs.getDouble("distance_meter")));
 	}
 }

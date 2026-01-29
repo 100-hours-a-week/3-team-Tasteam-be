@@ -14,6 +14,7 @@ import com.tasteam.domain.main.dto.response.MainPageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Banners;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Section;
 import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
+import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
 import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
 import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
@@ -80,8 +81,8 @@ public class MainService {
 				.findByRestaurantIdIn(restaurantIds)
 				.stream()
 				.collect(Collectors.toMap(
-					analysis -> analysis.getRestaurant().getId(),
-					analysis -> analysis.getSummary()));
+					AiRestaurantReviewAnalysis::getRestaurantId,
+					AiRestaurantReviewAnalysis::getSummary));
 
 		List<SectionItem> items = nearbyRestaurants.stream()
 			.map(restaurant -> new SectionItem(

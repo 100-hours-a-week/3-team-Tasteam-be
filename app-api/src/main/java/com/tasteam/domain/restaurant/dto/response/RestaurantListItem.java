@@ -8,5 +8,6 @@ public record RestaurantListItem(
 	String address,
 	double distanceMeter,
 	List<String> foodCategories,
-	List<RestaurantImageDto> thumbnailImages) {
+	List<RestaurantImageDto> thumbnailImages,
+	String reviewSummary) {
 }
