@@ -69,6 +69,7 @@ spring:
 
 tasteam:
   storage:
+    type: s3
     region: ${STORAGE_REGION:}
     bucket: ${STORAGE_BUCKET:}
     base-url: ${STORAGE_BASE_URL:}
