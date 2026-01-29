@@ -17,7 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Main", description = "메인 페이지 API")
 public interface MainControllerDocs {
 
-	@Operation(summary = "메인 페이지 조회", description = "현재 사용자 위치를 기준으로 메인 페이지 데이터를 조회합니다.")
+	@Operation(summary = "메인 페이지 조회", description = "메인 페이지 데이터를 조회합니다. 위치 정보는 선택이며, 미제공 시 소속 그룹 위치 또는 랜덤 데이터를 반환합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = MainPageResponse.class)))
 	SuccessResponse<MainPageResponse> getMain(
 		@CurrentUser
