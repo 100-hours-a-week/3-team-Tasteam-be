@@ -23,8 +23,8 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 	@Override
 	public List<RestaurantDistanceQueryDto> findRestaurantsWithDistance(
 		Long groupId,
-		double lat,
-		double lng,
+		double latitude,
+		double longitude,
 		double radiusMeter,
 		Set<String> categories,
 		RestaurantCursor cursor,
@@ -36,7 +36,7 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			  r.full_address AS address,
 			  ST_Distance(
 			    r.location::geography,
-			    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+			    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
 			  ) AS distance_meter
 			FROM restaurant r
 			JOIN restaurant_food_category rfc
@@ -47,7 +47,7 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			WHERE r.deleted_at IS NULL
 			AND ST_DWithin(
 			  r.location::geography,
-			  ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+			  ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
 			  :radiusMeter
 			)
 			AND EXISTS (
@@ -62,12 +62,12 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			  OR (
 			    ST_Distance(
 			      r.location::geography,
-			      ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+			      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
 			    ) > :cursorDistance
 			    OR (
 			      ST_Distance(
 			        r.location::geography,
-			        ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+			        ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
 			      ) = :cursorDistance
 			      AND r.id > :cursorId
 			    )
@@ -82,8 +82,8 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 		return namedJdbcTemplate.query(
 			sql,
 			Map.of(
-				"lat", lat,
-				"lng", lng,
+				"latitude", latitude,
+				"longitude", longitude,
 				"radiusMeter", radiusMeter,
 				"categories", categories,
 				"groupId", groupId,

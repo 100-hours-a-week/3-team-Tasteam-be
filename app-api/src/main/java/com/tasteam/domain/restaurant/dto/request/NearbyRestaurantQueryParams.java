@@ -7,10 +7,10 @@ import jakarta.validation.constraints.*;
 public record NearbyRestaurantQueryParams(
 
 	@NotNull @DecimalMin(value = "-90.0", inclusive = true) @DecimalMax(value = "90.0", inclusive = true)
-	Double lat,
+	Double latitude,
 
 	@NotNull @DecimalMin(value = "-180.0", inclusive = true) @DecimalMax(value = "180.0", inclusive = true)
-	Double lng,
+	Double longitude,
 
 	@Min(1)
 	Integer radius,

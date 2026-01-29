@@ -48,23 +48,23 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 		  r.name as name,
 		  ST_Distance(
 		    r.location::geography,
-		    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
 		  ) as distanceMeter
 		from restaurant r
 		where r.deleted_at is null
 		  and ST_DWithin(
 		    r.location::geography,
-		    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
 		    :radiusMeter
 		  )
 		order by distanceMeter asc, r.id asc
 		limit :limit
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findNearbyRestaurants(
-		@Param("lat")
-		double lat,
-		@Param("lng")
-		double lng,
+		@Param("latitude")
+		double latitude,
+		@Param("longitude")
+		double longitude,
 		@Param("radiusMeter")
 		int radiusMeter,
 		@Param("limit")

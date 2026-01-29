@@ -22,9 +22,9 @@ public class GeoUtils {
 	/*
 	// 거리 계산
 		Double distanceMeter = null;
-		if (lat != null && lng != null && restaurant.getLocation() != null) {
+		if (lat != null && longitude != null && restaurant.getLocation() != null) {
 			distanceMeter = GeoUtils.distanceMeter(
-					lat, lng,
+					latitude, longitude,
 					restaurant.getLocation().getY(),
 					restaurant.getLocation().getX()
 			);

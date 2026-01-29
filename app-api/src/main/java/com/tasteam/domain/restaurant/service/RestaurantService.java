@@ -396,8 +396,8 @@ public class RestaurantService {
 		long groupId,
 		NearbyRestaurantQueryParams q,
 		RestaurantCursor restaurantCursor) {
-		double latitude = q.lat();
-		double longitude = q.lng();
+		double latitude = q.latitude();
+		double longitude = q.longitude();
 
 		// 반경 기본값
 		Integer radiusMeter = q.radius();

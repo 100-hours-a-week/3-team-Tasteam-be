@@ -10,8 +10,8 @@ public interface RestaurantQueryRepository {
 
 	List<RestaurantDistanceQueryDto> findRestaurantsWithDistance(
 		Long groupId,
-		double lat,
-		double lng,
+		double latitude,
+		double longitude,
 		double radiusMeter,
 		Set<String> categories,
 		RestaurantCursor cursor,
