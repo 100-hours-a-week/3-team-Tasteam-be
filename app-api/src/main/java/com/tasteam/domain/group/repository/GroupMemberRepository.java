@@ -55,6 +55,8 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 		@Param("groupIds")
 		List<Long> groupIds);
 
+	long countByGroupIdAndDeletedAtIsNull(Long groupId);
+
 	@Query("""
 		select new com.tasteam.domain.member.dto.response.MemberGroupSummaryRow(
 			g.id,

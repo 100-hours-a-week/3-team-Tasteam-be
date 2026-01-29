@@ -1,6 +1,7 @@
 package com.tasteam.domain.restaurant.repository.impl;
 
 import java.awt.*;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,18 +52,18 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			)
 			-- 커서 조건 (cursor != null 인 경우만)
 			AND (
-			  :cursorDistance IS NULL
+			  CAST(:cursorDistance AS double precision) IS NULL
 			  OR (
 			    ST_Distance(
 			      r.location::geography,
 			      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-			    ) > :cursorDistance
+			    ) > CAST(:cursorDistance AS double precision)
 			    OR (
 			      ST_Distance(
 			        r.location::geography,
 			        ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-			      ) = :cursorDistance
-			      AND r.id > :cursorId
+			      ) = CAST(:cursorDistance AS double precision)
+			      AND r.id > CAST(:cursorId AS bigint)
 			    )
 			  )
 			)
@@ -72,20 +73,22 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			LIMIT :pageSize
 			""";
 
+		Map<String, Object> params = new HashMap<>();
+		params.put("latitude", latitude);
+		params.put("longitude", longitude);
+		params.put("radiusMeter", radiusMeter);
+		params.put("categories", categories);
+		params.put("cursorDistance", cursor == null ? null : cursor.distanceMeter());
+		params.put("cursorId", cursor == null ? null : cursor.id());
+		params.put("pageSize", pageSize);
+
 		return namedJdbcTemplate.query(
 			sql,
-			Map.of(
-				"latitude", latitude,
-				"longitude", longitude,
-				"radiusMeter", radiusMeter,
-				"categories", categories,
-				"cursorDistance", cursor == null ? null : cursor.distanceMeter(),
-				"cursorId", cursor == null ? null : cursor.id(),
-				"pageSize", pageSize),
+			params,
 			(rs, rowNum) -> new RestaurantDistanceQueryDto(
 				rs.getLong("id"),
 				rs.getString("name"),
-				rs.getString("full_address"),
+				rs.getString("address"),
 				rs.getDouble("distance_meter")));
 	}
 
@@ -127,18 +130,18 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			)
 			-- 커서 조건 (cursor != null 인 경우만)
 			AND (
-			  :cursorDistance IS NULL
+			  CAST(:cursorDistance AS double precision) IS NULL
 			  OR (
 			    ST_Distance(
 			      r.location::geography,
 			      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-			    ) > :cursorDistance
+			    ) > CAST(:cursorDistance AS double precision)
 			    OR (
 			      ST_Distance(
 			        r.location::geography,
 			        ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-			      ) = :cursorDistance
-			      AND r.id > :cursorId
+			      ) = CAST(:cursorDistance AS double precision)
+			      AND r.id > CAST(:cursorId AS bigint)
 			    )
 			  )
 			)
@@ -148,21 +151,23 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			LIMIT :pageSize
 			""";
 
+		Map<String, Object> params = new HashMap<>();
+		params.put("latitude", latitude);
+		params.put("longitude", longitude);
+		params.put("radiusMeter", radiusMeter);
+		params.put("categories", categories);
+		params.put("groupId", groupId);
+		params.put("cursorDistance", cursor == null ? null : cursor.distanceMeter());
+		params.put("cursorId", cursor == null ? null : cursor.id());
+		params.put("pageSize", pageSize);
+
 		return namedJdbcTemplate.query(
 			sql,
-			Map.of(
-				"latitude", latitude,
-				"longitude", longitude,
-				"radiusMeter", radiusMeter,
-				"categories", categories,
-				"groupId", groupId,
-				"cursorDistance", cursor == null ? null : cursor.distanceMeter(),
-				"cursorId", cursor == null ? null : cursor.id(),
-				"pageSize", pageSize),
+			params,
 			(rs, rowNum) -> new RestaurantDistanceQueryDto(
 				rs.getLong("id"),
 				rs.getString("name"),
-				rs.getString("full_address"),
+				rs.getString("address"),
 				rs.getDouble("distance_meter")));
 	}
 }

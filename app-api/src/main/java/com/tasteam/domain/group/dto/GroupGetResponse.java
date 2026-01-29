@@ -2,12 +2,10 @@ package com.tasteam.domain.group.dto;
 
 import java.time.Instant;
 
-import com.tasteam.domain.group.entity.Group;
-
 public record GroupGetResponse(GroupData data) {
 
-	public static GroupGetResponse from(Group group) {
-		return new GroupGetResponse(GroupData.from(group));
+	public static GroupGetResponse of(GroupData data) {
+		return new GroupGetResponse(data);
 	}
 
 	public record GroupData(
@@ -17,21 +15,9 @@ public record GroupGetResponse(GroupData data) {
 		String address,
 		String detailAddress,
 		String emailDomain,
+		long memberCount,
 		String status,
 		Instant createdAt,
 		Instant updatedAt) {
-
-		private static GroupData from(Group group) {
-			return new GroupData(
-				group.getId(),
-				group.getName(),
-				group.getLogoImageUrl(),
-				group.getAddress(),
-				group.getDetailAddress(),
-				group.getEmailDomain(),
-				"ACTIVE",
-				group.getCreatedAt(),
-				group.getUpdatedAt());
-		}
 	}
 }
