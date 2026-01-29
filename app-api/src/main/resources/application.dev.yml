@@ -69,6 +69,8 @@ naver:
     api-key: ${NAVER_MAPS_API_KEY:dummy}
 
 tasteam:
+  storage:
+    type: s3
   webhook:
     enabled: true
     provider: discord
