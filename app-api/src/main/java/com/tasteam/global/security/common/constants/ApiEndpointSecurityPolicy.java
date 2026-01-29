@@ -44,6 +44,8 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.GROUPS_REVIEWS),
 			permit(GET, ApiEndpoints.SUBGROUPS_REVIEWS),
 			permit(GET, ApiEndpoints.MEMBERS_REVIEWS),
+			permit(GET, ApiEndpoints.GROUPS_DETAIL),
+			permit(GET, ApiEndpoints.GROUPS_SUBGROUPS),
 
 			// Swagger
 			permit(GET, ApiEndpoints.SWAGGER_UI),
