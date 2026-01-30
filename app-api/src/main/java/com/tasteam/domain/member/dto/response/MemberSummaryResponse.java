@@ -8,17 +8,10 @@ public record MemberSummaryResponse(
 	String nickname,
 	ProfileImage profileImage) {
 
-	public static MemberSummaryResponse from(Member member) {
+	public static MemberSummaryResponse of(Member member, ProfileImage profileImage) {
 		return new MemberSummaryResponse(
 			member.getNickname(),
-			toProfileImage(member));
-	}
-
-	private static ProfileImage toProfileImage(Member member) {
-		if (member.getProfileImageUuid() == null || member.getProfileImageUrl() == null) {
-			return null;
-		}
-		return new ProfileImage(member.getProfileImageUuid(), member.getProfileImageUrl());
+			profileImage);
 	}
 
 	public record ProfileImage(

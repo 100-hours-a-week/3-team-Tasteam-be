@@ -31,12 +31,14 @@ public interface SubgroupRepository extends JpaRepository<Subgroup, Long> {
 			s.name,
 			s.description,
 			s.memberCount,
-			s.profileImageUuid,
+			i.fileUuid,
 			s.profileImageUrl,
 			s.joinType,
 			s.createdAt
 		)
 		from Subgroup s
+		left join DomainImage di on di.domainType = 'SUBGROUP' and di.domainId = s.id
+		left join di.image i
 		where s.group.id = :groupId
 			and s.status = :status
 			and s.deletedAt is null
@@ -64,12 +66,14 @@ public interface SubgroupRepository extends JpaRepository<Subgroup, Long> {
 			s.name,
 			s.description,
 			s.memberCount,
-			s.profileImageUuid,
+			i.fileUuid,
 			s.profileImageUrl,
 			s.joinType,
 			s.createdAt
 		)
 		from Subgroup s
+		left join DomainImage di on di.domainType = 'SUBGROUP' and di.domainId = s.id
+		left join di.image i
 		where s.group.id = :groupId
 			and s.status = :status
 			and s.deletedAt is null
@@ -100,12 +104,14 @@ public interface SubgroupRepository extends JpaRepository<Subgroup, Long> {
 			s.name,
 			s.description,
 			s.memberCount,
-			s.profileImageUuid,
+			i.fileUuid,
 			s.profileImageUrl,
 			s.createdAt
 		)
 		from SubgroupMember sm
 		join Subgroup s on s.id = sm.subgroupId
+		left join DomainImage di on di.domainType = 'SUBGROUP' and di.domainId = s.id
+		left join di.image i
 		where sm.member.id = :memberId
 			and sm.deletedAt is null
 			and s.group.id = :groupId

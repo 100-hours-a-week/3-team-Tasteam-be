@@ -17,6 +17,8 @@ public interface DomainImageRepository extends JpaRepository<DomainImage, Long> 
 
 	List<DomainImage> findAllByImage(Image image);
 
+	Optional<DomainImage> findFirstByDomainTypeAndDomainIdOrderBySortOrderAsc(DomainType domainType, Long domainId);
+
 	@Modifying
 	@Transactional
 	void deleteAllByDomainTypeAndDomainId(DomainType domainType, Long domainId);

@@ -25,12 +25,14 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 			gm.id,
 			gm.member.id,
 			m.nickname,
-			m.profileImageUuid,
+			i.fileUuid,
 			m.profileImageUrl,
 			gm.createdAt
 		)
 		from GroupMember gm
 		join gm.member m
+		left join DomainImage di on di.domainType = 'MEMBER' and di.domainId = m.id
+		left join di.image i
 		where gm.groupId = :groupId
 			and gm.deletedAt is null
 			and (:cursor is null or gm.id < :cursor)

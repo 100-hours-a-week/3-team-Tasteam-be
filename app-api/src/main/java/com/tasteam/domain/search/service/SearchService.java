@@ -10,6 +10,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
@@ -51,6 +53,7 @@ public class SearchService {
 	private final GroupRepository groupRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final RestaurantImageRepository restaurantImageRepository;
+	private final FileService fileService;
 	private final MemberSearchHistoryRepository memberSearchHistoryRepository;
 	private final MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository;
 	private final SearchQueryRepository searchQueryRepository;
@@ -173,12 +176,11 @@ public class SearchService {
 	}
 
 	private SearchGroupSummary.LogoImage buildLogoImage(Group group) {
-		if (group.getLogoImageUuid() == null || group.getLogoImageUrl() == null) {
-			return null;
-		}
-		return new SearchGroupSummary.LogoImage(
-			group.getLogoImageUuid(),
-			group.getLogoImageUrl());
+		return fileService.findDomainImage(DomainType.GROUP, group.getId())
+			.map(image -> new SearchGroupSummary.LogoImage(
+				java.util.UUID.fromString(image.fileUuid()),
+				image.url()))
+			.orElse(null);
 	}
 
 	private Map<Long, List<RestaurantImageDto>> findRestaurantThumbnails(List<Long> restaurantIds) {

@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -404,16 +403,15 @@ public class GroupService {
 			DomainType.GROUP,
 			group.getId(),
 			logoImageId);
-		group.changeLogoImage(imageUrl.url(), UUID.fromString(imageUrl.fileUuid()));
+		group.changeLogoImage(imageUrl.url());
 	}
 
 	private GroupGetResponse.LogoImage buildLogoImage(Group group) {
-		if (group.getLogoImageUuid() == null || group.getLogoImageUrl() == null) {
-			return null;
-		}
-		return new GroupGetResponse.LogoImage(
-			group.getLogoImageUuid(),
-			group.getLogoImageUrl());
+		return fileService.findDomainImage(DomainType.GROUP, group.getId())
+			.map(image -> new GroupGetResponse.LogoImage(
+				java.util.UUID.fromString(image.fileUuid()),
+				image.url()))
+			.orElse(null);
 	}
 
 	private Point toPoint(GroupCreateRequest.Location location) {

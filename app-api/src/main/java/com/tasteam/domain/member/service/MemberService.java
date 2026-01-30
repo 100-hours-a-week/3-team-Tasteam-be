@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +19,7 @@ import com.tasteam.domain.member.dto.response.MemberGroupSummaryRow;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
 import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryRow;
+import com.tasteam.domain.member.dto.response.MemberSummaryResponse;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.subgroup.repository.SubgroupMemberRepository;
@@ -41,7 +41,12 @@ public class MemberService {
 	@Transactional(readOnly = true)
 	public MemberMeResponse getMyProfile(Long memberId) {
 		Member member = getActiveMember(memberId);
-		return MemberMeResponse.from(member);
+		MemberSummaryResponse.ProfileImage profileImage = fileService.findDomainImage(DomainType.MEMBER, memberId)
+			.map(image -> new MemberSummaryResponse.ProfileImage(
+				java.util.UUID.fromString(image.fileUuid()),
+				image.url()))
+			.orElse(null);
+		return MemberMeResponse.of(member, profileImage);
 	}
 
 	@Transactional(readOnly = true)
@@ -86,14 +91,17 @@ public class MemberService {
 			member.changeEmail(request.email());
 		}
 
-		if (request.profileImageId() != null
-			&& !request.profileImageId()
-				.equals(member.getProfileImageUuid() == null ? null : member.getProfileImageUuid().toString())) {
-			ImageUrlResponse imageUrl = fileService.linkDomainImageAndGetUrl(
-				DomainType.MEMBER,
-				memberId,
-				request.profileImageId());
-			member.changeProfileImage(imageUrl.url(), UUID.fromString(imageUrl.fileUuid()));
+		if (request.profileImageId() != null) {
+			String currentImageUuid = fileService.findDomainImage(DomainType.MEMBER, memberId)
+				.map(ImageUrlResponse::fileUuid)
+				.orElse(null);
+			if (!request.profileImageId().equals(currentImageUuid)) {
+				ImageUrlResponse imageUrl = fileService.linkDomainImageAndGetUrl(
+					DomainType.MEMBER,
+					memberId,
+					request.profileImageId());
+				member.changeProfileImage(imageUrl.url());
+			}
 		}
 	}
 

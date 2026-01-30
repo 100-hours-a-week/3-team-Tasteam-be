@@ -64,12 +64,14 @@ public interface SubgroupMemberRepository extends JpaRepository<SubgroupMember, 
 			sm.id,
 			sm.member.id,
 			m.nickname,
-			m.profileImageUuid,
+			i.fileUuid,
 			m.profileImageUrl,
 			sm.createdAt
 		)
 		from SubgroupMember sm
 		join sm.member m
+		left join DomainImage di on di.domainType = 'MEMBER' and di.domainId = m.id
+		left join di.image i
 		where sm.subgroupId = :subgroupId
 			and sm.deletedAt is null
 			and (:cursor is null or sm.id < :cursor)

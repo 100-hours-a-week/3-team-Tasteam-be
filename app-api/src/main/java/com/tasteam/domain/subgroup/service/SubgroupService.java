@@ -2,7 +2,6 @@ package com.tasteam.domain.subgroup.service;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import java.util.function.Consumer;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -461,16 +460,15 @@ public class SubgroupService {
 			DomainType.SUBGROUP,
 			subgroup.getId(),
 			profileImageId);
-		subgroup.updateProfileImage(imageUrl.url(), UUID.fromString(imageUrl.fileUuid()));
+		subgroup.updateProfileImage(imageUrl.url());
 	}
 
 	private SubgroupDetailResponse.ProfileImage buildProfileImage(Subgroup subgroup) {
-		if (subgroup.getProfileImageUuid() == null || subgroup.getProfileImageUrl() == null) {
-			return null;
-		}
-		return new SubgroupDetailResponse.ProfileImage(
-			subgroup.getProfileImageUuid(),
-			subgroup.getProfileImageUrl());
+		return fileService.findDomainImage(DomainType.SUBGROUP, subgroup.getId())
+			.map(image -> new SubgroupDetailResponse.ProfileImage(
+				java.util.UUID.fromString(image.fileUuid()),
+				image.url()))
+			.orElse(null);
 	}
 
 	private int resolveSize(Integer size) {

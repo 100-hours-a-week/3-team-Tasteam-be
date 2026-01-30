@@ -133,6 +133,17 @@ public class FileService {
 	}
 
 	@Transactional(readOnly = true)
+	public Optional<ImageUrlResponse> findDomainImage(DomainType domainType, Long domainId) {
+		return domainImageRepository.findFirstByDomainTypeAndDomainIdOrderBySortOrderAsc(domainType, domainId)
+			.map(domainImage -> {
+				Image image = domainImage.getImage();
+				return new ImageUrlResponse(
+					image.getFileUuid().toString(),
+					buildPublicUrl(image.getStorageKey()));
+			});
+	}
+
+	@Transactional(readOnly = true)
 	public ImageDetailResponse getImageDetail(String fileUuid) {
 		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
 			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
