@@ -68,6 +68,7 @@ public final class ApiEndpoints {
 	public static final String GROUPS_DETAIL = GROUPS + DETAIL;
 	public static final String GROUPS_REVIEWS = GROUPS_DETAIL + "/reviews";
 	public static final String GROUPS_SUBGROUPS = GROUPS + "/*/subgroups";
+	public static final String GROUPS_SUBGROUPS_SEARCH = GROUPS + "/*/subgroups/search";
 
 	// Subgroup
 	public static final String SUBGROUPS = API_V1 + "/subgroups";
