@@ -30,6 +30,7 @@ import com.tasteam.domain.file.dto.response.DomainImageLinkResponse;
 import com.tasteam.domain.file.dto.response.ImageDetailResponse;
 import com.tasteam.domain.file.dto.response.ImageSummaryItem;
 import com.tasteam.domain.file.dto.response.ImageSummaryResponse;
+import com.tasteam.domain.file.dto.response.ImageUrlResponse;
 import com.tasteam.domain.file.dto.response.LinkedDomainResponse;
 import com.tasteam.domain.file.dto.response.PresignedUploadItem;
 import com.tasteam.domain.file.dto.response.PresignedUploadResponse;
@@ -128,6 +129,28 @@ class FileControllerTest {
 				.andExpect(jsonPath("$.data.fileUuid").value(fileUuid))
 				.andExpect(jsonPath("$.data.status").value("UPLOADED"))
 				.andExpect(jsonPath("$.data.linkedDomains[0].domainType").value("RESTAURANT"));
+		}
+	}
+
+	@Nested
+	@DisplayName("이미지 URL 조회")
+	class GetImageUrl {
+
+		@Test
+		@DisplayName("파일 UUID로 이미지 공개 URL을 조회한다")
+		void 이미지_URL_조회_성공() throws Exception {
+			// given
+			String fileUuid = UUID.randomUUID().toString();
+			ImageUrlResponse response = new ImageUrlResponse(fileUuid, "https://cdn.example.com/uploads/temp/a.jpg");
+
+			given(fileService.getImageUrl(any())).willReturn(response);
+
+			// when & then
+			mockMvc.perform(get("/api/v1/files/{fileUuid}/url", fileUuid))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.fileUuid").value(fileUuid))
+				.andExpect(jsonPath("$.data.url").value("https://cdn.example.com/uploads/temp/a.jpg"));
 		}
 	}
 

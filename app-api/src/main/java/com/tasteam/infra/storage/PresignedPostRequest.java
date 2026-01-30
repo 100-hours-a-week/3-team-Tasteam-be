@@ -2,5 +2,7 @@ package com.tasteam.infra.storage;
 
 public record PresignedPostRequest(
 	String objectKey,
-	String contentType) {
+	String contentType,
+	long minContentLength,
+	long maxContentLength) {
 }
