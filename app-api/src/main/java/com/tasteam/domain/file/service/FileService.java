@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import com.tasteam.domain.file.config.FileCleanupProperties;
+import com.tasteam.domain.file.config.FileUploadPolicyProperties;
 import com.tasteam.domain.file.dto.request.DomainImageLinkRequest;
 import com.tasteam.domain.file.dto.request.ImageSummaryRequest;
 import com.tasteam.domain.file.dto.request.PresignedUploadFileRequest;
@@ -52,11 +53,13 @@ public class FileService {
 	private final StorageClient storageClient;
 	private final StorageProperties storageProperties;
 	private final FileCleanupProperties cleanupProperties;
+	private final FileUploadPolicyProperties uploadPolicyProperties;
 
 	public PresignedUploadResponse createPresignedUploads(PresignedUploadRequest request) {
 		List<PresignedUploadItem> uploads = new ArrayList<>();
 
 		for (PresignedUploadFileRequest fileRequest : request.files()) {
+			validateUploadPolicy(fileRequest);
 			UUID fileUuid = UUID.randomUUID();
 			String storageKey = buildStorageKey(fileUuid, fileRequest.fileName(), fileRequest.contentType());
 			Image image = Image.create(
@@ -68,10 +71,12 @@ public class FileService {
 				fileUuid);
 			imageRepository.save(image);
 
+			long maxContentLength = Math.min(fileRequest.size(), uploadPolicyProperties.getMaxSizeBytes());
 			PresignedPostResponse presignedPost = createPresignedPost(
 				storageKey,
 				fileRequest.contentType(),
-				fileRequest.size());
+				uploadPolicyProperties.getMinSizeBytes(),
+				maxContentLength);
 			uploads.add(new PresignedUploadItem(
 				image.getFileUuid().toString(),
 				storageKey,
@@ -198,13 +203,26 @@ public class FileService {
 		}
 	}
 
-	private PresignedPostResponse createPresignedPost(String storageKey, String contentType, long maxContentLength) {
-		Assert.isTrue(maxContentLength > 0, "업로드 파일 크기는 1바이트 이상이어야 합니다");
+	private PresignedPostResponse createPresignedPost(String storageKey, String contentType, long minContentLength,
+		long maxContentLength) {
+		Assert.isTrue(minContentLength > 0, "업로드 파일 최소 크기는 1바이트 이상이어야 합니다");
+		Assert.isTrue(maxContentLength >= minContentLength, "업로드 파일 최대 크기는 최소 크기 이상이어야 합니다");
 		try {
-			return storageClient
-				.createPresignedPost(new PresignedPostRequest(storageKey, contentType, maxContentLength));
+			return storageClient.createPresignedPost(
+				new PresignedPostRequest(storageKey, contentType, minContentLength, maxContentLength));
 		} catch (RuntimeException ex) {
 			throw new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
+		}
+	}
+
+	private void validateUploadPolicy(PresignedUploadFileRequest fileRequest) {
+		long size = fileRequest.size();
+		if (size < uploadPolicyProperties.getMinSizeBytes()
+			|| size > uploadPolicyProperties.getMaxSizeBytes()) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+		if (!uploadPolicyProperties.isAllowedContentType(fileRequest.contentType())) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 	}
 
