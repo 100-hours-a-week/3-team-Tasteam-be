@@ -177,7 +177,9 @@ erDiagram
     - status: `200`
     - body 스키마(요약)
       - `data.member.nickname`: string
-      - `data.member.profileImageUrl`: string | null
+      - `data.member.profileImage`: object | null
+        - `id`: string (UUID)
+        - `url`: string
       - `data.groupRequests.data[]`: array
         - `id`: number
         - `groupName`: string
@@ -198,7 +200,10 @@ erDiagram
         "data": {
           "member": {
             "nickname": "홍길동",
-            "profileImageUrl": "https://..."
+            "profileImage": {
+              "id": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
+              "url": "https://..."
+            }
           },
           "groupRequests": {
             "data": [
@@ -252,7 +257,7 @@ erDiagram
   - **요청**
     - content-type: `application/json`
     - 스키마(요약)
-      - `profileImageUrl`: string | null
+      - `profileImageId`: string | null
       - `email`: string | null
   - **응답**
     - status: `204`
@@ -261,7 +266,7 @@ erDiagram
     2. `member` 조회(`id=me`, `deleted_at is null`)
     3. 요청 값 검증
        - `email`: 포맷 검증
-       - `profileImageUrl`: URL/길이 검증
+       - `profileImageId`: UUID 형식 검증 + 업로드된 파일과 매핑
     4. `member` update(변경 필드만) + `updated_at=now()`
     5. 204 반환
   - **트랜잭션 관리:** `member` update 단일 트랜잭션
