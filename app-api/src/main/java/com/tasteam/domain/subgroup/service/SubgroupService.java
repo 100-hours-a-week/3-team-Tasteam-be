@@ -1,8 +1,6 @@
 package com.tasteam.domain.subgroup.service;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -27,7 +25,9 @@ import com.tasteam.domain.subgroup.dto.SubgroupJoinRequest;
 import com.tasteam.domain.subgroup.dto.SubgroupJoinResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
+import com.tasteam.domain.subgroup.dto.SubgroupMemberCountCursor;
 import com.tasteam.domain.subgroup.dto.SubgroupMemberListItem;
+import com.tasteam.domain.subgroup.dto.SubgroupNameCursor;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
 import com.tasteam.domain.subgroup.entity.Subgroup;
 import com.tasteam.domain.subgroup.entity.SubgroupMember;
@@ -40,6 +40,7 @@ import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
+import com.tasteam.global.utils.CursorCodec;
 
 import lombok.RequiredArgsConstructor;
 
@@ -47,7 +48,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SubgroupService {
 
-	private static final String CURSOR_DELIMITER = "|";
 	private static final String SORT_NAME_ASC_ID_ASC = "NAME_ASC_ID_ASC";
 
 	private final GroupRepository groupRepository;
@@ -56,6 +56,7 @@ public class SubgroupService {
 	private final SubgroupRepository subgroupRepository;
 	private final SubgroupMemberRepository subgroupMemberRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final CursorCodec cursorCodec;
 
 	@Transactional(readOnly = true)
 	public SubgroupListResponse getMySubgroups(Long groupId, Long memberId, String keyword, String cursor,
@@ -65,7 +66,7 @@ public class SubgroupService {
 		validateGroupMember(group.getId(), memberId);
 
 		int resolvedSize = resolveSize(size);
-		CursorKey cursorKey = decodeCursor(cursor);
+		SubgroupNameCursor cursorKey = cursorCodec.decodeOrNull(cursor, SubgroupNameCursor.class);
 		String resolvedKeyword = resolveKeyword(keyword);
 
 		List<SubgroupListItem> items = subgroupRepository.findMySubgroupsByGroup(
@@ -80,24 +81,42 @@ public class SubgroupService {
 	}
 
 	@Transactional(readOnly = true)
-	public SubgroupListResponse getGroupSubgroups(Long groupId, Long memberId, String keyword, String cursor,
+	public CursorPageResponse<SubgroupListItem> getGroupSubgroups(Long groupId, Long memberId, String cursor,
 		Integer size) {
 		validateAuthenticated(memberId);
 		getGroup(groupId);
 
 		int resolvedSize = resolveSize(size);
-		CursorKey cursorKey = decodeCursor(cursor);
-		String resolvedKeyword = resolveKeyword(keyword);
+		SubgroupNameCursor cursorKey = cursorCodec.decodeOrNull(cursor, SubgroupNameCursor.class);
 
 		List<SubgroupListItem> items = subgroupRepository.findSubgroupsByGroup(
 			groupId,
 			SubgroupStatus.ACTIVE,
-			resolvedKeyword,
 			cursorKey == null ? null : cursorKey.name(),
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
 
-		return buildListResponse(items, resolvedSize);
+		return buildNameCursorPageResponse(items, resolvedSize);
+	}
+
+	@Transactional(readOnly = true)
+	public CursorPageResponse<SubgroupListItem> searchGroupSubgroups(Long groupId, String keyword, String cursor,
+		Integer size) {
+		getGroup(groupId);
+
+		int resolvedSize = resolveSize(size);
+		SubgroupMemberCountCursor cursorKey = cursorCodec.decodeOrNull(cursor, SubgroupMemberCountCursor.class);
+		String resolvedKeyword = resolveKeyword(keyword);
+
+		List<SubgroupListItem> items = subgroupRepository.searchSubgroupsByGroup(
+			groupId,
+			SubgroupStatus.ACTIVE,
+			resolvedKeyword,
+			cursorKey == null ? null : cursorKey.memberCount(),
+			cursorKey == null ? null : cursorKey.id(),
+			PageRequest.of(0, resolvedSize + 1));
+
+		return buildMemberCountCursorPageResponse(items, resolvedSize);
 	}
 
 	@Transactional(readOnly = true)
@@ -281,7 +300,7 @@ public class SubgroupService {
 		String nextCursor = null;
 		if (hasNext && !items.isEmpty()) {
 			SubgroupListItem lastItem = items.get(items.size() - 1);
-			nextCursor = encodeCursor(lastItem.getName(), lastItem.getSubgroupId());
+			nextCursor = cursorCodec.encode(new SubgroupNameCursor(lastItem.getName(), lastItem.getSubgroupId()));
 		}
 
 		return new SubgroupListResponse(
@@ -291,6 +310,49 @@ public class SubgroupService {
 				nextCursor,
 				resolvedSize,
 				hasNext));
+	}
+
+	private CursorPageResponse<SubgroupListItem> buildNameCursorPageResponse(List<SubgroupListItem> items,
+		int resolvedSize) {
+		boolean hasNext = items.size() > resolvedSize;
+		if (hasNext) {
+			items = items.subList(0, resolvedSize);
+		}
+
+		String nextCursor = null;
+		if (hasNext && !items.isEmpty()) {
+			SubgroupListItem lastItem = items.get(items.size() - 1);
+			nextCursor = cursorCodec.encode(new SubgroupNameCursor(lastItem.getName(), lastItem.getSubgroupId()));
+		}
+
+		return new CursorPageResponse<>(
+			items,
+			new CursorPageResponse.Pagination(
+				nextCursor,
+				hasNext,
+				items.size()));
+	}
+
+	private CursorPageResponse<SubgroupListItem> buildMemberCountCursorPageResponse(List<SubgroupListItem> items,
+		int resolvedSize) {
+		boolean hasNext = items.size() > resolvedSize;
+		if (hasNext) {
+			items = items.subList(0, resolvedSize);
+		}
+
+		String nextCursor = null;
+		if (hasNext && !items.isEmpty()) {
+			SubgroupListItem lastItem = items.get(items.size() - 1);
+			nextCursor = cursorCodec
+				.encode(new SubgroupMemberCountCursor(lastItem.getMemberCount(), lastItem.getSubgroupId()));
+		}
+
+		return new CursorPageResponse<>(
+			items,
+			new CursorPageResponse.Pagination(
+				nextCursor,
+				hasNext,
+				items.size()));
 	}
 
 	private void validateAuthenticated(Long memberId) {
@@ -391,36 +453,5 @@ public class SubgroupService {
 		} catch (NumberFormatException e) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
-	}
-
-	private String encodeCursor(String name, Long id) {
-		String raw = name + CURSOR_DELIMITER + id;
-		return Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
-	}
-
-	private CursorKey decodeCursor(String cursor) {
-		if (cursor == null || cursor.isBlank()) {
-			return null;
-		}
-		String decoded;
-		try {
-			decoded = new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8);
-		} catch (IllegalArgumentException e) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-		int delimiterIndex = decoded.indexOf(CURSOR_DELIMITER);
-		if (delimiterIndex <= 0 || delimiterIndex == decoded.length() - 1) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-		String name = decoded.substring(0, delimiterIndex);
-		String idPart = decoded.substring(delimiterIndex + 1);
-		try {
-			return new CursorKey(name, Long.parseLong(idPart));
-		} catch (NumberFormatException e) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-	}
-
-	private record CursorKey(String name, Long id) {
 	}
 }

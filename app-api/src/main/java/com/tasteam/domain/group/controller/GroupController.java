@@ -1,6 +1,7 @@
 package com.tasteam.domain.group.controller;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +25,13 @@ import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
 import com.tasteam.domain.restaurant.service.RestaurantService;
 import com.tasteam.domain.review.service.ReviewService;
+import com.tasteam.domain.subgroup.dto.SubgroupCreateRequest;
+import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
+import com.tasteam.domain.subgroup.dto.SubgroupJoinRequest;
+import com.tasteam.domain.subgroup.dto.SubgroupJoinResponse;
+import com.tasteam.domain.subgroup.dto.SubgroupListItem;
+import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
+import com.tasteam.domain.subgroup.service.SubgroupService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
@@ -39,8 +47,10 @@ public class GroupController implements GroupControllerDocs {
 	private final GroupService groupService;
 	private final RestaurantService restaurantService;
 	private final ReviewService reviewService;
+	private final SubgroupService subgroupService;
 
 	@PostMapping
+	@PreAuthorize("hasRole('USER')")
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<GroupCreateResponse> createGroup(@RequestBody @Validated
 	GroupCreateRequest request) {
@@ -54,6 +64,7 @@ public class GroupController implements GroupControllerDocs {
 	}
 
 	@PatchMapping("/{groupId}")
+	@PreAuthorize("hasRole('USER')")
 	public SuccessResponse<Void> updateGroup(
 		@PathVariable @Positive
 		Long groupId,
@@ -64,6 +75,7 @@ public class GroupController implements GroupControllerDocs {
 	}
 
 	@DeleteMapping("/{groupId}")
+	@PreAuthorize("hasRole('USER')")
 	public SuccessResponse<Void> deleteGroup(@PathVariable @Positive
 	Long groupId) {
 		groupService.deleteGroup(groupId);
@@ -71,6 +83,7 @@ public class GroupController implements GroupControllerDocs {
 	}
 
 	@DeleteMapping("/{groupId}/members/me")
+	@PreAuthorize("hasRole('USER')")
 	public SuccessResponse<Void> withdrawGroup(
 		@PathVariable @Positive
 		Long groupId,
@@ -81,6 +94,7 @@ public class GroupController implements GroupControllerDocs {
 	}
 
 	@PostMapping("/{groupId}/email-verifications")
+	@PreAuthorize("hasRole('USER')")
 	public SuccessResponse<GroupEmailVerificationResponse> sendGroupEmailVerification(
 		@PathVariable @Positive
 		Long groupId,
@@ -90,6 +104,7 @@ public class GroupController implements GroupControllerDocs {
 	}
 
 	@PostMapping("/{groupId}/email-authentications")
+	@PreAuthorize("hasRole('USER')")
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<GroupEmailAuthenticationResponse> authenticateGroupByEmail(
 		@PathVariable @Positive
@@ -103,6 +118,7 @@ public class GroupController implements GroupControllerDocs {
 	}
 
 	@PostMapping("/{groupId}/password-authentications")
+	@PreAuthorize("hasRole('USER')")
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<GroupPasswordAuthenticationResponse> authenticateGroupByPassword(
 		@PathVariable @Positive
@@ -127,12 +143,81 @@ public class GroupController implements GroupControllerDocs {
 	}
 
 	@DeleteMapping("/{groupId}/members/{userId}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public SuccessResponse<Void> deleteGroupMember(
 		@PathVariable @Positive
 		Long groupId,
 		@PathVariable @Positive
 		Long userId) {
 		groupService.deleteGroupMember(groupId, userId);
+		return SuccessResponse.success(null);
+	}
+
+	@GetMapping("/{groupId}/subgroups")
+	public SuccessResponse<CursorPageResponse<SubgroupListItem>> getGroupSubgroups(
+		@PathVariable @Positive
+		Long groupId,
+		@CurrentUser
+		Long memberId,
+		@RequestParam(required = false)
+		String cursor,
+		@RequestParam(required = false)
+		Integer size) {
+		return SuccessResponse.success(subgroupService.getGroupSubgroups(groupId, memberId, cursor, size));
+	}
+
+	@GetMapping("/{groupId}/subgroups/search")
+	public SuccessResponse<CursorPageResponse<SubgroupListItem>> searchSubgroups(
+		@PathVariable @Positive
+		Long groupId,
+		@RequestParam(required = false)
+		String keyword,
+		@RequestParam(required = false)
+		String cursor,
+		@RequestParam(required = false)
+		Integer size) {
+		return SuccessResponse.success(subgroupService.searchGroupSubgroups(groupId, keyword, cursor, size));
+	}
+
+	@PostMapping("/{groupId}/subgroups")
+	@PreAuthorize("hasRole('USER')")
+	@ResponseStatus(HttpStatus.CREATED)
+	public SuccessResponse<SubgroupCreateResponse> createSubgroup(
+		@PathVariable @Positive
+		Long groupId,
+		@CurrentUser
+		Long memberId,
+		@RequestBody @Validated
+		SubgroupCreateRequest request) {
+		return SuccessResponse.success(subgroupService.createSubgroup(groupId, memberId, request));
+	}
+
+	@PostMapping("/{groupId}/subgroups/{subgroupId}/members")
+	@PreAuthorize("hasRole('USER')")
+	public SuccessResponse<SubgroupJoinResponse> joinSubgroup(
+		@PathVariable @Positive
+		Long groupId,
+		@PathVariable @Positive
+		Long subgroupId,
+		@CurrentUser
+		Long memberId,
+		@RequestBody(required = false)
+		SubgroupJoinRequest request) {
+		return SuccessResponse.success(subgroupService.joinSubgroup(groupId, subgroupId, memberId, request));
+	}
+
+	@PatchMapping("/{groupId}/subgroups/{subgroupId}")
+	@PreAuthorize("hasRole('USER')")
+	public SuccessResponse<Void> updateSubgroup(
+		@PathVariable @Positive
+		Long groupId,
+		@PathVariable @Positive
+		Long subgroupId,
+		@CurrentUser
+		Long memberId,
+		@RequestBody @Validated
+		SubgroupUpdateRequest request) {
+		subgroupService.updateSubgroup(groupId, subgroupId, memberId, request);
 		return SuccessResponse.success(null);
 	}
 

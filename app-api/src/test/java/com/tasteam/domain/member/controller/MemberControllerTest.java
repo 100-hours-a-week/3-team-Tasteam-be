@@ -1,6 +1,7 @@
 package com.tasteam.domain.member.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
@@ -34,6 +35,9 @@ import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberSummaryResponse;
 import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
 import com.tasteam.domain.member.service.MemberService;
+import com.tasteam.domain.subgroup.dto.SubgroupListItem;
+import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
+import com.tasteam.domain.subgroup.service.SubgroupService;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.review.service.ReviewService;
 
@@ -50,6 +54,7 @@ class MemberControllerTest {
 	private MemberService memberService;
 
 	@MockitoBean
+	private SubgroupService subgroupService;
 	private ReviewService reviewService;
 
 	@MockitoBean
@@ -116,6 +121,40 @@ class MemberControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data").isEmpty());
+		}
+	}
+
+	@Nested
+	@DisplayName("내 소모임 목록 조회")
+	class GetMySubgroups {
+
+		@Test
+		@DisplayName("내 소모임 목록을 조회하면 서브그룹 리스트를 반환한다")
+		void 내_소모임_목록_조회_성공() throws Exception {
+			// given
+			SubgroupListItem item = SubgroupListItem.builder()
+				.subgroupId(1L)
+				.name("서브그룹1")
+				.description("설명")
+				.memberCount(5)
+				.profileImageUrl("https://example.com/img.jpg")
+				.createdAt(Instant.now())
+				.build();
+
+			SubgroupListResponse response = new SubgroupListResponse(
+				List.of(item),
+				new SubgroupListResponse.PageInfo("name", null, 20, false));
+
+			given(subgroupService.getMySubgroups(eq(1L), any(), any(), any(), any())).willReturn(response);
+
+			// when & then
+			mockMvc.perform(get("/api/v1/members/me/groups/{groupId}/subgroups", 1L)
+				.param("size", "20"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.data[0].subgroupId").value(1))
+				.andExpect(jsonPath("$.data.data[0].name").value("서브그룹1"))
+				.andExpect(jsonPath("$.data.page.hasNext").value(false));
 		}
 	}
 

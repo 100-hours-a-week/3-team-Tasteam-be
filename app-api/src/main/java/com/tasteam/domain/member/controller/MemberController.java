@@ -8,8 +8,10 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
@@ -20,12 +22,15 @@ import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
 import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
 import com.tasteam.domain.member.service.MemberService;
+import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
+import com.tasteam.domain.subgroup.service.SubgroupService;
 import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
 @Validated
@@ -35,6 +40,7 @@ import lombok.RequiredArgsConstructor;
 public class MemberController implements MemberControllerDocs {
 
 	private final MemberService memberService;
+	private final SubgroupService subgroupService;
 	private final ReviewService reviewService;
 	private final FavoriteService favoriteService;
 
@@ -50,6 +56,21 @@ public class MemberController implements MemberControllerDocs {
 		@CurrentUser
 		Long memberId) {
 		return SuccessResponse.success(memberService.getMyGroupSummaries(memberId));
+	}
+
+	@GetMapping("/groups/{groupId}/subgroups")
+	public SuccessResponse<SubgroupListResponse> getMySubgroups(
+		@PathVariable @Positive
+		Long groupId,
+		@CurrentUser
+		Long memberId,
+		@RequestParam(required = false)
+		String keyword,
+		@RequestParam(required = false)
+		String cursor,
+		@RequestParam(required = false)
+		Integer size) {
+		return SuccessResponse.success(subgroupService.getMySubgroups(groupId, memberId, keyword, cursor, size));
 	}
 
 	@PatchMapping("/profile")

@@ -38,19 +38,19 @@ public interface RestaurantControllerDocs {
 		@Validated @ParameterObject
 		NearbyRestaurantQueryParams queryParams);
 
-	@Operation(summary = "음식점 상세 조회", description = "음식점 상세 정보를 조회합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = RestaurantDetailResponse.class)))
-	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_DETAIL")
-	SuccessResponse<RestaurantDetailResponse> getRestaurant(
-		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
-		Long restaurantId);
-
 	@Operation(summary = "음식점 등록", description = "관리자 권한으로 음식점을 등록합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = RestaurantCreateRequest.class)))
 	@ApiResponse(responseCode = "201", description = "등록 완료", content = @Content(schema = @Schema(implementation = RestaurantCreateResponse.class)))
 	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_CREATE")
 	SuccessResponse<RestaurantCreateResponse> createRestaurant(
 		RestaurantCreateRequest request);
+
+	@Operation(summary = "음식점 상세 조회", description = "음식점 상세 정보를 조회합니다.")
+	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = RestaurantDetailResponse.class)))
+	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_DETAIL")
+	SuccessResponse<RestaurantDetailResponse> getRestaurant(
+		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
+		Long restaurantId);
 
 	@Operation(summary = "음식점 수정", description = "관리자 권한으로 음식점을 수정합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = RestaurantUpdateRequest.class)))

@@ -38,6 +38,13 @@ import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
 import com.tasteam.domain.restaurant.service.RestaurantService;
 import com.tasteam.domain.review.service.ReviewService;
+import com.tasteam.domain.subgroup.dto.SubgroupCreateRequest;
+import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
+import com.tasteam.domain.subgroup.dto.SubgroupJoinResponse;
+import com.tasteam.domain.subgroup.dto.SubgroupListItem;
+import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
+import com.tasteam.domain.subgroup.service.SubgroupService;
+import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.fixture.GroupRequestFixture;
 import com.tasteam.fixture.RestaurantRequestFixture;
 
@@ -58,6 +65,9 @@ class GroupControllerTest {
 
 	@MockitoBean
 	private ReviewService reviewService;
+
+	@MockitoBean
+	private SubgroupService subgroupService;
 
 	@Nested
 	@DisplayName("그룹 생성")
@@ -155,6 +165,107 @@ class GroupControllerTest {
 
 			// when & then
 			mockMvc.perform(delete("/api/v1/groups/{groupId}/members/me", 1L))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true));
+		}
+	}
+
+	@Nested
+	@DisplayName("그룹 서브그룹 목록 조회")
+	class GetGroupSubgroups {
+
+		@Test
+		@DisplayName("그룹의 서브그룹 목록을 조회하면 서브그룹 리스트를 반환한다")
+		void 그룹_서브그룹_목록_조회_성공() throws Exception {
+			// given
+			SubgroupListItem item = SubgroupListItem.builder()
+				.subgroupId(1L)
+				.name("서브그룹1")
+				.memberCount(10)
+				.createdAt(Instant.now())
+				.build();
+
+			CursorPageResponse<SubgroupListItem> response = new CursorPageResponse<>(
+				List.of(item),
+				new CursorPageResponse.Pagination(null, false, 1));
+
+			given(subgroupService.getGroupSubgroups(eq(1L), any(), any(), any())).willReturn(response);
+
+			// when & then
+			mockMvc.perform(get("/api/v1/groups/{groupId}/subgroups", 1L)
+				.param("size", "20"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.items[0].subgroupId").value(1))
+				.andExpect(jsonPath("$.data.items[0].name").value("서브그룹1"));
+		}
+	}
+
+	@Nested
+	@DisplayName("서브그룹 생성")
+	class CreateSubgroup {
+
+		@Test
+		@DisplayName("서브그룹을 생성하면 201과 생성 정보를 반환한다")
+		void 서브그룹_생성_성공() throws Exception {
+			// given
+			SubgroupCreateResponse response = new SubgroupCreateResponse(
+				new SubgroupCreateResponse.SubgroupCreateData(10L, Instant.now()));
+
+			given(subgroupService.createSubgroup(eq(1L), any(), any())).willReturn(response);
+
+			SubgroupCreateRequest request = new SubgroupCreateRequest(
+				"서브그룹1", "설명", null, SubgroupJoinType.OPEN, null);
+
+			// when & then
+			mockMvc.perform(post("/api/v1/groups/{groupId}/subgroups", 1L)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.data.id").value(10));
+		}
+	}
+
+	@Nested
+	@DisplayName("서브그룹 가입")
+	class JoinSubgroup {
+
+		@Test
+		@DisplayName("서브그룹에 가입하면 가입 정보를 반환한다")
+		void 서브그룹_가입_성공() throws Exception {
+			// given
+			SubgroupJoinResponse response = new SubgroupJoinResponse(
+				new SubgroupJoinResponse.JoinData(10L, Instant.now()));
+
+			given(subgroupService.joinSubgroup(eq(1L), eq(10L), any(), any())).willReturn(response);
+
+			// when & then
+			mockMvc.perform(post("/api/v1/groups/{groupId}/subgroups/{subgroupId}/members", 1L, 10L)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.data.subgroupId").value(10));
+		}
+	}
+
+	@Nested
+	@DisplayName("서브그룹 수정")
+	class UpdateSubgroup {
+
+		@Test
+		@DisplayName("서브그룹 정보를 수정하면 성공 응답을 반환한다")
+		void 서브그룹_수정_성공() throws Exception {
+			// given
+			willDoNothing().given(subgroupService).updateSubgroup(eq(1L), eq(10L), any(), any());
+
+			SubgroupUpdateRequest request = new SubgroupUpdateRequest(null, null, null);
+
+			// when & then
+			mockMvc.perform(patch("/api/v1/groups/{groupId}/subgroups/{subgroupId}", 1L, 10L)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true));
 		}
