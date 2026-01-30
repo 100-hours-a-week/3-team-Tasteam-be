@@ -11,9 +11,13 @@ import org.springframework.transaction.annotation.Transactional;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
+import com.tasteam.domain.member.dto.response.MemberGroupDetailSummaryResponse;
+import com.tasteam.domain.member.dto.response.MemberGroupDetailSummaryRow;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryRow;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
+import com.tasteam.domain.member.dto.response.MemberSubgroupDetailSummaryResponse;
+import com.tasteam.domain.member.dto.response.MemberSubgroupDetailSummaryRow;
 import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryRow;
 import com.tasteam.domain.member.entity.Member;
@@ -67,6 +71,41 @@ public class MemberService {
 				summary.subGroups().add(new MemberSubgroupSummaryResponse(
 					row.subGroupId(),
 					row.subGroupName()));
+			}
+		}
+		return new ArrayList<>(grouped.values());
+	}
+
+	@Transactional(readOnly = true)
+	public List<MemberGroupDetailSummaryResponse> getMyGroupDetails(Long memberId) {
+		getActiveMember(memberId);
+		List<MemberGroupDetailSummaryRow> groupRows = groupMemberRepository.findMemberGroupDetailSummaries(
+			memberId,
+			GroupStatus.ACTIVE);
+		List<MemberSubgroupDetailSummaryRow> subgroupRows = subgroupMemberRepository.findMemberSubgroupDetailSummaries(
+			memberId,
+			SubgroupStatus.ACTIVE,
+			GroupStatus.ACTIVE);
+		Map<Long, MemberGroupDetailSummaryResponse> grouped = new LinkedHashMap<>();
+		for (MemberGroupDetailSummaryRow row : groupRows) {
+			MemberGroupDetailSummaryResponse summary = new MemberGroupDetailSummaryResponse(
+				row.groupId(),
+				row.groupName(),
+				row.groupAddress(),
+				row.groupDetailAddress(),
+				row.groupLogoImageUrl(),
+				row.groupMemberCount(),
+				new ArrayList<>());
+			grouped.put(row.groupId(), summary);
+		}
+		for (MemberSubgroupDetailSummaryRow row : subgroupRows) {
+			MemberGroupDetailSummaryResponse summary = grouped.get(row.groupId());
+			if (summary != null) {
+				summary.subGroups().add(new MemberSubgroupDetailSummaryResponse(
+					row.subGroupId(),
+					row.subGroupName(),
+					row.memberCount(),
+					row.logoImageUrl()));
 			}
 		}
 		return new ArrayList<>(grouped.values());
