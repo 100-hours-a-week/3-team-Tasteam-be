@@ -3,11 +3,6 @@ package com.tasteam.domain.search.dto.response;
 public record SearchGroupSummary(
 	long groupId,
 	String name,
-	LogoImage logoImage,
+	String logoImageUrl,
 	long memberCount) {
-
-	public record LogoImage(
-		java.util.UUID id,
-		String url) {
-	}
 }

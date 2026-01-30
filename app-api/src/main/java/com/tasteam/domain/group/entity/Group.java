@@ -1,7 +1,6 @@
 package com.tasteam.domain.group.entity;
 
 import java.time.Instant;
-import java.util.UUID;
 
 import org.locationtech.jts.geom.Point;
 
@@ -47,9 +46,6 @@ public class Group extends BaseTimeEntity {
 	@Column(name = "logo_image_url", length = 500)
 	private String logoImageUrl;
 
-	@Column(name = "logo_image_uuid")
-	private UUID logoImageUuid;
-
 	@Column(name = "address", nullable = false, length = 255)
 	private String address;
 
@@ -93,14 +89,8 @@ public class Group extends BaseTimeEntity {
 		this.status = status;
 	}
 
-	public void changeLogoImage(String logoImageUrl, UUID logoImageUuid) {
+	public void updateLogoImageUrl(String logoImageUrl) {
 		this.logoImageUrl = logoImageUrl;
-		this.logoImageUuid = logoImageUuid;
-	}
-
-	public void clearLogoImage() {
-		this.logoImageUrl = null;
-		this.logoImageUuid = null;
 	}
 
 	public void delete(Instant deletedAt) {

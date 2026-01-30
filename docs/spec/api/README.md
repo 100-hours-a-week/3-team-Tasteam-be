@@ -187,9 +187,6 @@ Content-Type: application/json
 |---|---|---:|---|---|
 | `data` | `object` | N | `-` | `-` |
 
-- `data.groups[].logoImage`: object with the file UUID and public URL for each group logo.
-
-
 ```json
 {
   "data": {
@@ -517,17 +514,14 @@ POST /api/v1/search?keyword=string&cursor=string&size=0
 ```json
 {
   "data": {
-      "groups": [
-        {
-          "groupId": 1,
-          "name": "카카오 판교 크루",
-          "logoImage": {
-            "id": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
-            "url": "https://cdn.xxx/group1.png"
-          },
-          "memberCount": 12
-        }
-      ],
+    "groups": [
+      {
+        "groupId": 1,
+        "name": "카카오 판교 크루",
+        "logoImageUrl": "https://cdn.xxx/group1.png",
+        "memberCount": 12
+      }
+    ],
     "restaurants": {
       "items": [
         {
@@ -1772,7 +1766,7 @@ Content-Type: application/json
 
 {
     "name": "카카오 부트캠프",
-    "logoImageId": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
+    "imageIds": "a3f1c9e0-7a9b...",
     "address": "경기 성남시 분당구 판교역로 166",
     "detailAddress": null,
     "location": {
@@ -1783,8 +1777,6 @@ Content-Type: application/json
     "emailDomain": null
 }
 ```
-
-- `logoImageId`: 업로드 API(`/api/v1/files/uploads/presigned`)로 생성된 파일 UUID를 전달합니다.
 
 ### 응답(Response)
 
@@ -1876,9 +1868,9 @@ GET /groups/{groupId}
     "groupId": 10,
     "name": "카카오 부트캠프",
     "logoImage": {
-      "id": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
-      "url": "https://cdn.xxx..."
-    },
+        "id": "a3f1c9e0-7a9b...",
+        "url": "https://cdn.xxx..."
+      },
     "address": "경기 성남시 분당구 대왕판교로 660" ,
     "detail_address": "유스페이스 1 A동 405호",
     "emailDomain": null,
@@ -2170,19 +2162,13 @@ Authorization: Bearer {accessToken}
     {
       "memberId": 5,
       "nickname": "세이",
-      "profileImage": {
-        "id": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
-        "url": "https://cdn.xxx..."
-      },
+      "profileImage": "url": "https://cdn.xxx...",
       "createdAt": "2026-01-02T09:00:00+09:00"
     },
     {
       "memberId": 8,
       "nickname": "데브온",
-      "profileImage": {
-        "id": "b4f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
-        "url": "https://cdn.xxx..."
-      },
+      "profileImage": "https://cdn.xxx...",
       "createdAt": "2026-01-03T09:00:00+09:00"
     }
   ],
@@ -2421,9 +2407,9 @@ GET /members/me/groups
        "groupId": 10,
        "name": "카카오 부트캠프",
        "logoImage": {
-         "id": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
-         "url": "https://cdn.xxx..."
-       },
+           "id": "a3f1c9e0-7a9b...",
+           "url": "https://cdn.xxx..."
+         },
        "address": "경기 성남시 분당구 대왕판교로 660" ,
        "detailAddress": "유스페이스 1 A동 405호",
        "emailDomain": null,
@@ -4708,10 +4694,7 @@ Authorization: Bearer {accessToken}
   "data": {
     "member": {
       "nickname": "홍길동",
-      "profileImage": {
-        "id": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
-        "url": "https://..."
-      }
+      "profileImageUrl": "https://..."
     },
     "groupRequests": {
       "data": [
@@ -4854,7 +4837,7 @@ Authorization: Bearer {accessToken}
 
 | 필드 | 타입 | 필수 | 기본값 | 제약 | 설명 | 예시 |
 |---|---|---:|---|---|---|---|
-| `profileImageId` | `string` | N | - | UUID | `a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012` |
+| `profileImageUrl` | `string` | N | - | - | - | `url` |
 | `email` | `string` | N | - | - | - | `example@gmail.com` |
 
 ### 요청 예시
@@ -4865,7 +4848,7 @@ Authorization: Bearer {accessToken}
 Content-Type: application/json
 
 {
-    "profileImageId": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
+    "profileImageUrl": "url",
     "email": "example@gmail.com"
 }
 ```

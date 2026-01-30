@@ -30,7 +30,6 @@ import com.tasteam.domain.file.dto.response.LinkedDomainResponse;
 import com.tasteam.domain.file.dto.response.PresignedUploadItem;
 import com.tasteam.domain.file.dto.response.PresignedUploadResponse;
 import com.tasteam.domain.file.entity.DomainImage;
-import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
@@ -119,17 +118,6 @@ public class FileService {
 		}
 
 		return new DomainImageLinkResponse(domainImage.getId(), image.getStatus().name());
-	}
-
-	@Transactional
-	public ImageUrlResponse linkDomainImageAndGetUrl(DomainType domainType, Long domainId, String fileUuid) {
-		linkDomainImage(new DomainImageLinkRequest(domainType, domainId, fileUuid, null));
-		return getImageUrl(fileUuid);
-	}
-
-	@Transactional
-	public void unlinkDomainImages(DomainType domainType, Long domainId) {
-		domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
 	}
 
 	@Transactional(readOnly = true)

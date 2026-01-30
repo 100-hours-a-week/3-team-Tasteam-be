@@ -167,18 +167,9 @@ public class SearchService {
 			.map(group -> new SearchGroupSummary(
 				group.getId(),
 				group.getName(),
-				buildLogoImage(group),
+				group.getLogoImageUrl(),
 				memberCounts.getOrDefault(group.getId(), 0L)))
 			.toList();
-	}
-
-	private SearchGroupSummary.LogoImage buildLogoImage(Group group) {
-		if (group.getLogoImageUuid() == null || group.getLogoImageUrl() == null) {
-			return null;
-		}
-		return new SearchGroupSummary.LogoImage(
-			group.getLogoImageUuid(),
-			group.getLogoImageUrl());
 	}
 
 	private Map<Long, List<RestaurantImageDto>> findRestaurantThumbnails(List<Long> restaurantIds) {
