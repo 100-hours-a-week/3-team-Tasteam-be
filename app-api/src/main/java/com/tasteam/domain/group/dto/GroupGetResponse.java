@@ -11,7 +11,7 @@ public record GroupGetResponse(GroupData data) {
 	public record GroupData(
 		Long groupId,
 		String name,
-		String logoImageUrl,
+		LogoImage logoImage,
 		String address,
 		String detailAddress,
 		String emailDomain,
@@ -19,5 +19,10 @@ public record GroupGetResponse(GroupData data) {
 		String status,
 		Instant createdAt,
 		Instant updatedAt) {
+	}
+
+	public record LogoImage(
+		java.util.UUID id,
+		String url) {
 	}
 }

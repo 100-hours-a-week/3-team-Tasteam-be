@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -18,6 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.tasteam.domain.file.dto.response.ImageUrlResponse;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.dto.GroupCreateRequest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
 import com.tasteam.domain.group.dto.GroupEmailAuthenticationResponse;
@@ -60,6 +64,7 @@ public class GroupService {
 	private final EmailSender emailSender;
 	private final SubgroupMemberRepository subgroupMemberRepository;
 	private final SubgroupRepository subgroupRepository;
+	private final FileService fileService;
 
 	@Transactional
 	public GroupCreateResponse createGroup(GroupCreateRequest request) {
@@ -72,7 +77,6 @@ public class GroupService {
 		Group group = Group.builder()
 			.name(request.name())
 			.type(request.type())
-			.logoImageUrl(request.logoImageUrl())
 			.address(request.address())
 			.detailAddress(request.detailAddress())
 			.location(toPoint(request.location()))
@@ -82,6 +86,7 @@ public class GroupService {
 			.build();
 
 		Group savedGroup = groupRepository.save(group);
+		assignLogoImageIfPresent(savedGroup, request.logoImageId());
 		if (savedGroup.getJoinType() == GroupJoinType.PASSWORD) {
 			groupAuthCodeRepository.save(GroupAuthCode.builder()
 				.groupId(savedGroup.getId())
@@ -100,7 +105,7 @@ public class GroupService {
 				new GroupGetResponse.GroupData(
 					group.getId(),
 					group.getName(),
-					group.getLogoImageUrl(),
+					buildLogoImage(group),
 					group.getAddress(),
 					group.getDetailAddress(),
 					group.getEmailDomain(),
@@ -120,7 +125,7 @@ public class GroupService {
 		applyStringIfPresent(request.address(), group::updateAddress, false);
 		applyStringIfPresent(request.detailAddress(), group::updateDetailAddress, true);
 		applyStringIfPresent(request.emailDomain(), group::updateEmailDomain, true);
-		applyLogoImageUrl(request.logoImageUrl(), group);
+		applyLogoImageId(request.logoImageId(), group);
 		applyStatusIfPresent(request.status(), group);
 	}
 
@@ -369,18 +374,46 @@ public class GroupService {
 		}
 	}
 
-	private void applyLogoImageUrl(JsonNode node, Group group) {
+	private void applyLogoImageId(JsonNode node, Group group) {
 		if (node == null) {
 			return;
 		}
 		if (node.isNull()) {
-			group.updateLogoImageUrl(null);
+			fileService.unlinkDomainImages(DomainType.GROUP, group.getId());
+			group.clearLogoImage();
 			return;
 		}
 		if (!node.isTextual()) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
-		group.updateLogoImageUrl(node.asText());
+		updateGroupLogo(group, node.asText());
+	}
+
+	private void assignLogoImageIfPresent(Group group, String logoImageId) {
+		if (logoImageId == null) {
+			return;
+		}
+		updateGroupLogo(group, logoImageId);
+	}
+
+	private void updateGroupLogo(Group group, String logoImageId) {
+		if (logoImageId == null || logoImageId.isBlank()) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+		ImageUrlResponse imageUrl = fileService.linkDomainImageAndGetUrl(
+			DomainType.GROUP,
+			group.getId(),
+			logoImageId);
+		group.changeLogoImage(imageUrl.url(), UUID.fromString(imageUrl.fileUuid()));
+	}
+
+	private GroupGetResponse.LogoImage buildLogoImage(Group group) {
+		if (group.getLogoImageUuid() == null || group.getLogoImageUrl() == null) {
+			return null;
+		}
+		return new GroupGetResponse.LogoImage(
+			group.getLogoImageUuid(),
+			group.getLogoImageUrl());
 	}
 
 	private Point toPoint(GroupCreateRequest.Location location) {

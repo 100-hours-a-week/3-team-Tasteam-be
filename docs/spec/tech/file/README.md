@@ -184,7 +184,7 @@ erDiagram
         - **Request Body**
             - content-type: `application/json`
             - 스키마
-                - `purpose`: string (필수, 기본값: 없음, 제약: `ENUM(“REVIEW_IMAGE”, “RESTAURANT_IMAGE”, “COMMON_ASSET”)`) - 업로드 목적/도메인 카테고리
+                - `purpose`: string (필수, 기본값: 없음, 제약: `ENUM(“REVIEW_IMAGE”, “RESTAURANT_IMAGE”, “COMMON_ASSET”, “GROUP_IMAGE”, “PROFILE_IMAGE”)`) - 업로드 목적/도메인 카테고리
                 - `files`: array (필수, minItems=1, maxItems=5) - 업로드할 파일 메타데이터 배열
                     - `fileName`: string (필수, maxLength=256) - 원본 이름
                     - `contentType`: string (필수, allowlist=`image/jpeg|image/jpg|image/png|image/webp`) - MIME 타입

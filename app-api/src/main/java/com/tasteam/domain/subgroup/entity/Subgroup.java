@@ -1,6 +1,7 @@
 package com.tasteam.domain.subgroup.entity;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import com.tasteam.domain.common.BaseTimeEntity;
 import com.tasteam.domain.group.entity.Group;
@@ -49,6 +50,9 @@ public class Subgroup extends BaseTimeEntity {
 	@Column(name = "profile_image_url", length = 500)
 	private String profileImageUrl;
 
+	@Column(name = "profile_image_uuid")
+	private UUID profileImageUuid;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "join_type", nullable = false, length = 20)
 	private SubgroupJoinType joinType;
@@ -74,8 +78,14 @@ public class Subgroup extends BaseTimeEntity {
 		this.description = description;
 	}
 
-	public void updateProfileImageUrl(String profileImageUrl) {
+	public void updateProfileImage(String profileImageUrl, UUID profileImageUuid) {
 		this.profileImageUrl = profileImageUrl;
+		this.profileImageUuid = profileImageUuid;
+	}
+
+	public void clearProfileImage() {
+		this.profileImageUrl = null;
+		this.profileImageUuid = null;
 	}
 
 	public void increaseMemberCount() {

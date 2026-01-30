@@ -1,6 +1,7 @@
 package com.tasteam.domain.member.entity;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import org.springframework.util.Assert;
 
@@ -49,6 +50,9 @@ public class Member extends BaseTimeEntity {
 	@Column(name = "profile_image_url", length = 500)
 	private String profileImageUrl;
 
+	@Column(name = "profile_image_uuid")
+	private UUID profileImageUuid;
+
 	@Column(name = "last_login_at")
 	private Instant lastLoginAt;
 
@@ -81,9 +85,15 @@ public class Member extends BaseTimeEntity {
 		this.email = email;
 	}
 
-	public void changeProfileImageUrl(String profileImageUrl) {
+	public void changeProfileImage(String profileImageUrl, UUID profileImageUuid) {
 		validateProfileImageUrl(profileImageUrl);
 		this.profileImageUrl = profileImageUrl;
+		this.profileImageUuid = profileImageUuid;
+	}
+
+	public void clearProfileImage() {
+		this.profileImageUrl = null;
+		this.profileImageUuid = null;
 	}
 
 	public void block() {
