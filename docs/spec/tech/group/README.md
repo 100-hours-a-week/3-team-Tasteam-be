@@ -526,7 +526,7 @@ erDiagram
             - content-type: `application/json`
             - 스키마(필드 정의)
                 - `name`: string - 그룹명
-                - `logoImageId`: string (UUID) - `files` 업로드 API에서 발급된 로고 이미지 UUID
+                - `logoImageURL`: string - 로고 이미지 URL
                 - `type`: string(enum: `OFFICIAL|UNOFFICIAL`)
                 - `address`: string - 주소
                 - `detailAddress`: string | null - 상세 주소
@@ -539,7 +539,7 @@ erDiagram
               ```json
               {
                 "name": "카카오 부트캠프",
-                "logoImageId": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
+                "logoImageUrl": "https://cdn.xxx...",
                 "address": "경기 성남시 분당구 판교역로 166",
                 "detailAddress": null,
                 "location": {
@@ -551,7 +551,6 @@ erDiagram
                 "code": "123456"
               }
               ```
-              - `logoImageId`: `files` 업로드 API로 생성한 UUID를 전달해야 합니다.
     - **응답**
         - status: `201`
         - body 스키마(요약)
@@ -625,9 +624,7 @@ erDiagram
         - body 스키마(요약)
             - `data.groupId`: number
             - `data.name`: string
-            - `data.logoImage`: object | null
-              - `id`: string (UUID)
-              - `url`: string
+            - `data.logoImageUrl`: string
             - `data.address`: string
             - `data.detailAddress`: string | null
             - `data.emailDomain`: string | null
@@ -640,10 +637,7 @@ erDiagram
             "data": {
               "groupId": 10,
               "name": "카카오 부트캠프",
-              "logoImage": {
-                "id": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
-                "url": "https://cdn.xxx..."
-              },
+              "logoImageUrl":"https://cdn.xxx...",
               "address": "경기 성남시 분당구 대왕판교로 660",
               "detailAddress": "유스페이스 1 A동 405호",
               "emailDomain": null,
@@ -753,9 +747,7 @@ erDiagram
             - `data[]`: array
                 - `memberId`: number
                 - `nickname`: string
-                - `profileImage`: object | null
-                  - `id`: string (UUID)
-                  - `url`: string
+                - `profileImageUrl`: string | null
                 - `createdAt`: string (ISO-8601)
             - `page.nextCursor`: string
             - `page.size`: number
@@ -767,10 +759,7 @@ erDiagram
               {
                 "memberId": 5,
                 "nickname": "세이",
-                "profileImage": {
-                  "id": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
-                  "url": "https://cdn.xxx..."
-                },
+                "profileImageUrl": "https://cdn.xxx...",
                 "createdAt": "2026-01-02T09:00:00+09:00"
               }
             ],
@@ -792,7 +781,7 @@ erDiagram
     - **에러 코드(주요):** `UNAUTHORIZED`(401), `FORBIDDEN`(403), `GROUP_NOT_FOUND`(404), `INTERNAL_SERVER_ERROR`(500)
 - **비고(명세/구현 정리):**
     - 인덱스(권장): `group_member(group_id, created_at, id)` 또는 `group_member(group_id, id)`(+ 정렬 기준 확정)
-    - 명세 이슈: API 예시를 `profileImage` 객체(`id`, `url`)로 정리
+    - 명세 이슈: API 예시의 `profileImage` JSON 형식이 깨져 있음 → `profileImageUrl`(문자열)로 우선 제공하거나 이미지 모델 확정 후 `profileImage {id,url}`로 통일
 
 ### **그룹 멤버 삭제(운영 관리자)**
 
@@ -898,11 +887,9 @@ erDiagram
         - status: `200`
         - body 스키마(요약)
             - `data[]`: array
-            - `groupId`: number
-            - `name`: string
-            - `logoImage`: object | null
-                - `id`: string (UUID)
-                - `url`: string
+                - `groupId`: number
+                - `name`: string
+                - `logoImageUrl`: string
                 - `address`: string
                 - `detailAddress`: string | null
                 - `emailDomain`: string | null
@@ -928,10 +915,7 @@ erDiagram
               {
                 "groupId": 10,
                 "name": "카카오 부트캠프",
-                "logoImage": {
-                  "id": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
-                  "url": "https://cdn.xxx..."
-                },
+                "logoImage": { "id": "a3f1c9e0-7a9b...", "url": "https://cdn.xxx..." },
                 "address": "경기 성남시 분당구 대왕판교로 660",
                 "detailAddress": "유스페이스 1 A동 405호",
                 "emailDomain": null,
@@ -1569,7 +1553,7 @@ erDiagram
 
 1. **[그룹 생성 신청 매핑]** API `joinType`(예: `WORK-EMAIL`)과 DB `request_type(OFFICIAL|UNOFFICIAL)`, `group.join_type(EMAIL|PASSWORD)`의 관계 확정 ([관련자: @TBD])
 2. **[그룹 비밀번호 저장 위치]** `group.join_type=PASSWORD`일 때 비밀번호/초대코드 저장 방식(ERD 부재) 확정 ([관련자: @TBD])
-3. **[이미지 모델 정합]** ERD는 URL 기반, API 단일 이미지는 `{ id, url }` 객체로 응답 (요청은 `logoImageId`로 전환) ([관련자: @TBD])
+3. **[이미지 모델 정합]** ERD는 URL 기반, API는 `logoImage {id,url}` 형태 → id 타입/저장 방식 확정 ([관련자: @TBD])
 4. **[그룹 가입(이메일) verify 요청 스키마]** 현재 API는 `code`만 있음 → `{email, code}`로 변경할지, `email == member.email` 강제 + Redis 키 포함으로 충분한지 결정 ([관련자: @TBD])
 5. **[멱등성/중복 처리 정책]** 탈퇴/가입/멤버 삭제 API 중복 호출 시 204(멱등) vs 409(충돌) 일관 정책 결정 ([관련자: @TBD])
 6. **[그룹 삭제/탈퇴 하위 리소스 처리]** 하위그룹 멤버십을 일괄 정리(soft delete)할지, 조회에서만 제외할지 확정 ([관련자: @TBD])

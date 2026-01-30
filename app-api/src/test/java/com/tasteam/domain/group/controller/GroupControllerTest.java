@@ -101,18 +101,9 @@ class GroupControllerTest {
 			// given
 			GroupGetResponse response = new GroupGetResponse(
 				new GroupGetResponse.GroupData(
-					1L,
-					"테스트그룹",
-					new GroupGetResponse.LogoImage(
-						java.util.UUID.fromString("a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012"),
-						"https://example.com/logo.jpg"),
-					"서울시 강남구",
-					null,
-					"test.com",
-					3L,
-					"ACTIVE",
-					Instant.now(),
-					Instant.now()));
+					1L, "테스트그룹", "https://example.com/logo.jpg",
+					"서울시 강남구", null, "test.com", 3L, "ACTIVE",
+					Instant.now(), Instant.now()));
 
 			given(groupService.getGroup(1L)).willReturn(response);
 
@@ -356,14 +347,7 @@ class GroupControllerTest {
 		void 그룹_멤버_목록_조회_성공() throws Exception {
 			// given
 			GroupMemberListResponse response = new GroupMemberListResponse(
-				List.of(new GroupMemberListItem(
-					1L,
-					100L,
-					"테스트유저",
-					new GroupMemberListItem.ProfileImage(
-						java.util.UUID.fromString("a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012"),
-						"https://example.com/profile.jpg"),
-					Instant.now())),
+				List.of(new GroupMemberListItem(1L, 100L, "테스트유저", "https://example.com/profile.jpg", Instant.now())),
 				new GroupMemberListResponse.PageInfo(null, 20, false));
 
 			given(groupService.getGroupMembers(eq(1L), any(), any())).willReturn(response);

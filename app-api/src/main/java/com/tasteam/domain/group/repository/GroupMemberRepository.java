@@ -25,7 +25,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 			gm.id,
 			gm.member.id,
 			m.nickname,
-			m.profileImageUuid,
 			m.profileImageUrl,
 			gm.createdAt
 		)

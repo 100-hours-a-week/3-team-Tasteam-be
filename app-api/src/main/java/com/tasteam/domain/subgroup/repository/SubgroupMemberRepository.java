@@ -64,7 +64,6 @@ public interface SubgroupMemberRepository extends JpaRepository<SubgroupMember, 
 			sm.id,
 			sm.member.id,
 			m.nickname,
-			m.profileImageUuid,
 			m.profileImageUrl,
 			sm.createdAt
 		)

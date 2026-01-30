@@ -9,6 +9,6 @@ public record GroupUpdateRequest(
 	JsonNode detailAddress,
 	JsonNode emailDomain,
 	JsonNode status,
-	@JsonProperty("logoImageId")
-	JsonNode logoImageId) {
+	@JsonProperty("logoImageURL")
+	JsonNode logoImageUrl) {
 }

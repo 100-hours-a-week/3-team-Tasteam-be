@@ -2,7 +2,6 @@ package com.tasteam.domain.subgroup.service;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import java.util.function.Consumer;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -12,9 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.tasteam.domain.file.dto.response.ImageUrlResponse;
-import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
@@ -61,7 +57,6 @@ public class SubgroupService {
 	private final SubgroupMemberRepository subgroupMemberRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final CursorCodec cursorCodec;
-	private final FileService fileService;
 
 	@Transactional(readOnly = true)
 	public SubgroupListResponse getMySubgroups(Long groupId, Long memberId, String keyword, String cursor,
@@ -143,7 +138,7 @@ public class SubgroupService {
 				subgroup.getName(),
 				subgroup.getDescription(),
 				subgroup.getMemberCount(),
-				buildProfileImage(subgroup),
+				subgroup.getProfileImageUrl(),
 				subgroup.getCreatedAt()));
 	}
 
@@ -197,6 +192,7 @@ public class SubgroupService {
 			.group(group)
 			.name(request.getName())
 			.description(request.getDescription())
+			.profileImageUrl(request.getProfileImageUrl())
 			.joinType(request.getJoinType())
 			.joinPassword(encodedPassword)
 			.status(SubgroupStatus.ACTIVE)
@@ -212,7 +208,6 @@ public class SubgroupService {
 		Member member = memberRepository.findByIdAndDeletedAtIsNull(memberId)
 			.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 		subgroupMemberRepository.save(SubgroupMember.create(subgroup.getId(), member));
-		applyProfileImageToSubgroup(subgroup, request.getProfileImageId());
 
 		return SubgroupCreateResponse.from(subgroup);
 	}
@@ -288,7 +283,7 @@ public class SubgroupService {
 
 		String updatedName = applyStringIfPresent(request.getName(), subgroup::updateName, false);
 		applyStringIfPresent(request.getDescription(), subgroup::updateDescription, true);
-		applyProfileImageId(request.getProfileImageId(), subgroup);
+		applyStringIfPresent(request.getProfileImageUrl(), subgroup::updateProfileImageUrl, true);
 
 		if (updatedName != null
 			&& subgroupRepository.existsByGroup_IdAndNameAndDeletedAtIsNullAndIdNot(groupId, updatedName, subgroupId)) {
@@ -429,48 +424,6 @@ public class SubgroupService {
 		}
 		updater.accept(value);
 		return value;
-	}
-
-	private void applyProfileImageId(JsonNode node, Subgroup subgroup) {
-		if (node == null) {
-			return;
-		}
-		if (node.isNull()) {
-			fileService.unlinkDomainImages(DomainType.SUBGROUP, subgroup.getId());
-			subgroup.clearProfileImage();
-			return;
-		}
-		if (!node.isTextual()) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-		linkSubgroupProfileImage(subgroup, node.asText());
-	}
-
-	private void applyProfileImageToSubgroup(Subgroup subgroup, String profileImageId) {
-		if (profileImageId == null) {
-			return;
-		}
-		linkSubgroupProfileImage(subgroup, profileImageId);
-	}
-
-	private void linkSubgroupProfileImage(Subgroup subgroup, String profileImageId) {
-		if (profileImageId == null || profileImageId.isBlank()) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-		ImageUrlResponse imageUrl = fileService.linkDomainImageAndGetUrl(
-			DomainType.SUBGROUP,
-			subgroup.getId(),
-			profileImageId);
-		subgroup.updateProfileImage(imageUrl.url(), UUID.fromString(imageUrl.fileUuid()));
-	}
-
-	private SubgroupDetailResponse.ProfileImage buildProfileImage(Subgroup subgroup) {
-		if (subgroup.getProfileImageUuid() == null || subgroup.getProfileImageUrl() == null) {
-			return null;
-		}
-		return new SubgroupDetailResponse.ProfileImage(
-			subgroup.getProfileImageUuid(),
-			subgroup.getProfileImageUrl());
 	}
 
 	private int resolveSize(Integer size) {

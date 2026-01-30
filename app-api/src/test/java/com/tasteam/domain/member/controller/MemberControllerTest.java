@@ -71,10 +71,7 @@ class MemberControllerTest {
 		void 내_정보_조회_성공() throws Exception {
 			// given
 			MemberMeResponse response = new MemberMeResponse(
-				new MemberSummaryResponse("테스트유저",
-					new MemberSummaryResponse.ProfileImage(
-						java.util.UUID.fromString("a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012"),
-						"https://example.com/profile.jpg")),
+				new MemberSummaryResponse("테스트유저", "https://example.com/profile.jpg"),
 				MemberPreviewResponse.empty(),
 				MemberPreviewResponse.empty());
 
@@ -85,8 +82,7 @@ class MemberControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data.member.nickname").value("테스트유저"))
-				.andExpect(jsonPath("$.data.member.profileImage.url").value("https://example.com/profile.jpg"))
-				.andExpect(jsonPath("$.data.member.profileImage.id").value("a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012"))
+				.andExpect(jsonPath("$.data.member.profileImageUrl").value("https://example.com/profile.jpg"))
 				.andExpect(jsonPath("$.data.groupRequests.data").isEmpty())
 				.andExpect(jsonPath("$.data.reviews.data").isEmpty());
 		}
@@ -143,9 +139,7 @@ class MemberControllerTest {
 				.name("서브그룹1")
 				.description("설명")
 				.memberCount(5)
-				.profileImage(new SubgroupListItem.ProfileImage(
-					java.util.UUID.fromString("a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012"),
-					"https://example.com/img.jpg"))
+				.profileImageUrl("https://example.com/img.jpg")
 				.createdAt(Instant.now())
 				.build();
 
@@ -177,7 +171,7 @@ class MemberControllerTest {
 			willDoNothing().given(memberService).updateMyProfile(any(), any());
 
 			MemberProfileUpdateRequest request = new MemberProfileUpdateRequest(
-				"new@example.com", "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012");
+				"new@example.com", "https://example.com/new-profile.jpg");
 
 			// when & then
 			mockMvc.perform(patch("/api/v1/members/me/profile")

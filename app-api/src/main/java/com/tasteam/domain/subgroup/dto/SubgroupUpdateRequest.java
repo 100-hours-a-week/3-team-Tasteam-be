@@ -1,6 +1,5 @@
 package com.tasteam.domain.subgroup.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.AllArgsConstructor;
@@ -13,6 +12,5 @@ import lombok.NoArgsConstructor;
 public class SubgroupUpdateRequest {
 	private JsonNode name;
 	private JsonNode description;
-	@JsonProperty("profileImageId")
-	private JsonNode profileImageId;
+	private JsonNode profileImageUrl;
 }
