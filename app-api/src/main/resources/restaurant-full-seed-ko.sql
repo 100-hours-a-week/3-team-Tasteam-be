@@ -80,9 +80,9 @@ INSERT INTO image (
   status, purpose, deleted_at, created_at, updated_at
 ) VALUES
   (12901, 'restaurant-12001-1.jpg', 234567, 'image/jpeg', 'uploads/restaurant/restaurant-12001-1.jpg',
-   'aaaaaaaa-0000-0000-0000-000000000001', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now()),
+   'aaaaaaaa-0000-0000-0000-000000120001', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now()),
   (12902, 'restaurant-12001-2.jpg', 245678, 'image/jpeg', 'uploads/restaurant/restaurant-12001-2.jpg',
-   'aaaaaaaa-0000-0000-0000-000000000002', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now());
+   'aaaaaaaa-0000-0000-0000-000000120002', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now());
 
 INSERT INTO domain_image (
   id, domain_type, domain_id, image_id, sort_order, created_at
