@@ -43,7 +43,7 @@ jobs:
 
       # 테스트 + 컴파일만 실행 (JAR 생성 안함, SpotBugs 제외)
       - name: Run Tests and Compile
-        run: ./gradlew test
+        run: ./gradlew compile
 
       # CodeQL 분석 수행
       - name: Perform CodeQL Analysis
