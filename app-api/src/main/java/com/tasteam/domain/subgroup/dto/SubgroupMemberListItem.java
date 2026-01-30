@@ -13,6 +13,21 @@ public record SubgroupMemberListItem(
 	ProfileImage profileImage,
 	Instant createdAt) {
 
+	public SubgroupMemberListItem(
+		Long cursorId,
+		Long memberId,
+		String nickname,
+		UUID profileImageUuid,
+		String profileImageUrl,
+		Instant createdAt) {
+		this(
+			cursorId,
+			memberId,
+			nickname,
+			new ProfileImage(profileImageUuid, profileImageUrl),
+			createdAt);
+	}
+
 	public record ProfileImage(
 		UUID id,
 		String url) {
