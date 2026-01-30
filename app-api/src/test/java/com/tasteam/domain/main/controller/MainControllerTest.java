@@ -32,22 +32,26 @@ class MainControllerTest {
 	@MockitoBean
 	private MainService mainService;
 
+	private MainPageResponse createMockResponse() {
+		SectionItem item = new SectionItem(1L, "맛집1", 100.0, "한식", "https://example.com/img1.jpg", false, "맛있어요");
+		return new MainPageResponse(
+			new Banners(false, List.of()),
+			List.of(
+				new Section("SPONSORED", "Sponsored", List.of()),
+				new Section("HOT", "이번주 Hot", List.of(item)),
+				new Section("NEW", "신규 개장", List.of(item)),
+				new Section("AI_RECOMMEND", "AI 추천", List.of(item))));
+	}
+
 	@Nested
 	@DisplayName("메인 페이지 조회")
 	class GetMain {
 
 		@Test
-		@DisplayName("위치 정보와 함께 메인 페이지를 조회하면 섹션 목록을 반환한다")
+		@DisplayName("위치 정보와 함께 메인 페이지를 조회하면 4개 섹션을 반환한다")
 		void 위치_정보로_메인_페이지_조회_성공() throws Exception {
 			// given
-			MainPageResponse response = new MainPageResponse(
-				new Banners(false, List.of()),
-				List.of(
-					new Section("SPONSORED", "Sponsored", List.of(
-						new SectionItem(1L, "맛집1", 100.0, "한식", "https://example.com/img1.jpg", false, "맛있어요"))),
-					new Section("HOT", "이번주 Hot", List.of())));
-
-			given(mainService.getMain(any(), any())).willReturn(response);
+			given(mainService.getMain(any(), any())).willReturn(createMockResponse());
 
 			// when & then
 			mockMvc.perform(get("/api/v1/main")
@@ -57,28 +61,13 @@ class MainControllerTest {
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data.banners.enabled").value(false))
 				.andExpect(jsonPath("$.data.sections").isArray())
+				.andExpect(jsonPath("$.data.sections.length()").value(4))
 				.andExpect(jsonPath("$.data.sections[0].type").value("SPONSORED"))
-				.andExpect(jsonPath("$.data.sections[0].title").value("Sponsored"))
-				.andExpect(jsonPath("$.data.sections[0].items[0].restaurantId").value(1))
-				.andExpect(jsonPath("$.data.sections[0].items[0].name").value("맛집1"));
-		}
-
-		@Test
-		@DisplayName("위도가 없으면 400 에러를 반환한다")
-		void 위도_누락시_400_에러() throws Exception {
-			// when & then
-			mockMvc.perform(get("/api/v1/main")
-				.param("longitude", String.valueOf(MainPageRequestFixture.DEFAULT_LONGITUDE)))
-				.andExpect(status().isBadRequest());
-		}
-
-		@Test
-		@DisplayName("경도가 없으면 400 에러를 반환한다")
-		void 경도_누락시_400_에러() throws Exception {
-			// when & then
-			mockMvc.perform(get("/api/v1/main")
-				.param("latitude", String.valueOf(MainPageRequestFixture.DEFAULT_LATITUDE)))
-				.andExpect(status().isBadRequest());
+				.andExpect(jsonPath("$.data.sections[0].items").isEmpty())
+				.andExpect(jsonPath("$.data.sections[1].type").value("HOT"))
+				.andExpect(jsonPath("$.data.sections[1].items[0].restaurantId").value(1))
+				.andExpect(jsonPath("$.data.sections[2].type").value("NEW"))
+				.andExpect(jsonPath("$.data.sections[3].type").value("AI_RECOMMEND"));
 		}
 
 		@Test

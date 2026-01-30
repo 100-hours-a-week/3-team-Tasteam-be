@@ -17,12 +17,8 @@ public final class MainPageRequestFixture {
 		return new MainPageRequest(latitude, longitude);
 	}
 
-	public static MainPageRequest createRequestWithoutLatitude() {
-		return new MainPageRequest(null, DEFAULT_LONGITUDE);
-	}
-
-	public static MainPageRequest createRequestWithoutLongitude() {
-		return new MainPageRequest(DEFAULT_LATITUDE, null);
+	public static MainPageRequest createRequestWithoutLocation() {
+		return new MainPageRequest(null, null);
 	}
 
 	public static MainPageRequest createRequestWithInvalidLatitude() {

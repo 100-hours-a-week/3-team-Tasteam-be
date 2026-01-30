@@ -69,4 +69,129 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 		int radiusMeter,
 		@Param("limit")
 		int limit);
+
+	@Query(value = """
+		select r.id as id, r.name as name,
+		  ST_Distance(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
+		from restaurant r
+		left join review rv on rv.restaurant_id = r.id and rv.deleted_at is null
+		where r.deleted_at is null
+		  and ST_DWithin(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
+		group by r.id
+		order by count(rv.id) desc, r.id asc
+		limit :limit
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findHotRestaurants(
+		@Param("latitude")
+		double latitude,
+		@Param("longitude")
+		double longitude,
+		@Param("radiusMeter")
+		int radiusMeter,
+		@Param("limit")
+		int limit);
+
+	@Query(value = """
+		select r.id as id, r.name as name,
+		  ST_Distance(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
+		from restaurant r
+		where r.deleted_at is null
+		  and ST_DWithin(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
+		order by r.created_at desc, r.id desc
+		limit :limit
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findNewRestaurants(
+		@Param("latitude")
+		double latitude,
+		@Param("longitude")
+		double longitude,
+		@Param("radiusMeter")
+		int radiusMeter,
+		@Param("limit")
+		int limit);
+
+	@Query(value = """
+		select r.id as id, r.name as name,
+		  ST_Distance(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
+		from restaurant r
+		join ai_restaurant_review_analysis a on a.restaurant_id = r.id
+		where r.deleted_at is null
+		  and ST_DWithin(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
+		order by a.positive_review_ratio desc, r.id asc
+		limit :limit
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findAiRecommendRestaurants(
+		@Param("latitude")
+		double latitude,
+		@Param("longitude")
+		double longitude,
+		@Param("radiusMeter")
+		int radiusMeter,
+		@Param("limit")
+		int limit);
+
+	@Query(value = """
+		select r.id as id, r.name as name, cast(null as double precision) as distanceMeter
+		from restaurant r
+		left join review rv on rv.restaurant_id = r.id and rv.deleted_at is null
+		where r.deleted_at is null
+		  and r.id not in (:excludeIds)
+		group by r.id
+		order by count(rv.id) desc, r.id asc
+		limit :limit
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findHotRestaurantsAll(
+		@Param("excludeIds")
+		List<Long> excludeIds,
+		@Param("limit")
+		int limit);
+
+	@Query(value = """
+		select r.id as id, r.name as name, cast(null as double precision) as distanceMeter
+		from restaurant r
+		where r.deleted_at is null
+		  and r.id not in (:excludeIds)
+		order by r.created_at desc, r.id desc
+		limit :limit
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findNewRestaurantsAll(
+		@Param("excludeIds")
+		List<Long> excludeIds,
+		@Param("limit")
+		int limit);
+
+	@Query(value = """
+		select r.id as id, r.name as name, cast(null as double precision) as distanceMeter
+		from restaurant r
+		join ai_restaurant_review_analysis a on a.restaurant_id = r.id
+		where r.deleted_at is null
+		  and r.id not in (:excludeIds)
+		order by a.positive_review_ratio desc, r.id asc
+		limit :limit
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findAiRecommendRestaurantsAll(
+		@Param("excludeIds")
+		List<Long> excludeIds,
+		@Param("limit")
+		int limit);
+
+	@Query(value = """
+		select r.id as id, r.name as name, cast(null as double precision) as distanceMeter
+		from restaurant r
+		where r.deleted_at is null
+		  and r.id not in (:excludeIds)
+		order by random()
+		limit :limit
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findRandomRestaurants(
+		@Param("excludeIds")
+		List<Long> excludeIds,
+		@Param("limit")
+		int limit);
 }

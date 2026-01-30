@@ -32,6 +32,7 @@ public interface SubgroupRepository extends JpaRepository<Subgroup, Long> {
 			s.description,
 			s.memberCount,
 			s.profileImageUrl,
+			s.joinType,
 			s.createdAt
 		)
 		from Subgroup s
@@ -63,6 +64,7 @@ public interface SubgroupRepository extends JpaRepository<Subgroup, Long> {
 			s.description,
 			s.memberCount,
 			s.profileImageUrl,
+			s.joinType,
 			s.createdAt
 		)
 		from Subgroup s
