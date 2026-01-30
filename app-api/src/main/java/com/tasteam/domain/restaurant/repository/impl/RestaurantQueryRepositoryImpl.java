@@ -29,6 +29,8 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 		Set<String> categories,
 		RestaurantCursor cursor,
 		int pageSize) {
+		boolean hasCategories = categories != null && !categories.isEmpty();
+
 		String sql = """
 			SELECT
 			  r.id AS id,
@@ -39,11 +41,7 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
 			  ) AS distance_meter
 			FROM restaurant r
-			JOIN restaurant_food_category rfc
-			     ON rfc.restaurant_id = r.id
-			JOIN food_category fc
-			     ON fc.id = rfc.food_category_id
-			         AND fc.name IN (:categories)
+			%s
 			WHERE r.deleted_at IS NULL
 			AND ST_DWithin(
 			  r.location::geography,
@@ -71,13 +69,21 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			  distance_meter ASC,
 			  r.id ASC
 			LIMIT :pageSize
-			""";
+			""".formatted(hasCategories ? """
+			JOIN restaurant_food_category rfc
+			     ON rfc.restaurant_id = r.id
+			JOIN food_category fc
+			     ON fc.id = rfc.food_category_id
+			         AND fc.name IN (:categories)
+			""" : "");
 
 		Map<String, Object> params = new HashMap<>();
 		params.put("latitude", latitude);
 		params.put("longitude", longitude);
 		params.put("radiusMeter", radiusMeter);
-		params.put("categories", categories);
+		if (hasCategories) {
+			params.put("categories", categories);
+		}
 		params.put("cursorDistance", cursor == null ? null : cursor.distanceMeter());
 		params.put("cursorId", cursor == null ? null : cursor.id());
 		params.put("pageSize", pageSize);
@@ -101,6 +107,8 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 		Set<String> categories,
 		RestaurantCursor cursor,
 		int pageSize) {
+		boolean hasCategories = categories != null && !categories.isEmpty();
+
 		String sql = """
 			SELECT
 			  r.id AS id,
@@ -111,11 +119,7 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
 			  ) AS distance_meter
 			FROM restaurant r
-			JOIN restaurant_food_category rfc
-			     ON rfc.restaurant_id = r.id
-			JOIN food_category fc
-			     ON fc.id = rfc.food_category_id
-			         AND fc.name IN (:categories)
+			%s
 			WHERE r.deleted_at IS NULL
 			AND ST_DWithin(
 			  r.location::geography,
@@ -149,13 +153,21 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			  distance_meter ASC,
 			  r.id ASC
 			LIMIT :pageSize
-			""";
+			""".formatted(hasCategories ? """
+			JOIN restaurant_food_category rfc
+			     ON rfc.restaurant_id = r.id
+			JOIN food_category fc
+			     ON fc.id = rfc.food_category_id
+			         AND fc.name IN (:categories)
+			""" : "");
 
 		Map<String, Object> params = new HashMap<>();
 		params.put("latitude", latitude);
 		params.put("longitude", longitude);
 		params.put("radiusMeter", radiusMeter);
-		params.put("categories", categories);
+		if (hasCategories) {
+			params.put("categories", categories);
+		}
 		params.put("groupId", groupId);
 		params.put("cursorDistance", cursor == null ? null : cursor.distanceMeter());
 		params.put("cursorId", cursor == null ? null : cursor.id());
