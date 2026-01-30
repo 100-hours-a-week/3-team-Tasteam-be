@@ -25,6 +25,7 @@ public class DummyStorageClient implements StorageClient {
 		Assert.notNull(request, "presigned 요청은 필수입니다");
 		Assert.hasText(request.objectKey(), "objectKey는 필수입니다");
 		Assert.hasText(request.contentType(), "contentType은 필수입니다");
+		Assert.isTrue(request.maxContentLength() > 0, "maxContentLength는 1 이상이어야 합니다");
 
 		Instant expiresAt = Instant.now().plusSeconds(properties.getPresignedExpirationSeconds());
 		String url = buildFallbackUrl(request.objectKey());

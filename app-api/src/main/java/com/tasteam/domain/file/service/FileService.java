@@ -68,7 +68,10 @@ public class FileService {
 				fileUuid);
 			imageRepository.save(image);
 
-			PresignedPostResponse presignedPost = createPresignedPost(storageKey, fileRequest.contentType());
+			PresignedPostResponse presignedPost = createPresignedPost(
+				storageKey,
+				fileRequest.contentType(),
+				fileRequest.size());
 			uploads.add(new PresignedUploadItem(
 				image.getFileUuid().toString(),
 				storageKey,
@@ -195,9 +198,11 @@ public class FileService {
 		}
 	}
 
-	private PresignedPostResponse createPresignedPost(String storageKey, String contentType) {
+	private PresignedPostResponse createPresignedPost(String storageKey, String contentType, long maxContentLength) {
+		Assert.isTrue(maxContentLength > 0, "업로드 파일 크기는 1바이트 이상이어야 합니다");
 		try {
-			return storageClient.createPresignedPost(new PresignedPostRequest(storageKey, contentType));
+			return storageClient
+				.createPresignedPost(new PresignedPostRequest(storageKey, contentType, maxContentLength));
 		} catch (RuntimeException ex) {
 			throw new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
 		}

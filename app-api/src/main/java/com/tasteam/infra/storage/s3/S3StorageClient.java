@@ -51,6 +51,7 @@ public class S3StorageClient implements StorageClient {
 		Assert.notNull(request, "presigned 요청은 필수입니다");
 		Assert.hasText(request.objectKey(), "objectKey는 필수입니다");
 		Assert.hasText(request.contentType(), "contentType은 필수입니다");
+		Assert.isTrue(request.maxContentLength() > 0, "maxContentLength는 1 이상이어야 합니다");
 
 		AWSCredentials credentials = credentialsProvider.getCredentials();
 		Assert.hasText(credentials.getAWSAccessKeyId(), "AWS access key가 필요합니다");
@@ -93,6 +94,11 @@ public class S3StorageClient implements StorageClient {
 		ArrayNode conditions = policyNode.putArray("conditions");
 		conditions.add(OBJECT_MAPPER.createObjectNode().put("bucket", resolveBucket()));
 		conditions.add(OBJECT_MAPPER.createObjectNode().put("key", request.objectKey()));
+		ArrayNode contentLengthRange = OBJECT_MAPPER.createArrayNode()
+			.add("content-length-range")
+			.add(1)
+			.add(request.maxContentLength());
+		conditions.add(contentLengthRange);
 		conditions.add(OBJECT_MAPPER.createObjectNode().put("Content-Type", request.contentType()));
 		conditions.add(OBJECT_MAPPER.createObjectNode().put("x-amz-algorithm", "AWS4-HMAC-SHA256"));
 		conditions.add(OBJECT_MAPPER.createObjectNode().put("x-amz-credential", credential));
