@@ -1,8 +1,8 @@
 package com.tasteam.domain.member.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -35,11 +35,11 @@ import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberSummaryResponse;
 import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
 import com.tasteam.domain.member.service.MemberService;
+import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
+import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
 import com.tasteam.domain.subgroup.service.SubgroupService;
-import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
-import com.tasteam.domain.review.service.ReviewService;
 
 @ControllerWebMvcTest(MemberController.class)
 class MemberControllerTest {

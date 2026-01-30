@@ -22,11 +22,11 @@ import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
 import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
 import com.tasteam.domain.member.service.MemberService;
-import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
-import com.tasteam.domain.subgroup.service.SubgroupService;
 import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.review.service.ReviewService;
+import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
+import com.tasteam.domain.subgroup.service.SubgroupService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
