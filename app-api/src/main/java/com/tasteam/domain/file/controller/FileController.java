@@ -15,6 +15,7 @@ import com.tasteam.domain.file.dto.request.PresignedUploadRequest;
 import com.tasteam.domain.file.dto.response.DomainImageLinkResponse;
 import com.tasteam.domain.file.dto.response.ImageDetailResponse;
 import com.tasteam.domain.file.dto.response.ImageSummaryResponse;
+import com.tasteam.domain.file.dto.response.ImageUrlResponse;
 import com.tasteam.domain.file.dto.response.PresignedUploadResponse;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.global.dto.api.SuccessResponse;
@@ -48,6 +49,13 @@ public class FileController implements FileControllerDocs {
 		@PathVariable
 		String fileUuid) {
 		return SuccessResponse.success(fileService.getImageDetail(fileUuid));
+	}
+
+	@GetMapping("/{fileUuid}/url")
+	public SuccessResponse<ImageUrlResponse> getImageUrl(
+		@PathVariable
+		String fileUuid) {
+		return SuccessResponse.success(fileService.getImageUrl(fileUuid));
 	}
 
 	@PostMapping("/summary")

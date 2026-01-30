@@ -24,6 +24,7 @@ import com.tasteam.domain.file.dto.response.DomainImageLinkResponse;
 import com.tasteam.domain.file.dto.response.ImageDetailResponse;
 import com.tasteam.domain.file.dto.response.ImageSummaryItem;
 import com.tasteam.domain.file.dto.response.ImageSummaryResponse;
+import com.tasteam.domain.file.dto.response.ImageUrlResponse;
 import com.tasteam.domain.file.dto.response.LinkedDomainResponse;
 import com.tasteam.domain.file.dto.response.PresignedUploadItem;
 import com.tasteam.domain.file.dto.response.PresignedUploadResponse;
@@ -131,6 +132,20 @@ public class FileService {
 			image.getPurpose().name(),
 			image.getCreatedAt(),
 			linkedDomains);
+	}
+
+	@Transactional(readOnly = true)
+	public ImageUrlResponse getImageUrl(String fileUuid) {
+		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() != ImageStatus.ACTIVE) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		return new ImageUrlResponse(
+			image.getFileUuid().toString(),
+			buildPublicUrl(image.getStorageKey()));
 	}
 
 	@Transactional(readOnly = true)
