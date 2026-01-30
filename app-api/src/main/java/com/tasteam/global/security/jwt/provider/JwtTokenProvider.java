@@ -45,6 +45,20 @@ public class JwtTokenProvider {
 			.compact();
 	}
 
+	public String generateAccessToken(Long memberId, String role, long expirationMs) {
+		Date now = new Date();
+		Date expiryDate = new Date(now.getTime() + expirationMs);
+
+		return Jwts.builder()
+			.subject(String.valueOf(memberId))
+			.claim(JwtTokenConstants.CLAIM_ROLE, role)
+			.claim(JwtTokenConstants.CLAIM_TYPE, JwtTokenConstants.TOKEN_TYPE_ACCESS)
+			.issuedAt(now)
+			.expiration(expiryDate)
+			.signWith(secretKey, Jwts.SIG.HS256)
+			.compact();
+	}
+
 	public String generateRefreshToken(Long memberId) {
 		Date now = new Date();
 		Date expiryDate = new Date(now.getTime() + jwtProperties.getRefreshTokenExpiration());
