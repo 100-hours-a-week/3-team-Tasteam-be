@@ -55,6 +55,8 @@ class MemberControllerTest {
 
 	@MockitoBean
 	private SubgroupService subgroupService;
+
+	@MockitoBean
 	private ReviewService reviewService;
 
 	@MockitoBean
