@@ -9,5 +9,6 @@ public record DevMemberResponse(
 	String email,
 	String nickname,
 	String profileImageUrl,
-	List<MemberGroupSummaryResponse> groups) {
+	List<MemberGroupSummaryResponse> groups,
+	String accessToken) {
 }

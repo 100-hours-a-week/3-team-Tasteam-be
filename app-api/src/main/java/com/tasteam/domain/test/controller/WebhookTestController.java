@@ -24,9 +24,11 @@ import lombok.RequiredArgsConstructor;
 public class WebhookTestController implements WebhookTestControllerDocs {
 
 	private static final Long DEV_MEMBER_ID = 1001L;
+	private static final long ONE_HOUR_MS = 3600000L;
 
 	private final MemberRepository memberRepository;
 	private final MemberService memberService;
+	private final com.tasteam.global.security.jwt.provider.JwtTokenProvider jwtTokenProvider;
 
 	@GetMapping("/error/business")
 	public String testBusinessException() {
@@ -43,11 +45,14 @@ public class WebhookTestController implements WebhookTestControllerDocs {
 		Member member = memberRepository.findByIdAndDeletedAtIsNull(DEV_MEMBER_ID)
 			.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 		List<MemberGroupSummaryResponse> groups = memberService.getMyGroupSummaries(DEV_MEMBER_ID);
+		String accessToken = jwtTokenProvider.generateAccessToken(
+			member.getId(), member.getRole().name(), ONE_HOUR_MS);
 		return SuccessResponse.success(new DevMemberResponse(
 			member.getId(),
 			member.getEmail(),
 			member.getNickname(),
 			member.getProfileImageUrl(),
-			groups));
+			groups,
+			accessToken));
 	}
 }
