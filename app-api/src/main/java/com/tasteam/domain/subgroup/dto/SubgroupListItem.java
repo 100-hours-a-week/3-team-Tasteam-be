@@ -22,4 +22,15 @@ public class SubgroupListItem {
 	private String profileImageUrl;
 	private SubgroupJoinType joinType;
 	private Instant createdAt;
+
+	// For JPQL constructor projection without joinType.
+	public SubgroupListItem(Long subgroupId, String name, String description, Integer memberCount,
+		String profileImageUrl, Instant createdAt) {
+		this.subgroupId = subgroupId;
+		this.name = name;
+		this.description = description;
+		this.memberCount = memberCount;
+		this.profileImageUrl = profileImageUrl;
+		this.createdAt = createdAt;
+	}
 }
