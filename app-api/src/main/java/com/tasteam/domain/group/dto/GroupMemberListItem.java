@@ -9,6 +9,11 @@ public record GroupMemberListItem(
 	Long cursorId,
 	Long memberId,
 	String nickname,
-	String profileImageUrl,
+	ProfileImage profileImage,
 	Instant createdAt) {
+
+	public record ProfileImage(
+		java.util.UUID id,
+		String url) {
+	}
 }

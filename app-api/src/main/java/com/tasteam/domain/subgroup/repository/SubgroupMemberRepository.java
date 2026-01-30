@@ -64,7 +64,10 @@ public interface SubgroupMemberRepository extends JpaRepository<SubgroupMember, 
 			sm.id,
 			sm.member.id,
 			m.nickname,
-			m.profileImageUrl,
+			new com.tasteam.domain.subgroup.dto.SubgroupMemberListItem.ProfileImage(
+				m.profileImageUuid,
+				m.profileImageUrl
+			),
 			sm.createdAt
 		)
 		from SubgroupMember sm

@@ -1,6 +1,7 @@
 package com.tasteam.domain.subgroup.dto;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -9,6 +10,11 @@ public record SubgroupMemberListItem(
 	Long cursorId,
 	Long memberId,
 	String nickname,
-	String profileImageUrl,
+	ProfileImage profileImage,
 	Instant createdAt) {
+
+	public record ProfileImage(
+		UUID id,
+		String url) {
+	}
 }

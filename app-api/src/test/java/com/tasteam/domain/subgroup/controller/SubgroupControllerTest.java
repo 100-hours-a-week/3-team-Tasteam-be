@@ -77,8 +77,14 @@ class SubgroupControllerTest {
 		void 서브그룹_멤버_목록_조회_성공() throws Exception {
 			// given
 			CursorPageResponse<SubgroupMemberListItem> response = new CursorPageResponse<>(
-				List.of(new SubgroupMemberListItem(1L, 100L, "테스트유저",
-					"https://example.com/profile.jpg", Instant.now())),
+				List.of(new SubgroupMemberListItem(
+					1L,
+					100L,
+					"테스트유저",
+					new SubgroupMemberListItem.ProfileImage(
+						java.util.UUID.fromString("a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012"),
+						"https://example.com/profile.jpg"),
+					Instant.now())),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(subgroupService.getSubgroupMembers(eq(1L), any(), any())).willReturn(response);
@@ -104,8 +110,15 @@ class SubgroupControllerTest {
 			// given
 			SubgroupDetailResponse response = new SubgroupDetailResponse(
 				new SubgroupDetailResponse.SubgroupDetail(
-					1L, 10L, "서브그룹1", "설명", 5,
-					"https://example.com/img.jpg", Instant.now()));
+					1L,
+					10L,
+					"서브그룹1",
+					"설명",
+					5,
+					new SubgroupDetailResponse.ProfileImage(
+						java.util.UUID.fromString("a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012"),
+						"https://example.com/img.jpg"),
+					Instant.now()));
 
 			given(subgroupService.getSubgroup(eq(10L), any())).willReturn(response);
 

@@ -4,10 +4,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.dto.response.ImageUrlResponse;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
@@ -32,6 +36,7 @@ public class MemberService {
 	private final MemberRepository memberRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final SubgroupMemberRepository subgroupMemberRepository;
+	private final FileService fileService;
 
 	@Transactional(readOnly = true)
 	public MemberMeResponse getMyProfile(Long memberId) {
@@ -81,9 +86,14 @@ public class MemberService {
 			member.changeEmail(request.email());
 		}
 
-		if (request.profileImageUrl() != null
-			&& !request.profileImageUrl().equals(member.getProfileImageUrl())) {
-			member.changeProfileImageUrl(request.profileImageUrl());
+		if (request.profileImageId() != null
+			&& !request.profileImageId()
+				.equals(member.getProfileImageUuid() == null ? null : member.getProfileImageUuid().toString())) {
+			ImageUrlResponse imageUrl = fileService.linkDomainImageAndGetUrl(
+				DomainType.MEMBER,
+				memberId,
+				request.profileImageId());
+			member.changeProfileImage(imageUrl.url(), UUID.fromString(imageUrl.fileUuid()));
 		}
 	}
 

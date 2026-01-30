@@ -25,7 +25,10 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 			gm.id,
 			gm.member.id,
 			m.nickname,
-			m.profileImageUrl,
+			new com.tasteam.domain.group.dto.GroupMemberListItem.ProfileImage(
+				m.profileImageUuid,
+				m.profileImageUrl
+			),
 			gm.createdAt
 		)
 		from GroupMember gm

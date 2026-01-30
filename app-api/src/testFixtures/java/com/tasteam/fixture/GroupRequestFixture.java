@@ -12,7 +12,7 @@ import com.tasteam.domain.group.type.GroupType;
 public final class GroupRequestFixture {
 
 	public static final String DEFAULT_NAME = "테스트그룹";
-	public static final String DEFAULT_LOGO_URL = "https://example.com/logo.jpg";
+	public static final String DEFAULT_LOGO_IMAGE_ID = "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012";
 	public static final String DEFAULT_ADDRESS = "서울시 강남구 테헤란로 1";
 	public static final String DEFAULT_EMAIL_DOMAIN = "test.com";
 	public static final String DEFAULT_CODE = "123456";
@@ -23,7 +23,7 @@ public final class GroupRequestFixture {
 	public static GroupCreateRequest createGroupRequest() {
 		return new GroupCreateRequest(
 			DEFAULT_NAME,
-			DEFAULT_LOGO_URL,
+			DEFAULT_LOGO_IMAGE_ID,
 			GroupType.OFFICIAL,
 			DEFAULT_ADDRESS,
 			null,
@@ -36,7 +36,7 @@ public final class GroupRequestFixture {
 	public static GroupCreateRequest createPasswordGroupRequest() {
 		return new GroupCreateRequest(
 			DEFAULT_NAME,
-			DEFAULT_LOGO_URL,
+			DEFAULT_LOGO_IMAGE_ID,
 			GroupType.UNOFFICIAL,
 			DEFAULT_ADDRESS,
 			null,
