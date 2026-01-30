@@ -165,7 +165,8 @@ erDiagram
     - [1] Presigned 업로드 생성 (POST /api/v1/files/uploads/presigned)
     - [2] 도메인 이미지 연결 (POST /api/v1/files/domain-links)
     - [3] 이미지 상세 조회 (GET /api/v1/files/{fileUuid})
-    - [4] 도메인용 이미지 요약 조회 (POST /api/v1/files/summary)
+    - [4] 이미지 URL 조회 (GET /api/v1/files/{fileUuid}/url)
+    - [5] 도메인용 이미지 요약 조회 (POST /api/v1/files/summary)
 
 <br>
 
@@ -318,7 +319,39 @@ erDiagram
 
 <br>
 
-### **[3-3-4] 도메인용 이미지 요약 조회**
+### **[3-3-4] 이미지 URL 조회**
+
+- **API 명세:**
+    - `GET /api/v1/files/{fileUuid}/url`
+- **권한:**
+    - 로그인 사용자/내부 모듈(필요 시) (정책에 따라 조정 가능)
+- **구현 상세:**
+    - **요청**
+        - Path Param
+            - `fileUuid`: string (필수) - Image fileUuid(UUID)
+    - **응답**
+        - status: `200`
+        - body
+            - `data.fileUuid`: string
+            - `data.url`: string - `tasteam.storage.baseUrl + storageKey` 조합(또는 S3 base URL)
+        - 예시(JSON)
+            ```json
+            {
+              "data": {
+                "fileUuid": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
+                "url": "https://cdn.example.com/uploads/temp/a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012.jpg"
+              }
+            }
+            ```
+    - **처리 로직:**
+        1. Image 행 조회(fileUuid)
+        2. `status=ACTIVE`가 아니면 에러(`FILE_NOT_ACTIVE`)
+        3. `url = baseUrl + storageKey`로 조합해 반환
+    - **에러 코드:** `RESOURCE_NOT_FOUND`, `FILE_NOT_ACTIVE`, `INTERNAL_SERVER_ERROR`
+
+<br>
+
+### **[3-3-5] 도메인용 이미지 요약 조회**
 
 - **API 명세:**
     - `POST /api/v1/files/summary`
