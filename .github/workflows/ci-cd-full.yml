@@ -11,6 +11,45 @@ on:
       - main
 
 jobs:
+  # PR 시에만 테스트 실행
+  test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      # 테스트 실행
+      - name: Run Tests
+        run: ./gradlew test
+
+      # 테스트 실패 알림
+      - name: Notify Test Failure
+        if: failure()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "백엔드 테스트 실패 ❌"
+          description: |
+            **결과:** 실패
+            **브랜치:** ${{ github.ref_name }}
+            **작성자:** ${{ github.actor }}
+            **커밋:** ${{ github.sha }}
+            **이벤트:** PR 테스트
+          color: 0xff0000
+
   # PR 시에만 보안 검사 실행
   security-scan:
     if: github.event_name == 'pull_request'
@@ -41,9 +80,9 @@ jobs:
           languages: java
           queries: security-and-quality
 
-      # 테스트 + 컴파일만 실행 (JAR 생성 안함, SpotBugs 제외)
-      - name: Run Tests and Compile
-        run: ./gradlew compile
+      # 메인 코드 컴파일 (보안 분석용)
+      - name: Compile Main Sources
+        run: ./gradlew classes
 
       # CodeQL 분석 수행
       - name: Perform CodeQL Analysis
@@ -51,7 +90,7 @@ jobs:
         with:
           category: "/language:java"
 
-      # 보안 분석 - SpotBugs (한 번만 명시적 실행)
+      # 보안 분석 - SpotBugs (메인 코드만 분석)
       - name: Run SpotBugs Security Analysis
         run: ./gradlew :app-api:spotbugsMain
         continue-on-error: true
