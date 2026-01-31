@@ -19,6 +19,7 @@ public class StorageProperties {
 	private String region;
 	private String bucket;
 	private String baseUrl;
+	private String accessMode = "public";
 	private String accessKey;
 	private String secretKey;
 	private long presignedExpirationSeconds = 300;
@@ -35,6 +36,7 @@ public class StorageProperties {
 		log.info("region: {}", isConfigured(region) ? region : "(not set)");
 		log.info("bucket: {}", isConfigured(bucket) ? maskValue(bucket) : "(not set)");
 		log.info("baseUrl: {}", isConfigured(baseUrl) ? baseUrl : "(not set)");
+		log.info("accessMode: {}", accessMode);
 		log.info("accessKey: {}", isConfigured(accessKey) ? "(configured)" : "(not set)");
 		log.info("secretKey: {}", isConfigured(secretKey) ? "(configured)" : "(not set)");
 		log.info("presignedExpirationSeconds: {}", presignedExpirationSeconds);
@@ -44,6 +46,10 @@ public class StorageProperties {
 
 	private boolean isConfigured(String value) {
 		return value != null && !value.isBlank();
+	}
+
+	public boolean isPresignedAccess() {
+		return "presigned".equalsIgnoreCase(accessMode);
 	}
 
 	private String maskValue(String value) {

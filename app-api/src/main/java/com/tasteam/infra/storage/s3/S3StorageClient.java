@@ -2,10 +2,12 @@ package com.tasteam.infra.storage.s3;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -17,6 +19,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
+import com.amazonaws.HttpMethod;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSSessionCredentials;
@@ -90,6 +93,23 @@ public class S3StorageClient implements StorageClient {
 		fields.put("Content-Type", request.contentType());
 
 		return new PresignedPostResponse(resolveBaseUrl(), Map.copyOf(fields), expiry);
+	}
+
+	@Override
+	public String createPresignedGetUrl(String objectKey) {
+		Assert.hasText(objectKey, "objectKey는 필수입니다");
+		Instant now = Instant.now();
+		Instant expiry;
+		try {
+			expiry = now.plusSeconds(properties.getPresignedExpirationSeconds());
+		} catch (DateTimeException ex) {
+			throw new IllegalStateException("presigned 만료 시간을 계산할 수 없습니다", ex);
+		}
+		return amazonS3.generatePresignedUrl(
+			resolveBucket(),
+			objectKey,
+			Date.from(expiry),
+			HttpMethod.GET).toString();
 	}
 
 	@Override

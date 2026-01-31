@@ -73,6 +73,7 @@ tasteam:
     region: ${STORAGE_REGION:}
     bucket: ${STORAGE_BUCKET:}
     base-url: ${STORAGE_BASE_URL:}
+    access-mode: ${STORAGE_ACCESS_MODE:presigned}
     access-key: ${STORAGE_ACCESS_KEY:}
     secret-key: ${STORAGE_SECRET_KEY:}
     presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:}

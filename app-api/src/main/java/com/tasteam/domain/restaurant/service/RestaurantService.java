@@ -69,6 +69,7 @@ import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.infra.storage.StorageClient;
 import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
@@ -97,6 +98,7 @@ public class RestaurantService {
 	private final RestaurantScheduleService restaurantScheduleService;
 	private final RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
 	private final StorageProperties storageProperties;
+	private final StorageClient storageClient;
 
 	@Transactional(readOnly = true)
 	public RestaurantDetailResponse getRestaurantDetail(long restaurantId) {
@@ -500,6 +502,9 @@ public class RestaurantService {
 	}
 
 	private String buildPublicUrl(String storageKey) {
+		if (storageProperties.isPresignedAccess()) {
+			return storageClient.createPresignedGetUrl(storageKey);
+		}
 		String baseUrl = storageProperties.getBaseUrl();
 		if (baseUrl == null || baseUrl.isBlank()) {
 			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
