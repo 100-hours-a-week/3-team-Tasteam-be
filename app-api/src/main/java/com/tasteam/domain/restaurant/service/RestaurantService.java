@@ -5,8 +5,11 @@ import static java.util.stream.Collectors.groupingBy;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.*;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.locationtech.jts.geom.Coordinate;
@@ -15,6 +18,11 @@ import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.entity.DomainImage;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.entity.Image;
+import com.tasteam.domain.file.entity.ImageStatus;
+import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
@@ -34,20 +42,34 @@ import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse.Recom
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
 import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
-import com.tasteam.domain.restaurant.entity.*;
+import com.tasteam.domain.restaurant.entity.AiRestaurantFeature;
+import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
+import com.tasteam.domain.restaurant.entity.FoodCategory;
+import com.tasteam.domain.restaurant.entity.Restaurant;
+import com.tasteam.domain.restaurant.entity.RestaurantAddress;
+import com.tasteam.domain.restaurant.entity.RestaurantFoodCategory;
+import com.tasteam.domain.restaurant.entity.RestaurantWeeklySchedule;
 import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
 import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
 import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
-import com.tasteam.domain.restaurant.repository.*;
+import com.tasteam.domain.restaurant.repository.AiRestaurantFeatureRepository;
+import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
+import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantAddressRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantQueryRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantWeeklyScheduleRepository;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
-import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjection;
 import com.tasteam.domain.restaurant.validator.GroupRestaurantSearchConditionValidator;
 import com.tasteam.domain.restaurant.validator.RestaurantFoodCategoryValidator;
 import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
 
@@ -59,7 +81,7 @@ public class RestaurantService {
 	private final RestaurantQueryRepository restaurantQueryRepository;
 	private final RestaurantAddressRepository restaurantAddressRepository;
 	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
-	private final RestaurantImageRepository restaurantImageRepository;
+	private final DomainImageRepository domainImageRepository;
 	private final FoodCategoryRepository foodCategoryRepository;
 	private final AiRestaurantFeatureRepository aiRestaurantFeatureRepository;
 	private final AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
@@ -74,6 +96,7 @@ public class RestaurantService {
 	private final NaverGeocodingClient naverGeocodingClient;
 	private final RestaurantScheduleService restaurantScheduleService;
 	private final RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
+	private final StorageProperties storageProperties;
 
 	@Transactional(readOnly = true)
 	public RestaurantDetailResponse getRestaurantDetail(long restaurantId) {
@@ -92,10 +115,11 @@ public class RestaurantService {
 		List<BusinessHourWeekItem> businessHoursWeek = restaurantScheduleService.getBusinessHoursWeek(restaurantId);
 
 		// 음식점 대표 이미지 (최대 1장)
-		RestaurantImage firstImage = restaurantImageRepository
-			.findByRestaurantIdAndDeletedAtIsNullOrderBySortOrderAsc(restaurantId)
-			.getFirst();
-		RestaurantImageDto image = new RestaurantImageDto(firstImage.getId(), firstImage.getImageUrl());
+		List<DomainImage> domainImages = domainImageRepository
+			.findAllByDomainTypeAndDomainIdIn(DomainType.RESTAURANT, List.of(restaurantId));
+		RestaurantImageDto image = domainImages.isEmpty() ? null : new RestaurantImageDto(
+			domainImages.getFirst().getImage().getId(),
+			buildPublicUrl(domainImages.getFirst().getImage().getStorageKey()));
 
 		// AI 요약
 		Optional<AiRestaurantReviewAnalysis> aiAnalysis = aiRestaurantReviewAnalysisRepository
@@ -168,18 +192,7 @@ public class RestaurantService {
 			.toList();
 
 		// 음식점 대표 이미지 (최대 3장)
-		Map<Long, List<RestaurantImageDto>> restaurantThumbnails = restaurantImageRepository
-			.findRestaurantImages(restaurantIds)
-			.stream()
-			.collect(Collectors.groupingBy(
-				RestaurantImageProjection::getRestaurantId,
-				Collectors.collectingAndThen(
-					Collectors.mapping(
-						p -> new RestaurantImageDto(
-							p.getImageId(),
-							p.getImageUrl()),
-						Collectors.toList()),
-					list -> list.size() > 3 ? list.subList(0, 3) : list)));
+		Map<Long, List<RestaurantImageDto>> restaurantThumbnails = loadRestaurantThumbnails(restaurantIds);
 
 		// 음식점 음식 카테고리
 		Map<Long, List<String>> restaurantCategories = restaurantFoodCategoryRepository
@@ -244,18 +257,7 @@ public class RestaurantService {
 			.toList();
 
 		// 음식점 대표 이미지 (최대 3장)
-		Map<Long, List<RestaurantImageDto>> restaurantThumbnails = restaurantImageRepository
-			.findRestaurantImages(restaurantIds)
-			.stream()
-			.collect(Collectors.groupingBy(
-				RestaurantImageProjection::getRestaurantId,
-				Collectors.collectingAndThen(
-					Collectors.mapping(
-						p -> new RestaurantImageDto(
-							p.getImageId(),
-							p.getImageUrl()),
-						Collectors.toList()),
-					list -> list.size() > 3 ? list.subList(0, 3) : list)));
+		Map<Long, List<RestaurantImageDto>> restaurantThumbnails = loadRestaurantThumbnails(restaurantIds);
 
 		// 음식점 음식 카테고리
 		Map<Long, List<String>> restaurantCategories = restaurantFoodCategoryRepository
@@ -438,12 +440,7 @@ public class RestaurantService {
 		restaurantFoodCategoryRepository.saveAll(mappings);
 
 		// 음식점 이미지 교체
-		List<Long> imageIds = restaurantImageRepository.findRestaurantImages(List.of(restaurantId)).stream()
-			.map(RestaurantImageProjection::getImageId)
-			.toList();
-		restaurantImageRepository.deleteById(restaurantId);
-		imageRepository.deleteAllByIdInBatch(imageIds);
-
+		domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.RESTAURANT, restaurantId);
 		saveImagesIfPresent(restaurant, request.imageIds());
 
 		return new RestaurantUpdateResponse(
@@ -463,15 +460,9 @@ public class RestaurantService {
 			return;
 		}
 
-		// 음식점 소프트 삭제
 		Instant now = Instant.now();
 		entity.softDelete(now);
-
-		// 음식점 이미지 소프트 삭제
-		List<RestaurantImage> images = restaurantImageRepository.findByRestaurantIdAndDeletedAtIsNull(restaurantId);
-		for (RestaurantImage image : images) {
-			image.softDelete(now);
-		}
+		domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.RESTAURANT, restaurantId);
 	}
 
 	private void saveImagesIfPresent(Restaurant restaurant, List<UUID> imageIds) {
@@ -479,16 +470,45 @@ public class RestaurantService {
 			return;
 		}
 
-		List<RestaurantImage> images = new ArrayList<>();
 		for (int index = 0; index < imageIds.size(); index++) {
-			final int finalIndex = index;
-
-			UUID imageId = imageIds.get(index);
-			imageRepository.findByFileUuid(imageId)
-				.ifPresent(
-					image -> images.add(RestaurantImage.create(restaurant, image.getStorageKey(), finalIndex + 1)));
+			UUID fileUuid = imageIds.get(index);
+			int sortOrder = index;
+			Image image = imageRepository.findByFileUuid(fileUuid)
+				.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+			if (image.getStatus() != ImageStatus.PENDING) {
+				throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+			}
+			image.activate();
+			DomainImage domainImage = DomainImage.create(DomainType.RESTAURANT, restaurant.getId(), image, sortOrder);
+			domainImageRepository.save(domainImage);
 		}
-		restaurantImageRepository.saveAll(images);
+	}
+
+	private Map<Long, List<RestaurantImageDto>> loadRestaurantThumbnails(List<Long> restaurantIds) {
+		return domainImageRepository
+			.findAllByDomainTypeAndDomainIdIn(DomainType.RESTAURANT, restaurantIds)
+			.stream()
+			.collect(Collectors.groupingBy(
+				DomainImage::getDomainId,
+				Collectors.collectingAndThen(
+					Collectors.mapping(
+						di -> new RestaurantImageDto(
+							di.getImage().getId(),
+							buildPublicUrl(di.getImage().getStorageKey())),
+						Collectors.toList()),
+					list -> list.size() > 3 ? list.subList(0, 3) : list)));
+	}
+
+	private String buildPublicUrl(String storageKey) {
+		String baseUrl = storageProperties.getBaseUrl();
+		if (baseUrl == null || baseUrl.isBlank()) {
+			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
+				storageProperties.getBucket(),
+				storageProperties.getRegion());
+		}
+		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+		String normalizedKey = storageKey.startsWith("/") ? storageKey.substring(1) : storageKey;
+		return normalizedBase + "/" + normalizedKey;
 	}
 
 	private void saveWeeklySchedulesIfPresent(Restaurant restaurant, List<WeeklyScheduleRequest> schedules) {

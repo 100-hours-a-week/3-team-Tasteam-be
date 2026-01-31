@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import com.tasteam.domain.review.entity.ReviewImage;
 import com.tasteam.domain.review.repository.projection.ReviewImageProjection;
 
+@Deprecated
 public interface ReviewImageRepository extends JpaRepository<ReviewImage, Long> {
 
 	@Query("""

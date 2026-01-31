@@ -21,13 +21,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+@Deprecated
 @Entity
 @Getter
 @Builder(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "review_image")
-@Comment("리뷰 이미지")
+@Comment("리뷰 이미지 - DomainImage 사용으로 대체됨")
 public class ReviewImage extends BaseCreatedAtEntity {
 
 	@Id

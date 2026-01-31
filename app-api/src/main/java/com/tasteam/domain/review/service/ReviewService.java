@@ -1,14 +1,19 @@
 package com.tasteam.domain.review.service;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.entity.DomainImage;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.entity.Image;
+import com.tasteam.domain.file.entity.ImageStatus;
+import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
@@ -28,25 +33,24 @@ import com.tasteam.domain.review.dto.response.ReviewKeywordItemResponse;
 import com.tasteam.domain.review.entity.Keyword;
 import com.tasteam.domain.review.entity.KeywordType;
 import com.tasteam.domain.review.entity.Review;
-import com.tasteam.domain.review.entity.ReviewImage;
 import com.tasteam.domain.review.entity.ReviewKeyword;
 import com.tasteam.domain.review.repository.KeywordRepository;
-import com.tasteam.domain.review.repository.ReviewImageRepository;
 import com.tasteam.domain.review.repository.ReviewKeywordRepository;
 import com.tasteam.domain.review.repository.ReviewQueryRepository;
 import com.tasteam.domain.review.repository.ReviewRepository;
-import com.tasteam.domain.review.repository.projection.ReviewImageProjection;
 import com.tasteam.domain.review.repository.projection.ReviewKeywordProjection;
 import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.exception.code.ReviewErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
 
@@ -65,8 +69,9 @@ public class ReviewService {
 	private final KeywordRepository keywordRepository;
 	private final ReviewQueryRepository reviewQueryRepository;
 	private final ReviewKeywordRepository reviewKeywordRepository;
-	private final ReviewImageRepository reviewImageRepository;
+	private final DomainImageRepository domainImageRepository;
 	private final ImageRepository imageRepository;
+	private final StorageProperties storageProperties;
 	private final CursorCodec cursorCodec;
 
 	@Transactional(readOnly = true)
@@ -91,12 +96,12 @@ public class ReviewService {
 			.map(ReviewKeywordProjection::getKeywordName)
 			.toList();
 
-		List<ReviewDetailResponse.ReviewImageResponse> images = reviewImageRepository
-			.findReviewImages(List.of(reviewId))
+		List<ReviewDetailResponse.ReviewImageResponse> images = domainImageRepository
+			.findAllByDomainTypeAndDomainIdIn(DomainType.REVIEW, List.of(reviewId))
 			.stream()
-			.map(image -> new ReviewDetailResponse.ReviewImageResponse(
-				image.getImageId(),
-				image.getImageUrl()))
+			.map(di -> new ReviewDetailResponse.ReviewImageResponse(
+				di.getImage().getId(),
+				buildPublicUrl(di.getImage().getStorageKey())))
 			.toList();
 
 		return new ReviewDetailResponse(
@@ -150,13 +155,18 @@ public class ReviewService {
 		reviewKeywordRepository.saveAll(mappings);
 
 		if (request.imageIds() != null && !request.imageIds().isEmpty()) {
-			List<ReviewImage> images = new ArrayList<>();
 			for (int index = 0; index < request.imageIds().size(); index++) {
-				imageRepository.findByFileUuid(request.imageIds().get(index))
-					// TODO: storage key -> url 변환 필요
-					.ifPresent(image -> images.add(ReviewImage.create(review, image.getStorageKey())));
+				UUID fileUuid = request.imageIds().get(index);
+				int sortOrder = index;
+				Image image = imageRepository.findByFileUuid(fileUuid)
+					.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+				if (image.getStatus() != ImageStatus.PENDING) {
+					throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+				}
+				image.activate();
+				DomainImage domainImage = DomainImage.create(DomainType.REVIEW, review.getId(), image, sortOrder);
+				domainImageRepository.save(domainImage);
 			}
-			reviewImageRepository.saveAll(images);
 		}
 
 		return new ReviewCreateResponse(
@@ -172,16 +182,10 @@ public class ReviewService {
 			throw new BusinessException(CommonErrorCode.NO_PERMISSION);
 		}
 
-		// 리뷰 키워드 물리 삭제
 		Instant now = Instant.now();
 		review.softDelete(now);
 		reviewKeywordRepository.deleteByReview_Id(reviewId);
-
-		// 리뷰 이미지 소프트 삭제
-		List<ReviewImage> images = reviewImageRepository.findByReview_IdAndDeletedAtIsNull(reviewId);
-		for (ReviewImage image : images) {
-			image.softDelete(now);
-		}
+		domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.REVIEW, reviewId);
 	}
 
 	@Transactional(readOnly = true)
@@ -394,16 +398,30 @@ public class ReviewService {
 	}
 
 	private Map<Long, ReviewResponse.ReviewImageResponse> loadReviewThumbnails(List<Long> reviewIds) {
-		return reviewImageRepository
-			.findReviewImages(reviewIds)
+		return domainImageRepository
+			.findAllByDomainTypeAndDomainIdIn(DomainType.REVIEW, reviewIds)
 			.stream()
 			.collect(Collectors.groupingBy(
-				ReviewImageProjection::getReviewId,
+				DomainImage::getDomainId,
 				Collectors.collectingAndThen(
 					Collectors.toList(),
 					images -> {
-						ReviewImageProjection first = images.get(0);
-						return new ReviewResponse.ReviewImageResponse(first.getImageId(), first.getImageUrl());
+						DomainImage first = images.get(0);
+						return new ReviewResponse.ReviewImageResponse(
+							first.getImage().getId(),
+							buildPublicUrl(first.getImage().getStorageKey()));
 					})));
+	}
+
+	private String buildPublicUrl(String storageKey) {
+		String baseUrl = storageProperties.getBaseUrl();
+		if (baseUrl == null || baseUrl.isBlank()) {
+			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
+				storageProperties.getBucket(),
+				storageProperties.getRegion());
+		}
+		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+		String normalizedKey = storageKey.startsWith("/") ? storageKey.substring(1) : storageKey;
+		return normalizedBase + "/" + normalizedKey;
 	}
 }
