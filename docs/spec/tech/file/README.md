@@ -415,6 +415,29 @@ erDiagram
 | `FILE_CONFLICT` | 409 | 동일 도메인-이미지 연결 이미 존재 | no | domain_links unique constraint |
 | `INTERNAL_SERVER_ERROR` | 500 | 서버 오류(DB/S3) | yes | 복구/재시도 후 재검증 |
 
+<br>
+
+### **[3-3-1] S3 오류 코드 매핑 (Presigned POST/GET, DeleteObject)**
+
+| S3 ErrorCode | 응답 코드 | ErrorCode | 의미(요약) | retryable |
+|---|---:|---|---|---|
+| `AccessDenied` | 403 | `STORAGE_ACCESS_DENIED` | S3 접근 권한 없음 | no |
+| `InvalidAccessKeyId` | 403 | `STORAGE_INVALID_CREDENTIALS` | 자격 증명 불일치 | no |
+| `SignatureDoesNotMatch` | 403 | `STORAGE_SIGNATURE_MISMATCH` | 서명 불일치 | no |
+| `ExpiredToken`, `InvalidToken` | 401 | `STORAGE_TOKEN_EXPIRED` | 토큰 만료/무효 | no |
+| `RequestTimeTooSkewed`, `RequestExpired` | 400 | `STORAGE_REQUEST_EXPIRED` | 요청 시간 불일치 | no |
+| `NoSuchBucket` | 404 | `STORAGE_BUCKET_NOT_FOUND` | 버킷 없음 | no |
+| `NoSuchKey` | 404 | `STORAGE_OBJECT_NOT_FOUND` | 객체 없음 | no |
+| `InvalidBucketName`, `InvalidBucketState` | 400 | `STORAGE_BUCKET_INVALID` | 버킷 설정 오류 | no |
+| `InvalidArgument`, `InvalidRequest`, `InvalidDigest`, `BadDigest`, `MissingContentLength`, `InvalidPart`, `InvalidPartOrder` | 400 | `STORAGE_INVALID_REQUEST` | 요청 형식 오류 | no |
+| `EntityTooLarge` | 413 | `STORAGE_ENTITY_TOO_LARGE` | 업로드 크기 초과 | no |
+| `EntityTooSmall` | 400 | `STORAGE_ENTITY_TOO_SMALL` | 업로드 크기 미달 | no |
+| `SlowDown`, `Throttling`, `ThrottlingException` | 429 | `STORAGE_THROTTLED` | 요청 과다 | yes |
+| `ServiceUnavailable` | 503 | `STORAGE_SERVICE_UNAVAILABLE` | S3 일시 장애 | yes |
+| `InternalError` | 502 | `STORAGE_INTERNAL_ERROR` | S3 내부 오류 | yes |
+| 네트워크/연결 실패 | 503 | `EXTERNAL_SERVICE_UNAVAILABLE` | 외부 서비스 연결 실패 | yes |
+| 타임아웃 | 504 | `EXTERNAL_SERVICE_TIMEOUT` | 외부 서비스 응답 지연 | yes |
+
 
 ## **[3-4] 기술 스택 (Technology Stack)**
 

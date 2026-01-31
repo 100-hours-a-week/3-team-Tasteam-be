@@ -212,6 +212,8 @@ public class FileService {
 		try {
 			return storageClient.createPresignedPost(
 				new PresignedPostRequest(storageKey, contentType, minContentLength, maxContentLength));
+		} catch (BusinessException ex) {
+			throw ex;
 		} catch (RuntimeException ex) {
 			throw new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
 		}
@@ -231,6 +233,8 @@ public class FileService {
 	private void deleteObject(String storageKey) {
 		try {
 			storageClient.deleteObject(storageKey);
+		} catch (BusinessException ex) {
+			throw ex;
 		} catch (RuntimeException ex) {
 			throw new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
 		}
