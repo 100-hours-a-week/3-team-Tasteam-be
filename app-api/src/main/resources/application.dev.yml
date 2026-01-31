@@ -23,12 +23,13 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create
     defer-datasource-initialization: true
 
   sql:
     init:
-      mode: never
+      mode: always
+      data-locations: classpath:data-dev.sql
 
   security:
     cookie:
