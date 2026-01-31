@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.tasteam.config.JpaAuditingTestConfig;
+import com.tasteam.config.TestcontainersConfiguration;
 import com.tasteam.global.config.QueryDslConfig;
 
 /**
@@ -24,7 +25,7 @@ import com.tasteam.global.config.QueryDslConfig;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @ActiveProfiles("test")
-@Import({QueryDslConfig.class, JpaAuditingTestConfig.class})
+@Import({QueryDslConfig.class, JpaAuditingTestConfig.class, TestcontainersConfiguration.class})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @DataJpaTest
 @Tag("repository")
