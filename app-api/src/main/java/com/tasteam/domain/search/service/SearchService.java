@@ -203,14 +203,7 @@ public class SearchService {
 			return;
 		}
 		try {
-			MemberSearchHistory history = memberSearchHistoryRepository
-				.findByMemberIdAndKeywordAndDeletedAtIsNull(memberId, keyword)
-				.orElseGet(() -> MemberSearchHistory.create(memberId, keyword));
-			if (history.getId() == null) {
-				memberSearchHistoryRepository.save(history);
-			} else {
-				history.incrementCount();
-			}
+			memberSearchHistoryRepository.upsertSearchHistory(memberId, keyword);
 		} catch (Exception ex) {
 			log.warn("검색 히스토리 업데이트에 실패했습니다: {}", ex.getMessage());
 		}
