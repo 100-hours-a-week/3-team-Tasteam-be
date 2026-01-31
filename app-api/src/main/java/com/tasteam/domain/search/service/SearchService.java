@@ -6,14 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
-import com.tasteam.domain.group.repository.GroupRepository;
+import com.tasteam.domain.group.repository.GroupQueryRepository;
 import com.tasteam.domain.group.repository.projection.GroupMemberCountProjection;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
@@ -49,13 +47,14 @@ public class SearchService {
 	private static final int DEFAULT_PAGE_SIZE = 10;
 	private static final int THUMBNAIL_LIMIT = 3;
 
-	private final GroupRepository groupRepository;
+	private final GroupQueryRepository groupQueryRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final RestaurantImageRepository restaurantImageRepository;
 	private final MemberSearchHistoryRepository memberSearchHistoryRepository;
 	private final MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository;
 	private final SearchQueryRepository searchQueryRepository;
 	private final CursorCodec cursorCodec;
+	private final SearchHistoryRecorder searchHistoryRecorder;
 
 	@Transactional(readOnly = true)
 	public SearchResponse search(Long memberId, SearchRequest request) {
@@ -66,7 +65,7 @@ public class SearchService {
 			return SearchResponse.emptyResponse();
 		}
 
-		recordSearchHistory(memberId, keyword);
+		searchHistoryRecorder.recordSearchHistory(memberId, keyword);
 
 		List<SearchGroupSummary> groups = searchGroups(keyword, pageSize);
 		CursorPageResponse<SearchRestaurantItem> restaurants = searchRestaurants(keyword, cursor, pageSize);
@@ -148,10 +147,10 @@ public class SearchService {
 	}
 
 	private List<SearchGroupSummary> searchGroups(String keyword, int pageSize) {
-		List<Group> groups = groupRepository.searchByKeyword(
+		List<Group> groups = groupQueryRepository.searchByKeyword(
 			keyword,
 			GroupStatus.ACTIVE,
-			PageRequest.of(0, pageSize));
+			pageSize);
 
 		List<Long> groupIds = groups.stream()
 			.map(Group::getId)
@@ -199,15 +198,4 @@ public class SearchService {
 		return images.getFirst().url();
 	}
 
-	@Transactional(propagation = Propagation.REQUIRES_NEW)
-	public void recordSearchHistory(Long memberId, String keyword) {
-		if (memberId == null) {
-			return;
-		}
-		try {
-			memberSearchHistoryRepository.upsertSearchHistory(memberId, keyword);
-		} catch (Exception ex) {
-			log.warn("검색 히스토리 업데이트에 실패했습니다: {}", ex.getMessage());
-		}
-	}
 }
