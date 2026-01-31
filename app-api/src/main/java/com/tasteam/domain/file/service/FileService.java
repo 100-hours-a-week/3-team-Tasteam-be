@@ -279,7 +279,9 @@ public class FileService {
 	private String buildPublicUrl(String storageKey) {
 		String baseUrl = storageProperties.getBaseUrl();
 		if (baseUrl == null || baseUrl.isBlank()) {
-			return storageKey;
+			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
+				storageProperties.getBucket(),
+				storageProperties.getRegion());
 		}
 		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
 		String normalizedKey = storageKey.startsWith("/") ? storageKey.substring(1) : storageKey;

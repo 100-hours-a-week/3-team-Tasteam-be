@@ -71,6 +71,10 @@ naver:
 tasteam:
   storage:
     type: s3
+    region: ${STORAGE_REGION:ap-northeast-2}
+    bucket: ${STORAGE_BUCKET:}
+    base-url: ${STORAGE_BASE_URL:https://tasteam.kr}
+    presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:300}
   webhook:
     enabled: true
     provider: discord
