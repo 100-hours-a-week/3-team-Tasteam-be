@@ -30,6 +30,7 @@ import com.tasteam.domain.file.dto.response.LinkedDomainResponse;
 import com.tasteam.domain.file.dto.response.PresignedUploadItem;
 import com.tasteam.domain.file.dto.response.PresignedUploadResponse;
 import com.tasteam.domain.file.entity.DomainImage;
+import com.tasteam.domain.file.entity.FilePurpose;
 import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
@@ -61,7 +62,8 @@ public class FileService {
 		for (PresignedUploadFileRequest fileRequest : request.files()) {
 			validateUploadPolicy(fileRequest);
 			UUID fileUuid = UUID.randomUUID();
-			String storageKey = buildStorageKey(fileUuid, fileRequest.fileName(), fileRequest.contentType());
+			String storageKey = buildStorageKey(request.purpose(), fileUuid, fileRequest.fileName(),
+				fileRequest.contentType());
 			Image image = Image.create(
 				request.purpose(),
 				fileRequest.fileName(),
@@ -242,13 +244,26 @@ public class FileService {
 		}
 	}
 
-	private String buildStorageKey(UUID fileUuid, String fileName, String contentType) {
-		String prefix = normalizePrefix(storageProperties.getTempUploadPrefix());
+	private String buildStorageKey(FilePurpose purpose, UUID fileUuid, String fileName, String contentType) {
+		String prefix = buildPrefixByPurpose(purpose);
 		String extension = resolveExtension(fileName, contentType);
 		if (extension.isBlank()) {
 			return prefix + "/" + fileUuid;
 		}
 		return prefix + "/" + fileUuid + "." + extension;
+	}
+
+	private String buildPrefixByPurpose(FilePurpose purpose) {
+		if (purpose == null) {
+			return normalizePrefix(storageProperties.getTempUploadPrefix());
+		}
+		return switch (purpose) {
+			case REVIEW_IMAGE -> "uploads/review/image";
+			case RESTAURANT_IMAGE -> "uploads/restaurant/image";
+			case PROFILE_IMAGE -> "uploads/profile/image";
+			case GROUP_IMAGE -> "uploads/group/image";
+			case COMMON_ASSET -> "uploads/common/asset";
+		};
 	}
 
 	private String resolveExtension(String fileName, String contentType) {
