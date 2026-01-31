@@ -171,7 +171,7 @@ class MemberControllerTest {
 			willDoNothing().given(memberService).updateMyProfile(any(), any());
 
 			MemberProfileUpdateRequest request = new MemberProfileUpdateRequest(
-				"new@example.com", "https://example.com/new-profile.jpg");
+				"new@example.com", "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012");
 
 			// when & then
 			mockMvc.perform(patch("/api/v1/members/me/profile")
