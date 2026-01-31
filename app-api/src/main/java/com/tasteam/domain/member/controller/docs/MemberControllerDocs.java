@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
+import com.tasteam.domain.member.dto.response.MemberGroupDetailSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
@@ -56,6 +57,13 @@ public interface MemberControllerDocs {
 	@ApiResponse(responseCode = "200", description = "성공", content = @Content(schema = @Schema(implementation = MemberGroupSummaryResponse.class)))
 	@CustomErrorResponseDescription(value = MemberSwaggerErrorResponseDescription.class, group = "MEMBER_GROUP_SUMMARIES")
 	SuccessResponse<List<MemberGroupSummaryResponse>> getMyGroupSummaries(
+		@CurrentUser
+		Long memberId);
+
+	@Operation(summary = "내 그룹 상세 목록 조회", description = "현재 로그인 사용자의 그룹 상세 정보와 가입한 하위 그룹 목록을 조회합니다.")
+	@ApiResponse(responseCode = "200", description = "성공", content = @Content(schema = @Schema(implementation = MemberGroupDetailSummaryResponse.class)))
+	@CustomErrorResponseDescription(value = MemberSwaggerErrorResponseDescription.class, group = "MEMBER_GROUP_SUMMARIES")
+	SuccessResponse<List<MemberGroupDetailSummaryResponse>> getMyGroups(
 		@CurrentUser
 		Long memberId);
 

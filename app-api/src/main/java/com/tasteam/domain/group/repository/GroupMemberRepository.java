@@ -12,6 +12,7 @@ import com.tasteam.domain.group.dto.GroupMemberListItem;
 import com.tasteam.domain.group.entity.GroupMember;
 import com.tasteam.domain.group.repository.projection.GroupMemberCountProjection;
 import com.tasteam.domain.group.type.GroupStatus;
+import com.tasteam.domain.member.dto.response.MemberGroupDetailSummaryRow;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryRow;
 
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
@@ -71,6 +72,32 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 		order by gm.id desc
 		""")
 	List<MemberGroupSummaryRow> findMemberGroupSummaries(
+		@Param("memberId")
+		Long memberId,
+		@Param("activeStatus")
+		GroupStatus activeStatus);
+
+	@Query("""
+		select distinct new com.tasteam.domain.member.dto.response.MemberGroupDetailSummaryRow(
+			g.id,
+			g.name,
+			g.address,
+			g.detailAddress,
+			g.logoImageUrl,
+			(select count(gmCount.id)
+				from GroupMember gmCount
+				where gmCount.groupId = g.id
+					and gmCount.deletedAt is null)
+		)
+		from GroupMember gm
+		join com.tasteam.domain.group.entity.Group g on g.id = gm.groupId
+		where gm.member.id = :memberId
+			and gm.deletedAt is null
+			and g.deletedAt is null
+			and g.status = :activeStatus
+		order by g.name asc
+		""")
+	List<MemberGroupDetailSummaryRow> findMemberGroupDetailSummaries(
 		@Param("memberId")
 		Long memberId,
 		@Param("activeStatus")
