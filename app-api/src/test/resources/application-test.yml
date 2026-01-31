@@ -10,6 +10,9 @@ spring:
       hibernate:
         format_sql: true
 
+  flyway:
+    enabled: false
+
   security:
     jwt:
       secret: test-secret-129310298301928309128309182309182308490127403912380912

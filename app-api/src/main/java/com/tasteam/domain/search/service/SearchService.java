@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.group.entity.Group;
@@ -56,7 +57,7 @@ public class SearchService {
 	private final SearchQueryRepository searchQueryRepository;
 	private final CursorCodec cursorCodec;
 
-	@Transactional
+	@Transactional(readOnly = true)
 	public SearchResponse search(Long memberId, SearchRequest request) {
 		String keyword = request.keyword().trim();
 		int pageSize = request.size() == null ? DEFAULT_PAGE_SIZE : request.size();
@@ -198,7 +199,8 @@ public class SearchService {
 		return images.getFirst().url();
 	}
 
-	private void recordSearchHistory(Long memberId, String keyword) {
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void recordSearchHistory(Long memberId, String keyword) {
 		if (memberId == null) {
 			return;
 		}
