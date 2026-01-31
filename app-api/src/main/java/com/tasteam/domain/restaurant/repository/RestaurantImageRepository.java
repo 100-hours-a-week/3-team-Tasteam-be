@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import com.tasteam.domain.restaurant.entity.RestaurantImage;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjection;
 
+@Deprecated
 public interface RestaurantImageRepository extends JpaRepository<RestaurantImage, Long> {
 
 	List<RestaurantImage> findByRestaurantIdAndDeletedAtIsNullOrderBySortOrderAsc(Long restaurantId);

@@ -21,13 +21,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+@Deprecated
 @Entity
 @Getter
 @Builder(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "restaurant_image")
-@Comment("음식점 대표 이미지 정보를 저장하는 테이블")
+@Comment("음식점 대표 이미지 - DomainImage 사용으로 대체됨")
 public class RestaurantImage extends BaseCreatedAtEntity {
 
 	@Id
