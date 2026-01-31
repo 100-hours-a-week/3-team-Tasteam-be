@@ -10,4 +10,10 @@ public record MemberSummaryResponse(
 			member.getNickname(),
 			member.getProfileImageUrl());
 	}
+
+	public static MemberSummaryResponse from(Member member, String profileImageUrl) {
+		return new MemberSummaryResponse(
+			member.getNickname(),
+			profileImageUrl);
+	}
 }

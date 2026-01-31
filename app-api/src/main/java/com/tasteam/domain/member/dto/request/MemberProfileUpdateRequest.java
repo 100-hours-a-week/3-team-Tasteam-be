@@ -8,6 +8,6 @@ import jakarta.validation.constraints.Size;
 public record MemberProfileUpdateRequest(
 	@Pattern(regexp = ValidationPatterns.EMAIL_PATTERN, message = "email 형식이 올바르지 않습니다") @Size(max = 255, message = "email 길이는 255자 이하여야 합니다")
 	String email,
-	@Pattern(regexp = ValidationPatterns.URL_PATTERN, message = "profileImageUrl 형식이 올바르지 않습니다") @Size(max = 500, message = "profileImageUrl 길이는 500자 이하여야 합니다")
-	String profileImageUrl) {
+	@Pattern(regexp = ValidationPatterns.UUID_PATTERN, message = "profileImageFileUuid 형식이 올바르지 않습니다")
+	String profileImageFileUuid) {
 }

@@ -4,5 +4,6 @@ public enum DomainType {
 	REVIEW,
 	RESTAURANT,
 	PROMOTION,
-	GROUP
+	GROUP,
+	MEMBER
 }
