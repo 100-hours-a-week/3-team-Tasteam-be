@@ -19,6 +19,7 @@ import org.springframework.util.Assert;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSSessionCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -59,6 +60,11 @@ public class S3StorageClient implements StorageClient {
 		Assert.hasText(credentials.getAWSAccessKeyId(), "AWS access key가 필요합니다");
 		Assert.hasText(credentials.getAWSSecretKey(), "AWS secret key가 필요합니다");
 
+		String sessionToken = null;
+		if (credentials instanceof AWSSessionCredentials sessionCredentials) {
+			sessionToken = sessionCredentials.getSessionToken();
+		}
+
 		Instant now = Instant.now();
 		Instant expiry = now.plusSeconds(properties.getPresignedExpirationSeconds());
 		String amzDate = AMZ_DATE_FORMATTER.format(now);
@@ -67,7 +73,7 @@ public class S3StorageClient implements StorageClient {
 		String credentialScope = dateStamp + "/" + region + "/s3/aws4_request";
 		String credential = credentials.getAWSAccessKeyId() + "/" + credentialScope;
 
-		String policyBase64 = createPolicy(request, expiry, credential, amzDate);
+		String policyBase64 = createPolicy(request, expiry, credential, amzDate, sessionToken);
 		byte[] signatureKey = getSignatureKey(credentials.getAWSSecretKey(), dateStamp, region, "s3");
 		String signature = bytesToHex(hmacSha256(signatureKey, policyBase64));
 
@@ -78,6 +84,9 @@ public class S3StorageClient implements StorageClient {
 		fields.put("x-amz-credential", credential);
 		fields.put("x-amz-date", amzDate);
 		fields.put("x-amz-signature", signature);
+		if (sessionToken != null) {
+			fields.put("x-amz-security-token", sessionToken);
+		}
 		fields.put("Content-Type", request.contentType());
 
 		return new PresignedPostResponse(resolveBaseUrl(), Map.copyOf(fields), expiry);
@@ -89,7 +98,8 @@ public class S3StorageClient implements StorageClient {
 		amazonS3.deleteObject(new DeleteObjectRequest(resolveBucket(), objectKey));
 	}
 
-	private String createPolicy(PresignedPostRequest request, Instant expiry, String credential, String amzDate) {
+	private String createPolicy(PresignedPostRequest request, Instant expiry, String credential, String amzDate,
+		String sessionToken) {
 		ObjectNode policyNode = OBJECT_MAPPER.createObjectNode();
 		policyNode.put("expiration", expiry.toString());
 
@@ -105,6 +115,9 @@ public class S3StorageClient implements StorageClient {
 		conditions.add(OBJECT_MAPPER.createObjectNode().put("x-amz-algorithm", "AWS4-HMAC-SHA256"));
 		conditions.add(OBJECT_MAPPER.createObjectNode().put("x-amz-credential", credential));
 		conditions.add(OBJECT_MAPPER.createObjectNode().put("x-amz-date", amzDate));
+		if (sessionToken != null) {
+			conditions.add(OBJECT_MAPPER.createObjectNode().put("x-amz-security-token", sessionToken));
+		}
 
 		try {
 			byte[] policyBytes = OBJECT_MAPPER.writeValueAsBytes(policyNode);
