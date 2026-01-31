@@ -55,7 +55,7 @@ public class MemberService {
 	@Transactional(readOnly = true)
 	public MemberMeResponse getMyProfile(Long memberId) {
 		Member member = getActiveMember(memberId);
-		String profileImageUrl = resolveProfileImageUrl(memberId);
+		String profileImageUrl = resolveProfileImageUrl(member);
 		return MemberMeResponse.from(member, profileImageUrl);
 	}
 
@@ -156,11 +156,6 @@ public class MemberService {
 			if (image.getStatus() == ImageStatus.PENDING) {
 				image.activate();
 			}
-
-			String profileUrl = buildPublicUrl(image.getStorageKey());
-			if (!profileUrl.equals(member.getProfileImageUrl())) {
-				member.changeProfileImageUrl(profileUrl);
-			}
 		}
 	}
 
@@ -204,10 +199,10 @@ public class MemberService {
 		return normalizedBase + "/" + normalizedKey;
 	}
 
-	private String resolveProfileImageUrl(Long memberId) {
+	private String resolveProfileImageUrl(Member member) {
 		List<DomainImage> images = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
 			DomainType.MEMBER,
-			List.of(memberId));
+			List.of(member.getId()));
 		if (images.isEmpty()) {
 			return null;
 		}
