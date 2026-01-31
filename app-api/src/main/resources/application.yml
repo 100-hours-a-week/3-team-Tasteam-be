@@ -64,6 +64,9 @@ springdoc:
 
 ## ====== 커스텀 설정 ======
 tasteam:
+  domain:
+    service: ${SERVICE_DOMAIN:https://tasteam.kr}
+    api: ${API_DOMAIN:https://api.tasteam.kr}
   storage:
     type: ${STORAGE_TYPE:dummy}
     region: ${STORAGE_REGION:}
