@@ -29,7 +29,7 @@ spring:
   sql:
     init:
       mode: always
-      data-locations: classpath:data.sql,classpath:restaurant-full-seed-ko.sql,classpath:google_detail_service_load.sql
+      data-locations: classpath:data-dev.sql,classpath:restaurant-full-seed-ko.sql,classpath:google_detail_service_load.sql
 
   security:
     cookie:
