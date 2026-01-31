@@ -1,17 +1,6 @@
 -- Dev seed data (loaded when spring.sql.init.mode=always with profile dev)
 -- Uses ON CONFLICT DO NOTHING to avoid duplicate key errors
 
--- Members (SEQUENCE ids must be explicit for SQL inserts)
-INSERT INTO member (
-  id, email, nickname, status, role, profile_image_url,
-  last_login_at, agreed_terms_at, agreed_privacy_at, deleted_at,
-  created_at, updated_at
-) VALUES
-  (1001, 'local.user1@tasteam.dev', '로컬유저1', 'ACTIVE', 'USER', NULL,
-   NULL, NULL, NULL, NULL, now(), now()),
-  (1002, 'local.user2@tasteam.dev', '로컬유저2', 'ACTIVE', 'USER', NULL,
-   NULL, NULL, NULL, NULL, now(), now())
-ON CONFLICT (id) DO NOTHING;
 
 -- Group (reserved word)
 INSERT INTO "group" (
