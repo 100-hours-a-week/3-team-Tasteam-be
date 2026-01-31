@@ -35,6 +35,11 @@ public class TestStorageConfiguration {
 		}
 
 		@Override
+		public String createPresignedGetUrl(String objectKey) {
+			return "https://fake-storage.local/" + objectKey;
+		}
+
+		@Override
 		public void deleteObject(String objectKey) {}
 	}
 }

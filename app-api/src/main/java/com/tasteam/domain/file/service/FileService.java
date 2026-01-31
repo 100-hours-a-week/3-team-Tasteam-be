@@ -277,6 +277,13 @@ public class FileService {
 	}
 
 	private String buildPublicUrl(String storageKey) {
+		if (storageProperties.isPresignedAccess()) {
+			return storageClient.createPresignedGetUrl(storageKey);
+		}
+		return buildStaticUrl(storageKey);
+	}
+
+	private String buildStaticUrl(String storageKey) {
 		String baseUrl = storageProperties.getBaseUrl();
 		if (baseUrl == null || baseUrl.isBlank()) {
 			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",

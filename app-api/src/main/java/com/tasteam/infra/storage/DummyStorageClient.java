@@ -36,6 +36,12 @@ public class DummyStorageClient implements StorageClient {
 	}
 
 	@Override
+	public String createPresignedGetUrl(String objectKey) {
+		Assert.hasText(objectKey, "objectKey는 필수입니다");
+		return buildFallbackUrl(objectKey);
+	}
+
+	@Override
 	public void deleteObject(String objectKey) {
 		Assert.hasText(objectKey, "objectKey는 필수입니다");
 		// No external storage to clean up.

@@ -50,6 +50,7 @@ import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.exception.code.ReviewErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.infra.storage.StorageClient;
 import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
@@ -72,6 +73,7 @@ public class ReviewService {
 	private final DomainImageRepository domainImageRepository;
 	private final ImageRepository imageRepository;
 	private final StorageProperties storageProperties;
+	private final StorageClient storageClient;
 	private final CursorCodec cursorCodec;
 
 	@Transactional(readOnly = true)
@@ -414,6 +416,9 @@ public class ReviewService {
 	}
 
 	private String buildPublicUrl(String storageKey) {
+		if (storageProperties.isPresignedAccess()) {
+			return storageClient.createPresignedGetUrl(storageKey);
+		}
 		String baseUrl = storageProperties.getBaseUrl();
 		if (baseUrl == null || baseUrl.isBlank()) {
 			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
