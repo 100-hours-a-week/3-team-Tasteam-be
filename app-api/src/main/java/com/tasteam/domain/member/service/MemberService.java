@@ -39,7 +39,9 @@ import com.tasteam.infra.storage.StorageClient;
 import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MemberService {
@@ -203,9 +205,11 @@ public class MemberService {
 		List<DomainImage> images = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
 			DomainType.MEMBER,
 			List.of(member.getId()));
+
 		if (images.isEmpty()) {
+			log.info("Warn!");
 			return null;
 		}
-		return buildPublicUrl(images.get(0).getImage().getStorageKey());
+		return buildPublicUrl(images.getFirst().getImage().getStorageKey());
 	}
 }
