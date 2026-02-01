@@ -1,6 +1,5 @@
 package com.tasteam.domain.group.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public record GroupUpdateRequest(
@@ -9,6 +8,5 @@ public record GroupUpdateRequest(
 	JsonNode detailAddress,
 	JsonNode emailDomain,
 	JsonNode status,
-	@JsonProperty("logoImageURL")
-	JsonNode logoImageUrl) {
+	JsonNode logoImageFileUuid) {
 }

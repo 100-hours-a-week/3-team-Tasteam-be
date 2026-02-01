@@ -12,5 +12,5 @@ import lombok.NoArgsConstructor;
 public class SubgroupUpdateRequest {
 	private JsonNode name;
 	private JsonNode description;
-	private JsonNode profileImageUrl;
+	private JsonNode profileImageFileUuid;
 }

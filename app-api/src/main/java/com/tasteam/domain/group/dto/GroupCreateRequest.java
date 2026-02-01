@@ -1,6 +1,5 @@
 package com.tasteam.domain.group.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tasteam.domain.group.type.GroupJoinType;
 import com.tasteam.domain.group.type.GroupType;
 
@@ -11,8 +10,7 @@ import jakarta.validation.constraints.NotNull;
 public record GroupCreateRequest(
 	@NotBlank
 	String name,
-	@NotBlank @JsonProperty("logoImageURL")
-	String logoImageUrl,
+	String logoImageFileUuid,
 	@NotNull
 	GroupType type,
 	@NotBlank
