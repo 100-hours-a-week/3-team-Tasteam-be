@@ -23,7 +23,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create-drop
 
   flyway:
     enabled: true
