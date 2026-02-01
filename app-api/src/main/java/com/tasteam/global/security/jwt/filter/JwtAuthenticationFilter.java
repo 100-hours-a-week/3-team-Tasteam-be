@@ -10,10 +10,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.tasteam.global.exception.code.AuthErrorCode;
 import com.tasteam.global.security.common.constants.SecurityConstants;
+import com.tasteam.global.security.exception.model.CustomAuthenticationException;
 import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
 import com.tasteam.global.security.user.dto.CustomUserDetails;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -52,10 +55,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 			}
+		} catch (ExpiredJwtException e) {
+			log.debug("만료된 JWT 토큰: {}", e.getMessage());
+			throw new CustomAuthenticationException(AuthErrorCode.AUTHENTICATION_REQUIRED, "토큰이 만료되었습니다.");
 		} catch (JwtException e) {
-			log.error("JWT 검증 실패: {}", e.getMessage());
+			log.debug("유효하지 않은 JWT 토큰: {}", e.getMessage());
+			throw new CustomAuthenticationException(AuthErrorCode.AUTHENTICATION_REQUIRED, "유효하지 않은 토큰입니다.");
 		} catch (Exception e) {
 			log.error("JWT 인증 처리 중 오류: {}", e.getMessage());
+			throw new CustomAuthenticationException(AuthErrorCode.AUTHENTICATION_REQUIRED, "인증 처리 중 오류가 발생했습니다.");
 		}
 
 		filterChain.doFilter(request, response);
