@@ -156,13 +156,14 @@ public class MemberService {
 			DomainImage domainImage = domainImageRepository
 				.save(DomainImage.create(DomainType.MEMBER, memberId, image, 0));
 
-			log.warn("domain Image: {}", domainImage);
+			log.warn("input UUID: {}", request.profileImageFileUuid());
+			log.warn("domain Image: {}", domainImage.getDomainType());
 
 			if (image.getStatus() == ImageStatus.PENDING) {
 				image.activate();
 			}
 
-			log.warn("Image: {}", image);
+			log.warn("Image: {} | {} | {}", image.getFileUuid(), image.getFileType(), image.getStatus());
 		}
 	}
 
