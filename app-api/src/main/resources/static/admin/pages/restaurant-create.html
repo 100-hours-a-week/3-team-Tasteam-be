@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>음식점 등록 - Tasteam Admin</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Tasteam Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/admin/pages/dashboard.html">대시보드</a></li>
+                <li><a href="/admin/pages/restaurants.html" class="active">음식점 관리</a></li>
+                <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
+                <li><a href="#" id="logoutBtn">로그아웃</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <div class="content-header">
+                <h1>음식점 등록</h1>
+                <button class="btn btn-secondary" onclick="location.href='/admin/pages/restaurants.html'">목록으로</button>
+            </div>
+
+            <form id="restaurantForm" class="form-container">
+                <div class="form-section">
+                    <h3>기본 정보</h3>
+                    <div class="form-group">
+                        <label for="name">음식점명 *</label>
+                        <input type="text" id="name" name="name" required maxlength="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="address">주소 *</label>
+                        <input type="text" id="address" name="address" required maxlength="255">
+                    </div>
+                    <div class="form-group">
+                        <label for="detailAddress">상세 주소</label>
+                        <input type="text" id="detailAddress" name="detailAddress" maxlength="255">
+                    </div>
+                    <div class="form-group">
+                        <label for="description">설명</label>
+                        <textarea id="description" name="description" rows="4" maxlength="1000"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>음식 카테고리 *</h3>
+                    <div id="foodCategoryList" class="checkbox-group">
+                        <p>로딩 중...</p>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>영업시간</h3>
+                    <div id="weeklySchedules">
+                        <div class="schedule-item" data-day="MONDAY">
+                            <label>월요일</label>
+                            <input type="checkbox" class="closed-checkbox" data-day="MONDAY">
+                            <span>휴무</span>
+                            <input type="time" class="open-time" data-day="MONDAY">
+                            <span>~</span>
+                            <input type="time" class="close-time" data-day="MONDAY">
+                        </div>
+                        <div class="schedule-item" data-day="TUESDAY">
+                            <label>화요일</label>
+                            <input type="checkbox" class="closed-checkbox" data-day="TUESDAY">
+                            <span>휴무</span>
+                            <input type="time" class="open-time" data-day="TUESDAY">
+                            <span>~</span>
+                            <input type="time" class="close-time" data-day="TUESDAY">
+                        </div>
+                        <div class="schedule-item" data-day="WEDNESDAY">
+                            <label>수요일</label>
+                            <input type="checkbox" class="closed-checkbox" data-day="WEDNESDAY">
+                            <span>휴무</span>
+                            <input type="time" class="open-time" data-day="WEDNESDAY">
+                            <span>~</span>
+                            <input type="time" class="close-time" data-day="WEDNESDAY">
+                        </div>
+                        <div class="schedule-item" data-day="THURSDAY">
+                            <label>목요일</label>
+                            <input type="checkbox" class="closed-checkbox" data-day="THURSDAY">
+                            <span>휴무</span>
+                            <input type="time" class="open-time" data-day="THURSDAY">
+                            <span>~</span>
+                            <input type="time" class="close-time" data-day="THURSDAY">
+                        </div>
+                        <div class="schedule-item" data-day="FRIDAY">
+                            <label>금요일</label>
+                            <input type="checkbox" class="closed-checkbox" data-day="FRIDAY">
+                            <span>휴무</span>
+                            <input type="time" class="open-time" data-day="FRIDAY">
+                            <span>~</span>
+                            <input type="time" class="close-time" data-day="FRIDAY">
+                        </div>
+                        <div class="schedule-item" data-day="SATURDAY">
+                            <label>토요일</label>
+                            <input type="checkbox" class="closed-checkbox" data-day="SATURDAY">
+                            <span>휴무</span>
+                            <input type="time" class="open-time" data-day="SATURDAY">
+                            <span>~</span>
+                            <input type="time" class="close-time" data-day="SATURDAY">
+                        </div>
+                        <div class="schedule-item" data-day="SUNDAY">
+                            <label>일요일</label>
+                            <input type="checkbox" class="closed-checkbox" data-day="SUNDAY">
+                            <span>휴무</span>
+                            <input type="time" class="open-time" data-day="SUNDAY">
+                            <span>~</span>
+                            <input type="time" class="close-time" data-day="SUNDAY">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">등록</button>
+                    <button type="button" class="btn btn-secondary" onclick="location.href='/admin/pages/restaurants.html'">취소</button>
+                </div>
+            </form>
+        </main>
+    </div>
+    <script src="/admin/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/restaurant-form.js"></script>
+</body>
+</html>
