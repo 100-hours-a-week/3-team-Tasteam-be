@@ -70,6 +70,9 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.ACTUATOR),
 			permit(GET, ApiEndpoints.HEALTH_CHECK),
 
+			// Admin Static Pages
+			permit(GET, ApiEndpoints.ADMIN_STATIC),
+
 			// Test
 			permit(GET, ApiEndpoints.TEST));
 	}

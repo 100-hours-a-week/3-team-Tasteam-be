@@ -3,7 +3,6 @@ package com.tasteam.domain.admin.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,8 +19,7 @@ import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.BusinessHourWeekItem;
 import com.tasteam.domain.restaurant.service.RestaurantScheduleService;
 import com.tasteam.global.dto.api.SuccessResponse;
-import com.tasteam.global.exception.business.BusinessException;
-import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
 
@@ -39,9 +37,10 @@ public class AdminScheduleController {
 	public SuccessResponse<List<BusinessHourWeekItem>> getSchedules(
 		@PathVariable
 		Long restaurantId,
-		Authentication authentication) {
+		@CurrentUser
+		Long memberId) {
 
-		Member member = getMemberFromAuth(authentication);
+		Member member = memberRepository.findById(memberId).orElseThrow();
 		adminAuthPolicy.validateAdmin(member);
 
 		List<BusinessHourWeekItem> result = restaurantScheduleService.getBusinessHoursWeek(restaurantId);
@@ -55,20 +54,13 @@ public class AdminScheduleController {
 		Long restaurantId,
 		@Validated @RequestBody
 		List<WeeklyScheduleRequest> request,
-		Authentication authentication) {
+		@CurrentUser
+		Long memberId) {
 
-		Member member = getMemberFromAuth(authentication);
+		Member member = memberRepository.findById(memberId).orElseThrow();
 		adminAuthPolicy.validateAdmin(member);
 
 		restaurantScheduleService.createWeeklySchedules(restaurantId, request);
 		return SuccessResponse.success(null);
-	}
-
-	private Member getMemberFromAuth(Authentication authentication) {
-		if (authentication == null || authentication.getName() == null) {
-			throw new BusinessException(CommonErrorCode.AUTHENTICATION_REQUIRED);
-		}
-		return memberRepository.findByEmail(authentication.getName())
-			.orElseThrow(() -> new BusinessException(CommonErrorCode.AUTHENTICATION_REQUIRED));
 	}
 }

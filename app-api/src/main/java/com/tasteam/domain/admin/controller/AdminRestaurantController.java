@@ -5,7 +5,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,8 +27,7 @@ import com.tasteam.domain.admin.service.AdminRestaurantService;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.global.dto.api.SuccessResponse;
-import com.tasteam.global.exception.business.BusinessException;
-import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
 
@@ -49,9 +47,10 @@ public class AdminRestaurantController {
 		AdminRestaurantSearchCondition condition,
 		@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
 		Pageable pageable,
-		Authentication authentication) {
+		@CurrentUser
+		Long memberId) {
 
-		Member member = getMemberFromAuth(authentication);
+		Member member = memberRepository.findById(memberId).orElseThrow();
 		adminAuthPolicy.validateAdmin(member);
 
 		Page<AdminRestaurantListItem> result = adminRestaurantService.getRestaurants(condition, pageable);
@@ -63,9 +62,10 @@ public class AdminRestaurantController {
 	public SuccessResponse<AdminRestaurantDetailResponse> getRestaurant(
 		@PathVariable
 		Long restaurantId,
-		Authentication authentication) {
+		@CurrentUser
+		Long memberId) {
 
-		Member member = getMemberFromAuth(authentication);
+		Member member = memberRepository.findById(memberId).orElseThrow();
 		adminAuthPolicy.validateAdmin(member);
 
 		AdminRestaurantDetailResponse result = adminRestaurantService.getRestaurantDetail(restaurantId);
@@ -77,9 +77,10 @@ public class AdminRestaurantController {
 	public SuccessResponse<Long> createRestaurant(
 		@Validated @RequestBody
 		AdminRestaurantCreateRequest request,
-		Authentication authentication) {
+		@CurrentUser
+		Long memberId) {
 
-		Member member = getMemberFromAuth(authentication);
+		Member member = memberRepository.findById(memberId).orElseThrow();
 		adminAuthPolicy.validateAdmin(member);
 
 		Long restaurantId = adminRestaurantService.createRestaurant(request);
@@ -93,9 +94,10 @@ public class AdminRestaurantController {
 		Long restaurantId,
 		@Validated @RequestBody
 		AdminRestaurantUpdateRequest request,
-		Authentication authentication) {
+		@CurrentUser
+		Long memberId) {
 
-		Member member = getMemberFromAuth(authentication);
+		Member member = memberRepository.findById(memberId).orElseThrow();
 		adminAuthPolicy.validateAdmin(member);
 
 		adminRestaurantService.updateRestaurant(restaurantId, request);
@@ -106,19 +108,12 @@ public class AdminRestaurantController {
 	public void deleteRestaurant(
 		@PathVariable
 		Long restaurantId,
-		Authentication authentication) {
+		@CurrentUser
+		Long memberId) {
 
-		Member member = getMemberFromAuth(authentication);
+		Member member = memberRepository.findById(memberId).orElseThrow();
 		adminAuthPolicy.validateAdmin(member);
 
 		adminRestaurantService.deleteRestaurant(restaurantId);
-	}
-
-	private Member getMemberFromAuth(Authentication authentication) {
-		if (authentication == null || authentication.getName() == null) {
-			throw new BusinessException(CommonErrorCode.AUTHENTICATION_REQUIRED);
-		}
-		return memberRepository.findByEmail(authentication.getName())
-			.orElseThrow(() -> new BusinessException(CommonErrorCode.AUTHENTICATION_REQUIRED));
 	}
 }

@@ -5,7 +5,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,8 +20,7 @@ import com.tasteam.domain.admin.service.AdminGroupService;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.global.dto.api.SuccessResponse;
-import com.tasteam.global.exception.business.BusinessException;
-import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
 
@@ -40,9 +38,10 @@ public class AdminGroupController {
 	public SuccessResponse<Page<AdminGroupListItem>> getGroups(
 		@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
 		Pageable pageable,
-		Authentication authentication) {
+		@CurrentUser
+		Long memberId) {
 
-		Member member = getMemberFromAuth(authentication);
+		Member member = memberRepository.findById(memberId).orElseThrow();
 		adminAuthPolicy.validateAdmin(member);
 
 		Page<AdminGroupListItem> result = adminGroupService.getGroups(pageable);
@@ -54,20 +53,13 @@ public class AdminGroupController {
 	public SuccessResponse<Long> createGroup(
 		@Validated @RequestBody
 		AdminGroupCreateRequest request,
-		Authentication authentication) {
+		@CurrentUser
+		Long memberId) {
 
-		Member member = getMemberFromAuth(authentication);
+		Member member = memberRepository.findById(memberId).orElseThrow();
 		adminAuthPolicy.validateAdmin(member);
 
 		Long groupId = adminGroupService.createGroup(request);
 		return SuccessResponse.success(groupId);
-	}
-
-	private Member getMemberFromAuth(Authentication authentication) {
-		if (authentication == null || authentication.getName() == null) {
-			throw new BusinessException(CommonErrorCode.AUTHENTICATION_REQUIRED);
-		}
-		return memberRepository.findByEmail(authentication.getName())
-			.orElseThrow(() -> new BusinessException(CommonErrorCode.AUTHENTICATION_REQUIRED));
 	}
 }

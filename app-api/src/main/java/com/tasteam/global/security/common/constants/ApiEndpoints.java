@@ -44,6 +44,9 @@ public final class ApiEndpoints {
 	public static final String ACTUATOR = "/actuator" + ALL;
 	public static final String ACTUATOR_HEALTH = "/actuator/health";
 
+	// Static Admin Pages
+	public static final String ADMIN_STATIC = "/admin" + ALL;
+
 	// Member
 	public static final String MEMBERS = API_V1 + "/members";
 	public static final String MEMBERS_ALL = MEMBERS + ALL;
