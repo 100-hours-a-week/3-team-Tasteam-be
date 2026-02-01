@@ -5,11 +5,6 @@ import com.tasteam.domain.member.entity.Member;
 public record MemberSummaryResponse(
 	String nickname,
 	String profileImageUrl) {
-	public static MemberSummaryResponse from(Member member) {
-		return new MemberSummaryResponse(
-			member.getNickname(),
-			member.getProfileImageUrl());
-	}
 
 	public static MemberSummaryResponse from(Member member, String profileImageUrl) {
 		return new MemberSummaryResponse(
