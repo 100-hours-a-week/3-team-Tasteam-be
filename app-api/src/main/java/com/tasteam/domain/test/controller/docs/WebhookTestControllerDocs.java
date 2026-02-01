@@ -6,6 +6,7 @@ import com.tasteam.global.dto.api.SuccessResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Tag(name = "Test", description = "테스트용 예외 발생 API")
 public interface WebhookTestControllerDocs {
@@ -20,5 +21,5 @@ public interface WebhookTestControllerDocs {
 
 	@Operation(summary = "개발용 고정 멤버 조회", description = "로컬 seed에 있는 고정 멤버와 가입 그룹을 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공")
-	SuccessResponse<DevMemberResponse> getDevMember();
+	SuccessResponse<DevMemberResponse> getDevMember(HttpServletResponse response);
 }
