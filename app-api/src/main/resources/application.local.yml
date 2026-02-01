@@ -43,6 +43,7 @@ logging:
     org.hibernate.SQL: debug
     org.hibernate.tool.schema: debug
     org.springframework.security: DEBUG
+    org.springdoc: ERROR
 
 naver:
   maps:
