@@ -161,6 +161,7 @@ public class MemberService {
 
 			if (image.getStatus() == ImageStatus.PENDING) {
 				image.activate();
+				imageRepository.save(image);
 			}
 
 			log.warn("Image: {} | {} | {}", image.getFileUuid(), image.getFileType(), image.getStatus());
