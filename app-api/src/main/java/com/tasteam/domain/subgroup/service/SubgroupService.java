@@ -11,6 +11,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.tasteam.domain.file.entity.DomainImage;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.entity.Image;
+import com.tasteam.domain.file.entity.ImageStatus;
+import com.tasteam.domain.file.repository.DomainImageRepository;
+import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
@@ -37,13 +43,18 @@ import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.infra.storage.StorageClient;
+import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SubgroupService {
@@ -57,6 +68,10 @@ public class SubgroupService {
 	private final SubgroupMemberRepository subgroupMemberRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final CursorCodec cursorCodec;
+	private final ImageRepository imageRepository;
+	private final DomainImageRepository domainImageRepository;
+	private final StorageProperties storageProperties;
+	private final StorageClient storageClient;
 
 	@Transactional(readOnly = true)
 	public SubgroupListResponse getMySubgroups(Long groupId, Long memberId, String keyword, String cursor,
@@ -131,6 +146,8 @@ public class SubgroupService {
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.NO_PERMISSION));
 		}
 
+		String profileImageUrl = resolveProfileImageUrl(subgroup.getId());
+
 		return new SubgroupDetailResponse(
 			new SubgroupDetailResponse.SubgroupDetail(
 				subgroup.getGroup().getId(),
@@ -138,7 +155,7 @@ public class SubgroupService {
 				subgroup.getName(),
 				subgroup.getDescription(),
 				subgroup.getMemberCount(),
-				subgroup.getProfileImageUrl(),
+				profileImageUrl,
 				subgroup.getCreatedAt()));
 	}
 
@@ -192,7 +209,6 @@ public class SubgroupService {
 			.group(group)
 			.name(request.getName())
 			.description(request.getDescription())
-			.profileImageUrl(request.getProfileImageUrl())
 			.joinType(request.getJoinType())
 			.joinPassword(encodedPassword)
 			.status(SubgroupStatus.ACTIVE)
@@ -203,6 +219,10 @@ public class SubgroupService {
 			subgroupRepository.save(subgroup);
 		} catch (DataIntegrityViolationException e) {
 			throw new BusinessException(GroupErrorCode.ALREADY_EXISTS);
+		}
+
+		if (request.getProfileImageFileUuid() != null) {
+			saveDomainImage(DomainType.SUBGROUP, subgroup.getId(), request.getProfileImageFileUuid());
 		}
 
 		Member member = memberRepository.findByIdAndDeletedAtIsNull(memberId)
@@ -283,12 +303,26 @@ public class SubgroupService {
 
 		String updatedName = applyStringIfPresent(request.getName(), subgroup::updateName, false);
 		applyStringIfPresent(request.getDescription(), subgroup::updateDescription, true);
-		applyStringIfPresent(request.getProfileImageUrl(), subgroup::updateProfileImageUrl, true);
+		applyProfileImageFileUuid(request.getProfileImageFileUuid(), subgroup);
 
 		if (updatedName != null
 			&& subgroupRepository.existsByGroup_IdAndNameAndDeletedAtIsNullAndIdNot(groupId, updatedName, subgroupId)) {
 			throw new BusinessException(GroupErrorCode.ALREADY_EXISTS);
 		}
+	}
+
+	private void applyProfileImageFileUuid(JsonNode node, Subgroup subgroup) {
+		if (node == null) {
+			return;
+		}
+		if (node.isNull()) {
+			domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.SUBGROUP, subgroup.getId());
+			return;
+		}
+		if (!node.isTextual()) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+		saveDomainImage(DomainType.SUBGROUP, subgroup.getId(), node.asText());
 	}
 
 	private SubgroupListResponse buildListResponse(List<SubgroupListItem> items, int resolvedSize) {
@@ -453,5 +487,60 @@ public class SubgroupService {
 		} catch (NumberFormatException e) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
+	}
+
+	private void saveDomainImage(DomainType domainType, Long domainId, String fileUuid) {
+		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() == ImageStatus.DELETED) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		if (image.getStatus() != ImageStatus.PENDING
+			&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(domainType, domainId, image).isEmpty()) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
+		domainImageRepository.save(DomainImage.create(domainType, domainId, image, 0));
+
+		if (image.getStatus() == ImageStatus.PENDING) {
+			image.activate();
+		}
+	}
+
+	private java.util.UUID parseUuid(String fileUuid) {
+		try {
+			return java.util.UUID.fromString(fileUuid);
+		} catch (IllegalArgumentException ex) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "fileUuid 형식이 올바르지 않습니다");
+		}
+	}
+
+	private String buildPublicUrl(String storageKey) {
+		if (storageProperties.isPresignedAccess()) {
+			return storageClient.createPresignedGetUrl(storageKey);
+		}
+		String baseUrl = storageProperties.getBaseUrl();
+		if (baseUrl == null || baseUrl.isBlank()) {
+			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
+				storageProperties.getBucket(),
+				storageProperties.getRegion());
+		}
+		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+		String normalizedKey = storageKey.startsWith("/") ? storageKey.substring(1) : storageKey;
+		return normalizedBase + "/" + normalizedKey;
+	}
+
+	private String resolveProfileImageUrl(Long subgroupId) {
+		List<DomainImage> images = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
+			DomainType.SUBGROUP,
+			List.of(subgroupId));
+
+		if (images.isEmpty()) {
+			return null;
+		}
+		return buildPublicUrl(images.getFirst().getImage().getStorageKey());
 	}
 }

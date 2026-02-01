@@ -89,10 +89,6 @@ public class Group extends BaseTimeEntity {
 		this.status = status;
 	}
 
-	public void updateLogoImageUrl(String logoImageUrl) {
-		this.logoImageUrl = logoImageUrl;
-	}
-
 	public void delete(Instant deletedAt) {
 		this.deletedAt = deletedAt;
 	}
