@@ -444,6 +444,119 @@ class GroupQueryRepositoryTest {
 - OR 조건 (그룹명 또는 주소)
 - location 필드 정상 조회
 
+### 5. UPSERT 쿼리 Partial Index 문제
+
+#### 추가 발견된 문제
+
+트랜잭션 격리 후에도 UPSERT 쿼리 자체가 실패하는 문제 발생:
+
+```
+ERROR: there is no unique or exclusion constraint matching the ON CONFLICT specification
+```
+
+**원래 쿼리:**
+```sql
+INSERT INTO member_serach_history (member_id, keyword, count, created_at, updated_at, deleted_at)
+VALUES (?, ?, 1, NOW(), NOW(), NULL)
+ON CONFLICT (member_id, keyword) WHERE deleted_at IS NULL  -- ❌ 에러 발생
+DO UPDATE SET count = member_serach_history.count + 1, updated_at = NOW()
+```
+
+**원인:**
+- Flyway 마이그레이션에서 생성한 것은 **partial unique index**
+- PostgreSQL의 `ON CONFLICT`는 partial index를 inference target으로 사용 가능
+- 하지만 `ON CONFLICT (column) WHERE condition` 구문은 지원하지 않음
+- WHERE 절은 index 정의에만 포함되어야 함
+
+**해결:**
+```sql
+-- Partial unique index 정의 (Flyway migration)
+CREATE UNIQUE INDEX idx_member_search_history_unique
+ON member_serach_history(member_id, keyword)
+WHERE deleted_at IS NULL;
+
+-- UPSERT 쿼리 (WHERE 절 제거)
+INSERT INTO member_serach_history (member_id, keyword, count, created_at, updated_at, deleted_at)
+VALUES (?, ?, 1, NOW(), NOW(), NULL)
+ON CONFLICT (member_id, keyword)  -- ✅ WHERE 절 제거
+DO UPDATE SET count = member_serach_history.count + 1, updated_at = NOW()
+```
+
+**동작 방식:**
+1. Partial index가 `deleted_at IS NULL` 조건의 행에만 적용됨
+2. `ON CONFLICT (member_id, keyword)`는 이 partial index를 자동으로 inference
+3. 삭제된 행(`deleted_at IS NOT NULL`)은 index에 포함되지 않으므로 충돌 검사에서 제외
+4. 정상적으로 UPSERT 동작
+
+### 6. UPSERT 의존성 제거 - 애플리케이션 레벨 처리
+
+#### 추가 발견된 문제
+
+Flyway 마이그레이션이 실행되지 않은 환경에서는 partial unique index가 존재하지 않아 UPSERT 쿼리가 계속 실패합니다. 이 경우에도 검색 기능이 정상 동작해야 합니다.
+
+**근본 문제:**
+- UPSERT는 **DB에 unique index/constraint가 반드시 존재**해야 작동
+- 마이그레이션 미실행, DB 동기화 문제 등으로 인덱스 부재 가능
+- 인덱스가 없으면 SQL 문법 오류 발생 → try-catch로 잡혀도 트랜잭션 매니저 오염
+- `REQUIRES_NEW`로 격리했지만 여전히 부모 트랜잭션에 영향
+
+**최종 해결: 애플리케이션 레벨 UPSERT**
+
+DB native UPSERT 대신 JPA를 사용한 애플리케이션 레벨 처리로 변경:
+
+```java
+// SearchHistoryRecorder.java (final)
+@Transactional(propagation = Propagation.REQUIRES_NEW)
+public void recordSearchHistory(Long memberId, String keyword) {
+    if (memberId == null) {
+        return;
+    }
+    try {
+        var existing = memberSearchHistoryRepository
+            .findByMemberIdAndKeywordAndDeletedAtIsNull(memberId, keyword);
+
+        if (existing.isPresent()) {
+            existing.get().incrementCount();  // UPDATE
+        } else {
+            memberSearchHistoryRepository.save(
+                MemberSearchHistory.create(memberId, keyword));  // INSERT
+        }
+    } catch (Exception ex) {
+        log.warn("검색 히스토리 업데이트에 실패했습니다: {}", ex.getMessage());
+    }
+}
+```
+
+```java
+// SearchService.java - 추가 방어 로직
+@Transactional(readOnly = true)
+public SearchResponse search(Long memberId, SearchRequest request) {
+    // ...
+
+    try {
+        searchHistoryRecorder.recordSearchHistory(memberId, keyword);
+    } catch (Exception ex) {
+        log.warn("검색 히스토리 기록 중 예외 발생 (검색 결과에는 영향 없음): {}", ex.getMessage());
+    }
+
+    // 검색 로직 계속 실행
+    List<SearchGroupSummary> groups = searchGroups(keyword, pageSize);
+    // ...
+}
+```
+
+**장점:**
+1. **DB 스키마 독립적**: 인덱스 유무와 관계없이 동작
+2. **완벽한 격리**: SQL 문법 오류 가능성 제거
+3. **명시적 로직**: SELECT → UPDATE or INSERT 흐름이 명확
+4. **안정성**: 어떤 예외가 발생해도 검색 기능은 정상 동작
+
+**단점:**
+1. **동시성**: 동일 검색어 동시 입력 시 unique constraint violation 가능
+   - 하지만 try-catch로 처리되므로 검색 기능에는 영향 없음
+2. **성능**: SELECT + UPDATE/INSERT 두 번의 쿼리
+   - 검색 히스토리는 부가 기능이므로 허용 가능한 트레이드오프
+
 ## 전체 개선 효과
 
 1. **견고성 향상**: 검색 히스토리 저장 실패가 검색 결과에 영향을 주지 않음
@@ -451,6 +564,8 @@ class GroupQueryRepositoryTest {
 3. **성능 최적화**: 읽기 전용 트랜잭션으로 DB 최적화 가능
 4. **트랜잭션 분리**: 읽기/쓰기 작업의 명확한 격리
 5. **장애 격리**: 히스토리 저장 문제가 전체 검색 시스템에 전파되지 않음
+6. **쿼리 안정성**: QueryDSL로 파라미터 바인딩 문제 해결
+7. **테스트 커버리지**: 16개 리포지토리 테스트로 검색 로직 검증
 
 ## 주의사항
 
@@ -466,7 +581,18 @@ class GroupQueryRepositoryTest {
 
 3. **Self-Invocation 문제**
    - 같은 클래스 내 메서드 호출 시 트랜잭션 프록시가 동작하지 않음
-   - 본 케이스는 정상적으로 동작 (Spring AOP 프록시를 통한 호출)
+   - 별도 컴포넌트(`SearchHistoryRecorder`)로 분리하여 해결
+
+### Partial Unique Index 사용 시 주의사항
+
+1. **ON CONFLICT 구문 제약**
+   - `ON CONFLICT (columns) WHERE condition` 형식은 PostgreSQL에서 지원하지 않음
+   - WHERE 절은 index 정의에만 포함
+   - `ON CONFLICT (columns)`만 사용하여 partial index inference
+
+2. **Index Inference**
+   - PostgreSQL이 자동으로 적절한 index를 선택
+   - Partial index는 조건에 맞는 행에만 적용되므로 안전
 
 ## 참고
 

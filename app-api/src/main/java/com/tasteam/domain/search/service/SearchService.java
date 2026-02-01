@@ -65,7 +65,11 @@ public class SearchService {
 			return SearchResponse.emptyResponse();
 		}
 
-		searchHistoryRecorder.recordSearchHistory(memberId, keyword);
+		try {
+			searchHistoryRecorder.recordSearchHistory(memberId, keyword);
+		} catch (Exception ex) {
+			log.warn("검색 히스토리 기록 중 예외 발생 (검색 결과에는 영향 없음): {}", ex.getMessage());
+		}
 
 		List<SearchGroupSummary> groups = searchGroups(keyword, pageSize);
 		CursorPageResponse<SearchRestaurantItem> restaurants = searchRestaurants(keyword, cursor, pageSize);
