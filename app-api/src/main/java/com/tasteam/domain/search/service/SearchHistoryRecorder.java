@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.search.entity.MemberSearchHistory;
 import com.tasteam.domain.search.repository.MemberSearchHistoryRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,15 @@ public class SearchHistoryRecorder {
 			return;
 		}
 		try {
-			memberSearchHistoryRepository.upsertSearchHistory(memberId, keyword);
+			var existing = memberSearchHistoryRepository
+				.findByMemberIdAndKeywordAndDeletedAtIsNull(memberId, keyword);
+
+			if (existing.isPresent()) {
+				existing.get().incrementCount();
+			} else {
+				memberSearchHistoryRepository.save(
+					MemberSearchHistory.create(memberId, keyword));
+			}
 		} catch (Exception ex) {
 			log.warn("검색 히스토리 업데이트에 실패했습니다: {}", ex.getMessage());
 		}
