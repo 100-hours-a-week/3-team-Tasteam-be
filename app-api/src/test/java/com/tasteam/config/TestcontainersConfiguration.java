@@ -13,6 +13,7 @@ public class TestcontainersConfiguration {
 	@ServiceConnection
 	PostgreSQLContainer<?> postgresContainer() {
 		return new PostgreSQLContainer<>(DockerImageName.parse("postgis/postgis:15-3.3")
-			.asCompatibleSubstituteFor("postgres"));
+			.asCompatibleSubstituteFor("postgres"))
+			.withReuse(true);
 	}
 }
