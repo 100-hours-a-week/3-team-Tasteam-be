@@ -4,10 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willDoNothing;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,11 +24,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.ControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
-import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
-import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
 import com.tasteam.domain.restaurant.service.RestaurantService;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.domain.review.service.ReviewService;
@@ -154,64 +149,6 @@ class RestaurantControllerTest {
 				.andExpect(jsonPath("$.data.id").value(1))
 				.andExpect(jsonPath("$.data.name").value("맛집식당"))
 				.andExpect(jsonPath("$.data.recommendStat.recommendedCount").value(10));
-		}
-	}
-
-	@Nested
-	@DisplayName("음식점 등록")
-	class CreateRestaurant {
-
-		@Test
-		@DisplayName("음식점 정보를 등록하면 201과 생성된 ID를 반환한다")
-		void 음식점_등록_성공() throws Exception {
-			// given
-			RestaurantCreateResponse response = new RestaurantCreateResponse(1L, Instant.now());
-			given(restaurantService.createRestaurant(any())).willReturn(response);
-
-			// when & then
-			mockMvc.perform(post("/api/v1/restaurants")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(RestaurantRequestFixture.createRestaurantRequest())))
-				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.id").value(1));
-		}
-	}
-
-	@Nested
-	@DisplayName("음식점 수정")
-	class UpdateRestaurant {
-
-		@Test
-		@DisplayName("음식점 정보를 수정하면 수정된 정보를 반환한다")
-		void 음식점_수정_성공() throws Exception {
-			// given
-			RestaurantUpdateResponse response = new RestaurantUpdateResponse(1L, Instant.now(), Instant.now());
-			given(restaurantService.updateRestaurant(eq(1L), any())).willReturn(response);
-
-			// when & then
-			mockMvc.perform(patch("/api/v1/restaurants/{restaurantId}", 1L)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(RestaurantRequestFixture.createUpdateRequest())))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.id").value(1));
-		}
-	}
-
-	@Nested
-	@DisplayName("음식점 삭제")
-	class DeleteRestaurant {
-
-		@Test
-		@DisplayName("음식점을 삭제하면 204를 반환한다")
-		void 음식점_삭제_성공() throws Exception {
-			// given
-			willDoNothing().given(restaurantService).deleteRestaurant(1L);
-
-			// when & then
-			mockMvc.perform(delete("/api/v1/restaurants/{restaurantId}", 1L))
-				.andExpect(status().isNoContent());
 		}
 	}
 
