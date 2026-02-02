@@ -45,6 +45,16 @@
                         <label for="detailAddress">상세 주소</label>
                         <input type="text" id="detailAddress" name="detailAddress" maxlength="255">
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="latitude">위도</label>
+                            <input type="text" id="latitude" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="longitude">경도</label>
+                            <input type="text" id="longitude" readonly>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="description">설명</label>
                         <textarea id="description" name="description" rows="4" maxlength="1000"></textarea>
@@ -53,14 +63,28 @@
 
                 <div class="form-section">
                     <h3>음식 카테고리 *</h3>
-                    <div id="foodCategoryList" class="checkbox-group">
+                    <div id="foodCategoryList" class="toggle-group">
                         <p>로딩 중...</p>
                     </div>
                 </div>
 
+                <div class="form-section">
+                    <h3>이미지</h3>
+                    <div class="form-group">
+                        <label>현재 이미지</label>
+                        <div id="restaurantImageCurrent" class="image-preview-grid"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="restaurantImages">새 이미지 업로드</label>
+                        <input type="file" id="restaurantImages" accept="image/*" multiple>
+                        <p class="help-text">새 이미지를 업로드하면 기존 이미지는 교체됩니다.</p>
+                    </div>
+                    <div id="restaurantImagePreview" class="image-preview-grid"></div>
+                </div>
+
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">수정</button>
-                    <button type="button" class="btn btn-danger" onclick="deleteRestaurant()">삭제</button>
+                    <button type="button" class="btn btn-danger" onclick="handleDeleteRestaurant()">삭제</button>
                     <button type="button" class="btn btn-secondary" onclick="location.href='/admin/pages/restaurants.html'">취소</button>
                 </div>
             </form>

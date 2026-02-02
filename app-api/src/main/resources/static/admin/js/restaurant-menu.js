@@ -70,13 +70,16 @@ function displayMenus() {
 
     container.innerHTML = allMenus.map(menu => `
         <div class="menu-item">
-            <div>
-                <strong>${menu.name}</strong>
-                ${menu.isRecommended ? '<span class="badge badge-active">추천</span>' : ''}
-                <div style="color: #7f8c8d; font-size: 14px;">
-                    ${menu.categoryName} | ${menu.price.toLocaleString()}원
+            <div style="display:flex; gap:12px; align-items:center;">
+                ${menu.imageUrl ? `<img class="table-thumbnail" src="${menu.imageUrl}" alt="${menu.name}">` : ''}
+                <div>
+                    <strong>${menu.name}</strong>
+                    ${menu.isRecommended ? '<span class="badge badge-active">추천</span>' : ''}
+                    <div style="color: #7f8c8d; font-size: 14px;">
+                        ${menu.categoryName} | ${menu.price.toLocaleString()}원
+                    </div>
+                    ${menu.description ? `<div style="color: #7f8c8d; font-size: 12px; margin-top: 5px;">${menu.description}</div>` : ''}
                 </div>
-                ${menu.description ? `<div style="color: #7f8c8d; font-size: 12px; margin-top: 5px;">${menu.description}</div>` : ''}
             </div>
         </div>
     `).join('');
@@ -91,6 +94,23 @@ function updateCategorySelect() {
 document.addEventListener('DOMContentLoaded', async () => {
     await loadRestaurantInfo();
     await loadMenus();
+
+    const menuImageInput = document.getElementById('menuImage');
+    const menuImagePreview = document.getElementById('menuImagePreview');
+    let menuImageFile = null;
+
+    menuImageInput.addEventListener('change', () => {
+        const files = Array.from(menuImageInput.files || []);
+        menuImageFile = files.length > 0 ? files[0] : null;
+        menuImagePreview.innerHTML = '';
+        if (menuImageFile) {
+            const img = document.createElement('img');
+            img.className = 'image-preview';
+            img.alt = menuImageFile.name;
+            img.src = URL.createObjectURL(menuImageFile);
+            menuImagePreview.appendChild(img);
+        }
+    });
 
     document.getElementById('categoryForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -113,24 +133,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('menuForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
+        const categoryId = parseInt(document.getElementById('menuCategory').value);
+
+        if (!categoryId) {
+            alert('카테고리를 선택해주세요.');
+            return;
+        }
+
+        let imageFileUuid = null;
+        if (menuImageFile) {
+            try {
+                const presigned = await createPresignedUploads('MENU_IMAGE', [menuImageFile]);
+                const upload = presigned.data?.uploads?.[0];
+                if (upload) {
+                    await uploadToPresigned(upload, menuImageFile);
+                    imageFileUuid = upload.fileUuid;
+                }
+            } catch (error) {
+                alert('이미지 업로드에 실패했습니다: ' + error.message);
+                return;
+            }
+        }
+
         const data = {
-            menuCategoryId: parseInt(document.getElementById('menuCategory').value),
+            categoryId: categoryId,
             name: document.getElementById('menuName').value,
             price: parseInt(document.getElementById('menuPrice').value),
             description: document.getElementById('menuDescription').value || null,
             isRecommended: document.getElementById('menuIsRecommended').checked,
-            imageIds: []
+            imageFileUuid: imageFileUuid
         };
-
-        if (!data.menuCategoryId) {
-            alert('카테고리를 선택해주세요.');
-            return;
-        }
 
         try {
             await createMenu(restaurantId, data);
             alert('메뉴가 추가되었습니다.');
             document.getElementById('menuForm').reset();
+            menuImagePreview.innerHTML = '';
+            menuImageFile = null;
             await loadMenus();
         } catch (error) {
             alert('메뉴 추가에 실패했습니다: ' + error.message);

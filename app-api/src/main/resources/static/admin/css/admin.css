@@ -126,6 +126,12 @@ body {
     color: #2c3e50;
 }
 
+.help-text {
+    margin-top: 6px;
+    color: #7f8c8d;
+    font-size: 12px;
+}
+
 .form-group input[type="text"],
 .form-group input[type="email"],
 .form-group input[type="password"],
@@ -142,6 +148,12 @@ body {
 
 .form-group textarea {
     resize: vertical;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
 }
 
 .btn {
@@ -286,16 +298,49 @@ body {
     color: #2c3e50;
 }
 
-.checkbox-group {
+.checkbox-group,
+.toggle-group {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 10px;
 }
 
-.checkbox-group label {
+.checkbox-group label,
+.toggle-group label {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.toggle-group label {
+    position: relative;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #dcdfe4;
+    background: #f9fafb;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    justify-content: center;
+}
+
+.toggle-group input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.toggle-group input[type="checkbox"]:checked + span {
+    color: #fff;
+}
+
+.toggle-group label span {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.toggle-group label.selected {
+    background: #667eea;
+    border-color: #667eea;
 }
 
 .schedule-item {
@@ -315,6 +360,34 @@ body {
 
 .schedule-item input[type="time"] {
     width: auto;
+}
+
+.schedule-bulk {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    background: #f1f3f5;
+}
+
+.schedule-bulk-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.inline-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
 }
 
 .form-actions {
@@ -414,6 +487,30 @@ body {
 .badge-deleted {
     background-color: #f8d7da;
     color: #721c24;
+}
+
+.image-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.image-preview {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    background: #fff;
+}
+
+.table-thumbnail {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid #dee2e6;
 }
 
 @media (max-width: 768px) {

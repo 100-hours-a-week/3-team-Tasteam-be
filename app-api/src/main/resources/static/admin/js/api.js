@@ -99,6 +99,44 @@ async function createMenu(restaurantId, data) {
     });
 }
 
+async function createPresignedUploads(purpose, files) {
+    const request = {
+        purpose,
+        files: files.map(file => ({
+            fileName: file.name,
+            contentType: file.type || 'application/octet-stream',
+            size: file.size
+        }))
+    };
+
+    return apiRequest('/files/uploads/presigned', {
+        method: 'POST',
+        body: JSON.stringify(request)
+    });
+}
+
+async function uploadToPresigned(presignedItem, file) {
+    const formData = new FormData();
+    Object.entries(presignedItem.fields || {}).forEach(([key, value]) => {
+        formData.append(key, value);
+    });
+    formData.append('file', file);
+
+    const response = await fetch(presignedItem.url, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) {
+        throw new Error('파일 업로드에 실패했습니다.');
+    }
+}
+
+async function geocodeAddress(query) {
+    const params = new URLSearchParams({ query });
+    return apiRequest(`/admin/geocoding?${params.toString()}`);
+}
+
 async function getGroups(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     return apiRequest(`/admin/groups?${queryString}`);

@@ -61,6 +61,12 @@
                             <textarea id="menuDescription" rows="3" maxlength="500"></textarea>
                         </div>
                         <div class="form-group">
+                            <label for="menuImage">이미지</label>
+                            <input type="file" id="menuImage" accept="image/*">
+                            <p class="help-text">이미지 등록은 선택 사항입니다.</p>
+                        </div>
+                        <div id="menuImagePreview" class="image-preview-grid"></div>
+                        <div class="form-group">
                             <label>
                                 <input type="checkbox" id="menuIsRecommended">
                                 추천 메뉴
