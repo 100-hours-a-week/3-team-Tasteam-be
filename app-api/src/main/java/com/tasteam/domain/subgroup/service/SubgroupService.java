@@ -2,7 +2,9 @@ package com.tasteam.domain.subgroup.service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -92,7 +94,7 @@ public class SubgroupService {
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
 
-		return buildListResponse(items, resolvedSize);
+		return buildListResponse(applyResolvedImageUrls(items), resolvedSize);
 	}
 
 	@Transactional(readOnly = true)
@@ -110,7 +112,7 @@ public class SubgroupService {
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
 
-		return buildNameCursorPageResponse(items, resolvedSize);
+		return buildNameCursorPageResponse(applyResolvedImageUrls(items), resolvedSize);
 	}
 
 	@Transactional(readOnly = true)
@@ -130,7 +132,7 @@ public class SubgroupService {
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
 
-		return buildMemberCountCursorPageResponse(items, resolvedSize);
+		return buildMemberCountCursorPageResponse(applyResolvedImageUrls(items), resolvedSize);
 	}
 
 	@Transactional(readOnly = true)
@@ -490,7 +492,6 @@ public class SubgroupService {
 
 	private void applySubgroupImage(Subgroup subgroup, String fileUuid) {
 		Image image = validateImageForAttach(DomainType.SUBGROUP, subgroup.getId(), fileUuid);
-		subgroup.updateProfileImageUrl(buildPublicUrl(image.getStorageKey()));
 		attachDomainImageSafely(DomainType.SUBGROUP, subgroup.getId(), image);
 	}
 
@@ -552,8 +553,40 @@ public class SubgroupService {
 			List.of(subgroup.getId()));
 
 		if (images.isEmpty()) {
-			return subgroup.getProfileImageUrl();
+			return null;
 		}
 		return buildPublicUrl(images.getFirst().getImage().getStorageKey());
+	}
+
+	private List<SubgroupListItem> applyResolvedImageUrls(List<SubgroupListItem> items) {
+		if (items.isEmpty()) {
+			return items;
+		}
+		Map<Long, String> imageUrlBySubgroupId = resolveImageUrlByDomainId(
+			items.stream().map(SubgroupListItem::getSubgroupId).toList());
+
+		return items.stream()
+			.map(item -> SubgroupListItem.builder()
+				.subgroupId(item.getSubgroupId())
+				.name(item.getName())
+				.description(item.getDescription())
+				.memberCount(item.getMemberCount())
+				.profileImageUrl(imageUrlBySubgroupId.get(item.getSubgroupId()))
+				.joinType(item.getJoinType())
+				.createdAt(item.getCreatedAt())
+				.build())
+			.toList();
+	}
+
+	private Map<Long, String> resolveImageUrlByDomainId(List<Long> domainIds) {
+		if (domainIds.isEmpty()) {
+			return Map.of();
+		}
+		return domainImageRepository.findAllByDomainTypeAndDomainIdIn(DomainType.SUBGROUP, domainIds)
+			.stream()
+			.collect(Collectors.toMap(
+				DomainImage::getDomainId,
+				domainImage -> buildPublicUrl(domainImage.getImage().getStorageKey()),
+				(existing, ignored) -> existing));
 	}
 }
