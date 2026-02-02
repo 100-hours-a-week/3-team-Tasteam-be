@@ -51,7 +51,7 @@ class SubgroupControllerTest {
 				List.of(new ReviewResponse(1L,
 					new ReviewResponse.AuthorResponse("테스트유저"),
 					"맛있어요", true, List.of("친절"),
-					new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg"),
+					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
 					Instant.now())),
 				new CursorPageResponse.Pagination(null, false, 20));
 
