@@ -47,6 +47,7 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.REVIEWS),
 			permit(GET, ApiEndpoints.REVIEWS_DETAIL),
 			permit(GET, ApiEndpoints.GROUPS_REVIEWS),
+			permit(GET, ApiEndpoints.GROUPS_REVIEWS_RESTAURANTS),
 			permit(GET, ApiEndpoints.SUBGROUPS_REVIEWS),
 			permit(GET, ApiEndpoints.MEMBERS_REVIEWS),
 			permit(GET, ApiEndpoints.GROUPS_DETAIL),
