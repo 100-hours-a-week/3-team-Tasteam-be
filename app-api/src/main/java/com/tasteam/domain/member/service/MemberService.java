@@ -153,16 +153,12 @@ public class MemberService {
 			}
 
 			domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.MEMBER, memberId);
-			DomainImage domainImage = domainImageRepository
-				.save(DomainImage.create(DomainType.MEMBER, memberId, image, 0));
-
-			log.warn("domain Image: {}", domainImage);
+			domainImageRepository.save(DomainImage.create(DomainType.MEMBER, memberId, image, 0));
 
 			if (image.getStatus() == ImageStatus.PENDING) {
 				image.activate();
+				imageRepository.save(image);
 			}
-
-			log.warn("Image: {}", image);
 		}
 	}
 
@@ -210,10 +206,8 @@ public class MemberService {
 		List<DomainImage> images = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
 			DomainType.MEMBER,
 			List.of(member.getId()));
-		log.warn("Warn!{}", images);
 
 		if (images.isEmpty()) {
-			log.error("Warn!");
 			return null;
 		}
 		return buildPublicUrl(images.getFirst().getImage().getStorageKey());
