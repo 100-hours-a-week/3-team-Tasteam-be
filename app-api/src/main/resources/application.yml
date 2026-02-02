@@ -65,8 +65,8 @@ springdoc:
 ## ====== 커스텀 설정 ======
 tasteam:
   admin:
-    username: ${ADMIN_USERNAME}
-    password: ${ADMIN_PASSWORD}
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
   domain:
     service: ${SERVICE_DOMAIN:https://tasteam.kr}
     api: ${API_DOMAIN:https://api.tasteam.kr}

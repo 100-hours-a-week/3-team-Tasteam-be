@@ -98,7 +98,6 @@ public class SubgroupService {
 	@Transactional(readOnly = true)
 	public CursorPageResponse<SubgroupListItem> getGroupSubgroups(Long groupId, Long memberId, String cursor,
 		Integer size) {
-		validateAuthenticated(memberId);
 		getGroup(groupId);
 
 		int resolvedSize = resolveSize(size);
