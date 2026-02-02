@@ -18,3 +18,8 @@ spring:
       secret: test-secret-129310298301928309128309182309182308490127403912380912
       accessTokenExpiration: 1800000
       refreshTokenExpiration: 1209600000
+
+tasteam:
+  admin:
+    username: admin
+    password: admin
