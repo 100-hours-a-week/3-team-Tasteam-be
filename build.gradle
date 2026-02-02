@@ -46,10 +46,6 @@ subprojects {
 
     tasks.withType(Test).configureEach {
         useJUnitPlatform()
-        maxParallelForks = Runtime.runtime.availableProcessors()
-        forkEvery = 0
-        systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
-        systemProperty 'junit.jupiter.execution.parallel.mode.default', 'concurrent'
     }
 
     spotless {
