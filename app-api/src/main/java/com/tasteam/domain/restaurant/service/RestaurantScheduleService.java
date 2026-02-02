@@ -10,13 +10,18 @@ import java.util.stream.IntStream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.BusinessHourWeekItem;
+import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.entity.RestaurantScheduleOverride;
 import com.tasteam.domain.restaurant.entity.RestaurantWeeklySchedule;
+import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantScheduleOverrideRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantWeeklyScheduleRepository;
 import com.tasteam.domain.restaurant.type.DayOfWeekCode;
 import com.tasteam.domain.restaurant.type.ScheduleSource;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.RestaurantErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,6 +34,7 @@ public class RestaurantScheduleService {
 
 	private final RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
 	private final RestaurantScheduleOverrideRepository scheduleOverrideRepository;
+	private final RestaurantRepository restaurantRepository;
 
 	@Transactional(readOnly = true)
 	public List<BusinessHourWeekItem> getBusinessHoursWeek(Long restaurantId) {
@@ -99,5 +105,27 @@ public class RestaurantScheduleService {
 		}
 
 		return result;
+	}
+
+	@Transactional
+	public void createWeeklySchedules(Long restaurantId, List<WeeklyScheduleRequest> schedules) {
+		Restaurant restaurant = restaurantRepository.findByIdAndDeletedAtIsNull(restaurantId)
+			.orElseThrow(() -> new BusinessException(RestaurantErrorCode.RESTAURANT_NOT_FOUND));
+
+		if (schedules == null || schedules.isEmpty()) {
+			return;
+		}
+
+		List<RestaurantWeeklySchedule> weeklySchedules = schedules.stream()
+			.map(s -> RestaurantWeeklySchedule.create(
+				restaurant,
+				s.dayOfWeek(),
+				s.openTime(),
+				s.closeTime(),
+				s.isClosed(),
+				s.effectiveFrom(),
+				s.effectiveTo()))
+			.toList();
+		weeklyScheduleRepository.saveAll(weeklySchedules);
 	}
 }

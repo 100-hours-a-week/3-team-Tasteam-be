@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메뉴 관리 - Tasteam Admin</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Tasteam Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/admin/pages/dashboard.html">대시보드</a></li>
+                <li><a href="/admin/pages/restaurants.html" class="active">음식점 관리</a></li>
+                <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
+                <li><a href="#" id="logoutBtn">로그아웃</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <div class="content-header">
+                <h1>메뉴 관리</h1>
+                <h3 id="restaurantName"></h3>
+                <button class="btn btn-secondary" onclick="goBackToRestaurant()">음식점으로 돌아가기</button>
+            </div>
+
+            <div class="menu-management">
+                <div class="menu-category-section">
+                    <h3>메뉴 카테고리</h3>
+                    <form id="categoryForm" class="inline-form">
+                        <input type="text" id="categoryName" placeholder="카테고리명" maxlength="50" required>
+                        <input type="number" id="categoryDisplayOrder" placeholder="표시순서" min="0" value="0">
+                        <button type="submit" class="btn btn-primary">카테고리 추가</button>
+                    </form>
+                    <div id="categoryList" class="category-list">
+                        <p>로딩 중...</p>
+                    </div>
+                </div>
+
+                <div class="menu-item-section">
+                    <h3>메뉴 아이템</h3>
+                    <form id="menuForm" class="form-container">
+                        <div class="form-group">
+                            <label for="menuCategory">카테고리 *</label>
+                            <select id="menuCategory" required>
+                                <option value="">카테고리를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="menuName">메뉴명 *</label>
+                            <input type="text" id="menuName" required maxlength="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="menuPrice">가격 *</label>
+                            <input type="number" id="menuPrice" required min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="menuDescription">설명</label>
+                            <textarea id="menuDescription" rows="3" maxlength="500"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="menuImage">이미지</label>
+                            <input type="file" id="menuImage" accept="image/*">
+                            <p class="help-text">이미지 등록은 선택 사항입니다.</p>
+                        </div>
+                        <div id="menuImagePreview" class="image-preview-grid"></div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="menuIsRecommended">
+                                추천 메뉴
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">메뉴 추가</button>
+                    </form>
+
+                    <div id="menuList" class="menu-list">
+                        <p>로딩 중...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/admin/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/restaurant-menu.js"></script>
+</body>
+</html>

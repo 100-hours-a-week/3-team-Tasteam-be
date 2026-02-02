@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>음식점 수정 - Tasteam Admin</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Tasteam Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/admin/pages/dashboard.html">대시보드</a></li>
+                <li><a href="/admin/pages/restaurants.html" class="active">음식점 관리</a></li>
+                <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
+                <li><a href="#" id="logoutBtn">로그아웃</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <div class="content-header">
+                <h1>음식점 수정</h1>
+                <div>
+                    <button class="btn btn-secondary" onclick="location.href='/admin/pages/restaurant-menu.html?id=' + getRestaurantId()">메뉴 관리</button>
+                    <button class="btn btn-secondary" onclick="location.href='/admin/pages/restaurants.html'">목록으로</button>
+                </div>
+            </div>
+
+            <form id="restaurantEditForm" class="form-container">
+                <input type="hidden" id="restaurantId">
+
+                <div class="form-section">
+                    <h3>기본 정보</h3>
+                    <div class="form-group">
+                        <label for="name">음식점명 *</label>
+                        <input type="text" id="name" name="name" required maxlength="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="address">주소 *</label>
+                        <input type="text" id="address" name="address" required maxlength="255">
+                    </div>
+                    <div class="form-group">
+                        <label for="detailAddress">상세 주소</label>
+                        <input type="text" id="detailAddress" name="detailAddress" maxlength="255">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="latitude">위도</label>
+                            <input type="text" id="latitude" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="longitude">경도</label>
+                            <input type="text" id="longitude" readonly>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">설명</label>
+                        <textarea id="description" name="description" rows="4" maxlength="1000"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>음식 카테고리 *</h3>
+                    <div id="foodCategoryList" class="toggle-group">
+                        <p>로딩 중...</p>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>이미지</h3>
+                    <div class="form-group">
+                        <label>현재 이미지</label>
+                        <div id="restaurantImageCurrent" class="image-preview-grid"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="restaurantImages">새 이미지 업로드</label>
+                        <input type="file" id="restaurantImages" accept="image/*" multiple>
+                        <p class="help-text">새 이미지를 업로드하면 기존 이미지는 교체됩니다.</p>
+                    </div>
+                    <div id="restaurantImagePreview" class="image-preview-grid"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">수정</button>
+                    <button type="button" class="btn btn-danger" onclick="handleDeleteRestaurant()">삭제</button>
+                    <button type="button" class="btn btn-secondary" onclick="location.href='/admin/pages/restaurants.html'">취소</button>
+                </div>
+            </form>
+        </main>
+    </div>
+    <script src="/admin/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/restaurant-edit.js"></script>
+</body>
+</html>

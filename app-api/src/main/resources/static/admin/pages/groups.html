@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그룹 관리 - Tasteam Admin</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Tasteam Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/admin/pages/dashboard.html">대시보드</a></li>
+                <li><a href="/admin/pages/restaurants.html">음식점 관리</a></li>
+                <li><a href="/admin/pages/groups.html" class="active">그룹 관리</a></li>
+                <li><a href="#" id="logoutBtn">로그아웃</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <div class="content-header">
+                <h1>그룹 관리</h1>
+                <button class="btn btn-primary" onclick="openCreateModal()">그룹 생성</button>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>로고</th>
+                            <th>그룹명</th>
+                            <th>타입</th>
+                            <th>주소</th>
+                            <th>가입 타입</th>
+                            <th>상태</th>
+                            <th>생성일</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groupList">
+                        <tr>
+                            <td colspan="7" class="loading">로딩 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="pagination"></div>
+        </main>
+    </div>
+
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCreateModal()">&times;</span>
+            <h2>그룹 생성</h2>
+            <form id="groupForm">
+                <div class="form-group">
+                    <label for="groupName">그룹명 *</label>
+                    <input type="text" id="groupName" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label for="groupLogoImage">로고 이미지</label>
+                    <input type="file" id="groupLogoImage" accept="image/*">
+                    <p class="help-text">로고 이미지는 선택 사항입니다.</p>
+                </div>
+                <div id="groupLogoPreview" class="image-preview-grid"></div>
+                <div class="form-group">
+                    <label for="groupType">그룹 타입 *</label>
+                    <select id="groupType" required>
+                        <option value="">선택하세요</option>
+                        <option value="OFFICIAL">공식</option>
+                        <option value="UNOFFICIAL">비공식</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="groupAddress">주소 *</label>
+                    <input type="text" id="groupAddress" required maxlength="255">
+                </div>
+                <div class="form-group">
+                    <label for="groupDetailAddress">상세 주소</label>
+                    <input type="text" id="groupDetailAddress" maxlength="255">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="groupLatitude">위도</label>
+                        <input type="text" id="groupLatitude" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="groupLongitude">경도</label>
+                        <input type="text" id="groupLongitude" readonly>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="groupJoinType">가입 타입 *</label>
+                    <select id="groupJoinType" required>
+                        <option value="">선택하세요</option>
+                        <option value="EMAIL">이메일 인증</option>
+                        <option value="PASSWORD">비밀번호</option>
+                    </select>
+                </div>
+                <div class="form-group" id="emailDomainGroup" style="display:none;">
+                    <label for="groupEmailDomain">이메일 도메인</label>
+                    <input type="text" id="groupEmailDomain" maxlength="100" placeholder="example.com">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">생성</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/admin/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/groups.js"></script>
+</body>
+</html>

@@ -264,6 +264,7 @@ public class FileService {
 		return switch (purpose) {
 			case REVIEW_IMAGE -> "uploads/review/image";
 			case RESTAURANT_IMAGE -> "uploads/restaurant/image";
+			case MENU_IMAGE -> "uploads/menu/image";
 			case PROFILE_IMAGE -> "uploads/profile/image";
 			case GROUP_IMAGE -> "uploads/group/image";
 			case COMMON_ASSET -> "uploads/common/asset";

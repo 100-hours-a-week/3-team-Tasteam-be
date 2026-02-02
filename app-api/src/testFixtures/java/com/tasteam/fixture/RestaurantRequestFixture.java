@@ -57,12 +57,12 @@ public final class RestaurantRequestFixture {
 	}
 
 	public static MenuCreateRequest createMenuRequest() {
-		return new MenuCreateRequest(1L, "된장찌개", "구수한 된장찌개", 9000, null, true, 0);
+		return new MenuCreateRequest(1L, "된장찌개", "구수한 된장찌개", 9000, null, null, true, 0);
 	}
 
 	public static MenuBulkCreateRequest createMenuBulkRequest() {
 		return new MenuBulkCreateRequest(List.of(
-			new MenuCreateRequest(1L, "된장찌개", "구수한 된장찌개", 9000, null, true, 0),
-			new MenuCreateRequest(1L, "김치찌개", "매콤한 김치찌개", 8000, null, false, 1)));
+			new MenuCreateRequest(1L, "된장찌개", "구수한 된장찌개", 9000, null, null, true, 0),
+			new MenuCreateRequest(1L, "김치찌개", "매콤한 김치찌개", 8000, null, null, false, 1)));
 	}
 }
