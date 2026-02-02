@@ -9,12 +9,14 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
 import com.tasteam.domain.member.repository.MemberRepository;
@@ -50,8 +52,6 @@ import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.exception.code.ReviewErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
-import com.tasteam.infra.storage.StorageClient;
-import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
 
@@ -72,8 +72,7 @@ public class ReviewService {
 	private final ReviewKeywordRepository reviewKeywordRepository;
 	private final DomainImageRepository domainImageRepository;
 	private final ImageRepository imageRepository;
-	private final StorageProperties storageProperties;
-	private final StorageClient storageClient;
+	private final FileService fileService;
 	private final CursorCodec cursorCodec;
 
 	@Transactional(readOnly = true)
@@ -98,12 +97,14 @@ public class ReviewService {
 			.map(ReviewKeywordProjection::getKeywordName)
 			.toList();
 
-		List<ReviewDetailResponse.ReviewImageResponse> images = domainImageRepository
-			.findAllByDomainTypeAndDomainIdIn(DomainType.REVIEW, List.of(reviewId))
+		Map<Long, List<DomainImageItem>> reviewImages = fileService.getDomainImageUrls(
+			DomainType.REVIEW,
+			List.of(reviewId));
+
+		List<ReviewDetailResponse.ReviewImageResponse> images = reviewImages
+			.getOrDefault(reviewId, List.of())
 			.stream()
-			.map(di -> new ReviewDetailResponse.ReviewImageResponse(
-				di.getImage().getId(),
-				buildPublicUrl(di.getImage().getStorageKey())))
+			.map(image -> new ReviewDetailResponse.ReviewImageResponse(image.imageId(), image.url()))
 			.toList();
 
 		return new ReviewDetailResponse(
@@ -300,7 +301,9 @@ public class ReviewService {
 
 		List<Long> reviewIds = extractReviewIds(pageContent);
 		Map<Long, List<String>> reviewKeywords = loadReviewKeywords(reviewIds);
-		Map<Long, ReviewResponse.ReviewImageResponse> reviewThumbnails = loadReviewThumbnails(reviewIds);
+		Map<Long, List<DomainImageItem>> reviewThumbnails = fileService.getDomainImageUrls(
+			DomainType.REVIEW,
+			reviewIds);
 
 		List<ReviewResponse> items = buildReviewResponses(pageContent, reviewKeywords, reviewThumbnails);
 
@@ -334,7 +337,7 @@ public class ReviewService {
 	private List<ReviewResponse> buildReviewResponses(
 		List<ReviewQueryDto> pageContent,
 		Map<Long, List<String>> reviewKeywords,
-		Map<Long, ReviewResponse.ReviewImageResponse> reviewThumbnails) {
+		Map<Long, List<DomainImageItem>> reviewThumbnails) {
 		return pageContent.stream()
 			.map(review -> new ReviewResponse(
 				review.reviewId(),
@@ -342,7 +345,7 @@ public class ReviewService {
 				review.content(),
 				review.isRecommended(),
 				reviewKeywords.getOrDefault(review.reviewId(), List.of()),
-				reviewThumbnails.get(review.reviewId()),
+				convertToReviewImages(reviewThumbnails.get(review.reviewId())),
 				review.createdAt()))
 			.toList();
 	}
@@ -399,34 +402,12 @@ public class ReviewService {
 				Collectors.mapping(ReviewKeywordProjection::getKeywordName, Collectors.toList())));
 	}
 
-	private Map<Long, ReviewResponse.ReviewImageResponse> loadReviewThumbnails(List<Long> reviewIds) {
-		return domainImageRepository
-			.findAllByDomainTypeAndDomainIdIn(DomainType.REVIEW, reviewIds)
-			.stream()
-			.collect(Collectors.groupingBy(
-				DomainImage::getDomainId,
-				Collectors.collectingAndThen(
-					Collectors.toList(),
-					images -> {
-						DomainImage first = images.get(0);
-						return new ReviewResponse.ReviewImageResponse(
-							first.getImage().getId(),
-							buildPublicUrl(first.getImage().getStorageKey()));
-					})));
-	}
-
-	private String buildPublicUrl(String storageKey) {
-		if (storageProperties.isPresignedAccess()) {
-			return storageClient.createPresignedGetUrl(storageKey);
+	private List<ReviewResponse.ReviewImageResponse> convertToReviewImages(List<DomainImageItem> images) {
+		if (images == null || images.isEmpty()) {
+			return List.of();
 		}
-		String baseUrl = storageProperties.getBaseUrl();
-		if (baseUrl == null || baseUrl.isBlank()) {
-			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
-				storageProperties.getBucket(),
-				storageProperties.getRegion());
-		}
-		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-		String normalizedKey = storageKey.startsWith("/") ? storageKey.substring(1) : storageKey;
-		return normalizedBase + "/" + normalizedKey;
+		return images.stream()
+			.map(image -> new ReviewResponse.ReviewImageResponse(image.imageId(), image.url()))
+			.toList();
 	}
 }
