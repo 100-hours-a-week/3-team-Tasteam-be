@@ -56,9 +56,6 @@ public final class ApiEndpointSecurityPolicy {
 			// 검색 (토큰 유무 무관)
 			permit(POST, ApiEndpoints.SEARCH),
 
-			// 메인 (토큰 유무 무관)
-			permit(GET, ApiEndpoints.MAIN),
-
 			// Swagger
 			permit(GET, ApiEndpoints.SWAGGER_UI),
 			permit(GET, ApiEndpoints.SWAGGER_UI_INDEX),
@@ -73,15 +70,10 @@ public final class ApiEndpointSecurityPolicy {
 
 			// Admin Static Pages
 			permit(GET, ApiEndpoints.ADMIN_STATIC),
+			permit(POST, ApiEndpoints.ADMIN_AUTH_LOGIN),
 
 			// Test
-			permit(GET, ApiEndpoints.TEST),
-
-			// TODO: 임시 - Admin API 엔드포인트 (인증 구현 후 제거 필요)
-			permit(GET, ApiEndpoints.ADMIN_ALL),
-			permit(POST, ApiEndpoints.ADMIN_ALL),
-			permit(org.springframework.http.HttpMethod.PATCH, ApiEndpoints.ADMIN_ALL),
-			permit(org.springframework.http.HttpMethod.DELETE, ApiEndpoints.ADMIN_ALL));
+			permit(GET, ApiEndpoints.TEST));
 	}
 
 	/**
@@ -101,8 +93,7 @@ public final class ApiEndpointSecurityPolicy {
 	 */
 	public static String[] adminEndpoints() {
 		return new String[] {
-			// TODO: 임시 - 개발용으로 Admin 엔드포인트를 public으로 이동
-			// ApiEndpoints.ADMIN_ALL
+			ApiEndpoints.ADMIN_ALL
 		};
 	}
 
