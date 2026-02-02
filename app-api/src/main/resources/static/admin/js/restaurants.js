@@ -47,6 +47,7 @@ function displayRestaurants(data) {
             </td>
             <td>
                 <button class="btn btn-secondary" onclick="location.href='/admin/pages/restaurant-edit.html?id=${restaurant.id}'">수정</button>
+                <button class="btn btn-primary" onclick="location.href='/admin/pages/restaurant-menu.html?id=${restaurant.id}'">메뉴</button>
             </td>
         </tr>
     `).join('');

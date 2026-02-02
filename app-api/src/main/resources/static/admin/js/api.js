@@ -20,7 +20,7 @@ async function apiRequest(url, options = {}) {
     if (response.status === 401) {
         localStorage.removeItem('authToken');
         window.location.href = '/admin/index.html';
-        return;
+        throw new Error('인증이 필요합니다.');
     }
 
     if (!response.ok) {
@@ -82,11 +82,11 @@ async function getFoodCategories() {
 }
 
 async function getRestaurantMenus(restaurantId) {
-    return apiRequest(`/restaurants/${restaurantId}/menus`);
+    return apiRequest(`/admin/restaurants/${restaurantId}/menus`);
 }
 
 async function createMenuCategory(restaurantId, data) {
-    return apiRequest(`/admin/restaurants/${restaurantId}/menus/menu-categories`, {
+    return apiRequest(`/admin/restaurants/${restaurantId}/menus/categories`, {
         method: 'POST',
         body: JSON.stringify(data)
     });

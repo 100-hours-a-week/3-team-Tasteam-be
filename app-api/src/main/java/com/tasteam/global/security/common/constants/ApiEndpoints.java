@@ -57,6 +57,7 @@ public final class ApiEndpoints {
 	public static final String RESTAURANTS = API_V1 + "/restaurants";
 	public static final String RESTAURANTS_DETAIL = RESTAURANTS + DETAIL;
 	public static final String RESTAURANTS_REVIEWS = RESTAURANTS_DETAIL + "/reviews";
+	public static final String FOOD_CATEGORIES = API_V1 + "/food-categories";
 
 	// Main
 	public static final String MAIN = API_V1 + "/main";

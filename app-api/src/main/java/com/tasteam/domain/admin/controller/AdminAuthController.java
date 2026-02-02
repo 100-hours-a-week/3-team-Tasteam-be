@@ -14,6 +14,7 @@ import com.tasteam.domain.admin.dto.response.AdminLoginResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.AuthErrorCode;
+import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/auth")
 public class AdminAuthController {
+
+	private final JwtTokenProvider jwtTokenProvider;
 
 	@Value("${tasteam.admin.username}")
 	private String adminUsername;
@@ -38,8 +41,8 @@ public class AdminAuthController {
 			throw new BusinessException(AuthErrorCode.INVALID_ADMIN_CREDENTIALS);
 		}
 
-		String token = "admin-session-" + System.currentTimeMillis();
+		String accessToken = jwtTokenProvider.generateAccessToken(0L, "ADMIN");
 
-		return SuccessResponse.success(new AdminLoginResponse(token));
+		return SuccessResponse.success(new AdminLoginResponse(accessToken));
 	}
 }
