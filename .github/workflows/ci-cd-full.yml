@@ -35,7 +35,7 @@ jobs:
       - name: Run Tests
         run: ./gradlew test
 
-      # 테스트 실패 알림
+      # 테스트 실패 디스코드 알림
       - name: Notify Test Failure
         if: failure()
         uses: sarisia/actions-status-discord@v1
