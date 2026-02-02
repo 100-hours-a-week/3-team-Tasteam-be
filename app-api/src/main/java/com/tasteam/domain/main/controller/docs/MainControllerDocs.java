@@ -4,6 +4,8 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.validation.annotation.Validated;
 
 import com.tasteam.domain.main.dto.request.MainPageRequest;
+import com.tasteam.domain.main.dto.response.AiRecommendResponse;
+import com.tasteam.domain.main.dto.response.HomePageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
@@ -20,6 +22,22 @@ public interface MainControllerDocs {
 	@Operation(summary = "메인 페이지 조회", description = "메인 페이지 데이터를 조회합니다. 위치 정보는 선택이며, 미제공 시 소속 그룹 위치 또는 랜덤 데이터를 반환합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = MainPageResponse.class)))
 	SuccessResponse<MainPageResponse> getMain(
+		@CurrentUser
+		Long memberId,
+		@Validated @ParameterObject
+		MainPageRequest request);
+
+	@Operation(summary = "홈 페이지 조회", description = "홈 화면용 NEW, HOT 섹션 데이터를 조회합니다.")
+	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = HomePageResponse.class)))
+	SuccessResponse<HomePageResponse> getHome(
+		@CurrentUser
+		Long memberId,
+		@Validated @ParameterObject
+		MainPageRequest request);
+
+	@Operation(summary = "AI 추천 조회", description = "오늘 뭐먹지 페이지용 AI 추천 데이터를 조회합니다.")
+	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = AiRecommendResponse.class)))
+	SuccessResponse<AiRecommendResponse> getAiRecommend(
 		@CurrentUser
 		Long memberId,
 		@Validated @ParameterObject
