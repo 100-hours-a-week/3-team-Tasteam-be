@@ -57,7 +57,7 @@ public class SecurityConfig {
 					auth.requestMatchers(endpoint.method(), endpoint.pattern()).permitAll();
 				});
 
-				auth.requestMatchers(ApiEndpointSecurityPolicy.userEndpoints()).hasRole("USER");
+				auth.requestMatchers(ApiEndpointSecurityPolicy.userEndpoints()).hasAnyRole("USER", "ADMIN");
 				auth.requestMatchers(ApiEndpointSecurityPolicy.adminEndpoints()).hasRole("ADMIN");
 				auth.anyRequest().authenticated();
 			})

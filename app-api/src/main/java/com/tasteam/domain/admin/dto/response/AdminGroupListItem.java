@@ -12,6 +12,7 @@ public record AdminGroupListItem(
 	GroupType type,
 	String address,
 	GroupJoinType joinType,
+	String logoImageUrl,
 	GroupStatus status,
 	Instant createdAt) {
 }

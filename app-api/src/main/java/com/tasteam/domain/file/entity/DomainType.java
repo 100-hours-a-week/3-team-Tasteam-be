@@ -5,6 +5,7 @@ public enum DomainType {
 	RESTAURANT,
 	PROMOTION,
 	GROUP,
+	MENU,
 	SUBGROUP,
 	MEMBER
 }

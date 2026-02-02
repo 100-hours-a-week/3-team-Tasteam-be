@@ -4,11 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.entity.DomainImage;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.entity.Image;
+import com.tasteam.domain.file.entity.ImageStatus;
+import com.tasteam.domain.file.repository.DomainImageRepository;
+import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.restaurant.dto.request.MenuBulkCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.MenuCategoryCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.MenuCreateRequest;
@@ -22,7 +29,11 @@ import com.tasteam.domain.restaurant.repository.MenuCategoryRepository;
 import com.tasteam.domain.restaurant.repository.MenuRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
+import com.tasteam.infra.storage.StorageClient;
+import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,6 +44,10 @@ public class MenuService {
 	private final RestaurantRepository restaurantRepository;
 	private final MenuCategoryRepository menuCategoryRepository;
 	private final MenuRepository menuRepository;
+	private final ImageRepository imageRepository;
+	private final DomainImageRepository domainImageRepository;
+	private final StorageProperties storageProperties;
+	private final StorageClient storageClient;
 
 	@Transactional(readOnly = true)
 	public RestaurantMenuResponse getRestaurantMenus(
@@ -113,7 +128,9 @@ public class MenuService {
 			request.isRecommended(),
 			request.displayOrder());
 
-		return menuRepository.save(menu).getId();
+		Menu saved = menuRepository.save(menu);
+		applyMenuImage(saved, request.imageFileUuid(), request.imageUrl());
+		return saved.getId();
 	}
 
 	@Transactional
@@ -146,8 +163,67 @@ public class MenuService {
 				menuRequest.displayOrder()))
 			.toList();
 
-		return menuRepository.saveAll(menus).stream()
-			.map(Menu::getId)
-			.toList();
+		List<Menu> savedMenus = menuRepository.saveAll(menus);
+
+		for (int i = 0; i < savedMenus.size(); i++) {
+			MenuCreateRequest menuRequest = request.menus().get(i);
+			applyMenuImage(savedMenus.get(i), menuRequest.imageFileUuid(), menuRequest.imageUrl());
+		}
+
+		return savedMenus.stream().map(Menu::getId).toList();
+	}
+
+	private void applyMenuImage(Menu menu, String imageFileUuid, String fallbackImageUrl) {
+		if (imageFileUuid == null || imageFileUuid.isBlank()) {
+			if (fallbackImageUrl != null && !fallbackImageUrl.isBlank()) {
+				menu.changeImageUrl(fallbackImageUrl);
+			}
+			return;
+		}
+
+		Image image = imageRepository.findByFileUuid(parseUuid(imageFileUuid))
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() == ImageStatus.DELETED) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		if (image.getStatus() != ImageStatus.PENDING
+			&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(DomainType.MENU, menu.getId(), image)
+				.isEmpty()) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.MENU, menu.getId());
+		domainImageRepository.save(DomainImage.create(DomainType.MENU, menu.getId(), image, 0));
+
+		if (image.getStatus() == ImageStatus.PENDING) {
+			image.activate();
+		}
+
+		menu.changeImageUrl(buildPublicUrl(image.getStorageKey()));
+	}
+
+	private UUID parseUuid(String fileUuid) {
+		try {
+			return UUID.fromString(fileUuid);
+		} catch (IllegalArgumentException ex) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "fileUuid 형식이 올바르지 않습니다");
+		}
+	}
+
+	private String buildPublicUrl(String storageKey) {
+		if (storageProperties.isPresignedAccess()) {
+			return storageClient.createPresignedGetUrl(storageKey);
+		}
+		String baseUrl = storageProperties.getBaseUrl();
+		if (baseUrl == null || baseUrl.isBlank()) {
+			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
+				storageProperties.getBucket(),
+				storageProperties.getRegion());
+		}
+		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+		String normalizedKey = storageKey.startsWith("/") ? storageKey.substring(1) : storageKey;
+		return normalizedBase + "/" + normalizedKey;
 	}
 }

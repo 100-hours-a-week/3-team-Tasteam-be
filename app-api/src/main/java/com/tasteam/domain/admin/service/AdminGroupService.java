@@ -1,5 +1,10 @@
 package com.tasteam.domain.admin.service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -10,11 +15,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.admin.dto.request.AdminGroupCreateRequest;
 import com.tasteam.domain.admin.dto.response.AdminGroupListItem;
+import com.tasteam.domain.file.entity.DomainImage;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.entity.Image;
+import com.tasteam.domain.file.entity.ImageStatus;
+import com.tasteam.domain.file.repository.DomainImageRepository;
+import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.code.FileErrorCode;
+import com.tasteam.infra.storage.StorageClient;
+import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,12 +39,22 @@ import lombok.RequiredArgsConstructor;
 public class AdminGroupService {
 
 	private final GroupRepository groupRepository;
+	private final ImageRepository imageRepository;
+	private final DomainImageRepository domainImageRepository;
 	private final GeometryFactory geometryFactory;
 	private final NaverGeocodingClient naverGeocodingClient;
+	private final StorageProperties storageProperties;
+	private final StorageClient storageClient;
 
 	@Transactional(readOnly = true)
 	public Page<AdminGroupListItem> getGroups(Pageable pageable) {
 		Page<Group> groups = groupRepository.findAll(pageable);
+
+		List<Long> groupIds = groups.getContent().stream()
+			.map(Group::getId)
+			.toList();
+
+		Map<Long, String> logoImageMap = resolveLogoImageUrlMap(groupIds);
 
 		return groups.map(g -> new AdminGroupListItem(
 			g.getId(),
@@ -36,6 +62,7 @@ public class AdminGroupService {
 			g.getType(),
 			g.getAddress(),
 			g.getJoinType(),
+			logoImageMap.get(g.getId()),
 			g.getStatus(),
 			g.getCreatedAt()));
 	}
@@ -58,6 +85,75 @@ public class AdminGroupService {
 			.status(GroupStatus.ACTIVE)
 			.build();
 
-		return groupRepository.save(group).getId();
+		Group savedGroup = groupRepository.save(group);
+
+		applyLogoImageIfPresent(savedGroup, request.logoImageFileUuid());
+
+		return savedGroup.getId();
+	}
+
+	private void applyLogoImageIfPresent(Group group, String logoImageFileUuid) {
+		if (logoImageFileUuid == null || logoImageFileUuid.isBlank()) {
+			return;
+		}
+
+		Image image = imageRepository.findByFileUuid(parseUuid(logoImageFileUuid))
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() == ImageStatus.DELETED) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		if (image.getStatus() != ImageStatus.PENDING
+			&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(DomainType.GROUP, group.getId(), image)
+				.isEmpty()) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.GROUP, group.getId());
+		domainImageRepository.save(DomainImage.create(DomainType.GROUP, group.getId(), image, 0));
+
+		if (image.getStatus() == ImageStatus.PENDING) {
+			image.activate();
+		}
+	}
+
+	private Map<Long, String> resolveLogoImageUrlMap(List<Long> groupIds) {
+		if (groupIds.isEmpty()) {
+			return Map.of();
+		}
+
+		List<DomainImage> images = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
+			DomainType.GROUP,
+			groupIds);
+
+		return images.stream()
+			.collect(Collectors.toMap(
+				DomainImage::getDomainId,
+				di -> buildPublicUrl(di.getImage().getStorageKey()),
+				(first, second) -> first));
+	}
+
+	private UUID parseUuid(String fileUuid) {
+		try {
+			return UUID.fromString(fileUuid);
+		} catch (IllegalArgumentException ex) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "fileUuid 형식이 올바르지 않습니다");
+		}
+	}
+
+	private String buildPublicUrl(String storageKey) {
+		if (storageProperties.isPresignedAccess()) {
+			return storageClient.createPresignedGetUrl(storageKey);
+		}
+		String baseUrl = storageProperties.getBaseUrl();
+		if (baseUrl == null || baseUrl.isBlank()) {
+			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
+				storageProperties.getBucket(),
+				storageProperties.getRegion());
+		}
+		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+		String normalizedKey = storageKey.startsWith("/") ? storageKey.substring(1) : storageKey;
+		return normalizedBase + "/" + normalizedKey;
 	}
 }
