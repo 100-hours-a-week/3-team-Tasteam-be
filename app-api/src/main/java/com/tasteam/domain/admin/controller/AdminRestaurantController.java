@@ -22,12 +22,8 @@ import com.tasteam.domain.admin.dto.request.AdminRestaurantSearchCondition;
 import com.tasteam.domain.admin.dto.request.AdminRestaurantUpdateRequest;
 import com.tasteam.domain.admin.dto.response.AdminRestaurantDetailResponse;
 import com.tasteam.domain.admin.dto.response.AdminRestaurantListItem;
-import com.tasteam.domain.admin.policy.AdminAuthPolicy;
 import com.tasteam.domain.admin.service.AdminRestaurantService;
-import com.tasteam.domain.member.entity.Member;
-import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.global.dto.api.SuccessResponse;
-import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,8 +33,6 @@ import lombok.RequiredArgsConstructor;
 public class AdminRestaurantController {
 
 	private final AdminRestaurantService adminRestaurantService;
-	private final AdminAuthPolicy adminAuthPolicy;
-	private final MemberRepository memberRepository;
 
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
@@ -46,12 +40,7 @@ public class AdminRestaurantController {
 		@ModelAttribute
 		AdminRestaurantSearchCondition condition,
 		@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
-		Pageable pageable,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		Pageable pageable) {
 
 		Page<AdminRestaurantListItem> result = adminRestaurantService.getRestaurants(condition, pageable);
 		return SuccessResponse.success(result);
@@ -61,12 +50,7 @@ public class AdminRestaurantController {
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<AdminRestaurantDetailResponse> getRestaurant(
 		@PathVariable
-		Long restaurantId,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		Long restaurantId) {
 
 		AdminRestaurantDetailResponse result = adminRestaurantService.getRestaurantDetail(restaurantId);
 		return SuccessResponse.success(result);
@@ -76,12 +60,7 @@ public class AdminRestaurantController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<Long> createRestaurant(
 		@Validated @RequestBody
-		AdminRestaurantCreateRequest request,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		AdminRestaurantCreateRequest request) {
 
 		Long restaurantId = adminRestaurantService.createRestaurant(request);
 		return SuccessResponse.success(restaurantId);
@@ -93,12 +72,7 @@ public class AdminRestaurantController {
 		@PathVariable
 		Long restaurantId,
 		@Validated @RequestBody
-		AdminRestaurantUpdateRequest request,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		AdminRestaurantUpdateRequest request) {
 
 		adminRestaurantService.updateRestaurant(restaurantId, request);
 	}
@@ -107,12 +81,7 @@ public class AdminRestaurantController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteRestaurant(
 		@PathVariable
-		Long restaurantId,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		Long restaurantId) {
 
 		adminRestaurantService.deleteRestaurant(restaurantId);
 	}

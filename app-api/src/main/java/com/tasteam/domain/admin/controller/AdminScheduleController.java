@@ -12,14 +12,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.tasteam.domain.admin.policy.AdminAuthPolicy;
-import com.tasteam.domain.member.entity.Member;
-import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.BusinessHourWeekItem;
 import com.tasteam.domain.restaurant.service.RestaurantScheduleService;
 import com.tasteam.global.dto.api.SuccessResponse;
-import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,19 +25,12 @@ import lombok.RequiredArgsConstructor;
 public class AdminScheduleController {
 
 	private final RestaurantScheduleService restaurantScheduleService;
-	private final AdminAuthPolicy adminAuthPolicy;
-	private final MemberRepository memberRepository;
 
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<List<BusinessHourWeekItem>> getSchedules(
 		@PathVariable
-		Long restaurantId,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		Long restaurantId) {
 
 		List<BusinessHourWeekItem> result = restaurantScheduleService.getBusinessHoursWeek(restaurantId);
 		return SuccessResponse.success(result);
@@ -53,12 +42,7 @@ public class AdminScheduleController {
 		@PathVariable
 		Long restaurantId,
 		@Validated @RequestBody
-		List<WeeklyScheduleRequest> request,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		List<WeeklyScheduleRequest> request) {
 
 		restaurantScheduleService.createWeeklySchedules(restaurantId, request);
 		return SuccessResponse.success(null);

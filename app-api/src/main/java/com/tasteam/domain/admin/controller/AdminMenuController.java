@@ -11,16 +11,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.tasteam.domain.admin.policy.AdminAuthPolicy;
-import com.tasteam.domain.member.entity.Member;
-import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.restaurant.dto.request.MenuBulkCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.MenuCategoryCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.MenuCreateRequest;
 import com.tasteam.domain.restaurant.dto.response.RestaurantMenuResponse;
 import com.tasteam.domain.restaurant.service.MenuService;
 import com.tasteam.global.dto.api.SuccessResponse;
-import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,8 +26,6 @@ import lombok.RequiredArgsConstructor;
 public class AdminMenuController {
 
 	private final MenuService menuService;
-	private final AdminAuthPolicy adminAuthPolicy;
-	private final MemberRepository memberRepository;
 
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
@@ -41,12 +35,7 @@ public class AdminMenuController {
 		@RequestParam(required = false, defaultValue = "true")
 		boolean includeEmptyCategories,
 		@RequestParam(required = false, defaultValue = "false")
-		boolean recommendedFirst,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		boolean recommendedFirst) {
 
 		RestaurantMenuResponse result = menuService.getRestaurantMenus(
 			restaurantId,
@@ -61,12 +50,7 @@ public class AdminMenuController {
 		@PathVariable
 		Long restaurantId,
 		@Validated @RequestBody
-		MenuCategoryCreateRequest request,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		MenuCategoryCreateRequest request) {
 
 		Long categoryId = menuService.createMenuCategory(restaurantId, request);
 		return SuccessResponse.success(categoryId);
@@ -78,12 +62,7 @@ public class AdminMenuController {
 		@PathVariable
 		Long restaurantId,
 		@Validated @RequestBody
-		MenuCreateRequest request,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		MenuCreateRequest request) {
 
 		Long menuId = menuService.createMenu(restaurantId, request);
 		return SuccessResponse.success(menuId);
@@ -95,12 +74,7 @@ public class AdminMenuController {
 		@PathVariable
 		Long restaurantId,
 		@Validated @RequestBody
-		MenuBulkCreateRequest request,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		MenuBulkCreateRequest request) {
 
 		menuService.createMenusBulk(restaurantId, request);
 		return SuccessResponse.success(null);

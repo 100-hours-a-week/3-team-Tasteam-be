@@ -15,12 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.domain.admin.dto.request.AdminGroupCreateRequest;
 import com.tasteam.domain.admin.dto.response.AdminGroupListItem;
-import com.tasteam.domain.admin.policy.AdminAuthPolicy;
 import com.tasteam.domain.admin.service.AdminGroupService;
-import com.tasteam.domain.member.entity.Member;
-import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.global.dto.api.SuccessResponse;
-import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,19 +26,12 @@ import lombok.RequiredArgsConstructor;
 public class AdminGroupController {
 
 	private final AdminGroupService adminGroupService;
-	private final AdminAuthPolicy adminAuthPolicy;
-	private final MemberRepository memberRepository;
 
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<Page<AdminGroupListItem>> getGroups(
 		@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
-		Pageable pageable,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		Pageable pageable) {
 
 		Page<AdminGroupListItem> result = adminGroupService.getGroups(pageable);
 		return SuccessResponse.success(result);
@@ -52,12 +41,7 @@ public class AdminGroupController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<Long> createGroup(
 		@Validated @RequestBody
-		AdminGroupCreateRequest request,
-		@CurrentUser
-		Long memberId) {
-
-		Member member = memberRepository.findById(memberId).orElseThrow();
-		adminAuthPolicy.validateAdmin(member);
+		AdminGroupCreateRequest request) {
 
 		Long groupId = adminGroupService.createGroup(request);
 		return SuccessResponse.success(groupId);

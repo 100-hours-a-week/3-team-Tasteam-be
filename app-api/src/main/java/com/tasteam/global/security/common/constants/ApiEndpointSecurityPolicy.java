@@ -74,7 +74,13 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.ADMIN_STATIC),
 
 			// Test
-			permit(GET, ApiEndpoints.TEST));
+			permit(GET, ApiEndpoints.TEST),
+
+			// TODO: 임시 - Admin API 엔드포인트 (인증 구현 후 제거 필요)
+			permit(GET, ApiEndpoints.ADMIN_ALL),
+			permit(POST, ApiEndpoints.ADMIN_ALL),
+			permit(org.springframework.http.HttpMethod.PATCH, ApiEndpoints.ADMIN_ALL),
+			permit(org.springframework.http.HttpMethod.DELETE, ApiEndpoints.ADMIN_ALL));
 	}
 
 	/**
@@ -94,7 +100,8 @@ public final class ApiEndpointSecurityPolicy {
 	 */
 	public static String[] adminEndpoints() {
 		return new String[] {
-			ApiEndpoints.ADMIN_ALL
+			// TODO: 임시 - 개발용으로 Admin 엔드포인트를 public으로 이동
+			// ApiEndpoints.ADMIN_ALL
 		};
 	}
 
