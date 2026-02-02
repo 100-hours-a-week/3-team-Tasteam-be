@@ -29,7 +29,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public interface RestaurantControllerDocs {
 
 	@Operation(summary = "음식점 목록 조회", description = "지정한 위치 조건으로 주변 음식점을 커서 기반으로 조회합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	SuccessResponse<CursorPageResponse<RestaurantListItem>> getRestaurants(
 		@Validated @ParameterObject
 		NearbyRestaurantQueryParams queryParams);
@@ -42,7 +42,7 @@ public interface RestaurantControllerDocs {
 		Long restaurantId);
 
 	@Operation(summary = "음식점 리뷰 목록 조회", description = "음식점 리뷰를 커서 기반으로 조회합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_REVIEWS")
 	SuccessResponse<CursorPageResponse<ReviewResponse>> getRestaurantReviews(
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable

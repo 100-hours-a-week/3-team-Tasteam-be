@@ -27,7 +27,7 @@ import jakarta.validation.constraints.Positive;
 public interface SubgroupControllerDocs {
 
 	@Operation(summary = "소모임 리뷰 목록 조회", description = "소모임에 속한 리뷰를 커서 기반으로 조회합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	SuccessResponse<CursorPageResponse<ReviewResponse>> getSubgroupReviews(
 		@Parameter(description = "소모임 ID", example = "301") @PathVariable @Positive
 		Long subgroupId,
@@ -35,7 +35,7 @@ public interface SubgroupControllerDocs {
 		RestaurantReviewListRequest request);
 
 	@Operation(summary = "소모임 멤버 목록 조회", description = "소모임 멤버를 커서 기반으로 조회합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	SuccessResponse<CursorPageResponse<SubgroupMemberListItem>> getSubgroupMembers(
 		@Parameter(description = "소모임 ID", example = "301") @PathVariable @Positive
 		Long subgroupId,
