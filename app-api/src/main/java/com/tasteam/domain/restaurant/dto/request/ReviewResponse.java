@@ -9,7 +9,7 @@ public record ReviewResponse(
 	String contentPreview,
 	boolean isRecommended,
 	List<String> keywords,
-	ReviewImageResponse thumbnailImage,
+	List<ReviewImageResponse> thumbnailImages,
 	Instant createdAt) {
 	public record AuthorResponse(String nickname) {
 	}
