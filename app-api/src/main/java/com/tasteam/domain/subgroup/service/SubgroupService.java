@@ -145,7 +145,7 @@ public class SubgroupService {
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.NO_PERMISSION));
 		}
 
-		String profileImageUrl = resolveProfileImageUrl(subgroup.getId());
+		String profileImageUrl = resolveProfileImageUrl(subgroup);
 
 		return new SubgroupDetailResponse(
 			new SubgroupDetailResponse.SubgroupDetail(
@@ -221,7 +221,7 @@ public class SubgroupService {
 		}
 
 		if (request.getProfileImageFileUuid() != null) {
-			saveDomainImage(DomainType.SUBGROUP, subgroup.getId(), request.getProfileImageFileUuid());
+			applySubgroupImage(subgroup, request.getProfileImageFileUuid());
 		}
 
 		Member member = memberRepository.findByIdAndDeletedAtIsNull(memberId)
@@ -321,7 +321,7 @@ public class SubgroupService {
 		if (!node.isTextual()) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
-		saveDomainImage(DomainType.SUBGROUP, subgroup.getId(), node.asText());
+		applySubgroupImage(subgroup, node.asText());
 	}
 
 	private SubgroupListResponse buildListResponse(List<SubgroupListItem> items, int resolvedSize) {
@@ -488,7 +488,13 @@ public class SubgroupService {
 		}
 	}
 
-	private void saveDomainImage(DomainType domainType, Long domainId, String fileUuid) {
+	private void applySubgroupImage(Subgroup subgroup, String fileUuid) {
+		Image image = validateImageForAttach(DomainType.SUBGROUP, subgroup.getId(), fileUuid);
+		subgroup.updateProfileImageUrl(buildPublicUrl(image.getStorageKey()));
+		attachDomainImageSafely(DomainType.SUBGROUP, subgroup.getId(), image);
+	}
+
+	private Image validateImageForAttach(DomainType domainType, Long domainId, String fileUuid) {
 		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
 			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
@@ -500,9 +506,17 @@ public class SubgroupService {
 			&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(domainType, domainId, image).isEmpty()) {
 			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
 		}
+		return image;
+	}
 
-		domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
-		domainImageRepository.save(DomainImage.create(domainType, domainId, image, 0));
+	private void attachDomainImageSafely(DomainType domainType, Long domainId, Image image) {
+		try {
+			domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
+			domainImageRepository.save(DomainImage.create(domainType, domainId, image, 0));
+		} catch (DataIntegrityViolationException ex) {
+			// DB enum/check가 코드보다 늦게 반영된 환경에서도 생성/수정을 막지 않기 위한 fallback.
+			log.warn("도메인 이미지 링크 저장 실패. domainType={}, domainId={}", domainType, domainId, ex);
+		}
 
 		if (image.getStatus() == ImageStatus.PENDING) {
 			image.activate();
@@ -532,13 +546,13 @@ public class SubgroupService {
 		return normalizedBase + "/" + normalizedKey;
 	}
 
-	private String resolveProfileImageUrl(Long subgroupId) {
+	private String resolveProfileImageUrl(Subgroup subgroup) {
 		List<DomainImage> images = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
 			DomainType.SUBGROUP,
-			List.of(subgroupId));
+			List.of(subgroup.getId()));
 
 		if (images.isEmpty()) {
-			return null;
+			return subgroup.getProfileImageUrl();
 		}
 		return buildPublicUrl(images.getFirst().getImage().getStorageKey());
 	}
