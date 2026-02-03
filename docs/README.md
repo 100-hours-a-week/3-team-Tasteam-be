@@ -14,6 +14,8 @@
     - `브랜치_커밋_전략.md`: 브랜치 이름, 커밋 메시지, PR 흐름 등 Git 워크플로우 전략을 문서화한 문서입니다.
   - `docs/convention/코드 스타일/`
     - `코드_스타일_컨벤션.md`: 자바/스프링 프로젝트에서 따르는 코드 스타일과 패턴을 정리한 문서입니다.
+  - `docs/convention/flyway/`
+    - `README.md`: Flyway 파일명/작성 규칙, 마이그레이션 설계 원칙을 정리한 문서입니다.
 - `docs/policy/`: 운영/빌드/의존성 등 정책 문서를 모아둔 공간입니다.
   - `dependency-versions.md`: 의존성 버전 선택 이유 문서입니다.
   - `logging-policy.md`: 로그 저장/압축 정책 문서입니다.
@@ -21,6 +23,7 @@
   - `docs/spec/erd/`: ERD 파일 저장
   - `docs/spec/api/`: API 명세서 저장
   - `docs/spec/tech/`: 도메인별 테크 스펙 문서 저장
+    - `docs/spec/tech/flyway/README.md`: Flyway 사용 방법과 운영/배포 절차를 정리한 문서입니다.
 
 ## 확장 포인트
 
