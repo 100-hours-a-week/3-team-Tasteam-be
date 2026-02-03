@@ -105,6 +105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const menuImagePreview = document.getElementById('menuImagePreview');
     const menuImageAddBtn = document.getElementById('menuImageAddBtn');
     const menuImageFileName = document.getElementById('menuImageFileName');
+    const menuImageUrlInput = document.getElementById('menuImageUrl');
     let menuImageFile = null;
 
     menuImageAddBtn.addEventListener('click', () => {
@@ -174,7 +175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             price: parseInt(document.getElementById('menuPrice').value),
             description: document.getElementById('menuDescription').value || null,
             isRecommended: document.getElementById('menuIsRecommended').checked,
-            imageFileUuid: imageFileUuid
+            imageUrl: menuImageUrlInput.value.trim() || null
         };
 
         try {
@@ -183,6 +184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('menuForm').reset();
             menuImagePreview.innerHTML = '';
             menuImageFileName.textContent = '선택된 파일 없음';
+            menuImageUrlInput.value = '';
             menuImageFile = null;
             await loadMenus();
         } catch (error) {
