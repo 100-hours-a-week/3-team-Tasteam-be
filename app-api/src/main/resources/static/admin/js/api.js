@@ -24,8 +24,32 @@ async function apiRequest(url, options = {}) {
     }
 
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || '요청 처리 중 오류가 발생했습니다.');
+        let errorMessage = '요청 처리 중 오류가 발생했습니다.';
+        try {
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const error = await response.json();
+                errorMessage = error.message || errorMessage;
+            } else {
+                const text = await response.text();
+                if (text) {
+                    errorMessage = text;
+                }
+            }
+        } catch (e) {
+            // ignore parse errors and use default message
+        }
+        throw new Error(errorMessage);
+    }
+
+    if (response.status === 204) {
+        return null;
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+        const text = await response.text();
+        return text ? { data: text } : null;
     }
 
     return response.json();
