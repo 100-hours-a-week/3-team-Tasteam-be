@@ -5,6 +5,7 @@ import java.time.Instant;
 import org.springframework.util.Assert;
 
 import com.tasteam.domain.common.BaseTimeEntity;
+import com.tasteam.global.validation.ValidationPatterns;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -49,6 +50,9 @@ public class Member extends BaseTimeEntity {
 	@Column(name = "profile_image_url", length = 500)
 	private String profileImageUrl;
 
+	@Column(name = "introduction", length = 500)
+	private String introduction;
+
 	@Column(name = "last_login_at")
 	private Instant lastLoginAt;
 
@@ -84,6 +88,11 @@ public class Member extends BaseTimeEntity {
 	public void changeProfileImageUrl(String profileImageUrl) {
 		validateProfileImageUrl(profileImageUrl);
 		this.profileImageUrl = profileImageUrl;
+	}
+
+	public void changeIntroduction(String introduction) {
+		validateIntroduction(introduction);
+		this.introduction = introduction;
 	}
 
 	public void block() {
@@ -133,7 +142,7 @@ public class Member extends BaseTimeEntity {
 
 	private static void validateNickname(String nickname) {
 		Assert.hasText(nickname, "닉네임은 필수입니다");
-		if (nickname.length() > 50) {
+		if (nickname.length() > ValidationPatterns.NICKNAME_MAX_LENGTH) {
 			throw new IllegalArgumentException("닉네임이 너무 깁니다");
 		}
 	}
@@ -145,6 +154,15 @@ public class Member extends BaseTimeEntity {
 		Assert.hasText(profileImageUrl, "프로필 이미지 URL은 필수입니다");
 		if (profileImageUrl.length() > 500) {
 			throw new IllegalArgumentException("프로필 이미지 URL이 너무 깁니다");
+		}
+	}
+
+	private static void validateIntroduction(String introduction) {
+		if (introduction == null) {
+			return;
+		}
+		if (introduction.length() > ValidationPatterns.INTRODUCTION_MAX_LENGTH) {
+			throw new IllegalArgumentException("자기소개가 너무 깁니다");
 		}
 	}
 }
