@@ -70,15 +70,21 @@ function displayMenus() {
 
     container.innerHTML = allMenus.map(menu => `
         <div class="menu-item">
-            <div style="display:flex; gap:12px; align-items:center;">
-                ${menu.imageUrl ? `<img class="table-thumbnail" src="${menu.imageUrl}" alt="${menu.name}">` : ''}
-                <div>
-                    <strong>${menu.name}</strong>
-                    ${menu.isRecommended ? '<span class="badge badge-active">추천</span>' : ''}
-                    <div style="color: #7f8c8d; font-size: 14px;">
+            <div class="menu-item-body">
+                <div class="menu-item-media">
+                    ${menu.imageUrl
+                        ? `<img class="menu-item-image" src="${menu.imageUrl}" alt="${menu.name}">`
+                        : `<div class="menu-item-placeholder">이미지 없음</div>`}
+                </div>
+                <div class="menu-item-info">
+                    <div class="menu-item-title">
+                        <strong>${menu.name}</strong>
+                        ${menu.isRecommended ? '<span class="badge badge-active">추천</span>' : ''}
+                    </div>
+                    <div class="menu-item-meta">
                         ${menu.categoryName} | ${menu.price.toLocaleString()}원
                     </div>
-                    ${menu.description ? `<div style="color: #7f8c8d; font-size: 12px; margin-top: 5px;">${menu.description}</div>` : ''}
+                    ${menu.description ? `<div class="menu-item-description">${menu.description}</div>` : ''}
                 </div>
             </div>
         </div>
@@ -97,12 +103,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const menuImageInput = document.getElementById('menuImage');
     const menuImagePreview = document.getElementById('menuImagePreview');
+    const menuImageAddBtn = document.getElementById('menuImageAddBtn');
+    const menuImageFileName = document.getElementById('menuImageFileName');
     let menuImageFile = null;
+
+    menuImageAddBtn.addEventListener('click', () => {
+        menuImageInput.click();
+    });
 
     menuImageInput.addEventListener('change', () => {
         const files = Array.from(menuImageInput.files || []);
         menuImageFile = files.length > 0 ? files[0] : null;
         menuImagePreview.innerHTML = '';
+        menuImageFileName.textContent = menuImageFile ? menuImageFile.name : '선택된 파일 없음';
         if (menuImageFile) {
             const img = document.createElement('img');
             img.className = 'image-preview';
@@ -169,6 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert('메뉴가 추가되었습니다.');
             document.getElementById('menuForm').reset();
             menuImagePreview.innerHTML = '';
+            menuImageFileName.textContent = '선택된 파일 없음';
             menuImageFile = null;
             await loadMenus();
         } catch (error) {
