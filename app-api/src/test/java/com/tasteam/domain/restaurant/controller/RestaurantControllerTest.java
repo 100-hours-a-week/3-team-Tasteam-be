@@ -133,7 +133,7 @@ class RestaurantControllerTest {
 		void 음식점_상세_조회_성공() throws Exception {
 			// given
 			RestaurantDetailResponse response = new RestaurantDetailResponse(
-				1L, "맛집식당", "서울시 강남구", List.of("한식"),
+				1L, "맛집식당", "서울시 강남구", "02-1234-5678", List.of("한식"),
 				List.of(), new RestaurantImageDto(1L, "https://example.com/img.jpg"),
 				false,
 				new RestaurantDetailResponse.RecommendStatResponse(10L, 2L, 83L),

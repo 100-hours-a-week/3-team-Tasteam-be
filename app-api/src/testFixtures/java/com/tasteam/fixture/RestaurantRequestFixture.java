@@ -21,6 +21,7 @@ public final class RestaurantRequestFixture {
 	public static final Integer DEFAULT_SIZE = 20;
 	public static final String DEFAULT_NAME = "테스트식당";
 	public static final String DEFAULT_ADDRESS = "서울시 강남구 테헤란로 1";
+	public static final String DEFAULT_PHONE_NUMBER = "02-1234-5678";
 
 	private RestaurantRequestFixture() {}
 
@@ -36,6 +37,7 @@ public final class RestaurantRequestFixture {
 		return new RestaurantCreateRequest(
 			DEFAULT_NAME,
 			DEFAULT_ADDRESS,
+			DEFAULT_PHONE_NUMBER,
 			List.of(1L, 2L),
 			List.of(UUID.randomUUID()),
 			List.of(new WeeklyScheduleRequest(1, LocalTime.of(9, 0), LocalTime.of(22, 0), false, null, null)));

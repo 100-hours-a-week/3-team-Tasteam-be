@@ -203,6 +203,7 @@ class ReviewServiceIntegrationTest {
 		return Restaurant.create(
 			"테스트 음식점",
 			"서울시 강남구 테헤란로 123",
-			geometryFactory.createPoint(new Coordinate(127.0, 37.5)));
+			geometryFactory.createPoint(new Coordinate(127.0, 37.5)),
+			"02-8888-9999");
 	}
 }
