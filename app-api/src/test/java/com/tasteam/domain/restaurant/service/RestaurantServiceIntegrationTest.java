@@ -79,6 +79,7 @@ class RestaurantServiceIntegrationTest {
 			RestaurantCreateRequest request = new RestaurantCreateRequest(
 				"맛있는 식당",
 				"서울시 강남구 역삼동 123",
+				"02-1111-2222",
 				null,
 				null,
 				null);
@@ -103,6 +104,7 @@ class RestaurantServiceIntegrationTest {
 			RestaurantCreateRequest request = new RestaurantCreateRequest(
 				"이미지 있는 식당",
 				"서울시 강남구 역삼동 456",
+				"02-2222-3333",
 				null,
 				List.of(fileUuid),
 				null);
@@ -135,6 +137,7 @@ class RestaurantServiceIntegrationTest {
 			RestaurantCreateRequest request = new RestaurantCreateRequest(
 				"상세 조회 식당",
 				"서울시 강남구 역삼동 789",
+				"02-3333-4444",
 				null,
 				List.of(fileUuid),
 				null);
@@ -165,6 +168,7 @@ class RestaurantServiceIntegrationTest {
 			RestaurantCreateRequest createRequest = new RestaurantCreateRequest(
 				"수정할 식당",
 				"서울시 강남구 역삼동 111",
+				"02-4444-5555",
 				null,
 				List.of(oldFileUuid),
 				null);
@@ -205,6 +209,7 @@ class RestaurantServiceIntegrationTest {
 			RestaurantCreateRequest request = new RestaurantCreateRequest(
 				"삭제할 식당",
 				"서울시 강남구 역삼동 222",
+				"02-5555-6666",
 				null,
 				null,
 				null);
@@ -228,6 +233,7 @@ class RestaurantServiceIntegrationTest {
 			RestaurantCreateRequest request = new RestaurantCreateRequest(
 				"이미지와 함께 삭제할 식당",
 				"서울시 강남구 역삼동 333",
+				"02-6666-7777",
 				null,
 				List.of(fileUuid),
 				null);
@@ -247,6 +253,7 @@ class RestaurantServiceIntegrationTest {
 		return Restaurant.create(
 			name,
 			"서울시 강남구 테헤란로 123",
-			geometryFactory.createPoint(new Coordinate(127.0, 37.5)));
+			geometryFactory.createPoint(new Coordinate(127.0, 37.5)),
+			"02-7777-8888");
 	}
 }

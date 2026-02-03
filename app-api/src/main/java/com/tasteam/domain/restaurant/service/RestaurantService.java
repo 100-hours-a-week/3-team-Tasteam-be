@@ -151,6 +151,7 @@ public class RestaurantService {
 			restaurant.getId(),
 			restaurant.getName(),
 			restaurant.getFullAddress(),
+			restaurant.getPhoneNumber(),
 			foodCategories,
 			businessHoursWeek,
 			image,
@@ -379,7 +380,7 @@ public class RestaurantService {
 		Point location = geometryFactory.createPoint(coordinate);
 
 		// 음식점 생성
-		Restaurant restaurant = Restaurant.create(request.name(), request.address(), location);
+		Restaurant restaurant = Restaurant.create(request.name(), request.address(), location, request.phoneNumber());
 		restaurantRepository.save(restaurant);
 
 		// 음식점 주소 정보 생성

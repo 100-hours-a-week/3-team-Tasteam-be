@@ -159,7 +159,7 @@ public class AdminRestaurantService {
 		Coordinate coordinate = new Coordinate(result.longitude(), result.latitude());
 		Point location = geometryFactory.createPoint(coordinate);
 
-		Restaurant restaurant = Restaurant.create(request.name(), request.address(), location);
+		Restaurant restaurant = Restaurant.create(request.name(), request.address(), location, request.phoneNumber());
 		restaurantRepository.save(restaurant);
 
 		RestaurantAddress restaurantAddress = RestaurantAddress.create(
