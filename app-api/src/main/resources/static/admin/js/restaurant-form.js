@@ -3,17 +3,17 @@ checkAuth();
 let foodCategories = [];
 let geocodeTimer = null;
 
-async function loadFoodCategories() {
+async function loadFoodCategories(selectedIds = []) {
     try {
         const result = await getFoodCategories();
         foodCategories = result.data || [];
-        displayFoodCategories();
+        displayFoodCategories(selectedIds);
     } catch (error) {
         alert('음식 카테고리를 불러오는데 실패했습니다: ' + error.message);
     }
 }
 
-function displayFoodCategories() {
+function displayFoodCategories(selectedIds = []) {
     const container = document.getElementById('foodCategoryList');
     container.innerHTML = foodCategories.map(category => `
         <label>
@@ -24,6 +24,9 @@ function displayFoodCategories() {
 
     container.querySelectorAll('input[type="checkbox"]').forEach(input => {
         const label = input.closest('label');
+        if (selectedIds.includes(parseInt(input.value))) {
+            input.checked = true;
+        }
         if (input.checked) {
             label.classList.add('selected');
         }
@@ -31,6 +34,11 @@ function displayFoodCategories() {
             label.classList.toggle('selected', input.checked);
         });
     });
+}
+
+function getSelectedCategoryIds() {
+    return Array.from(document.querySelectorAll('input[name="foodCategory"]:checked'))
+        .map(cb => parseInt(cb.value));
 }
 
 function getScheduleData() {
@@ -193,11 +201,30 @@ document.addEventListener('DOMContentLoaded', () => {
         renderImagePreviews(selectedFiles, previewContainer);
     });
 
+    const addCategoryBtn = document.getElementById('addFoodCategoryBtn');
+    const newCategoryInput = document.getElementById('newFoodCategoryName');
+
+    addCategoryBtn.addEventListener('click', async () => {
+        const name = newCategoryInput.value.trim();
+        if (!name) {
+            alert('카테고리명을 입력해주세요.');
+            return;
+        }
+
+        try {
+            const selectedIds = getSelectedCategoryIds();
+            await createFoodCategory({ name });
+            newCategoryInput.value = '';
+            await loadFoodCategories(selectedIds);
+        } catch (error) {
+            alert('카테고리 추가에 실패했습니다: ' + error.message);
+        }
+    });
+
     document.getElementById('restaurantForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const selectedCategories = Array.from(document.querySelectorAll('input[name="foodCategory"]:checked'))
-            .map(cb => parseInt(cb.value));
+        const selectedCategories = getSelectedCategoryIds();
 
         let imageIds = [];
         if (selectedFiles.length > 0) {

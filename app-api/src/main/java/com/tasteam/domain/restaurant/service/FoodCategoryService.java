@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.restaurant.dto.response.FoodCategoryResponse;
+import com.tasteam.domain.restaurant.entity.FoodCategory;
 import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -23,5 +24,10 @@ public class FoodCategoryService {
 			.stream()
 			.map(category -> new FoodCategoryResponse(category.getId(), category.getName()))
 			.toList();
+	}
+
+	@Transactional
+	public Long createFoodCategory(String name) {
+		return foodCategoryRepository.save(FoodCategory.create(name)).getId();
 	}
 }

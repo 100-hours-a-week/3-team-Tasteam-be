@@ -59,6 +59,11 @@ function displayFoodCategories(selectedIds = []) {
     });
 }
 
+function getSelectedCategoryIds() {
+    return Array.from(document.querySelectorAll('input[name="foodCategory"]:checked'))
+        .map(cb => parseInt(cb.value));
+}
+
 async function loadRestaurant() {
     restaurantId = getRestaurantId();
     if (!restaurantId) {
@@ -128,6 +133,25 @@ function renderImagePreviews(files, container) {
 document.addEventListener('DOMContentLoaded', async () => {
     await loadFoodCategories();
     await loadRestaurant();
+
+    const addCategoryBtn = document.getElementById('addFoodCategoryBtn');
+    const newCategoryInput = document.getElementById('newFoodCategoryName');
+    addCategoryBtn.addEventListener('click', async () => {
+        const name = newCategoryInput.value.trim();
+        if (!name) {
+            alert('카테고리명을 입력해주세요.');
+            return;
+        }
+
+        try {
+            const selectedIds = getSelectedCategoryIds();
+            await createFoodCategory({ name });
+            newCategoryInput.value = '';
+            await loadFoodCategories(selectedIds);
+        } catch (error) {
+            alert('카테고리 추가에 실패했습니다: ' + error.message);
+        }
+    });
 
     const addressInput = document.getElementById('address');
     const latitudeInput = document.getElementById('latitude');
@@ -218,8 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('restaurantEditForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const selectedCategories = Array.from(document.querySelectorAll('input[name="foodCategory"]:checked'))
-            .map(cb => parseInt(cb.value));
+        const selectedCategories = getSelectedCategoryIds();
 
         let imageIds = null;
         if (selectedFiles.length > 0) {

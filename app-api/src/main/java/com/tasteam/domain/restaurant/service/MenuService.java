@@ -10,10 +10,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.tasteam.domain.file.entity.DomainImage;
-import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.entity.Image;
-import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.restaurant.dto.request.MenuBulkCreateRequest;
@@ -30,7 +26,6 @@ import com.tasteam.domain.restaurant.repository.MenuRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
-import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.infra.storage.StorageClient;
 import com.tasteam.infra.storage.StorageProperties;
@@ -174,34 +169,10 @@ public class MenuService {
 	}
 
 	private void applyMenuImage(Menu menu, String imageFileUuid, String fallbackImageUrl) {
-		if (imageFileUuid == null || imageFileUuid.isBlank()) {
-			if (fallbackImageUrl != null && !fallbackImageUrl.isBlank()) {
-				menu.changeImageUrl(fallbackImageUrl);
-			}
-			return;
+		if (fallbackImageUrl != null && !fallbackImageUrl.isBlank()) {
+			menu.changeImageUrl(fallbackImageUrl);
 		}
-
-		Image image = imageRepository.findByFileUuid(parseUuid(imageFileUuid))
-			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-
-		if (image.getStatus() == ImageStatus.DELETED) {
-			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-		}
-
-		if (image.getStatus() != ImageStatus.PENDING
-			&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(DomainType.MENU, menu.getId(), image)
-				.isEmpty()) {
-			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-		}
-
-		domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.MENU, menu.getId());
-		domainImageRepository.save(DomainImage.create(DomainType.MENU, menu.getId(), image, 0));
-
-		if (image.getStatus() == ImageStatus.PENDING) {
-			image.activate();
-		}
-
-		menu.changeImageUrl(buildPublicUrl(image.getStorageKey()));
+		// 임시로 imageFileUuid 기반 연결 로직은 비활성화한다.
 	}
 
 	private UUID parseUuid(String fileUuid) {

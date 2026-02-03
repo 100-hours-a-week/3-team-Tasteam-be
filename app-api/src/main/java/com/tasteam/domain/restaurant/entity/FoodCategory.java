@@ -31,4 +31,10 @@ public class FoodCategory {
 	@Column(name = "name", nullable = false, length = 20)
 	@Comment("빈 문자열 불가")
 	private String name;
+
+	public static FoodCategory create(String name) {
+		return FoodCategory.builder()
+			.name(name)
+			.build();
+	}
 }

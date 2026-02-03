@@ -105,6 +105,13 @@ async function getFoodCategories() {
     return apiRequest('/food-categories');
 }
 
+async function createFoodCategory(data) {
+    return apiRequest('/admin/food-categories', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
+}
+
 async function getRestaurantMenus(restaurantId) {
     return apiRequest(`/admin/restaurants/${restaurantId}/menus`);
 }
