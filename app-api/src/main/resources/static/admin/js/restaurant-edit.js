@@ -163,11 +163,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const selectedCategories = Array.from(document.querySelectorAll('input[name="foodCategory"]:checked'))
             .map(cb => parseInt(cb.value));
 
-        if (selectedCategories.length === 0) {
-            alert('최소 1개 이상의 음식 카테고리를 선택해주세요.');
-            return;
-        }
-
         let imageIds = null;
         if (selectedFiles.length > 0) {
             try {
