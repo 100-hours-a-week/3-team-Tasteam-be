@@ -75,6 +75,18 @@ SPRING_JPA_HIBERNATE_DDL_AUTO=validate \
 - 현재 프로젝트에는 Flyway Gradle Plugin이 설정되어 있지 않다.
 - **앱 기동 없이 별도로 실행하고 싶다면** Flyway CLI를 사용하거나, 필요 시 Gradle 플러그인 도입을 별도 RFC로 진행한다.
 
+### 4-3. 권한 분리용 Flyway 전용 커넥션
+- 운영/스테이징에서 Flyway가 스키마 변경 권한을 갖는 별도 계정으로 접속할 수 있도록 환경 변수를 분리했다.
+- 우선순위: `FLYWAY_URL` / `FLYWAY_USER` / `FLYWAY_PASSWORD` → 없으면 `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` 사용.
+- 예시:
+  ```bash
+  FLYWAY_URL=jdbc:postgresql://db.host:5432/tasteam \
+  FLYWAY_USER=tasteam_flyway \
+  FLYWAY_PASSWORD=*** \
+  SPRING_PROFILES_ACTIVE=prod \
+  ./gradlew :app-api:bootRun
+  ```
+
 ---
 
 ## 5) 마이그레이션 종류
