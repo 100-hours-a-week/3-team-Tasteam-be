@@ -3,6 +3,7 @@ checkAuth();
 let foodCategories = [];
 let restaurantId = null;
 let geocodeTimer = null;
+let isImageSaving = false;
 
 async function applyGeocodeResult(query) {
     const latitudeInput = document.getElementById('latitude');
@@ -145,7 +146,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const imageInput = document.getElementById('restaurantImages');
     const previewContainer = document.getElementById('restaurantImagePreview');
+    const imageStatus = document.getElementById('imageStatus');
+    const saveImagesBtn = document.getElementById('saveImagesBtn');
+    const resetImageSelectionBtn = document.getElementById('resetImageSelection');
     let selectedFiles = [];
+
+    const setImageStatus = (message, type = 'idle') => {
+        imageStatus.textContent = message;
+        imageStatus.classList.toggle('image-status--saving', type === 'saving');
+        imageStatus.classList.toggle('image-status--success', type === 'success');
+        imageStatus.classList.toggle('image-status--error', type === 'error');
+    };
+
+    const resetSelection = () => {
+        selectedFiles = [];
+        imageInput.value = '';
+        previewContainer.innerHTML = '';
+        setImageStatus('저장된 이미지', 'idle');
+    };
 
     imageInput.addEventListener('change', () => {
         selectedFiles = Array.from(imageInput.files || []).slice(0, 5);
@@ -155,6 +173,46 @@ document.addEventListener('DOMContentLoaded', async () => {
             selectedFiles = [];
         }
         renderImagePreviews(selectedFiles, previewContainer);
+        if (selectedFiles.length > 0) {
+            setImageStatus(`새 이미지 ${selectedFiles.length}장 선택됨`, 'idle');
+        } else {
+            setImageStatus('저장된 이미지', 'idle');
+        }
+    });
+
+    resetImageSelectionBtn.addEventListener('click', () => {
+        resetSelection();
+    });
+
+    saveImagesBtn.addEventListener('click', async () => {
+        if (isImageSaving) {
+            return;
+        }
+        if (selectedFiles.length === 0) {
+            alert('저장할 이미지를 선택해주세요.');
+            return;
+        }
+
+        isImageSaving = true;
+        saveImagesBtn.disabled = true;
+        setImageStatus('이미지 저장 중...', 'saving');
+
+        try {
+            const presigned = await createPresignedUploads('RESTAURANT_IMAGE', selectedFiles);
+            const uploads = presigned.data?.uploads || [];
+            await Promise.all(uploads.map((item, index) => uploadToPresigned(item, selectedFiles[index])));
+            const imageIds = uploads.map(item => item.fileUuid);
+            await updateRestaurant(restaurantId, { imageIds });
+            await loadRestaurant();
+            resetSelection();
+            setImageStatus('이미지 저장 완료', 'success');
+        } catch (error) {
+            setImageStatus('이미지 저장 실패', 'error');
+            alert('이미지 저장에 실패했습니다: ' + error.message);
+        } finally {
+            isImageSaving = false;
+            saveImagesBtn.disabled = false;
+        }
     });
 
     document.getElementById('restaurantEditForm').addEventListener('submit', async (e) => {
