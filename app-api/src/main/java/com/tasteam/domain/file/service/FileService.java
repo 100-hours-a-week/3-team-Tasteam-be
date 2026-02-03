@@ -3,6 +3,7 @@ package com.tasteam.domain.file.service;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -21,6 +22,7 @@ import com.tasteam.domain.file.dto.request.DomainImageLinkRequest;
 import com.tasteam.domain.file.dto.request.ImageSummaryRequest;
 import com.tasteam.domain.file.dto.request.PresignedUploadFileRequest;
 import com.tasteam.domain.file.dto.request.PresignedUploadRequest;
+import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.dto.response.DomainImageLinkResponse;
 import com.tasteam.domain.file.dto.response.ImageDetailResponse;
 import com.tasteam.domain.file.dto.response.ImageSummaryItem;
@@ -30,6 +32,7 @@ import com.tasteam.domain.file.dto.response.LinkedDomainResponse;
 import com.tasteam.domain.file.dto.response.PresignedUploadItem;
 import com.tasteam.domain.file.dto.response.PresignedUploadResponse;
 import com.tasteam.domain.file.entity.DomainImage;
+import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.FilePurpose;
 import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.entity.ImageStatus;
@@ -156,6 +159,24 @@ public class FileService {
 		return new ImageUrlResponse(
 			image.getFileUuid().toString(),
 			buildPublicUrl(image.getStorageKey()));
+	}
+
+	@Transactional(readOnly = true)
+	public Map<Long, List<DomainImageItem>> getDomainImageUrls(DomainType domainType, List<Long> domainIds) {
+		if (domainIds == null || domainIds.isEmpty()) {
+			return Map.of();
+		}
+
+		List<DomainImage> domainImages = domainImageRepository.findAllByDomainTypeAndDomainIdIn(domainType, domainIds);
+		return domainImages.stream()
+			.collect(Collectors.groupingBy(
+				DomainImage::getDomainId,
+				LinkedHashMap::new,
+				Collectors.mapping(
+					di -> new DomainImageItem(
+						di.getImage().getId(),
+						buildPublicUrl(di.getImage().getStorageKey())),
+					Collectors.toList())));
 	}
 
 	@Transactional(readOnly = true)
@@ -301,6 +322,10 @@ public class FileService {
 			return storageClient.createPresignedGetUrl(storageKey);
 		}
 		return buildStaticUrl(storageKey);
+	}
+
+	public String getPublicUrl(String storageKey) {
+		return buildPublicUrl(storageKey);
 	}
 
 	private String buildStaticUrl(String storageKey) {

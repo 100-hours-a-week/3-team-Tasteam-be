@@ -465,6 +465,7 @@ public class GroupService {
 
 		if (image.getStatus() == ImageStatus.PENDING) {
 			image.activate();
+			imageRepository.save(image);
 		}
 	}
 

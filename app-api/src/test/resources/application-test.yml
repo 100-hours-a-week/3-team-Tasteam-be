@@ -11,7 +11,7 @@ spring:
         format_sql: true
 
   flyway:
-    enabled: false
+    enabled: false # Tests use Hibernate create-drop; enable Flyway only in dedicated migration-verification runs.
 
   security:
     jwt:

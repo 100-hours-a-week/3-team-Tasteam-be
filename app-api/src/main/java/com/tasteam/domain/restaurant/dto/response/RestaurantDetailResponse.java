@@ -7,6 +7,7 @@ public record RestaurantDetailResponse(
 	Long id,
 	String name,
 	String address,
+	String phoneNumber,
 	List<String> foodCategories,
 	List<BusinessHourWeekItem> businessHoursWeek,
 	RestaurantImageDto image,

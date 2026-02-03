@@ -104,6 +104,14 @@ public class MemberService {
 			memberId,
 			SubgroupStatus.ACTIVE,
 			GroupStatus.ACTIVE);
+
+		Map<Long, String> groupImageUrlById = resolveDomainImageUrlMap(
+			DomainType.GROUP,
+			groupRows.stream().map(MemberGroupDetailSummaryRow::groupId).toList());
+		Map<Long, String> subgroupImageUrlById = resolveDomainImageUrlMap(
+			DomainType.SUBGROUP,
+			subgroupRows.stream().map(MemberSubgroupDetailSummaryRow::subGroupId).toList());
+
 		Map<Long, MemberGroupDetailSummaryResponse> grouped = new LinkedHashMap<>();
 		for (MemberGroupDetailSummaryRow row : groupRows) {
 			MemberGroupDetailSummaryResponse summary = new MemberGroupDetailSummaryResponse(
@@ -111,7 +119,7 @@ public class MemberService {
 				row.groupName(),
 				row.groupAddress(),
 				row.groupDetailAddress(),
-				row.groupLogoImageUrl(),
+				groupImageUrlById.get(row.groupId()),
 				row.groupMemberCount(),
 				new ArrayList<>());
 			grouped.put(row.groupId(), summary);
@@ -123,7 +131,7 @@ public class MemberService {
 					row.subGroupId(),
 					row.subGroupName(),
 					row.memberCount(),
-					row.logoImageUrl()));
+					subgroupImageUrlById.get(row.subGroupId())));
 			}
 		}
 		return new ArrayList<>(grouped.values());
@@ -136,6 +144,14 @@ public class MemberService {
 		if (request.email() != null && !request.email().equals(member.getEmail())) {
 			validateEmailDuplication(memberId, request.email());
 			member.changeEmail(request.email());
+		}
+
+		if (request.nickname() != null && !request.nickname().equals(member.getNickname())) {
+			member.changeNickname(request.nickname());
+		}
+
+		if (request.introduction() != null && !request.introduction().equals(member.getIntroduction())) {
+			member.changeIntroduction(request.introduction());
 		}
 
 		if (request.profileImageFileUuid() != null) {
@@ -211,5 +227,17 @@ public class MemberService {
 			return null;
 		}
 		return buildPublicUrl(images.getFirst().getImage().getStorageKey());
+	}
+
+	private Map<Long, String> resolveDomainImageUrlMap(DomainType domainType, List<Long> domainIds) {
+		if (domainIds.isEmpty()) {
+			return Map.of();
+		}
+		return domainImageRepository.findAllByDomainTypeAndDomainIdIn(domainType, domainIds)
+			.stream()
+			.collect(java.util.stream.Collectors.toMap(
+				DomainImage::getDomainId,
+				domainImage -> buildPublicUrl(domainImage.getImage().getStorageKey()),
+				(existing, ignored) -> existing));
 	}
 }

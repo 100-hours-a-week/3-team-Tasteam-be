@@ -145,9 +145,13 @@ public class AdminRestaurantService {
 	@Transactional
 	public Long createRestaurant(AdminRestaurantCreateRequest request) {
 
-		restaurantFoodCategoryValidator.validate(request.foodCategoryIds());
+		List<Long> categoryIds = request.foodCategoryIds() == null
+			? List.of()
+			: request.foodCategoryIds();
 
-		Set<Long> foodCategoryIdSet = request.foodCategoryIds().stream()
+		restaurantFoodCategoryValidator.validate(categoryIds);
+
+		Set<Long> foodCategoryIdSet = categoryIds.stream()
 			.collect(Collectors.toUnmodifiableSet());
 
 		GeocodingResult result = naverGeocodingClient.geocode(request.address());
@@ -155,7 +159,7 @@ public class AdminRestaurantService {
 		Coordinate coordinate = new Coordinate(result.longitude(), result.latitude());
 		Point location = geometryFactory.createPoint(coordinate);
 
-		Restaurant restaurant = Restaurant.create(request.name(), request.address(), location);
+		Restaurant restaurant = Restaurant.create(request.name(), request.address(), location, request.phoneNumber());
 		restaurantRepository.save(restaurant);
 
 		RestaurantAddress restaurantAddress = RestaurantAddress.create(
@@ -166,11 +170,13 @@ public class AdminRestaurantService {
 			result.postalCode());
 		restaurantAddressRepository.save(restaurantAddress);
 
-		List<FoodCategory> categories = foodCategoryRepository.findAllById(foodCategoryIdSet);
-		List<RestaurantFoodCategory> mappings = categories.stream()
-			.map(category -> RestaurantFoodCategory.create(restaurant, category))
-			.toList();
-		restaurantFoodCategoryRepository.saveAll(mappings);
+		if (!foodCategoryIdSet.isEmpty()) {
+			List<FoodCategory> categories = foodCategoryRepository.findAllById(foodCategoryIdSet);
+			List<RestaurantFoodCategory> mappings = categories.stream()
+				.map(category -> RestaurantFoodCategory.create(restaurant, category))
+				.toList();
+			restaurantFoodCategoryRepository.saveAll(mappings);
+		}
 
 		saveImagesIfPresent(restaurant, request.imageIds());
 

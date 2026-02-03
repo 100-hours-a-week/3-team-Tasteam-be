@@ -18,12 +18,14 @@ import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.dto.GroupRestaurantSearchCondition;
@@ -69,8 +71,6 @@ import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.utils.CursorCodec;
-import com.tasteam.infra.storage.StorageClient;
-import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
 
@@ -97,8 +97,7 @@ public class RestaurantService {
 	private final NaverGeocodingClient naverGeocodingClient;
 	private final RestaurantScheduleService restaurantScheduleService;
 	private final RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
-	private final StorageProperties storageProperties;
-	private final StorageClient storageClient;
+	private final FileService fileService;
 
 	@Transactional(readOnly = true)
 	public RestaurantDetailResponse getRestaurantDetail(long restaurantId) {
@@ -117,11 +116,10 @@ public class RestaurantService {
 		List<BusinessHourWeekItem> businessHoursWeek = restaurantScheduleService.getBusinessHoursWeek(restaurantId);
 
 		// 음식점 대표 이미지 (최대 1장)
-		List<DomainImage> domainImages = domainImageRepository
-			.findAllByDomainTypeAndDomainIdIn(DomainType.RESTAURANT, List.of(restaurantId));
-		RestaurantImageDto image = domainImages.isEmpty() ? null : new RestaurantImageDto(
-			domainImages.getFirst().getImage().getId(),
-			buildPublicUrl(domainImages.getFirst().getImage().getStorageKey()));
+		Map<Long, List<DomainImageItem>> restaurantImages = fileService.getDomainImageUrls(
+			DomainType.RESTAURANT,
+			List.of(restaurantId));
+		RestaurantImageDto image = convertFirstImage(restaurantImages.get(restaurantId));
 
 		// AI 요약
 		Optional<AiRestaurantReviewAnalysis> aiAnalysis = aiRestaurantReviewAnalysisRepository
@@ -153,6 +151,7 @@ public class RestaurantService {
 			restaurant.getId(),
 			restaurant.getName(),
 			restaurant.getFullAddress(),
+			restaurant.getPhoneNumber(),
 			foodCategories,
 			businessHoursWeek,
 			image,
@@ -381,7 +380,7 @@ public class RestaurantService {
 		Point location = geometryFactory.createPoint(coordinate);
 
 		// 음식점 생성
-		Restaurant restaurant = Restaurant.create(request.name(), request.address(), location);
+		Restaurant restaurant = Restaurant.create(request.name(), request.address(), location, request.phoneNumber());
 		restaurantRepository.save(restaurant);
 
 		// 음식점 주소 정보 생성
@@ -487,33 +486,32 @@ public class RestaurantService {
 	}
 
 	private Map<Long, List<RestaurantImageDto>> loadRestaurantThumbnails(List<Long> restaurantIds) {
-		return domainImageRepository
-			.findAllByDomainTypeAndDomainIdIn(DomainType.RESTAURANT, restaurantIds)
-			.stream()
-			.collect(Collectors.groupingBy(
-				DomainImage::getDomainId,
-				Collectors.collectingAndThen(
-					Collectors.mapping(
-						di -> new RestaurantImageDto(
-							di.getImage().getId(),
-							buildPublicUrl(di.getImage().getStorageKey())),
-						Collectors.toList()),
-					list -> list.size() > 3 ? list.subList(0, 3) : list)));
+		Map<Long, List<DomainImageItem>> domainImages = fileService.getDomainImageUrls(
+			DomainType.RESTAURANT,
+			restaurantIds);
+
+		return domainImages.entrySet().stream()
+			.collect(Collectors.toMap(
+				Map.Entry::getKey,
+				entry -> convertAndLimit(entry.getValue(), 3)));
 	}
 
-	private String buildPublicUrl(String storageKey) {
-		if (storageProperties.isPresignedAccess()) {
-			return storageClient.createPresignedGetUrl(storageKey);
+	private RestaurantImageDto convertFirstImage(List<DomainImageItem> images) {
+		if (images == null || images.isEmpty()) {
+			return null;
 		}
-		String baseUrl = storageProperties.getBaseUrl();
-		if (baseUrl == null || baseUrl.isBlank()) {
-			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
-				storageProperties.getBucket(),
-				storageProperties.getRegion());
+		DomainImageItem first = images.getFirst();
+		return new RestaurantImageDto(first.imageId(), first.url());
+	}
+
+	private List<RestaurantImageDto> convertAndLimit(List<DomainImageItem> images, int limit) {
+		if (images == null || images.isEmpty()) {
+			return List.of();
 		}
-		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-		String normalizedKey = storageKey.startsWith("/") ? storageKey.substring(1) : storageKey;
-		return normalizedBase + "/" + normalizedKey;
+		List<DomainImageItem> limited = images.size() > limit ? images.subList(0, limit) : images;
+		return limited.stream()
+			.map(image -> new RestaurantImageDto(image.imageId(), image.url()))
+			.toList();
 	}
 
 	private void saveWeeklySchedulesIfPresent(Restaurant restaurant, List<WeeklyScheduleRequest> schedules) {

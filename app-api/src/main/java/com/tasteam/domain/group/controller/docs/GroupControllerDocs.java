@@ -88,7 +88,7 @@ public interface GroupControllerDocs {
 		Integer size);
 
 	@Operation(summary = "그룹 소모임 목록 조회", description = "그룹에 속한 소모임 목록을 조회합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@CustomErrorResponseDescription(value = SubgroupSwaggerErrorResponseDescription.class, group = "SUBGROUP_LIST_GROUP")
 	SuccessResponse<CursorPageResponse<SubgroupListItem>> getGroupSubgroups(
 		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
@@ -101,7 +101,7 @@ public interface GroupControllerDocs {
 		Integer size);
 
 	@Operation(summary = "그룹 리뷰 목록 조회", description = "그룹에 속한 리뷰를 커서 기반으로 조회합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_REVIEWS")
 	SuccessResponse<CursorPageResponse<ReviewResponse>> getGroupReviews(
 		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
@@ -110,7 +110,7 @@ public interface GroupControllerDocs {
 		RestaurantReviewListRequest request);
 
 	@Operation(summary = "그룹 소모임 검색", description = "그룹에 속한 소모임을 검색합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@CustomErrorResponseDescription(value = SubgroupSwaggerErrorResponseDescription.class, group = "SUBGROUP_LIST_GROUP")
 	SuccessResponse<CursorPageResponse<SubgroupListItem>> searchSubgroups(
 		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
@@ -187,7 +187,7 @@ public interface GroupControllerDocs {
 		GroupPasswordAuthenticationRequest request);
 
 	@Operation(summary = "그룹 리뷰 음식점 목록 조회", description = "그룹 리뷰가 존재하는 음식점 목록을 조회합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_REVIEW_RESTAURANTS")
 	CursorPageResponse<RestaurantListItem> getGroupReviewRestaurants(
 		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive

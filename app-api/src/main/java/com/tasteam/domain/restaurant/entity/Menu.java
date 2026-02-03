@@ -22,7 +22,7 @@ public class Menu extends BaseTimeEntity {
 	private Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "category_id", nullable = false)
+	@JoinColumn(name = "category_id", nullable = true) // FIXME: 시드 데이터 추가 후 false로 변경
 	private MenuCategory category;
 
 	@Column(name = "name", nullable = false, length = 100)

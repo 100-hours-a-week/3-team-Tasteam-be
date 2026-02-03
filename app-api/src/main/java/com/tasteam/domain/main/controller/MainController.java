@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.domain.main.controller.docs.MainControllerDocs;
 import com.tasteam.domain.main.dto.request.MainPageRequest;
+import com.tasteam.domain.main.dto.response.AiRecommendResponse;
+import com.tasteam.domain.main.dto.response.HomePageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse;
 import com.tasteam.domain.main.service.MainService;
 import com.tasteam.global.dto.api.SuccessResponse;
@@ -30,5 +32,23 @@ public class MainController implements MainControllerDocs {
 		@ModelAttribute @Validated
 		MainPageRequest request) {
 		return SuccessResponse.success(mainService.getMain(memberId, request));
+	}
+
+	@GetMapping("/home")
+	public SuccessResponse<HomePageResponse> getHome(
+		@CurrentUser
+		Long memberId,
+		@ModelAttribute @Validated
+		MainPageRequest request) {
+		return SuccessResponse.success(mainService.getHome(memberId, request));
+	}
+
+	@GetMapping("/ai-recommend")
+	public SuccessResponse<AiRecommendResponse> getAiRecommend(
+		@CurrentUser
+		Long memberId,
+		@ModelAttribute @Validated
+		MainPageRequest request) {
+		return SuccessResponse.success(mainService.getAiRecommend(memberId, request));
 	}
 }
