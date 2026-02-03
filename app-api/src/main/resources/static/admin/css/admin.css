@@ -150,6 +150,20 @@ body {
     resize: vertical;
 }
 
+.category-add-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.category-add-row input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
 .form-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
