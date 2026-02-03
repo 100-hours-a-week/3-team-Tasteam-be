@@ -4,6 +4,7 @@ import com.tasteam.domain.restaurant.entity.Menu;
 
 public record MenuItemResponse(
 	Long id,
+	Long restaurantId,
 	String name,
 	String description,
 	Integer price,
@@ -14,6 +15,9 @@ public record MenuItemResponse(
 	public static MenuItemResponse from(Menu menu) {
 		return new MenuItemResponse(
 			menu.getId(),
+			menu.getCategory() == null || menu.getCategory().getRestaurant() == null
+				? null
+				: menu.getCategory().getRestaurant().getId(),
 			menu.getName(),
 			menu.getDescription(),
 			menu.getPrice(),

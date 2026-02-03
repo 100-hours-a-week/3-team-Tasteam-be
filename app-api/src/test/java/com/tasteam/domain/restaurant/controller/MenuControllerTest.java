@@ -44,8 +44,8 @@ class MenuControllerTest {
 			// given
 			RestaurantMenuResponse response = new RestaurantMenuResponse(1L, List.of(
 				new MenuCategoryResponse(1L, "메인메뉴", 0, List.of(
-					new MenuItemResponse(1L, "된장찌개", "구수한 된장찌개", 9000, null, true, 0),
-					new MenuItemResponse(2L, "김치찌개", "매콤한 김치찌개", 8000, null, false, 1)))));
+					new MenuItemResponse(1L, 1L, "된장찌개", "구수한 된장찌개", 9000, null, true, 0),
+					new MenuItemResponse(2L, 1L, "김치찌개", "매콤한 김치찌개", 8000, null, false, 1)))));
 
 			given(menuService.getRestaurantMenus(eq(1L), eq(false), eq(true))).willReturn(response);
 

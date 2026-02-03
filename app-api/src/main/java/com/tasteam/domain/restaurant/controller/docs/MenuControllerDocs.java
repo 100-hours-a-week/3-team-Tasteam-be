@@ -24,7 +24,7 @@ public interface MenuControllerDocs {
 	SuccessResponse<RestaurantMenuResponse> getRestaurantMenus(
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
 		Long restaurantId,
-		@Parameter(description = "비어있는 카테고리 포함 여부", example = "false") @RequestParam(defaultValue = "false")
+		@Parameter(description = "빈 카테고리 포함 여부", example = "false") @RequestParam(defaultValue = "false")
 		boolean includeEmptyCategories,
 		@Parameter(description = "추천 메뉴 우선 정렬 여부", example = "true") @RequestParam(defaultValue = "true")
 		boolean recommendedFirst);
