@@ -315,7 +315,7 @@ body {
 .checkbox-group,
 .toggle-group {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     gap: 10px;
 }
 
@@ -328,7 +328,7 @@ body {
 
 .toggle-group label {
     position: relative;
-    padding: 10px 12px;
+    padding: 6px 8px;
     border-radius: 8px;
     border: 1px solid #dcdfe4;
     background: #f9fafb;
@@ -349,6 +349,7 @@ body {
 
 .toggle-group label span {
     font-weight: 600;
+    font-size: 12px;
     color: #2c3e50;
 }
 
