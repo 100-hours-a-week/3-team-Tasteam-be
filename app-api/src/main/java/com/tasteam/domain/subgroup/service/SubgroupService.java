@@ -521,6 +521,7 @@ public class SubgroupService {
 
 		if (image.getStatus() == ImageStatus.PENDING) {
 			image.activate();
+			imageRepository.save(image);
 		}
 	}
 
