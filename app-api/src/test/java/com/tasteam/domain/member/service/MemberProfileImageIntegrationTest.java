@@ -17,10 +17,10 @@ import com.tasteam.domain.file.entity.FilePurpose;
 import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
-import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.fixture.MemberFixture;
+import com.tasteam.fixture.MemberRequestFixture;
 
 @ServiceIntegrationTest
 @Transactional
@@ -47,7 +47,7 @@ class MemberProfileImageIntegrationTest {
 			Image.create(FilePurpose.PROFILE_IMAGE, "profile.png", 1024L, "image/png",
 				"members/" + member.getId() + "/profile.png", fileUuid));
 
-		MemberProfileUpdateRequest request = new MemberProfileUpdateRequest(null, fileUuid.toString());
+		var request = MemberRequestFixture.profileUpdateRequest(null, null, null, fileUuid.toString());
 
 		memberService.updateMyProfile(member.getId(), request);
 
@@ -67,7 +67,7 @@ class MemberProfileImageIntegrationTest {
 			Image.create(FilePurpose.PROFILE_IMAGE, "profile.png", 1024L, "image/png",
 				"members/" + member.getId() + "/profile.png", fileUuid));
 
-		MemberProfileUpdateRequest request = new MemberProfileUpdateRequest(null, fileUuid.toString());
+		var request = MemberRequestFixture.profileUpdateRequest(null, null, null, fileUuid.toString());
 
 		memberService.updateMyProfile(member.getId(), request);
 

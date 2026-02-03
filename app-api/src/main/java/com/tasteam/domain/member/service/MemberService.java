@@ -146,6 +146,14 @@ public class MemberService {
 			member.changeEmail(request.email());
 		}
 
+		if (request.nickname() != null && !request.nickname().equals(member.getNickname())) {
+			member.changeNickname(request.nickname());
+		}
+
+		if (request.introduction() != null && !request.introduction().equals(member.getIntroduction())) {
+			member.changeIntroduction(request.introduction());
+		}
+
 		if (request.profileImageFileUuid() != null) {
 			Image image = imageRepository.findByFileUuid(parseUuid(request.profileImageFileUuid()))
 				.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));

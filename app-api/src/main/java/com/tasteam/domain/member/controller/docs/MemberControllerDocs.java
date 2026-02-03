@@ -36,7 +36,7 @@ public interface MemberControllerDocs {
 		@CurrentUser
 		Long memberId);
 
-	@Operation(summary = "회원 정보 수정", description = "프로필 이미지와 이메일을 수정합니다.")
+	@Operation(summary = "회원 정보 수정", description = "프로필 이미지, 이메일, 닉네임, 자기소개를 수정합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = MemberProfileUpdateRequest.class)))
 	@ApiResponse(responseCode = "204", description = "수정 완료")
 	@CustomErrorResponseDescription(value = MemberSwaggerErrorResponseDescription.class, group = "MEMBER_PROFILE_UPDATE")
