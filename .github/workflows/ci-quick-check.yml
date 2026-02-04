@@ -41,15 +41,23 @@ jobs:
       # Feature 브랜치에서는 테스트와 SonarCloud 생략
 
       # CI 결과 알림 (실패 시에만)
-      - name: Notify CI result to Discord
-        if: failure()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "백엔드 Feature CI 실패 ❌"
-          description: |
-            **결과:** ${{ job.status }}
-            **브랜치:** ${{ github.ref_name }}
-            **작성자:** ${{ github.actor }}
-            **커밋:** ${{ github.sha }}
-          color: 0xff0000
+      # 테스트 실패 디스코드 알림
+      - name: Notify Test Failure
+        if: always()
+        run: |
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d '{
+                 "embeds": [{
+                   "title": "백엔드 테스트 실패 ❌",
+                   "color": 16711680,
+                   "fields": [
+                     {"name": "결과", "value": "실패", "inline": true},
+                     {"name": "브랜치", "value": "${{ github.ref_name }}", "inline": true},
+                     {"name": "작성자", "value": "${{ github.actor }}", "inline": true},
+                     {"name": "커밋", "value": "`${{ github.sha }}`", "inline": false},
+                     {"name": "이벤트", "value": "PR 테스트", "inline": true}
+                   ]
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
