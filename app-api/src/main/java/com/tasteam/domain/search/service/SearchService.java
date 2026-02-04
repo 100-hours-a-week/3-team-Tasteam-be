@@ -169,11 +169,15 @@ public class SearchService {
 					GroupMemberCountProjection::getGroupId,
 					GroupMemberCountProjection::getMemberCount));
 
+		Map<Long, List<DomainImageItem>> logos = groupIds.isEmpty()
+			? Map.of()
+			: fileService.getDomainImageUrls(DomainType.GROUP, groupIds);
+
 		return groups.stream()
 			.map(group -> new SearchGroupSummary(
 				group.getId(),
 				group.getName(),
-				group.getLogoImageUrl(),
+				firstDomainImageUrl(logos.getOrDefault(group.getId(), List.of())),
 				memberCounts.getOrDefault(group.getId(), 0L)))
 			.toList();
 	}
@@ -202,6 +206,13 @@ public class SearchService {
 	}
 
 	private String thumbnailUrl(List<RestaurantImageDto> images) {
+		if (images == null || images.isEmpty()) {
+			return null;
+		}
+		return images.getFirst().url();
+	}
+
+	private String firstDomainImageUrl(List<DomainImageItem> images) {
 		if (images == null || images.isEmpty()) {
 			return null;
 		}
