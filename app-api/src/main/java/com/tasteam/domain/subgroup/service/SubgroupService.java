@@ -13,12 +13,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
@@ -50,8 +52,6 @@ import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
-import com.tasteam.infra.storage.StorageClient;
-import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -72,8 +72,7 @@ public class SubgroupService {
 	private final CursorCodec cursorCodec;
 	private final ImageRepository imageRepository;
 	private final DomainImageRepository domainImageRepository;
-	private final StorageProperties storageProperties;
-	private final StorageClient storageClient;
+	private final FileService fileService;
 
 	@Transactional(readOnly = true)
 	public SubgroupListResponse getMySubgroups(Long groupId, Long memberId, String keyword, String cursor,
@@ -533,30 +532,16 @@ public class SubgroupService {
 		}
 	}
 
-	private String buildPublicUrl(String storageKey) {
-		if (storageProperties.isPresignedAccess()) {
-			return storageClient.createPresignedGetUrl(storageKey);
-		}
-		String baseUrl = storageProperties.getBaseUrl();
-		if (baseUrl == null || baseUrl.isBlank()) {
-			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
-				storageProperties.getBucket(),
-				storageProperties.getRegion());
-		}
-		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-		String normalizedKey = storageKey.startsWith("/") ? storageKey.substring(1) : storageKey;
-		return normalizedBase + "/" + normalizedKey;
-	}
-
 	private String resolveProfileImageUrl(Subgroup subgroup) {
-		List<DomainImage> images = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
+		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(
 			DomainType.SUBGROUP,
 			List.of(subgroup.getId()));
 
-		if (images.isEmpty()) {
+		List<DomainImageItem> subgroupImages = images.get(subgroup.getId());
+		if (subgroupImages == null || subgroupImages.isEmpty()) {
 			return null;
 		}
-		return buildPublicUrl(images.getFirst().getImage().getStorageKey());
+		return subgroupImages.getFirst().url();
 	}
 
 	private List<SubgroupListItem> applyResolvedImageUrls(List<SubgroupListItem> items) {
@@ -583,11 +568,11 @@ public class SubgroupService {
 		if (domainIds.isEmpty()) {
 			return Map.of();
 		}
-		return domainImageRepository.findAllByDomainTypeAndDomainIdIn(DomainType.SUBGROUP, domainIds)
-			.stream()
+		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(DomainType.SUBGROUP, domainIds);
+		return images.entrySet().stream()
+			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
 			.collect(Collectors.toMap(
-				DomainImage::getDomainId,
-				domainImage -> buildPublicUrl(domainImage.getImage().getStorageKey()),
-				(existing, ignored) -> existing));
+				Map.Entry::getKey,
+				entry -> entry.getValue().getFirst().url()));
 	}
 }

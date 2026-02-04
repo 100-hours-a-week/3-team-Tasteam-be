@@ -1,10 +1,7 @@
 package com.tasteam.domain.favorite.service;
 
-import static java.util.stream.Collectors.groupingBy;
-
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,9 +10,10 @@ import com.tasteam.domain.favorite.dto.FavoriteCursor;
 import com.tasteam.domain.favorite.dto.FavoriteRestaurantQueryDto;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
 import com.tasteam.domain.favorite.repository.MemberFavoriteRestaurantQueryRepository;
+import com.tasteam.domain.file.dto.response.DomainImageItem;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
-import com.tasteam.domain.restaurant.repository.RestaurantImageRepository;
-import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjection;
 import com.tasteam.global.utils.CursorCodec;
 
 import lombok.RequiredArgsConstructor;
@@ -27,7 +25,7 @@ public class FavoriteService {
 	private static final int DEFAULT_PAGE_SIZE = 20;
 
 	private final MemberFavoriteRestaurantQueryRepository favoriteQueryRepository;
-	private final RestaurantImageRepository restaurantImageRepository;
+	private final FileService fileService;
 	private final CursorCodec cursorCodec;
 
 	@Transactional(readOnly = true)
@@ -69,12 +67,13 @@ public class FavoriteService {
 		if (restaurantIds.isEmpty()) {
 			return Map.of();
 		}
-		return restaurantImageRepository.findRestaurantImages(restaurantIds)
-			.stream()
-			.collect(groupingBy(
-				RestaurantImageProjection::getRestaurantId,
-				Collectors.collectingAndThen(
-					Collectors.mapping(RestaurantImageProjection::getImageUrl, Collectors.toList()),
-					list -> list.isEmpty() ? null : list.getFirst())));
+		Map<Long, List<DomainImageItem>> domainImages = fileService.getDomainImageUrls(
+			DomainType.RESTAURANT,
+			restaurantIds);
+		return domainImages.entrySet().stream()
+			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
+			.collect(java.util.stream.Collectors.toMap(
+				Map.Entry::getKey,
+				entry -> entry.getValue().getFirst().url()));
 	}
 }

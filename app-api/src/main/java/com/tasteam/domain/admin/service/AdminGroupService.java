@@ -15,12 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.admin.dto.request.AdminGroupCreateRequest;
 import com.tasteam.domain.admin.dto.response.AdminGroupListItem;
+import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.group.type.GroupStatus;
@@ -29,8 +31,6 @@ import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.FileErrorCode;
-import com.tasteam.infra.storage.StorageClient;
-import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
 
@@ -43,8 +43,7 @@ public class AdminGroupService {
 	private final DomainImageRepository domainImageRepository;
 	private final GeometryFactory geometryFactory;
 	private final NaverGeocodingClient naverGeocodingClient;
-	private final StorageProperties storageProperties;
-	private final StorageClient storageClient;
+	private final FileService fileService;
 
 	@Transactional(readOnly = true)
 	public Page<AdminGroupListItem> getGroups(Pageable pageable) {
@@ -123,15 +122,12 @@ public class AdminGroupService {
 			return Map.of();
 		}
 
-		List<DomainImage> images = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
-			DomainType.GROUP,
-			groupIds);
-
-		return images.stream()
+		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(DomainType.GROUP, groupIds);
+		return images.entrySet().stream()
+			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
 			.collect(Collectors.toMap(
-				DomainImage::getDomainId,
-				di -> buildPublicUrl(di.getImage().getStorageKey()),
-				(first, second) -> first));
+				Map.Entry::getKey,
+				entry -> entry.getValue().getFirst().url()));
 	}
 
 	private UUID parseUuid(String fileUuid) {
@@ -140,20 +136,5 @@ public class AdminGroupService {
 		} catch (IllegalArgumentException ex) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "fileUuid 형식이 올바르지 않습니다");
 		}
-	}
-
-	private String buildPublicUrl(String storageKey) {
-		if (storageProperties.isPresignedAccess()) {
-			return storageClient.createPresignedGetUrl(storageKey);
-		}
-		String baseUrl = storageProperties.getBaseUrl();
-		if (baseUrl == null || baseUrl.isBlank()) {
-			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
-				storageProperties.getBucket(),
-				storageProperties.getRegion());
-		}
-		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-		String normalizedKey = storageKey.startsWith("/") ? storageKey.substring(1) : storageKey;
-		return normalizedBase + "/" + normalizedKey;
 	}
 }
