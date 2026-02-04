@@ -14,6 +14,9 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.dto.response.DomainImageItem;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
@@ -30,11 +33,9 @@ import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
 import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
 import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
-import com.tasteam.domain.restaurant.repository.RestaurantImageRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
-import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjection;
 
 import lombok.RequiredArgsConstructor;
 
@@ -46,10 +47,10 @@ public class MainService {
 
 	private final RestaurantRepository restaurantRepository;
 	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
-	private final RestaurantImageRepository restaurantImageRepository;
 	private final AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final GroupRepository groupRepository;
+	private final FileService fileService;
 
 	@Transactional(readOnly = true)
 	public MainPageResponse getMain(Long memberId, MainPageRequest request) {
@@ -272,13 +273,14 @@ public class MainService {
 		if (restaurantIds.isEmpty()) {
 			return Map.of();
 		}
-		return restaurantImageRepository
-			.findRestaurantImages(restaurantIds)
-			.stream()
+		Map<Long, List<DomainImageItem>> domainImages = fileService.getDomainImageUrls(
+			DomainType.RESTAURANT,
+			restaurantIds);
+		return domainImages.entrySet().stream()
+			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
 			.collect(Collectors.toMap(
-				RestaurantImageProjection::getRestaurantId,
-				RestaurantImageProjection::getImageUrl,
-				(existing, ignored) -> existing));
+				Map.Entry::getKey,
+				entry -> entry.getValue().getFirst().url()));
 	}
 
 	private Map<Long, String> fetchSummaries(List<Long> restaurantIds) {
