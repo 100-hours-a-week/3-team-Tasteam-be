@@ -25,6 +25,20 @@
         </rollingPolicy>
     </appender>
 
+    <!-- 비동기 Appender: 대량 로그 발생 시에도 애플리케이션 블락 방지 -->
+    <appender name="ASYNC_JSON_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="JSON_FILE" />
+        <!-- 큐 크기: 기본 256 → 2048로 증가 (대량 로그 대비) -->
+        <queueSize>2048</queueSize>
+        <!-- 큐가 20% 차면 TRACE/DEBUG/INFO 로그 드롭 (WARN/ERROR는 보존) -->
+        <discardingThreshold>0</discardingThreshold>
+        <!-- 애플리케이션 종료 시 큐의 모든 로그를 기록할 때까지 대기 -->
+        <includeCallerData>false</includeCallerData>
+        <!-- 큐가 가득 차도 애플리케이션을 블로킹하지 않음 (로그 드롭 허용) -->
+        <neverBlock>true</neverBlock>
+        <maxFlushTime>5000</maxFlushTime>
+    </appender>
+
     <springProfile name="!prod">
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
             <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
@@ -41,7 +55,7 @@
 
         <root level="DEBUG">
             <appender-ref ref="STDOUT" />
-            <appender-ref ref="JSON_FILE" />
+            <appender-ref ref="ASYNC_JSON_FILE" />
         </root>
     </springProfile>
 
@@ -61,7 +75,7 @@
 
         <root level="INFO">
             <appender-ref ref="STDOUT" />
-            <appender-ref ref="JSON_FILE" />
+            <appender-ref ref="ASYNC_JSON_FILE" />
         </root>
     </springProfile>
 </configuration>
