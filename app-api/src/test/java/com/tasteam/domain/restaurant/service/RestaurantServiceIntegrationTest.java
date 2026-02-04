@@ -35,6 +35,7 @@ import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
+import com.tasteam.fixture.ImageFixture;
 
 @ServiceIntegrationTest
 @Transactional
@@ -97,9 +98,8 @@ class RestaurantServiceIntegrationTest {
 		@DisplayName("이미지와 함께 음식점을 생성하면 이미지가 ACTIVE 상태로 변경된다")
 		void createRestaurantWithImages() {
 			UUID fileUuid = UUID.randomUUID();
-			imageRepository.save(
-				Image.create(FilePurpose.RESTAURANT_IMAGE, "restaurant.png", 1024L, "image/png",
-					"restaurants/restaurant.png", fileUuid));
+			imageRepository.save(ImageFixture.create(FilePurpose.RESTAURANT_IMAGE, "restaurants/restaurant.png",
+				fileUuid, "restaurant.png"));
 
 			RestaurantCreateRequest request = new RestaurantCreateRequest(
 				"이미지 있는 식당",
@@ -130,9 +130,8 @@ class RestaurantServiceIntegrationTest {
 		@DisplayName("음식점 상세를 조회하면 이미지가 포함된다")
 		void getRestaurantDetailWithImage() {
 			UUID fileUuid = UUID.randomUUID();
-			imageRepository.save(
-				Image.create(FilePurpose.RESTAURANT_IMAGE, "restaurant.png", 1024L, "image/png",
-					"restaurants/restaurant.png", fileUuid));
+			imageRepository.save(ImageFixture.create(FilePurpose.RESTAURANT_IMAGE, "restaurants/restaurant.png",
+				fileUuid, "restaurant.png"));
 
 			RestaurantCreateRequest request = new RestaurantCreateRequest(
 				"상세 조회 식당",
@@ -161,9 +160,8 @@ class RestaurantServiceIntegrationTest {
 		@DisplayName("음식점 이미지를 수정하면 기존 이미지가 삭제되고 새 이미지가 등록된다")
 		void updateRestaurantImages() {
 			UUID oldFileUuid = UUID.randomUUID();
-			imageRepository.save(
-				Image.create(FilePurpose.RESTAURANT_IMAGE, "old.png", 1024L, "image/png",
-					"restaurants/old.png", oldFileUuid));
+			imageRepository
+				.save(ImageFixture.create(FilePurpose.RESTAURANT_IMAGE, "restaurants/old.png", oldFileUuid, "old.png"));
 
 			RestaurantCreateRequest createRequest = new RestaurantCreateRequest(
 				"수정할 식당",
@@ -176,9 +174,8 @@ class RestaurantServiceIntegrationTest {
 			RestaurantCreateResponse created = restaurantService.createRestaurant(createRequest);
 
 			UUID newFileUuid = UUID.randomUUID();
-			imageRepository.save(
-				Image.create(FilePurpose.RESTAURANT_IMAGE, "new.png", 2048L, "image/png",
-					"restaurants/new.png", newFileUuid));
+			imageRepository.save(ImageFixture.create(FilePurpose.RESTAURANT_IMAGE, "restaurants/new.png", newFileUuid,
+				"new.png", 2048L));
 
 			RestaurantUpdateRequest updateRequest = new RestaurantUpdateRequest(
 				"수정된 식당",
@@ -227,8 +224,7 @@ class RestaurantServiceIntegrationTest {
 		void deleteRestaurantWithImages() {
 			UUID fileUuid = UUID.randomUUID();
 			imageRepository.save(
-				Image.create(FilePurpose.RESTAURANT_IMAGE, "delete.png", 1024L, "image/png",
-					"restaurants/delete.png", fileUuid));
+				ImageFixture.create(FilePurpose.RESTAURANT_IMAGE, "restaurants/delete.png", fileUuid, "delete.png"));
 
 			RestaurantCreateRequest request = new RestaurantCreateRequest(
 				"이미지와 함께 삭제할 식당",
