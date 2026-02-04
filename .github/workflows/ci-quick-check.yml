@@ -49,7 +49,7 @@ jobs:
                -X POST \
                -d '{
                  "embeds": [{
-                   "title": "백엔드 테스트 실패 ❌",
+                   "title": "백엔드 테스트 실패 💔",
                    "color": 16711680,
                    "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
                    "fields": [
