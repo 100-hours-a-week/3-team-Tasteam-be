@@ -1,7 +1,5 @@
 package com.tasteam.domain.search.service;
 
-import static java.util.stream.Collectors.groupingBy;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -9,6 +7,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.dto.response.DomainImageItem;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupQueryRepository;
@@ -17,8 +18,6 @@ import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.entity.Restaurant;
-import com.tasteam.domain.restaurant.repository.RestaurantImageRepository;
-import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjection;
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.request.SearchRequest;
 import com.tasteam.domain.search.dto.response.RecentSearchItem;
@@ -49,7 +48,7 @@ public class SearchService {
 
 	private final GroupQueryRepository groupQueryRepository;
 	private final GroupMemberRepository groupMemberRepository;
-	private final RestaurantImageRepository restaurantImageRepository;
+	private final FileService fileService;
 	private final MemberSearchHistoryRepository memberSearchHistoryRepository;
 	private final MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository;
 	private final SearchQueryRepository searchQueryRepository;
@@ -184,18 +183,22 @@ public class SearchService {
 			return Map.of();
 		}
 
-		return restaurantImageRepository
-			.findRestaurantImages(restaurantIds)
-			.stream()
-			.collect(groupingBy(
-				RestaurantImageProjection::getRestaurantId,
-				Collectors.collectingAndThen(
-					Collectors.mapping(
-						projection -> new RestaurantImageDto(
-							projection.getImageId(),
-							projection.getImageUrl()),
-						Collectors.toList()),
-					list -> list.size() > THUMBNAIL_LIMIT ? list.subList(0, THUMBNAIL_LIMIT) : list)));
+		Map<Long, List<DomainImageItem>> domainImages = fileService.getDomainImageUrls(
+			DomainType.RESTAURANT,
+			restaurantIds);
+
+		return domainImages.entrySet().stream()
+			.collect(Collectors.toMap(
+				Map.Entry::getKey,
+				entry -> {
+					List<DomainImageItem> images = entry.getValue();
+					List<DomainImageItem> limited = images.size() > THUMBNAIL_LIMIT
+						? images.subList(0, THUMBNAIL_LIMIT)
+						: images;
+					return limited.stream()
+						.map(img -> new RestaurantImageDto(img.imageId(), img.url()))
+						.toList();
+				}));
 	}
 
 	private String thumbnailUrl(List<RestaurantImageDto> images) {
