@@ -51,12 +51,13 @@ jobs:
                  "embeds": [{
                    "title": "백엔드 테스트 실패 ❌",
                    "color": 16711680,
+                   "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
                    "fields": [
                      {"name": "결과", "value": "실패", "inline": true},
                      {"name": "브랜치", "value": "${{ github.ref_name }}", "inline": true},
                      {"name": "작성자", "value": "${{ github.actor }}", "inline": true},
                      {"name": "커밋", "value": "`${{ github.sha }}`", "inline": false},
-                     {"name": "이벤트", "value": "PR 테스트", "inline": true}
+                     {"name": "워크플로우", "value": "[실행 로그 보기](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})", "inline": false}
                    ]
                  }]
                }' \
