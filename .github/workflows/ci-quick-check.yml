@@ -43,7 +43,7 @@ jobs:
       # CI 결과 알림 (실패 시에만)
       # 테스트 실패 디스코드 알림
       - name: Notify Test Failure
-        if: always()
+        if: failure()
         run: |
           curl -H "Content-Type: application/json" \
                -X POST \

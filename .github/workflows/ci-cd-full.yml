@@ -38,17 +38,25 @@ jobs:
       # 테스트 실패 디스코드 알림
       - name: Notify Test Failure
         if: failure()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "백엔드 테스트 실패 ❌"
-          description: |
-            **결과:** 실패
-            **브랜치:** ${{ github.ref_name }}
-            **작성자:** ${{ github.actor }}
-            **커밋:** ${{ github.sha }}
-            **이벤트:** PR 테스트
-          color: 0xff0000
+        run: |
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d '{
+                 "embeds": [{
+                   "title": "백엔드 테스트 실패 ❌",
+                   "color": 16711680,
+                   "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                   "fields": [
+                     {"name": "결과", "value": "실패", "inline": true},
+                     {"name": "브랜치", "value": "${{ github.ref_name }}", "inline": true},
+                     {"name": "작성자", "value": "${{ github.actor }}", "inline": true},
+                     {"name": "커밋", "value": "`${{ github.sha }}`", "inline": false},
+                     {"name": "이벤트", "value": "PR 테스트", "inline": false},
+                     {"name": "워크플로우", "value": "[실행 로그 보기](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})", "inline": false}
+                   ]
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   # PR 시에만 보안 검사 실행
   security-scan:
@@ -107,17 +115,25 @@ jobs:
       # 보안 스캔 실패 알림 (성공 시 알림 없음)
       - name: Notify Security Scan Failure
         if: failure()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "백엔드 보안 스캔 실패 ❌"
-          description: |
-            **결과:** 실패
-            **브랜치:** ${{ github.ref_name }}
-            **작성자:** ${{ github.actor }}
-            **커밋:** ${{ github.sha }}
-            **이벤트:** PR 보안 검사
-          color: 0xff0000
+        run: |
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d '{
+                 "embeds": [{
+                   "title": "백엔드 보안 스캔 실패 ❌",
+                   "color": 16711680,
+                   "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                   "fields": [
+                     {"name": "결과", "value": "실패", "inline": true},
+                     {"name": "브랜치", "value": "${{ github.ref_name }}", "inline": true},
+                     {"name": "작성자", "value": "${{ github.actor }}", "inline": true},
+                     {"name": "커밋", "value": "`${{ github.sha }}`", "inline": false},
+                     {"name": "이벤트", "value": "PR 보안 검사", "inline": false},
+                     {"name": "워크플로우", "value": "[실행 로그 보기](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})", "inline": false}
+                   ]
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   # develop/main push 시에만 빌드 & 배포
   build-and-deploy:
@@ -154,17 +170,31 @@ jobs:
       # 빌드 실패 알림
       - name: Notify Build Failure
         if: failure()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "백엔드 ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 빌드 실패 ❌"
-          description: |
-            **결과:** 실패
-            **브랜치:** ${{ github.ref_name }}
-            **작성자:** ${{ github.actor }}
-            **커밋:** ${{ github.sha }}
-            **이벤트:** ${{ github.ref_name }} 브랜치 빌드
-          color: 0xff0000
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            ENV_NAME="운영"
+          else
+            ENV_NAME="개발"
+          fi
+
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{
+                 \"embeds\": [{
+                   \"title\": \"백엔드 ${ENV_NAME} 빌드 실패 ❌\",
+                   \"color\": 16711680,
+                   \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
+                   \"fields\": [
+                     {\"name\": \"결과\", \"value\": \"실패\", \"inline\": true},
+                     {\"name\": \"브랜치\", \"value\": \"${{ github.ref_name }}\", \"inline\": true},
+                     {\"name\": \"작성자\", \"value\": \"${{ github.actor }}\", \"inline\": true},
+                     {\"name\": \"커밋\", \"value\": \"\`${{ github.sha }}\`\", \"inline\": false},
+                     {\"name\": \"이벤트\", \"value\": \"${{ github.ref_name }} 브랜치 빌드\", \"inline\": false},
+                     {\"name\": \"워크플로우\", \"value\": \"[실행 로그 보기](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\", \"inline\": false}
+                   ]
+                 }]
+               }" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   deploy:
     needs: build-and-deploy
@@ -214,14 +244,30 @@ jobs:
       # 배포 결과 알림
       - name: Notify Deployment Result
         if: always()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "백엔드 ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버 배포 ${{ job.status == 'success' && '성공 ✅' || '실패 ❌' }}"
-          description: |
-            **결과:** ${{ job.status }}
-            **브랜치:** ${{ github.ref_name }}
-            **작성자:** ${{ github.actor }}
-            **커밋:** ${{ github.sha }}
-            **서버 환경:** ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버
-          color: ${{ job.status == 'success' && '0x00ff00' || '0xff0000' }}
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            TITLE="백엔드 ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버 배포 성공 ✅"
+            COLOR=65280
+          else
+            TITLE="백엔드 ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버 배포 실패 ❌"
+            COLOR=16711680
+          fi
+
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{
+                 \"embeds\": [{
+                   \"title\": \"$TITLE\",
+                   \"color\": $COLOR,
+                   \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
+                   \"fields\": [
+                     {\"name\": \"결과\", \"value\": \"${{ job.status }}\", \"inline\": true},
+                     {\"name\": \"브랜치\", \"value\": \"${{ github.ref_name }}\", \"inline\": true},
+                     {\"name\": \"작성자\", \"value\": \"${{ github.actor }}\", \"inline\": true},
+                     {\"name\": \"커밋\", \"value\": \"\`${{ github.sha }}\`\", \"inline\": false},
+                     {\"name\": \"서버 환경\", \"value\": \"${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버\", \"inline\": false},
+                     {\"name\": \"워크플로우\", \"value\": \"[실행 로그 보기](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\", \"inline\": false}
+                   ]
+                 }]
+               }" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
