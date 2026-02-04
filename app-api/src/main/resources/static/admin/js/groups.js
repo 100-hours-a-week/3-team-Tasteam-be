@@ -4,10 +4,14 @@ let currentPage = 0;
 const pageSize = 20;
 let logoFile = null;
 let geocodeTimer = null;
+let locationManual = false;
 
 async function applyGeocodeResult(query) {
     const latInput = document.getElementById('groupLatitude');
     const lngInput = document.getElementById('groupLongitude');
+    if (locationManual && latInput.value.trim() && lngInput.value.trim()) {
+        return;
+    }
     if (!query || query.trim().length < 4) {
         latInput.value = '';
         lngInput.value = '';
@@ -157,6 +161,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     addressInput.addEventListener('input', triggerGeocode);
     addressInput.addEventListener('blur', triggerGeocode);
+
+    const latInput = document.getElementById('groupLatitude');
+    const lngInput = document.getElementById('groupLongitude');
+    const handleManualLocation = () => {
+        const latValue = latInput.value.trim();
+        const lngValue = lngInput.value.trim();
+        if (latValue || lngValue) {
+            locationManual = true;
+        } else {
+            locationManual = false;
+        }
+    };
+    latInput.addEventListener('input', handleManualLocation);
+    lngInput.addEventListener('input', handleManualLocation);
 
     const logoInput = document.getElementById('groupLogoImage');
     const logoPreview = document.getElementById('groupLogoPreview');
