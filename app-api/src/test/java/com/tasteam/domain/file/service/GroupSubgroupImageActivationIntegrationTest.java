@@ -32,16 +32,15 @@ import com.tasteam.domain.group.type.GroupJoinType;
 import com.tasteam.domain.group.type.GroupType;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
-import com.tasteam.domain.subgroup.dto.SubgroupCreateRequest;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
 import com.tasteam.domain.subgroup.entity.Subgroup;
 import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.domain.subgroup.service.SubgroupService;
-import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.fixture.GroupFixture;
 import com.tasteam.fixture.ImageFixture;
 import com.tasteam.fixture.MemberFixture;
+import com.tasteam.fixture.SubgroupRequestFixture;
 
 @ServiceIntegrationTest
 @Transactional
@@ -142,12 +141,8 @@ class GroupSubgroupImageActivationIntegrationTest {
 			imageRepository.save(ImageFixture.create(FilePurpose.PROFILE_IMAGE,
 				"uploads/profile/image/subgroup-create.png", fileUuid, "subgroup-create.png"));
 
-			SubgroupCreateRequest request = new SubgroupCreateRequest(
-				"subgroup-" + System.nanoTime(),
-				null,
-				fileUuid.toString(),
-				SubgroupJoinType.OPEN,
-				null);
+			var request = SubgroupRequestFixture.createRequest(
+				"subgroup-" + System.nanoTime(), fileUuid.toString());
 
 			SubgroupCreateResponse response = subgroupService.createSubgroup(group.getId(), member.getId(), request);
 
@@ -172,12 +167,7 @@ class GroupSubgroupImageActivationIntegrationTest {
 			SubgroupCreateResponse created = subgroupService.createSubgroup(
 				group.getId(),
 				member.getId(),
-				new SubgroupCreateRequest(
-					"subgroup-update-" + System.nanoTime(),
-					null,
-					null,
-					SubgroupJoinType.OPEN,
-					null));
+				SubgroupRequestFixture.createRequest("subgroup-update-" + System.nanoTime()));
 			Subgroup subgroup = subgroupRepository.findById(created.data().id()).orElseThrow();
 
 			UUID fileUuid = UUID.randomUUID();
