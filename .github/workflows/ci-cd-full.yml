@@ -181,7 +181,7 @@ jobs:
                -X POST \
                -d "{
                  \"embeds\": [{
-                   \"title\": \"백엔드 ${ENV_NAME} 빌드 실패 ❌\",
+                   \"title\": \"백엔드 ${ENV_NAME} 빌드 실패 💔💀\",
                    \"color\": 16711680,
                    \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
                    \"fields\": [
@@ -246,10 +246,10 @@ jobs:
         if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            TITLE="백엔드 ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버 배포 성공 ✅"
+            TITLE="백엔드 ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버 배포 성공 ❤️"
             COLOR=65280
           else
-            TITLE="백엔드 ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버 배포 실패 ❌"
+            TITLE="백엔드 ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버 배포 실패 💔💀"
             COLOR=16711680
           fi
 
