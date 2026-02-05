@@ -49,11 +49,30 @@
             </encoder>
         </appender>
 
+        <!-- Hibernate 로그: SQL만 DEBUG, 나머지는 WARN -->
         <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
             <appender-ref ref="STDOUT" />
         </logger>
+        <logger name="org.hibernate.orm" level="WARN" />
+        <logger name="org.hibernate.query" level="WARN" />
 
-        <root level="DEBUG">
+        <!-- AWS SDK 로그 제한 -->
+        <logger name="com.amazonaws" level="WARN" />
+
+        <!-- HikariCP 로그 제한 -->
+        <logger name="com.zaxxer.hikari" level="INFO" />
+
+        <!-- Spring Framework 로그 제한 -->
+        <logger name="org.springframework.orm.jpa" level="INFO" />
+        <logger name="org.springframework.web.client" level="INFO" />
+        <logger name="org.springframework.web.servlet" level="INFO" />
+        <logger name="org.springframework.security" level="INFO" />
+
+        <!-- 자신의 애플리케이션만 DEBUG 허용 -->
+        <logger name="com.tasteam" level="DEBUG" />
+
+        <!-- Root 레벨을 INFO로 변경하여 불필요한 DEBUG 로그 차단 -->
+        <root level="INFO">
             <appender-ref ref="STDOUT" />
             <appender-ref ref="ASYNC_JSON_FILE" />
         </root>
