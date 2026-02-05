@@ -52,7 +52,7 @@ class SubgroupControllerTest {
 					new ReviewResponse.AuthorResponse("테스트유저"),
 					"맛있어요", true, List.of("친절"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
-					Instant.now())),
+					Instant.now(), 10L, "테스트음식점", null, null, null, "서울시 강남구 테스트로 123")),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(reviewService.getSubgroupReviews(eq(1L), any())).willReturn(response);
