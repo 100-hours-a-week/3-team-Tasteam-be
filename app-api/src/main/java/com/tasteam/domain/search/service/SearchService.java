@@ -34,6 +34,7 @@ import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.SearchErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.global.utils.CursorPageBuilder;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,13 +60,14 @@ public class SearchService {
 	public SearchResponse search(Long memberId, SearchRequest request) {
 		String keyword = request.keyword().trim();
 		int pageSize = request.size() == null ? DEFAULT_PAGE_SIZE : request.size();
-		SearchCursor cursor = cursorCodec.decodeOrNull(request.cursor(), SearchCursor.class);
-		if (request.cursor() != null && !request.cursor().isBlank() && cursor == null) {
+		CursorPageBuilder<SearchCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, request.cursor(),
+			SearchCursor.class);
+		if (pageBuilder.isInvalid()) {
 			return SearchResponse.emptyResponse();
 		}
 
 		List<SearchGroupSummary> groups = searchGroups(keyword, pageSize);
-		CursorPageResponse<SearchRestaurantItem> restaurants = searchRestaurants(keyword, cursor, pageSize);
+		CursorPageResponse<SearchRestaurantItem> restaurants = searchRestaurants(keyword, pageBuilder, pageSize);
 
 		if (!groups.isEmpty() || !restaurants.items().isEmpty()) {
 			try {
@@ -113,30 +115,24 @@ public class SearchService {
 	}
 
 	private CursorPageResponse<SearchRestaurantItem> searchRestaurants(
-		String keyword,
-		SearchCursor cursor,
-		int pageSize) {
+		String keyword, CursorPageBuilder<SearchCursor> pageBuilder, int pageSize) {
 		List<Restaurant> result = searchQueryRepository.searchRestaurantsByKeyword(
 			keyword,
-			cursor,
-			pageSize + 1);
+			pageBuilder.cursor(),
+			CursorPageBuilder.fetchSize(pageSize));
 
-		boolean hasNext = result.size() > pageSize;
-		List<Restaurant> pageContent = hasNext ? result.subList(0, pageSize) : result;
+		CursorPageBuilder.Page<Restaurant> page = pageBuilder.build(
+			result,
+			pageSize,
+			last -> new SearchCursor(last.getUpdatedAt(), last.getId()));
 
-		String nextCursor = null;
-		if (hasNext && !pageContent.isEmpty()) {
-			Restaurant last = pageContent.getLast();
-			nextCursor = cursorCodec.encode(new SearchCursor(last.getUpdatedAt(), last.getId()));
-		}
-
-		List<Long> restaurantIds = pageContent.stream()
+		List<Long> restaurantIds = page.items().stream()
 			.map(Restaurant::getId)
 			.toList();
 
 		Map<Long, List<RestaurantImageDto>> thumbnails = findRestaurantThumbnails(restaurantIds);
 
-		List<SearchRestaurantItem> items = pageContent.stream()
+		List<SearchRestaurantItem> items = page.items().stream()
 			.map(restaurant -> new SearchRestaurantItem(
 				restaurant.getId(),
 				restaurant.getName(),
@@ -147,9 +143,9 @@ public class SearchService {
 		return new CursorPageResponse<>(
 			items,
 			new CursorPageResponse.Pagination(
-				nextCursor,
-				hasNext,
-				pageSize));
+				page.nextCursor(),
+				page.hasNext(),
+				page.size()));
 	}
 
 	private List<SearchGroupSummary> searchGroups(String keyword, int pageSize) {

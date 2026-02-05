@@ -52,6 +52,7 @@ import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.exception.code.ReviewErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.global.utils.CursorPageBuilder;
 
 import lombok.RequiredArgsConstructor;
 
@@ -201,15 +202,15 @@ public class ReviewService {
 		}
 
 		int resolvedSize = resolveSize(request.size());
-		ReviewCursor cursor = parseCursor(request.cursor());
+		CursorPageBuilder<ReviewCursor> pageBuilder = buildCursorPageBuilderOrThrow(request.cursor());
 
 		// 리뷰 목록
 		List<ReviewQueryDto> reviewList = reviewQueryRepository.findRestaurantReviews(
 			restaurantId,
-			cursor,
-			resolvedSize + 1);
+			pageBuilder.cursor(),
+			CursorPageBuilder.fetchSize(resolvedSize));
 
-		return buildReviewPage(reviewList, resolvedSize);
+		return buildReviewPage(pageBuilder, reviewList, resolvedSize);
 	}
 
 	@Transactional(readOnly = true)
@@ -220,14 +221,14 @@ public class ReviewService {
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 
 		int resolvedSize = resolveSize(request.size());
-		ReviewCursor parsedCursor = parseCursor(request.cursor());
+		CursorPageBuilder<ReviewCursor> pageBuilder = buildCursorPageBuilderOrThrow(request.cursor());
 
 		List<ReviewQueryDto> reviewList = reviewQueryRepository.findGroupReviews(
 			groupId,
-			parsedCursor,
-			resolvedSize + 1);
+			pageBuilder.cursor(),
+			CursorPageBuilder.fetchSize(resolvedSize));
 
-		return buildReviewPage(reviewList, resolvedSize);
+		return buildReviewPage(pageBuilder, reviewList, resolvedSize);
 	}
 
 	@Transactional(readOnly = true)
@@ -239,14 +240,14 @@ public class ReviewService {
 		}
 
 		int resolvedSize = resolveSize(request.size());
-		ReviewCursor parsedCursor = parseCursor(request.cursor());
+		CursorPageBuilder<ReviewCursor> pageBuilder = buildCursorPageBuilderOrThrow(request.cursor());
 
 		List<ReviewQueryDto> reviewList = reviewQueryRepository.findSubgroupReviews(
 			subgroupId,
-			parsedCursor,
-			resolvedSize + 1);
+			pageBuilder.cursor(),
+			CursorPageBuilder.fetchSize(resolvedSize));
 
-		return buildReviewPage(reviewList, resolvedSize);
+		return buildReviewPage(pageBuilder, reviewList, resolvedSize);
 	}
 
 	@Transactional(readOnly = true)
@@ -256,19 +257,19 @@ public class ReviewService {
 		memberRepository.findByIdAndDeletedAtIsNull(memberId)
 			.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-		ReviewCursor parsedCursor = parseCursor(request.cursor());
 		int resolvedSize = resolveSize(request.size());
+		CursorPageBuilder<ReviewCursor> pageBuilder = buildCursorPageBuilderOrThrow(request.cursor());
 
 		List<ReviewMemberQueryDto> reviewList = reviewQueryRepository.findMemberReviews(
 			memberId,
-			parsedCursor,
-			resolvedSize + 1);
+			pageBuilder.cursor(),
+			CursorPageBuilder.fetchSize(resolvedSize));
 
 		if (reviewList.isEmpty()) {
 			return CursorPageResponse.empty();
 		}
 
-		return buildReviewSummaryPage(reviewList, resolvedSize);
+		return buildReviewSummaryPage(pageBuilder, reviewList, resolvedSize);
 	}
 
 	private int resolveSize(Integer size) {
@@ -281,51 +282,41 @@ public class ReviewService {
 		return size;
 	}
 
-	private ReviewCursor parseCursor(String cursor) {
-		if (cursor == null || cursor.isBlank()) {
-			return null;
+	private CursorPageBuilder<ReviewCursor> buildCursorPageBuilderOrThrow(String rawCursor) {
+		CursorPageBuilder<ReviewCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, rawCursor, ReviewCursor.class);
+		if (pageBuilder.isInvalid()) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
-		return cursorCodec.decode(cursor, ReviewCursor.class);
+		return pageBuilder;
 	}
 
 	private CursorPageResponse<ReviewResponse> buildReviewPage(
+		CursorPageBuilder<ReviewCursor> pageBuilder,
 		List<ReviewQueryDto> reviewList,
 		int resolvedSize) {
-		if (reviewList.isEmpty()) {
+		CursorPageBuilder.Page<ReviewQueryDto> page = pageBuilder.build(
+			reviewList,
+			resolvedSize,
+			last -> new ReviewCursor(last.createdAt(), last.reviewId()));
+
+		if (page.items().isEmpty()) {
 			return CursorPageResponse.empty();
 		}
 
-		boolean hasNext = reviewList.size() > resolvedSize;
-		List<ReviewQueryDto> pageContent = sliceContent(reviewList, resolvedSize);
-		String nextCursor = buildNextCursor(pageContent, hasNext);
-
-		List<Long> reviewIds = extractReviewIds(pageContent);
+		List<Long> reviewIds = extractReviewIds(page.items());
 		Map<Long, List<String>> reviewKeywords = loadReviewKeywords(reviewIds);
 		Map<Long, List<DomainImageItem>> reviewThumbnails = fileService.getDomainImageUrls(
 			DomainType.REVIEW,
 			reviewIds);
 
-		List<ReviewResponse> items = buildReviewResponses(pageContent, reviewKeywords, reviewThumbnails);
+		List<ReviewResponse> items = buildReviewResponses(page.items(), reviewKeywords, reviewThumbnails);
 
 		return new CursorPageResponse<>(
 			items,
 			new CursorPageResponse.Pagination(
-				nextCursor,
-				hasNext,
+				page.nextCursor(),
+				page.hasNext(),
 				items.size()));
-	}
-
-	private List<ReviewQueryDto> sliceContent(List<ReviewQueryDto> reviewList, int resolvedSize) {
-		boolean hasNext = reviewList.size() > resolvedSize;
-		return hasNext ? reviewList.subList(0, resolvedSize) : reviewList;
-	}
-
-	private String buildNextCursor(List<ReviewQueryDto> pageContent, boolean hasNext) {
-		if (!hasNext) {
-			return null;
-		}
-		ReviewQueryDto last = pageContent.get(pageContent.size() - 1);
-		return cursorCodec.encode(new ReviewCursor(last.createdAt(), last.reviewId()));
 	}
 
 	private List<Long> extractReviewIds(List<ReviewQueryDto> pageContent) {
@@ -355,32 +346,19 @@ public class ReviewService {
 	}
 
 	private CursorPageResponse<ReviewSummaryResponse> buildReviewSummaryPage(
+		CursorPageBuilder<ReviewCursor> pageBuilder,
 		List<ReviewMemberQueryDto> reviewList,
 		int resolvedSize) {
-		boolean hasNext = reviewList.size() > resolvedSize;
-		List<ReviewMemberQueryDto> pageContent = sliceMemberContent(reviewList, resolvedSize);
-		String nextCursor = buildMemberNextCursor(pageContent, hasNext);
+		CursorPageBuilder.Page<ReviewMemberQueryDto> page = pageBuilder.build(
+			reviewList,
+			resolvedSize,
+			last -> new ReviewCursor(last.createdAt(), last.reviewId()));
 
-		List<ReviewSummaryResponse> items = buildReviewSummaryResponses(pageContent);
+		List<ReviewSummaryResponse> items = buildReviewSummaryResponses(page.items());
 
 		return new CursorPageResponse<>(
 			items,
-			buildMemberPagination(nextCursor, hasNext, items.size()));
-	}
-
-	private List<ReviewMemberQueryDto> sliceMemberContent(
-		List<ReviewMemberQueryDto> reviewList,
-		int resolvedSize) {
-		boolean hasNext = reviewList.size() > resolvedSize;
-		return hasNext ? reviewList.subList(0, resolvedSize) : reviewList;
-	}
-
-	private String buildMemberNextCursor(List<ReviewMemberQueryDto> pageContent, boolean hasNext) {
-		if (!hasNext) {
-			return null;
-		}
-		ReviewMemberQueryDto last = pageContent.get(pageContent.size() - 1);
-		return cursorCodec.encode(new ReviewCursor(last.createdAt(), last.reviewId()));
+			buildMemberPagination(page.nextCursor(), page.hasNext(), items.size()));
 	}
 
 	private List<ReviewSummaryResponse> buildReviewSummaryResponses(List<ReviewMemberQueryDto> pageContent) {
