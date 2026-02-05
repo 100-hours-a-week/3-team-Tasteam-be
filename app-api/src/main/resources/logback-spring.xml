@@ -30,8 +30,8 @@
         <appender-ref ref="JSON_FILE" />
         <!-- 큐 크기: 기본 256 → 2048로 증가 (대량 로그 대비) -->
         <queueSize>2048</queueSize>
-        <!-- 큐가 20% 차면 TRACE/DEBUG/INFO 로그 드롭 (WARN/ERROR는 보존) -->
-        <discardingThreshold>0</discardingThreshold>
+        <!-- 큐가 80% 차면 TRACE/DEBUG/INFO 로그 드롭 (WARN/ERROR는 보존) -->
+        <discardingThreshold>410</discardingThreshold>
         <!-- 애플리케이션 종료 시 큐의 모든 로그를 기록할 때까지 대기 -->
         <includeCallerData>false</includeCallerData>
         <!-- 큐가 가득 차도 애플리케이션을 블로킹하지 않음 (로그 드롭 허용) -->
