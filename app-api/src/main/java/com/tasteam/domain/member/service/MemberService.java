@@ -10,12 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.file.dto.response.DomainImageItem;
-import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.entity.Image;
-import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
-import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.file.service.DomainImageLinker;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.type.GroupStatus;
@@ -35,7 +32,6 @@ import com.tasteam.domain.subgroup.repository.SubgroupMemberRepository;
 import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
-import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -49,9 +45,9 @@ public class MemberService {
 	private final MemberRepository memberRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final SubgroupMemberRepository subgroupMemberRepository;
-	private final ImageRepository imageRepository;
 	private final DomainImageRepository domainImageRepository;
 	private final FileService fileService;
+	private final DomainImageLinker domainImageLinker;
 
 	@Transactional(readOnly = true)
 	public MemberMeResponse getMyProfile(Long memberId) {
@@ -154,26 +150,11 @@ public class MemberService {
 		}
 
 		if (request.profileImageFileUuid() != null) {
-			Image image = imageRepository.findByFileUuid(parseUuid(request.profileImageFileUuid()))
-				.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-
-			if (image.getStatus() == ImageStatus.DELETED) {
-				throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-			}
-
-			if (image.getStatus() != ImageStatus.PENDING
-				&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(DomainType.MEMBER, memberId, image)
-					.isEmpty()) {
-				throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-			}
-
 			domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.MEMBER, memberId);
-			domainImageRepository.save(DomainImage.create(DomainType.MEMBER, memberId, image, 0));
-
-			if (image.getStatus() == ImageStatus.PENDING) {
-				image.activate();
-				imageRepository.save(image);
-			}
+			domainImageLinker.linkImages(
+				DomainType.MEMBER,
+				memberId,
+				List.of(parseUuid(request.profileImageFileUuid())));
 		}
 	}
 

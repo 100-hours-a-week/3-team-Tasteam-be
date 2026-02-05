@@ -3,19 +3,15 @@ package com.tasteam.domain.review.service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.file.dto.response.DomainImageItem;
-import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.entity.Image;
-import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
-import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.file.service.DomainImageLinker;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
@@ -45,7 +41,6 @@ import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
-import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
@@ -72,9 +67,9 @@ public class ReviewService {
 	private final ReviewQueryRepository reviewQueryRepository;
 	private final ReviewKeywordRepository reviewKeywordRepository;
 	private final DomainImageRepository domainImageRepository;
-	private final ImageRepository imageRepository;
 	private final FileService fileService;
 	private final CursorCodec cursorCodec;
+	private final DomainImageLinker domainImageLinker;
 
 	@Transactional(readOnly = true)
 	public List<ReviewKeywordItemResponse> getReviewKeywords(KeywordType type) {
@@ -159,18 +154,7 @@ public class ReviewService {
 		reviewKeywordRepository.saveAll(mappings);
 
 		if (request.imageIds() != null && !request.imageIds().isEmpty()) {
-			for (int index = 0; index < request.imageIds().size(); index++) {
-				UUID fileUuid = request.imageIds().get(index);
-				int sortOrder = index;
-				Image image = imageRepository.findByFileUuid(fileUuid)
-					.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-				if (image.getStatus() != ImageStatus.PENDING) {
-					throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-				}
-				image.activate();
-				DomainImage domainImage = DomainImage.create(DomainType.REVIEW, review.getId(), image, sortOrder);
-				domainImageRepository.save(domainImage);
-			}
+			domainImageLinker.linkImages(DomainType.REVIEW, review.getId(), request.imageIds());
 		}
 
 		return new ReviewCreateResponse(
