@@ -14,11 +14,11 @@ import com.tasteam.config.annotation.ServiceIntegrationTest;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.FilePurpose;
-import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
+import com.tasteam.fixture.ImageFixture;
 import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.MemberRequestFixture;
 
@@ -44,8 +44,7 @@ class MemberProfileImageIntegrationTest {
 		Member member = memberRepository.save(MemberFixture.create());
 		UUID fileUuid = UUID.randomUUID();
 		imageRepository.save(
-			Image.create(FilePurpose.PROFILE_IMAGE, "profile.png", 1024L, "image/png",
-				"members/" + member.getId() + "/profile.png", fileUuid));
+			ImageFixture.create(FilePurpose.PROFILE_IMAGE, "members/" + member.getId() + "/profile.png", fileUuid));
 
 		var request = MemberRequestFixture.profileUpdateRequest(null, null, null, fileUuid.toString());
 
@@ -64,8 +63,7 @@ class MemberProfileImageIntegrationTest {
 		Member member = memberRepository.save(MemberFixture.create());
 		UUID fileUuid = UUID.randomUUID();
 		imageRepository.save(
-			Image.create(FilePurpose.PROFILE_IMAGE, "profile.png", 1024L, "image/png",
-				"members/" + member.getId() + "/profile.png", fileUuid));
+			ImageFixture.create(FilePurpose.PROFILE_IMAGE, "members/" + member.getId() + "/profile.png", fileUuid));
 
 		var request = MemberRequestFixture.profileUpdateRequest(null, null, null, fileUuid.toString());
 

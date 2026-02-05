@@ -43,6 +43,11 @@ public final class RestaurantRequestFixture {
 			List.of(new WeeklyScheduleRequest(1, LocalTime.of(9, 0), LocalTime.of(22, 0), false, null, null)));
 	}
 
+	public static RestaurantCreateRequest createRestaurantRequest(String name, String address, String phoneNumber,
+		List<UUID> imageIds) {
+		return new RestaurantCreateRequest(name, address, phoneNumber, null, imageIds, null);
+	}
+
 	public static RestaurantUpdateRequest createUpdateRequest() {
 		return new RestaurantUpdateRequest(
 			"수정된식당",

@@ -19,8 +19,6 @@ import com.tasteam.config.annotation.ServiceIntegrationTest;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.FilePurpose;
-import com.tasteam.domain.file.entity.Image;
-import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.group.entity.Group;
@@ -30,12 +28,9 @@ import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
-import com.tasteam.domain.review.dto.response.ReviewDetailResponse;
 import com.tasteam.domain.review.entity.Keyword;
 import com.tasteam.domain.review.entity.KeywordType;
-import com.tasteam.domain.review.entity.Review;
 import com.tasteam.domain.review.repository.KeywordRepository;
-import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.fixture.GroupFixture;
 import com.tasteam.fixture.ImageFixture;
 import com.tasteam.fixture.MemberFixture;
@@ -43,7 +38,7 @@ import com.tasteam.fixture.ReviewRequestFixture;
 
 @ServiceIntegrationTest
 @Transactional
-class ReviewServiceIntegrationTest {
+class ReviewImageDeletionIntegrationTest {
 
 	@Autowired
 	private ReviewService reviewService;
@@ -61,9 +56,6 @@ class ReviewServiceIntegrationTest {
 	private KeywordRepository keywordRepository;
 
 	@Autowired
-	private ReviewRepository reviewRepository;
-
-	@Autowired
 	private ImageRepository imageRepository;
 
 	@Autowired
@@ -79,88 +71,71 @@ class ReviewServiceIntegrationTest {
 		member = memberRepository.save(MemberFixture.create());
 		restaurant = restaurantRepository.save(createRestaurant());
 		group = groupRepository.save(GroupFixture.create());
-		keyword = keywordRepository.save(Keyword.create(KeywordType.POSITIVE_ASPECT, "맛있어요"));
+		keyword = keywordRepository.save(Keyword.create(KeywordType.POSITIVE_ASPECT, "깔끔해요"));
 	}
 
 	@Nested
-	@DisplayName("리뷰 생성")
-	class CreateReview {
+	@DisplayName("리뷰 삭제 시 이미지 연관 정리")
+	class DeleteReviewImages {
 
 		@Test
-		@DisplayName("이미지 없이 리뷰를 생성한다")
-		void createReviewWithoutImages() {
-			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(keyword.getId()));
-
-			ReviewCreateResponse response = reviewService.createReview(
-				member.getId(),
-				restaurant.getId(),
-				request);
-
-			assertThat(response.id()).isNotNull();
-			assertThat(response.createdAt()).isNotNull();
-		}
-
-		@Test
-		@DisplayName("이미지와 함께 리뷰를 생성하면 이미지가 ACTIVE 상태로 변경된다")
-		void createReviewWithImages() {
+		@DisplayName("이미지가 있는 리뷰를 삭제하면 연관된 DomainImage가 제거된다")
+		void deleteReview_withImage_removesDomainImage() {
 			UUID fileUuid = UUID.randomUUID();
-			imageRepository
-				.save(ImageFixture.create(FilePurpose.REVIEW_IMAGE, "reviews/review.png", fileUuid, "review.png"));
+			imageRepository.save(ImageFixture.create(FilePurpose.REVIEW_IMAGE, "reviews/delete-target.png", fileUuid,
+				"delete-target.png"));
 
 			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(keyword.getId()),
 				List.of(fileUuid));
-
-			ReviewCreateResponse response = reviewService.createReview(
-				member.getId(),
-				restaurant.getId(),
-				request);
-
-			assertThat(response.id()).isNotNull();
-
-			Image updatedImage = imageRepository.findByFileUuid(fileUuid).orElseThrow();
-			assertThat(updatedImage.getStatus()).isEqualTo(ImageStatus.ACTIVE);
-
-			List<DomainImage> domainImages = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
-				DomainType.REVIEW, List.of(response.id()));
-			assertThat(domainImages).hasSize(1);
-		}
-	}
-
-	@Nested
-	@DisplayName("리뷰 상세 조회")
-	class GetReviewDetail {
-
-		@Test
-		@DisplayName("리뷰 상세를 조회하면 키워드와 이미지가 포함된다")
-		void getReviewDetailWithKeywordsAndImages() {
-			UUID fileUuid = UUID.randomUUID();
-			imageRepository
-				.save(ImageFixture.create(FilePurpose.REVIEW_IMAGE, "reviews/review.png", fileUuid, "review.png"));
-
-			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(keyword.getId()),
-				"상세 조회 테스트", true, List.of(fileUuid));
 
 			ReviewCreateResponse created = reviewService.createReview(
 				member.getId(),
 				restaurant.getId(),
 				request);
 
-			ReviewDetailResponse detail = reviewService.getReviewDetail(created.id());
+			List<DomainImage> before = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
+				DomainType.REVIEW, List.of(created.id()));
+			assertThat(before).hasSize(1);
 
-			assertThat(detail.id()).isEqualTo(created.id());
-			assertThat(detail.content()).isEqualTo("상세 조회 테스트");
-			assertThat(detail.keywords()).contains("맛있어요");
-			assertThat(detail.images()).hasSize(1);
+			reviewService.deleteReview(member.getId(), created.id());
+
+			List<DomainImage> after = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
+				DomainType.REVIEW, List.of(created.id()));
+			assertThat(after).isEmpty();
 		}
-	}
-
-	@Nested
-	@DisplayName("리뷰 삭제")
-	class DeleteReview {
 
 		@Test
-		@DisplayName("리뷰를 삭제하면 soft delete 처리된다")
-		void deleteReview() {
+		@DisplayName("이미지가 여러 개인 리뷰를 삭제하면 모든 DomainImage가 제거된다")
+		void deleteReview_withMultipleImages_removesAllDomainImages() {
+			UUID fileUuid1 = UUID.randomUUID();
+			UUID fileUuid2 = UUID.randomUUID();
+			imageRepository
+				.save(ImageFixture.create(FilePurpose.REVIEW_IMAGE, "reviews/multi-1.png", fileUuid1, "multi-1.png"));
+			imageRepository
+				.save(ImageFixture.create(FilePurpose.REVIEW_IMAGE, "reviews/multi-2.png", fileUuid2, "multi-2.png"));
+
+			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(keyword.getId()),
+				List.of(fileUuid1, fileUuid2));
+
+			ReviewCreateResponse created = reviewService.createReview(
+				member.getId(),
+				restaurant.getId(),
+				request);
+
+			List<DomainImage> before = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
+				DomainType.REVIEW, List.of(created.id()));
+			assertThat(before).hasSize(2);
+
+			reviewService.deleteReview(member.getId(), created.id());
+
+			List<DomainImage> after = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
+				DomainType.REVIEW, List.of(created.id()));
+			assertThat(after).isEmpty();
+		}
+
+		@Test
+		@DisplayName("이미지가 없는 리뷰를 삭제하면 오류 없이 완료된다")
+		void deleteReview_withoutImage_completesWithoutError() {
 			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(keyword.getId()));
 
 			ReviewCreateResponse created = reviewService.createReview(
@@ -170,8 +145,9 @@ class ReviewServiceIntegrationTest {
 
 			reviewService.deleteReview(member.getId(), created.id());
 
-			Review deletedReview = reviewRepository.findById(created.id()).orElseThrow();
-			assertThat(deletedReview.getDeletedAt()).isNotNull();
+			List<DomainImage> after = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
+				DomainType.REVIEW, List.of(created.id()));
+			assertThat(after).isEmpty();
 		}
 	}
 
