@@ -203,7 +203,7 @@ public class AdminRestaurantService {
 			Set<Long> foodCategoryIdSet = request.foodCategoryIds().stream()
 				.collect(Collectors.toUnmodifiableSet());
 
-			restaurantFoodCategoryRepository.deleteById(restaurantId);
+			restaurantFoodCategoryRepository.deleteByRestaurantId(restaurantId);
 
 			List<FoodCategory> categories = foodCategoryRepository.findAllById(foodCategoryIdSet);
 			List<RestaurantFoodCategory> mappings = categories.stream()
