@@ -1,6 +1,7 @@
 package com.tasteam.domain.admin.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
@@ -30,10 +31,14 @@ import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
 import com.tasteam.fixture.AdminGroupRequestFixture;
 import com.tasteam.fixture.ImageFixture;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.FileErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
 class AdminGroupImageIntegrationTest {
+
+	private static final String MISSING_FILE_UUID = "11111111-2222-3333-4444-555555555555";
 
 	@Autowired
 	private AdminGroupService adminGroupService;
@@ -86,6 +91,17 @@ class AdminGroupImageIntegrationTest {
 			List<DomainImage> links = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
 				DomainType.GROUP, List.of(groupId));
 			assertThat(links).isEmpty();
+		}
+
+		@Test
+		@DisplayName("존재하지 않는 로고 이미지를 지정하면 그룹 생성에 실패한다")
+		void createGroup_withMissingLogoImage_fails() {
+			var request = AdminGroupRequestFixture.createRequest(MISSING_FILE_UUID);
+
+			assertThatThrownBy(() -> adminGroupService.createGroup(request))
+				.isInstanceOf(BusinessException.class)
+				.extracting(ex -> ((BusinessException)ex).getErrorCode())
+				.isEqualTo(FileErrorCode.FILE_NOT_FOUND.name());
 		}
 	}
 

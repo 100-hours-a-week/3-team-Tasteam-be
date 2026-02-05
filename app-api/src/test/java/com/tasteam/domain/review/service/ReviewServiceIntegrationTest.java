@@ -1,6 +1,7 @@
 package com.tasteam.domain.review.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.UUID;
@@ -40,6 +41,8 @@ import com.tasteam.fixture.GroupFixture;
 import com.tasteam.fixture.ImageFixture;
 import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.ReviewRequestFixture;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.ReviewErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
@@ -123,6 +126,17 @@ class ReviewServiceIntegrationTest {
 			List<DomainImage> domainImages = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
 				DomainType.REVIEW, List.of(response.id()));
 			assertThat(domainImages).hasSize(1);
+		}
+
+		@Test
+		@DisplayName("존재하지 않는 키워드를 포함하면 리뷰 생성에 실패한다")
+		void createReview_withMissingKeyword_fails() {
+			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(999999L));
+
+			assertThatThrownBy(() -> reviewService.createReview(member.getId(), restaurant.getId(), request))
+				.isInstanceOf(BusinessException.class)
+				.extracting(ex -> ((BusinessException)ex).getErrorCode())
+				.isEqualTo(ReviewErrorCode.KEYWORD_NOT_FOUND.name());
 		}
 	}
 
