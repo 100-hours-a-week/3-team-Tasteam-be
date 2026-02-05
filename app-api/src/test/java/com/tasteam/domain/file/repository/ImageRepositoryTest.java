@@ -73,10 +73,10 @@ class ImageRepositoryTest {
 	@DisplayName("save - 동일한 fileUuid를 저장하면 제약조건 예외가 발생한다")
 	void save_duplicateFileUuid_throwsDataIntegrityViolationException() {
 		UUID duplicateUuid = UUID.randomUUID();
-		imageRepository.save(ImageFixture.create(FilePurpose.REVIEW_IMAGE, "test/key-dup-a", duplicateUuid));
-		imageRepository.save(ImageFixture.create(FilePurpose.REVIEW_IMAGE, "test/key-dup-b", duplicateUuid));
+		imageRepository.saveAndFlush(ImageFixture.create(FilePurpose.REVIEW_IMAGE, "test/key-dup-a", duplicateUuid));
 
-		assertThatThrownBy(() -> entityManager.flush())
+		assertThatThrownBy(() -> imageRepository.saveAndFlush(
+			ImageFixture.create(FilePurpose.REVIEW_IMAGE, "test/key-dup-b", duplicateUuid)))
 			.isInstanceOf(DataIntegrityViolationException.class);
 	}
 }

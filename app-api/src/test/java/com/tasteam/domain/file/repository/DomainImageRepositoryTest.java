@@ -97,10 +97,10 @@ class DomainImageRepositoryTest {
 	@DisplayName("save - 동일한 (domainType, domainId, imageId)를 저장하면 제약조건 예외가 발생한다")
 	void save_duplicateDomainImage_throwsDataIntegrityViolationException() {
 		Image image = saveActiveImage("test/domain-dup-001");
-		domainImageRepository.save(DomainImage.create(DomainType.REVIEW, 400L, image, 0));
-		domainImageRepository.save(DomainImage.create(DomainType.REVIEW, 400L, image, 1));
+		domainImageRepository.saveAndFlush(DomainImage.create(DomainType.REVIEW, 400L, image, 0));
 
-		assertThatThrownBy(() -> entityManager.flush())
+		assertThatThrownBy(() -> domainImageRepository.saveAndFlush(
+			DomainImage.create(DomainType.REVIEW, 400L, image, 1)))
 			.isInstanceOf(DataIntegrityViolationException.class);
 	}
 }

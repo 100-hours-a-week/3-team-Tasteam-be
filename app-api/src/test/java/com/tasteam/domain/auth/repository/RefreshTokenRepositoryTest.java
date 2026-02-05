@@ -60,12 +60,11 @@ class RefreshTokenRepositoryTest {
 	@Test
 	@DisplayName("save - 동일한 tokenHash를 저장하면 제약조건 예외가 발생한다")
 	void save_duplicateTokenHash_throwsDataIntegrityViolationException() {
-		refreshTokenRepository.save(
+		refreshTokenRepository.saveAndFlush(
 			RefreshToken.issue(1L, "duplicate-hash", "family-001", FUTURE_TIME));
-		refreshTokenRepository.save(
-			RefreshToken.issue(2L, "duplicate-hash", "family-002", FUTURE_TIME));
 
-		assertThatThrownBy(() -> entityManager.flush())
+		assertThatThrownBy(() -> refreshTokenRepository.saveAndFlush(
+			RefreshToken.issue(2L, "duplicate-hash", "family-002", FUTURE_TIME)))
 			.isInstanceOf(DataIntegrityViolationException.class);
 	}
 

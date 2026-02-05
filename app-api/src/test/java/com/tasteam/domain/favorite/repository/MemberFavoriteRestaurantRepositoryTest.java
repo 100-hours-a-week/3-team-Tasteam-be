@@ -69,10 +69,10 @@ class MemberFavoriteRestaurantRepositoryTest {
 	@Test
 	@DisplayName("save - 동일한 (member_id, restaurant_id)를 저장하면 제약조건 예외가 발생한다")
 	void save_duplicateFavorite_throwsDataIntegrityViolationException() {
-		memberFavoriteRestaurantRepository.save(MemberFavoriteRestaurant.create(4L, 400L));
-		memberFavoriteRestaurantRepository.save(MemberFavoriteRestaurant.create(4L, 400L));
+		memberFavoriteRestaurantRepository.saveAndFlush(MemberFavoriteRestaurant.create(4L, 400L));
 
-		assertThatThrownBy(() -> entityManager.flush())
+		assertThatThrownBy(() -> memberFavoriteRestaurantRepository.saveAndFlush(
+			MemberFavoriteRestaurant.create(4L, 400L)))
 			.isInstanceOf(DataIntegrityViolationException.class);
 	}
 }

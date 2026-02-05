@@ -79,10 +79,9 @@ class GroupMemberRepositoryTest {
 	@DisplayName("save - 동일한 (group_id, member_id)를 저장하면 제약조건 예외가 발생한다")
 	void save_duplicateGroupMember_throwsDataIntegrityViolationException() {
 		Member member = memberRepository.save(MemberFixture.create());
-		groupMemberRepository.save(GroupMember.create(400L, member));
-		groupMemberRepository.save(GroupMember.create(400L, member));
+		groupMemberRepository.saveAndFlush(GroupMember.create(400L, member));
 
-		assertThatThrownBy(() -> entityManager.flush())
+		assertThatThrownBy(() -> groupMemberRepository.saveAndFlush(GroupMember.create(400L, member)))
 			.isInstanceOf(DataIntegrityViolationException.class);
 	}
 }

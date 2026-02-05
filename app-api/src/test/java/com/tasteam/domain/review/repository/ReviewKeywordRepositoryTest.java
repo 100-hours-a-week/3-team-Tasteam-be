@@ -114,10 +114,10 @@ class ReviewKeywordRepositoryTest {
 		Member member = memberRepository.save(MemberFixture.create());
 		Review review = saveReview(restaurant, member, "중복테스트");
 		Keyword keyword = keywordRepository.save(Keyword.create(KeywordType.POSITIVE_ASPECT, "중복키워드"));
-		reviewKeywordRepository.save(ReviewKeyword.create(review, keyword));
-		reviewKeywordRepository.save(ReviewKeyword.create(review, keyword));
+		reviewKeywordRepository.saveAndFlush(ReviewKeyword.create(review, keyword));
 
-		assertThatThrownBy(() -> entityManager.flush())
+		assertThatThrownBy(() -> reviewKeywordRepository.saveAndFlush(
+			ReviewKeyword.create(review, keyword)))
 			.isInstanceOf(DataIntegrityViolationException.class);
 	}
 }

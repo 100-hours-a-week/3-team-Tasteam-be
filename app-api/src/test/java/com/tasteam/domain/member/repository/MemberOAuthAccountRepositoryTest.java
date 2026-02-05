@@ -64,12 +64,11 @@ class MemberOAuthAccountRepositoryTest {
 	void save_duplicateProviderAndProviderUserId_throwsDataIntegrityViolationException() {
 		Member member1 = memberRepository.save(MemberFixture.create("user1@test.com", "회원1"));
 		Member member2 = memberRepository.save(MemberFixture.create("user2@test.com", "회원2"));
-		memberOAuthAccountRepository.save(
+		memberOAuthAccountRepository.saveAndFlush(
 			MemberOAuthAccount.create("kakao", "same-provider-id", "kakao@test.com", member1));
-		memberOAuthAccountRepository.save(
-			MemberOAuthAccount.create("kakao", "same-provider-id", "kakao2@test.com", member2));
 
-		assertThatThrownBy(() -> entityManager.flush())
+		assertThatThrownBy(() -> memberOAuthAccountRepository.saveAndFlush(
+			MemberOAuthAccount.create("kakao", "same-provider-id", "kakao2@test.com", member2)))
 			.isInstanceOf(DataIntegrityViolationException.class);
 	}
 }
