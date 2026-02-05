@@ -22,4 +22,6 @@ public interface RestaurantFoodCategoryRepository extends JpaRepository<Restaura
 		""")
 	List<RestaurantCategoryProjection> findCategoriesByRestaurantIds(
 		List<Long> restaurantIds);
+
+	void deleteByRestaurantId(Long restaurantId);
 }
