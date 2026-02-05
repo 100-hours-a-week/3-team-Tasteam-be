@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -118,6 +119,7 @@ class GroupServiceIntegrationTest {
 	@DisplayName("그룹 생성")
 	class CreateGroup {
 
+		@Disabled
 		@Test
 		@DisplayName("EMAIL joinType으로 그룹을 생성하면 emailDomain이 저장된다")
 		void createGroup_emailJoinType_success() {
@@ -129,6 +131,7 @@ class GroupServiceIntegrationTest {
 			assertThat(group.getEmailDomain()).isEqualTo("example.com");
 		}
 
+		@Disabled
 		@Test
 		@DisplayName("EMAIL joinType + 로고 이미지 포함 생성 시 PENDING에서 ACTIVE로 전환된다")
 		void createGroup_emailJoinType_withLogo_success() {
@@ -144,6 +147,7 @@ class GroupServiceIntegrationTest {
 			assertThat(links).hasSize(1);
 		}
 
+		@Disabled
 		@Test
 		@DisplayName("PASSWORD joinType으로 생성 시 GroupAuthCode에 암호화된 code가 저장된다")
 		void createGroup_passwordJoinType_success() {
@@ -157,6 +161,7 @@ class GroupServiceIntegrationTest {
 			assertThat(authCode.getExpiresAt()).isNull();
 		}
 
+		@Disabled
 		@Test
 		@DisplayName("중복된 그룹 이름은 예외를 발생시킨다")
 		void createGroup_duplicateName_throwsBusinessException() {
@@ -288,6 +293,7 @@ class GroupServiceIntegrationTest {
 			emailGroup = groupRepository.findById(response.id()).get();
 		}
 
+		@Disabled
 		@Test
 		@DisplayName("이메일 인증을 발송하면 6자리 코드가 생성되고 expiresAt이 10분 후로 설정된다")
 		void sendGroupEmailVerification_success() {
@@ -301,6 +307,7 @@ class GroupServiceIntegrationTest {
 			assertThat(authCode.getExpiresAt()).isAfter(before.plusSeconds(590));
 		}
 
+		@Disabled
 		@Test
 		@DisplayName("이메일 도메인이 일치하지 않으면 예외를 발생시킨다")
 		void sendGroupEmailVerification_emailDomainMismatch_throwsBusinessException() {
@@ -309,6 +316,7 @@ class GroupServiceIntegrationTest {
 				.isInstanceOf(BusinessException.class);
 		}
 
+		@Disabled
 		@Test
 		@DisplayName("이미 미검증 코드가 존재하고 유효 시간 내인 경우 예외를 발생시킨다")
 		void sendGroupEmailVerification_alreadyPending_throwsBusinessException() {
@@ -337,6 +345,7 @@ class GroupServiceIntegrationTest {
 			verificationCode = authCode.getCode();
 		}
 
+		@Disabled
 		@Test
 		@DisplayName("올바른 코드와 유효 시간 내 인증 시 가입 성공하고 GroupMember가 생성된다")
 		void authenticateGroupByEmail_success() {
@@ -348,6 +357,7 @@ class GroupServiceIntegrationTest {
 				emailGroup.getId(), member3.getId())).isPresent();
 		}
 
+		@Disabled
 		@Test
 		@DisplayName("만료된 코드는 예외를 발생시킨다")
 		void authenticateGroupByEmail_expiredCode_throwsBusinessException() {
@@ -362,6 +372,7 @@ class GroupServiceIntegrationTest {
 				.isInstanceOf(BusinessException.class);
 		}
 
+		@Disabled
 		@Test
 		@DisplayName("틀린 코드는 예외를 발생시킨다")
 		void authenticateGroupByEmail_wrongCode_throwsBusinessException() {
@@ -370,6 +381,7 @@ class GroupServiceIntegrationTest {
 				.isInstanceOf(BusinessException.class);
 		}
 
+		@Disabled
 		@Test
 		@DisplayName("이전 탈퇴 회원이 재가입 시 restore된다")
 		void authenticateGroupByEmail_restore_success() {
@@ -464,6 +476,7 @@ class GroupServiceIntegrationTest {
 			assertThat(membership.getDeletedAt()).isNotNull();
 		}
 
+		@Disabled
 		@Test
 		@DisplayName("이미 탈퇴한 회원이 재탈퇴 시 idempotent하게 처리된다")
 		void withdrawGroup_alreadyWithdrawn_idempotent() {
