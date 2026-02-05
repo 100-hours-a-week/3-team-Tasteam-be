@@ -4,6 +4,10 @@ import java.time.Instant;
 
 public record ReviewQueryDto(
 	Long reviewId,
+	Long groupId,
+	Long subgroupId,
+	String groupName,
+	String subgroupName,
 	Long memberId,
 	String memberName,
 	String content,

@@ -32,15 +32,15 @@ import com.tasteam.domain.group.type.GroupJoinType;
 import com.tasteam.domain.group.type.GroupType;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
-import com.tasteam.domain.subgroup.dto.SubgroupCreateRequest;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
 import com.tasteam.domain.subgroup.entity.Subgroup;
 import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.domain.subgroup.service.SubgroupService;
-import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.fixture.GroupFixture;
+import com.tasteam.fixture.ImageFixture;
 import com.tasteam.fixture.MemberFixture;
+import com.tasteam.fixture.SubgroupRequestFixture;
 
 @ServiceIntegrationTest
 @Transactional
@@ -78,13 +78,8 @@ class GroupSubgroupImageActivationIntegrationTest {
 		@DisplayName("그룹 생성에서 PENDING 이미지를 연결하면 ACTIVE로 전환된다")
 		void createGroupActivatesPendingImage() {
 			UUID fileUuid = UUID.randomUUID();
-			imageRepository.save(Image.create(
-				FilePurpose.GROUP_IMAGE,
-				"group-create.png",
-				1024L,
-				"image/png",
-				"uploads/group/image/group-create.png",
-				fileUuid));
+			imageRepository.save(ImageFixture.create(FilePurpose.GROUP_IMAGE, "uploads/group/image/group-create.png",
+				fileUuid, "group-create.png"));
 
 			GroupCreateRequest request = new GroupCreateRequest(
 				"group-" + System.nanoTime(),
@@ -113,13 +108,8 @@ class GroupSubgroupImageActivationIntegrationTest {
 		void updateGroupActivatesPendingImage() {
 			Group group = groupRepository.save(GroupFixture.create("update-group-" + System.nanoTime(), "서울시 강남구"));
 			UUID fileUuid = UUID.randomUUID();
-			imageRepository.save(Image.create(
-				FilePurpose.GROUP_IMAGE,
-				"group-update.png",
-				1024L,
-				"image/png",
-				"uploads/group/image/group-update.png",
-				fileUuid));
+			imageRepository.save(ImageFixture.create(FilePurpose.GROUP_IMAGE, "uploads/group/image/group-update.png",
+				fileUuid, "group-update.png"));
 
 			groupService.updateGroup(
 				group.getId(),
@@ -148,20 +138,11 @@ class GroupSubgroupImageActivationIntegrationTest {
 			groupMemberRepository.save(GroupMember.create(group.getId(), member));
 
 			UUID fileUuid = UUID.randomUUID();
-			imageRepository.save(Image.create(
-				FilePurpose.PROFILE_IMAGE,
-				"subgroup-create.png",
-				1024L,
-				"image/png",
-				"uploads/profile/image/subgroup-create.png",
-				fileUuid));
+			imageRepository.save(ImageFixture.create(FilePurpose.PROFILE_IMAGE,
+				"uploads/profile/image/subgroup-create.png", fileUuid, "subgroup-create.png"));
 
-			SubgroupCreateRequest request = new SubgroupCreateRequest(
-				"subgroup-" + System.nanoTime(),
-				null,
-				fileUuid.toString(),
-				SubgroupJoinType.OPEN,
-				null);
+			var request = SubgroupRequestFixture.createRequest(
+				"subgroup-" + System.nanoTime(), fileUuid.toString());
 
 			SubgroupCreateResponse response = subgroupService.createSubgroup(group.getId(), member.getId(), request);
 
@@ -186,22 +167,12 @@ class GroupSubgroupImageActivationIntegrationTest {
 			SubgroupCreateResponse created = subgroupService.createSubgroup(
 				group.getId(),
 				member.getId(),
-				new SubgroupCreateRequest(
-					"subgroup-update-" + System.nanoTime(),
-					null,
-					null,
-					SubgroupJoinType.OPEN,
-					null));
+				SubgroupRequestFixture.createRequest("subgroup-update-" + System.nanoTime()));
 			Subgroup subgroup = subgroupRepository.findById(created.data().id()).orElseThrow();
 
 			UUID fileUuid = UUID.randomUUID();
-			imageRepository.save(Image.create(
-				FilePurpose.PROFILE_IMAGE,
-				"subgroup-update.png",
-				1024L,
-				"image/png",
-				"uploads/profile/image/subgroup-update.png",
-				fileUuid));
+			imageRepository.save(ImageFixture.create(FilePurpose.PROFILE_IMAGE,
+				"uploads/profile/image/subgroup-update.png", fileUuid, "subgroup-update.png"));
 
 			subgroupService.updateSubgroup(
 				group.getId(),

@@ -341,6 +341,10 @@ public class ReviewService {
 		return pageContent.stream()
 			.map(review -> new ReviewResponse(
 				review.reviewId(),
+				review.groupId(),
+				review.subgroupId(),
+				review.groupName(),
+				review.subgroupName(),
 				new ReviewResponse.AuthorResponse(review.memberName()),
 				review.content(),
 				review.isRecommended(),
