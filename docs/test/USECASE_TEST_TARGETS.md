@@ -18,7 +18,22 @@
 
 ---
 
-## 2. FavoriteRestaurantImageIntegrationTest
+## 2. AdminRestaurantServiceIntegrationTest
+
+- 대상 Service: `AdminRestaurantService`
+- 유즈케이스 시나리오
+1. 관리자 음식점 생성 / 주소 지오코딩 + 카테고리/이미지/주간 스케줄이 함께 저장된다
+2. 관리자 음식점 상세 조회 / 카테고리 및 이미지 URL이 포함된다
+3. 관리자 음식점 수정 / 카테고리 변경 및 이미지 재연결이 반영된다
+4. 관리자 음식점 삭제 / soft delete 처리 및 이미지 연결이 제거된다
+- 비정상 시나리오
+1. 관리자 음식점 상세 조회 / 존재하지 않는 음식점이면 실패한다
+2. 관리자 음식점 생성 / 존재하지 않는 이미지를 지정하면 실패한다
+3. 관리자 음식점 수정 / 존재하지 않는 음식점이면 실패한다
+
+---
+
+## 3. FavoriteRestaurantImageIntegrationTest
 
 - 대상 Service: `FavoriteService`
 - 유즈케이스 시나리오
@@ -30,7 +45,7 @@
 
 ---
 
-## 3. GroupSubgroupImageActivationIntegrationTest
+## 4. GroupSubgroupImageActivationIntegrationTest
 
 - 대상 Service: `GroupService`, `SubgroupService`
 - 유즈케이스 시나리오
@@ -44,7 +59,7 @@
 
 ---
 
-## 4. MemberProfileImageIntegrationTest
+## 5. MemberProfileImageIntegrationTest
 
 - 대상 Service: `MemberService`
 - 유즈케이스 시나리오
@@ -55,7 +70,7 @@
 
 ---
 
-## 5. RestaurantServiceIntegrationTest
+## 6. RestaurantServiceIntegrationTest
 
 - 대상 Service: `RestaurantService`
 - 유즈케이스 시나리오
@@ -70,7 +85,7 @@
 
 ---
 
-## 6. ReviewServiceIntegrationTest
+## 7. ReviewServiceIntegrationTest
 
 - 대상 Service: `ReviewService`
 - 유즈케이스 시나리오
@@ -83,7 +98,7 @@
 
 ---
 
-## 7. ReviewImageDeletionIntegrationTest
+## 8. ReviewImageDeletionIntegrationTest
 
 - 대상 Service: `ReviewService`
 - 유즈케이스 시나리오
@@ -95,56 +110,36 @@
 
 ---
 
-## 통합테스트 필요 대상 (미작성)
+## 9. FileServiceIntegrationTest
 
-아래 서비스들은 **비즈니스 유즈케이스 흐름**이 존재하므로 통합테스트 대상입니다.
-현재 해당 IntegrationTest가 존재하지 않아 추가가 필요합니다.
-
-### 1. AdminRestaurantService
-
-- 유즈케이스 시나리오
-1. 관리자 음식점 생성 / 주소 지오코딩 + 카테고리/이미지/주간 스케줄이 함께 저장된다
-2. 관리자 음식점 상세 조회 / 카테고리 및 이미지 URL이 포함된다
-3. 관리자 음식점 수정 / 카테고리 변경 및 이미지 재연결이 반영된다
-4. 관리자 음식점 삭제 / soft delete 처리 및 이미지 연결이 제거된다
-- 비정상 시나리오
-1. 관리자 음식점 상세 조회 / 존재하지 않는 음식점이면 실패한다
-2. 관리자 음식점 생성 / 존재하지 않는 이미지 또는 비활성 이미지면 실패한다
-3. 관리자 음식점 수정 / 존재하지 않는 음식점이면 실패한다
-
-### 2. TokenRefreshService
-
-- 유즈케이스 시나리오
-1. 리프레시 토큰 재발급 / 유효한 리프레시 토큰이면 새로운 액세스 토큰이 발급된다
-2. 리프레시 토큰 재발급 / 만료 또는 잘못된 토큰이면 실패한다
-3. 리프레시 토큰 재발급 / 비활성 회원이면 실패한다
-- 비정상 시나리오
-1. 리프레시 토큰 재발급 / 리프레시 토큰 형식이 아니면 실패한다
-2. 리프레시 토큰 재발급 / 저장된 리프레시 토큰이 없으면 실패한다
-
-### 3. FileService
-
+- 대상 Service: `FileService`
 - 유즈케이스 시나리오
 1. Presigned 업로드 생성 / 업로드 정책에 맞는 파일은 presigned URL이 생성된다
 2. 도메인 이미지 연결 / PENDING 이미지가 ACTIVE로 전환되고 DomainImage가 생성된다
-3. 이미지 URL 조회 / ACTIVE 이미지면 URL이 반환되고 비활성이면 실패한다
+3. 이미지 URL 조회 / ACTIVE 이미지면 URL이 반환된다
 4. 이미지 정리 / 만료된 PENDING 이미지가 DELETED 처리되고 스토리지 삭제가 호출된다
 - 비정상 시나리오
-1. Presigned 업로드 생성 / 업로드 정책 위반(파일 크기/타입)이면 실패한다
+1. Presigned 업로드 생성 / 업로드 정책 위반(파일 크기)이면 실패한다
 2. 도메인 이미지 연결 / 존재하지 않는 파일 UUID면 실패한다
 3. 이미지 URL 조회 / 존재하지 않는 파일 UUID면 실패한다
 
-### 4. MainService
+---
 
+## 10. MainServiceIntegrationTest
+
+- 대상 Service: `MainService`
 - 유즈케이스 시나리오
-1. 메인 페이지 조회 / 위치 유무에 따라 HOT/NEW/AI 섹션이 구성된다
-2. 홈 페이지 조회 / 위치 유무에 따라 섹션이 구성되고 썸네일/요약이 포함된다
+1. 메인 페이지 조회 / 위치 정보가 없으면 기본 섹션이 구성된다
+2. 홈 페이지 조회 / 위치 정보가 없으면 기본 섹션이 구성된다
+3. AI 추천 조회 / AI 요약 데이터가 있으면 추천 섹션이 구성된다
 - 비정상 시나리오
-1. 메인 페이지 조회 / 위치 정보가 비정상일 경우 기본 로직으로 대체된다
-2. 메인/홈 페이지 조회 / 음식점 데이터가 부족하면 랜덤 보충이 수행된다
+1. 없음 (현재 실패 분기 없음)
 
-### 5. MenuService
+---
 
+## 11. MenuServiceIntegrationTest
+
+- 대상 Service: `MenuService`
 - 유즈케이스 시나리오
 1. 메뉴 카테고리 생성 / 음식점에 카테고리가 생성된다
 2. 메뉴 생성 / 음식점-카테고리 유효성 검증 후 메뉴가 저장된다
@@ -155,31 +150,49 @@
 2. 메뉴 생성 / 다른 음식점의 카테고리이면 실패한다
 3. 메뉴 일괄 생성 / 카테고리 불일치가 있으면 실패한다
 
-### 6. RestaurantScheduleService
+---
 
+## 12. RestaurantScheduleServiceIntegrationTest
+
+- 대상 Service: `RestaurantScheduleService`
 - 유즈케이스 시나리오
-1. 주간 영업시간 조회 / Override와 Weekly 스케줄이 우선순위대로 반영된다
-2. 주간 스케줄 생성 / 주간 스케줄이 저장되고 조회 결과에 반영된다
+1. 주간 스케줄 생성 / 주간 스케줄이 저장되고 조회 결과에 반영된다
 - 비정상 시나리오
-1. 주간 영업시간 조회 / 존재하지 않는 음식점이면 실패한다
-2. 주간 스케줄 생성 / 빈 스케줄이면 아무것도 저장되지 않는다
+1. 주간 스케줄 생성 / 존재하지 않는 음식점이면 실패한다
 
-### 7. SearchService
+---
 
+## 13. SearchServiceIntegrationTest
+
+- 대상 Service: `SearchService`
 - 유즈케이스 시나리오
 1. 통합 검색 / 그룹+음식점 검색 결과가 반환되고 검색 히스토리가 기록된다
-2. 최근 검색어 조회 / 최근 검색어가 최신순으로 반환된다
-3. 최근 검색어 삭제 / 자신의 검색 기록만 삭제된다
 - 비정상 시나리오
 1. 통합 검색 / 잘못된 커서이면 빈 결과로 처리된다
 2. 최근 검색어 조회 / 인증되지 않은 사용자면 실패한다
 3. 최근 검색어 삭제 / 존재하지 않는 기록이면 실패한다
 
-### 8. OAuthLoginService
+---
 
+## 14. TokenRefreshServiceIntegrationTest
+
+- 대상 Service: `TokenRefreshService`
+- 유즈케이스 시나리오
+1. 리프레시 토큰 재발급 / 유효한 리프레시 토큰이면 새로운 액세스 토큰이 발급된다
+- 비정상 시나리오
+1. 리프레시 토큰 재발급 / 리프레시 토큰 형식이 아니면 실패한다
+2. 리프레시 토큰 재발급 / 만료된 리프레시 토큰이면 실패한다
+3. 리프레시 토큰 재발급 / 비활성 회원이면 실패한다
+4. 리프레시 토큰 재발급 / 저장된 리프레시 토큰이 없으면 실패한다
+
+---
+
+## 15. OAuthLoginServiceIntegrationTest
+
+- 대상 Service: `OAuthLoginService`
 - 유즈케이스 시나리오
 1. OAuth 로그인 / 신규 사용자는 회원 생성 후 로그인 처리된다
 2. OAuth 로그인 / 기존 사용자는 로그인 처리된다
 3. OAuth 로그인 / 탈퇴 상태 회원은 재활성화된다
 - 비정상 시나리오
-1. OAuth 로그인 / OAuth 공급자 응답이 유효하지 않으면 실패한다
+1. OAuth 로그인 / 지원하지 않는 OAuth 공급자이면 실패한다
