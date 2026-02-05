@@ -1,4 +1,4 @@
-package com.tasteam.infra.storage;
+package com.tasteam.infra.storage.dummy;
 
 import java.time.Instant;
 import java.util.Map;
@@ -8,6 +8,11 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
+
+import com.tasteam.infra.storage.PresignedPostRequest;
+import com.tasteam.infra.storage.PresignedPostResponse;
+import com.tasteam.infra.storage.StorageClient;
+import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
 
