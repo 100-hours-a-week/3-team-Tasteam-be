@@ -10,6 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 
+/**
+ * Cursor 인코딩/디코딩 유틸리티
+ */
 @Component
 public class CursorCodec {
 
@@ -19,6 +22,9 @@ public class CursorCodec {
 		this.objectMapper = objectMapper;
 	}
 
+	/**
+	 * 커서를 인코딩합니다.
+	 */
 	public String encode(Object cursor) {
 		try {
 			String json = objectMapper.writeValueAsString(cursor);
@@ -29,6 +35,9 @@ public class CursorCodec {
 		}
 	}
 
+	/**
+	 * 커서를 디코딩합니다.
+	 */
 	public <T> T decode(String cursor, Class<T> type) {
 		try {
 			byte[] decoded = Base64.getUrlDecoder().decode(cursor);
@@ -39,6 +48,9 @@ public class CursorCodec {
 		}
 	}
 
+	/**
+	 * 커서를 디코딩합니다. 디코딩에 실패하면 {@code null}을 반환합니다.
+	 */
 	public <T> T decodeOrNull(String cursor, Class<T> type) {
 		if (cursor == null || cursor.isBlank()) {
 			return null;
