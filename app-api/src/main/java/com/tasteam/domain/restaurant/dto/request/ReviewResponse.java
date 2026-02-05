@@ -9,6 +9,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record ReviewResponse(
 	@Schema(description = "리뷰 ID", example = "101")
 	long id,
+	@Schema(description = "그룹 ID", example = "1")
+	long groupId,
+	@Schema(description = "하위그룹 ID (없으면 null)", example = "2")
+	Long subgroupId,
+	@Schema(description = "그룹명", example = "맛집 탐방반")
+	String groupName,
+	@Schema(description = "하위그룹명 (없으면 null)", example = "강남구 모임")
+	String subgroupName,
 	@Schema(description = "작성자 정보")
 	AuthorResponse author,
 	@Schema(description = "리뷰 본문 요약", example = "가격 대비 맛있어요.")

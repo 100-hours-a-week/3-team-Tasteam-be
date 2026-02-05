@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.tasteam.domain.common.repository.QueryDslSupport;
+import com.tasteam.domain.group.entity.QGroup;
 import com.tasteam.domain.member.entity.QMember;
 import com.tasteam.domain.restaurant.entity.QRestaurant;
 import com.tasteam.domain.review.dto.ReviewCursor;
@@ -16,6 +17,7 @@ import com.tasteam.domain.review.dto.ReviewQueryDto;
 import com.tasteam.domain.review.entity.QReview;
 import com.tasteam.domain.review.entity.Review;
 import com.tasteam.domain.review.repository.ReviewQueryRepository;
+import com.tasteam.domain.subgroup.entity.QSubgroup;
 
 @Repository
 public class ReviewQueryRepositoryImpl extends QueryDslSupport implements ReviewQueryRepository {
@@ -28,11 +30,17 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 	public List<ReviewQueryDto> findRestaurantReviews(Long restaurantId, ReviewCursor cursor, int size) {
 		QReview review = QReview.review;
 		QMember member = QMember.member;
+		QGroup group = QGroup.group;
+		QSubgroup subgroup = QSubgroup.subgroup;
 
 		return getQueryFactory()
 			.select(Projections.constructor(
 				ReviewQueryDto.class,
 				review.id,
+				review.groupId,
+				review.subgroupId,
+				group.name,
+				subgroup.name,
 				member.id,
 				member.nickname,
 				review.content,
@@ -40,6 +48,8 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 				review.createdAt))
 			.from(review)
 			.join(review.member, member)
+			.join(group).on(review.groupId.eq(group.id))
+			.leftJoin(subgroup).on(review.subgroupId.eq(subgroup.id))
 			.where(
 				review.restaurant.id.eq(restaurantId),
 				review.deletedAt.isNull(),
@@ -53,11 +63,17 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 	public List<ReviewQueryDto> findGroupReviews(Long groupId, ReviewCursor cursor, int size) {
 		QReview review = QReview.review;
 		QMember member = QMember.member;
+		QGroup group = QGroup.group;
+		QSubgroup subgroup = QSubgroup.subgroup;
 
 		return getQueryFactory()
 			.select(Projections.constructor(
 				ReviewQueryDto.class,
 				review.id,
+				review.groupId,
+				review.subgroupId,
+				group.name,
+				subgroup.name,
 				member.id,
 				member.nickname,
 				review.content,
@@ -65,6 +81,8 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 				review.createdAt))
 			.from(review)
 			.join(review.member, member)
+			.join(group).on(review.groupId.eq(group.id))
+			.leftJoin(subgroup).on(review.subgroupId.eq(subgroup.id))
 			.where(
 				review.groupId.eq(groupId),
 				review.deletedAt.isNull(),
@@ -78,11 +96,17 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 	public List<ReviewQueryDto> findSubgroupReviews(Long subgroupId, ReviewCursor cursor, int size) {
 		QReview review = QReview.review;
 		QMember member = QMember.member;
+		QGroup group = QGroup.group;
+		QSubgroup subgroup = QSubgroup.subgroup;
 
 		return getQueryFactory()
 			.select(Projections.constructor(
 				ReviewQueryDto.class,
 				review.id,
+				review.groupId,
+				review.subgroupId,
+				group.name,
+				subgroup.name,
 				member.id,
 				member.nickname,
 				review.content,
@@ -90,6 +114,8 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 				review.createdAt))
 			.from(review)
 			.join(review.member, member)
+			.join(group).on(review.groupId.eq(group.id))
+			.leftJoin(subgroup).on(review.subgroupId.eq(subgroup.id))
 			.where(
 				review.subgroupId.eq(subgroupId),
 				review.deletedAt.isNull(),
