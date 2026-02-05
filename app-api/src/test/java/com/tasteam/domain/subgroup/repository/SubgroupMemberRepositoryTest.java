@@ -79,9 +79,7 @@ class SubgroupMemberRepositoryTest {
 	void save_duplicateSubgroupMember_throwsDataIntegrityViolationException() {
 		Member member = memberRepository.save(MemberFixture.create());
 		subgroupMemberRepository.save(SubgroupMember.create(400L, member));
-		subgroupMemberRepository.save(SubgroupMember.create(400L, member));
-
-		assertThatThrownBy(() -> entityManager.flush())
+		assertThatThrownBy(() -> subgroupMemberRepository.saveAndFlush(SubgroupMember.create(400L, member)))
 			.isInstanceOf(DataIntegrityViolationException.class);
 	}
 }
