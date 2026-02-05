@@ -165,7 +165,7 @@ class RestaurantControllerTest {
 					new ReviewResponse.AuthorResponse("테스트유저"),
 					"맛있어요", true, List.of("친절", "깨끗"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
-					Instant.now())),
+					Instant.now(), null, null, null, null, null, null)),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(reviewService.getRestaurantReviews(eq(1L), any())).willReturn(response);

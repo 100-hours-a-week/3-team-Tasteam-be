@@ -12,5 +12,10 @@ public record ReviewQueryDto(
 	String memberName,
 	String content,
 	boolean isRecommended,
-	Instant createdAt) {
+	Instant createdAt,
+	Long restaurantId,
+	String restaurantName,
+	String groupLogoImageUrl,
+	String groupAddress,
+	String restaurantAddress) {
 }

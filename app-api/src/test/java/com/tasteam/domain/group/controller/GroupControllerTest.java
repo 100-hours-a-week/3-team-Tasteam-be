@@ -393,7 +393,7 @@ class GroupControllerTest {
 					new ReviewResponse.AuthorResponse("테스트유저"),
 					"맛있어요", true, List.of("친절"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
-					Instant.now())),
+					Instant.now(), null, null, null, null, null, null)),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(reviewService.getGroupReviews(eq(1L), any())).willReturn(response);

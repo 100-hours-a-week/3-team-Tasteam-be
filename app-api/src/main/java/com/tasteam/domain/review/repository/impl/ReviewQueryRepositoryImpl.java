@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.tasteam.domain.common.repository.QueryDslSupport;
 import com.tasteam.domain.group.entity.QGroup;
 import com.tasteam.domain.member.entity.QMember;
@@ -45,7 +46,12 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 				member.nickname,
 				review.content,
 				review.isRecommended,
-				review.createdAt))
+				review.createdAt,
+				Expressions.nullExpression(Long.class),
+				Expressions.nullExpression(String.class),
+				group.logoImageUrl,
+				group.address,
+				Expressions.nullExpression(String.class)))
 			.from(review)
 			.join(review.member, member)
 			.join(group).on(review.groupId.eq(group.id))
@@ -78,7 +84,12 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 				member.nickname,
 				review.content,
 				review.isRecommended,
-				review.createdAt))
+				review.createdAt,
+				Expressions.nullExpression(Long.class),
+				Expressions.nullExpression(String.class),
+				group.logoImageUrl,
+				group.address,
+				Expressions.nullExpression(String.class)))
 			.from(review)
 			.join(review.member, member)
 			.join(group).on(review.groupId.eq(group.id))
@@ -98,6 +109,7 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 		QMember member = QMember.member;
 		QGroup group = QGroup.group;
 		QSubgroup subgroup = QSubgroup.subgroup;
+		QRestaurant restaurant = QRestaurant.restaurant;
 
 		return getQueryFactory()
 			.select(Projections.constructor(
@@ -111,9 +123,15 @@ public class ReviewQueryRepositoryImpl extends QueryDslSupport implements Review
 				member.nickname,
 				review.content,
 				review.isRecommended,
-				review.createdAt))
+				review.createdAt,
+				restaurant.id,
+				restaurant.name,
+				group.logoImageUrl,
+				group.address,
+				restaurant.fullAddress))
 			.from(review)
 			.join(review.member, member)
+			.join(review.restaurant, restaurant)
 			.join(group).on(review.groupId.eq(group.id))
 			.leftJoin(subgroup).on(review.subgroupId.eq(subgroup.id))
 			.where(
