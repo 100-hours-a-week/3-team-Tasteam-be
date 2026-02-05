@@ -57,6 +57,24 @@ INSERT INTO food_category (id, name) VALUES
 INSERT INTO restaurant_food_category (id, restaurant_id, food_category_id) VALUES
   (6301, 6001, 6201);
 
+-- Images (DomainImage 기반 샘플)
+INSERT INTO image (
+  id, file_name, file_size, file_type, storage_key, file_uuid, status, purpose, deleted_at, created_at, updated_at
+) VALUES
+  (8001, 'restaurant-6001.jpg', 102400, 'image/jpeg', 'seed/restaurants/6001.jpg',
+   '11111111-1111-1111-1111-111111111111', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now()),
+  (8002, 'review-7001.jpg', 204800, 'image/jpeg', 'seed/reviews/7001.jpg',
+   '22222222-2222-2222-2222-222222222222', 'ACTIVE', 'REVIEW_IMAGE', NULL, now(), now()),
+  (8003, 'restaurant-6002.jpg', 102400, 'image/jpeg', 'seed/restaurants/6002.jpg',
+   '33333333-3333-3333-3333-333333333333', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now());
+
+INSERT INTO domain_image (
+  id, domain_type, domain_id, image_id, sort_order, created_at
+) VALUES
+  (8101, 'RESTAURANT', 6001, 8001, 0, now()),
+  (8102, 'REVIEW', 7001, 8002, 0, now()),
+  (8103, 'RESTAURANT', 6002, 8003, 0, now());
+
 -- Reviews
 INSERT INTO review (
   id, restaurant_id, member_id, group_id, subgroup_id,
