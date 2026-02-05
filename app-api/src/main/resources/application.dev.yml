@@ -1,5 +1,8 @@
 server:
   shutdown: graceful
+  tomcat:
+    mbeanregistry:
+      enabled: true
 
 spring:
   config:
@@ -18,7 +21,7 @@ spring:
     hikari:
       maximum-pool-size: 50
       minimum-idle: 10
-      connection-timeout: 30000
+      connection-timeout: 20000
       idle-timeout: 600000
       max-lifetime: 1800000
       leak-detection-threshold: 60000
@@ -91,7 +94,7 @@ tasteam:
     access-mode: ${STORAGE_ACCESS_MODE:presigned}
     presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:300}
   webhook:
-    enabled: true
+    enabled: false
     provider: discord
     discord:
       url: ${DISCORD_WEBHOOK_URL:}
@@ -101,3 +104,4 @@ tasteam:
     filters:
       min-http-status: 400
       exclude-error-codes:
+
