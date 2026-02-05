@@ -24,6 +24,9 @@
   - `docs/spec/api/`: API 명세서 저장
   - `docs/spec/tech/`: 도메인별 테크 스펙 문서 저장
     - `docs/spec/tech/flyway/README.md`: Flyway 사용 방법과 운영/배포 절차를 정리한 문서입니다.
+- `docs/multi-module-architecture.md`: 멀티 모듈 아키텍처(원문 기반 상세 분석) 문서입니다.
+- `docs/multi-module-architecture-rationale.md`: 우리 프로젝트(tasteam-be)에 멀티 모듈이 필요한 이유/근거 문서입니다.
+- `docs/performance-issue-hypotheses.md`: 동시성 한계(예: 동시 사용자 30명) 관련 원인 후보와 검증 체크리스트를 정리한 문서입니다.
 
 ## 확장 포인트
 
