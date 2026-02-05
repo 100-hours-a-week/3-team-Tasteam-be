@@ -1,6 +1,7 @@
 package com.tasteam.domain.review.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +36,8 @@ import com.tasteam.fixture.GroupFixture;
 import com.tasteam.fixture.ImageFixture;
 import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.ReviewRequestFixture;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.CommonErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
@@ -148,6 +151,24 @@ class ReviewImageDeletionIntegrationTest {
 			List<DomainImage> after = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
 				DomainType.REVIEW, List.of(created.id()));
 			assertThat(after).isEmpty();
+		}
+
+		@Test
+		@DisplayName("다른 사용자가 리뷰를 삭제하려 하면 실패한다")
+		void deleteReview_withDifferentMember_fails() {
+			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(keyword.getId()));
+
+			ReviewCreateResponse created = reviewService.createReview(
+				member.getId(),
+				restaurant.getId(),
+				request);
+
+			Member otherMember = memberRepository.save(MemberFixture.create("other@example.com", "other"));
+
+			assertThatThrownBy(() -> reviewService.deleteReview(otherMember.getId(), created.id()))
+				.isInstanceOf(BusinessException.class)
+				.extracting(ex -> ((BusinessException)ex).getErrorCode())
+				.isEqualTo(CommonErrorCode.NO_PERMISSION.name());
 		}
 	}
 
