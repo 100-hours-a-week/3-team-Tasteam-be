@@ -57,11 +57,6 @@ INSERT INTO food_category (id, name) VALUES
 INSERT INTO restaurant_food_category (id, restaurant_id, food_category_id) VALUES
   (6301, 6001, 6201);
 
-INSERT INTO restaurant_image (
-  id, restaurant_id, image_url, sort_order, deleted_at, created_at
-) VALUES
-  (6401, 6001, 'https://picsum.photos/seed/tasteam-restaurant/800/600', 1, NULL, now());
-
 -- Reviews
 INSERT INTO review (
   id, restaurant_id, member_id, group_id, subgroup_id,
@@ -77,11 +72,6 @@ INSERT INTO keyword (id, type, name) VALUES
 INSERT INTO review_keyword (id, review_id, keyword_id) VALUES
   (7201, 7001, 7101),
   (7202, 7001, 7102);
-
-INSERT INTO review_image (
-  id, review_id, image_url, deleted_at, created_at
-) VALUES
-  (7301, 7001, 'https://picsum.photos/seed/tasteam-review/800/600', NULL, now());
 
 -- Member search history (table name has a typo in entity mapping)
 INSERT INTO member_serach_history (
@@ -146,11 +136,6 @@ INSERT INTO food_category (id, name) VALUES
 
 INSERT INTO restaurant_food_category (id, restaurant_id, food_category_id) VALUES
   (6302, 6002, 6203);
-
-INSERT INTO restaurant_image (
-  id, restaurant_id, image_url, sort_order, deleted_at, created_at
-) VALUES
-  (6402, 6002, 'https://picsum.photos/seed/tasteam-cafe/800/600', 1, NULL, now());
 
 -- Additional reviews
 INSERT INTO review (
