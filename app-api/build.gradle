@@ -116,10 +116,34 @@ dependencies {
     spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.13.0'
 }
 
+// ====== 테스트 설정 분리 ====== //
+
+def calculateTestForks() {
+    // 통합 테스트 컨텍스트가 동일 DB/Testcontainers를 공유하므로 병렬 실행을 1로 제한
+    return 1
+}
+
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
     systemProperty "spring.profiles.active", "test"
+    maxParallelForks = calculateTestForks()
     finalizedBy tasks.jacocoTestReport
+}
+
+tasks.register('unitTest', Test) {
+    useJUnitPlatform {
+        includeTags 'unit'
+    }
+    maxParallelForks = calculateTestForks()
+    outputs.upToDateWhen { false }
+}
+
+tasks.register('integrationTest', Test) {
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+    maxParallelForks = calculateTestForks()
+    outputs.upToDateWhen { false }
 }
 
 tasks.jacocoTestReport {
@@ -153,6 +177,56 @@ spotbugsMain {
         }
         xml {
             required = false
+        }
+    }
+}
+
+// ====== JaCoCo 설정 보강 ====== //
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+def jacocoMinimumCoverage = 0.50
+
+def configureJacocoClassDirs(task) {
+    afterEvaluate {
+        task.classDirectories.setFrom(files(task.classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/Q*.class',
+                '**/infra/**',
+                '**/swagger/**',
+                '**/entity/id/**',
+                '**/*Application.class',
+                '**/*Config*.class',
+                '**/common/aop/**',
+                '**/dto/**',
+                '**/*Dto*.class',
+                '**/exception/**',
+                '**/Client**'
+            ])
+        }))
+    }
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+    configureJacocoClassDirs(it)
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn test
+    configureJacocoClassDirs(it)
+    violationRules {
+        rule {
+            limit {
+                minimum = jacocoMinimumCoverage
+            }
         }
     }
 }
