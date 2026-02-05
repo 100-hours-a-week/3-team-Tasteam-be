@@ -220,6 +220,7 @@ class SubgroupServiceIntegrationTest {
 		void joinSubgroup_restore_success() {
 			SubgroupMember membership = subgroupMemberRepository.save(
 				SubgroupMember.create(openSubgroup.getId(), member2));
+			openSubgroup.increaseMemberCount();
 			membership.softDelete(java.time.Instant.now());
 			openSubgroup.decreaseMemberCount();
 

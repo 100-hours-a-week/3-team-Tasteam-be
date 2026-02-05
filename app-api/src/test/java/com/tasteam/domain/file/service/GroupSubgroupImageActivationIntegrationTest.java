@@ -153,7 +153,7 @@ class GroupSubgroupImageActivationIntegrationTest {
 			imageRepository.save(ImageFixture.create(FilePurpose.PROFILE_IMAGE,
 				"uploads/profile/image/subgroup-create.png", fileUuid, "subgroup-create.png"));
 
-			var request = SubgroupRequestFixture.createRequest(
+			var request = SubgroupRequestFixture.createRequestWithImage(
 				"subgroup-" + System.nanoTime(), fileUuid.toString());
 
 			SubgroupCreateResponse response = subgroupService.createSubgroup(group.getId(), member.getId(), request);
@@ -209,7 +209,7 @@ class GroupSubgroupImageActivationIntegrationTest {
 			Group group = groupRepository.save(GroupFixture.create("subgroup-missing-group", "서울시 강남구"));
 			groupMemberRepository.save(GroupMember.create(group.getId(), member));
 
-			var request = SubgroupRequestFixture.createRequest("subgroup-missing", MISSING_FILE_UUID);
+			var request = SubgroupRequestFixture.createRequestWithImage("subgroup-missing", MISSING_FILE_UUID);
 
 			assertThatThrownBy(() -> subgroupService.createSubgroup(group.getId(), member.getId(), request))
 				.isInstanceOf(BusinessException.class)
