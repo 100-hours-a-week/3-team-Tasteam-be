@@ -29,8 +29,6 @@ import com.tasteam.domain.group.entity.GroupMember;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.group.service.GroupService;
-import com.tasteam.domain.group.type.GroupJoinType;
-import com.tasteam.domain.group.type.GroupType;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
@@ -39,6 +37,7 @@ import com.tasteam.domain.subgroup.entity.Subgroup;
 import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.domain.subgroup.service.SubgroupService;
 import com.tasteam.fixture.GroupFixture;
+import com.tasteam.fixture.GroupRequestFixture;
 import com.tasteam.fixture.ImageFixture;
 import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.SubgroupRequestFixture;
@@ -86,15 +85,9 @@ class GroupSubgroupImageActivationIntegrationTest {
 			imageRepository.save(ImageFixture.create(FilePurpose.GROUP_IMAGE, "uploads/group/image/group-create.png",
 				fileUuid, "group-create.png"));
 
-			GroupCreateRequest request = new GroupCreateRequest(
+			GroupCreateRequest request = GroupRequestFixture.createPasswordGroupRequestWithLogo(
 				"group-" + System.nanoTime(),
 				fileUuid.toString(),
-				GroupType.UNOFFICIAL,
-				"서울특별시 강남구",
-				null,
-				new GroupCreateRequest.Location(37.5, 127.0),
-				GroupJoinType.PASSWORD,
-				null,
 				"123456");
 
 			GroupCreateResponse response = groupService.createGroup(request);
@@ -132,15 +125,9 @@ class GroupSubgroupImageActivationIntegrationTest {
 		@Test
 		@DisplayName("그룹 생성에서 존재하지 않는 이미지를 지정하면 실패한다")
 		void createGroupWithMissingImageFails() {
-			GroupCreateRequest request = new GroupCreateRequest(
+			GroupCreateRequest request = GroupRequestFixture.createPasswordGroupRequestWithLogo(
 				"group-missing-image",
 				MISSING_FILE_UUID,
-				GroupType.UNOFFICIAL,
-				"서울특별시 강남구",
-				null,
-				new GroupCreateRequest.Location(37.5, 127.0),
-				GroupJoinType.PASSWORD,
-				null,
 				"123456");
 
 			assertThatThrownBy(() -> groupService.createGroup(request))
