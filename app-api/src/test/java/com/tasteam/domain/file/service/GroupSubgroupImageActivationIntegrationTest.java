@@ -209,7 +209,7 @@ class GroupSubgroupImageActivationIntegrationTest {
 			Group group = groupRepository.save(GroupFixture.create("subgroup-missing-group", "서울시 강남구"));
 			groupMemberRepository.save(GroupMember.create(group.getId(), member));
 
-			var request = SubgroupRequestFixture.createRequestWithImage("subgroup-missing", MISSING_FILE_UUID);
+			var request = SubgroupRequestFixture.createRequest("subgroup-missing", MISSING_FILE_UUID);
 
 			assertThatThrownBy(() -> subgroupService.createSubgroup(group.getId(), member.getId(), request))
 				.isInstanceOf(BusinessException.class)
