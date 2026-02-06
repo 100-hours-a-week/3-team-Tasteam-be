@@ -57,10 +57,23 @@ INSERT INTO food_category (id, name) VALUES
 INSERT INTO restaurant_food_category (id, restaurant_id, food_category_id) VALUES
   (6301, 6001, 6201);
 
-INSERT INTO restaurant_image (
-  id, restaurant_id, image_url, sort_order, deleted_at, created_at
+-- Images (DomainImage 기반 샘플)
+INSERT INTO image (
+  id, file_name, file_size, file_type, storage_key, file_uuid, status, purpose, deleted_at, created_at, updated_at
 ) VALUES
-  (6401, 6001, 'https://picsum.photos/seed/tasteam-restaurant/800/600', 1, NULL, now());
+  (8001, 'restaurant-6001.jpg', 102400, 'image/jpeg', 'seed/restaurants/6001.jpg',
+   '11111111-1111-1111-1111-111111111111', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now()),
+  (8002, 'review-7001.jpg', 204800, 'image/jpeg', 'seed/reviews/7001.jpg',
+   '22222222-2222-2222-2222-222222222222', 'ACTIVE', 'REVIEW_IMAGE', NULL, now(), now()),
+  (8003, 'restaurant-6002.jpg', 102400, 'image/jpeg', 'seed/restaurants/6002.jpg',
+   '33333333-3333-3333-3333-333333333333', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now());
+
+INSERT INTO domain_image (
+  id, domain_type, domain_id, image_id, sort_order, created_at
+) VALUES
+  (8101, 'RESTAURANT', 6001, 8001, 0, now()),
+  (8102, 'REVIEW', 7001, 8002, 0, now()),
+  (8103, 'RESTAURANT', 6002, 8003, 0, now());
 
 -- Reviews
 INSERT INTO review (
@@ -77,11 +90,6 @@ INSERT INTO keyword (id, type, name) VALUES
 INSERT INTO review_keyword (id, review_id, keyword_id) VALUES
   (7201, 7001, 7101),
   (7202, 7001, 7102);
-
-INSERT INTO review_image (
-  id, review_id, image_url, deleted_at, created_at
-) VALUES
-  (7301, 7001, 'https://picsum.photos/seed/tasteam-review/800/600', NULL, now());
 
 -- Member search history (table name has a typo in entity mapping)
 INSERT INTO member_serach_history (
@@ -146,11 +154,6 @@ INSERT INTO food_category (id, name) VALUES
 
 INSERT INTO restaurant_food_category (id, restaurant_id, food_category_id) VALUES
   (6302, 6002, 6203);
-
-INSERT INTO restaurant_image (
-  id, restaurant_id, image_url, sort_order, deleted_at, created_at
-) VALUES
-  (6402, 6002, 'https://picsum.photos/seed/tasteam-cafe/800/600', 1, NULL, now());
 
 -- Additional reviews
 INSERT INTO review (

@@ -411,7 +411,7 @@ GET /api/v1/restaurants?latitude=37.395&longitude=127.11&radiusMeter=3000&foodCa
 ```mermaid
 erDiagram
     Restaurant ||--|| RestaurantAddress : has
-    Restaurant ||--o{ RestaurantImage : has
+    Restaurant ||--o{ DomainImage : has (대표 이미지 링크)
     Restaurant ||--o{ RestaurantFoodCategory : "mapped by"
     RestaurantFoodCategory }o--|| FoodCategory : "refers to"
     Restaurant ||--o{ MenuCategory : has

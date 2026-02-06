@@ -52,6 +52,7 @@ import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.global.utils.CursorPageBuilder;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -82,7 +83,13 @@ public class SubgroupService {
 		validateGroupMember(group.getId(), memberId);
 
 		int resolvedSize = resolveSize(size);
-		SubgroupNameCursor cursorKey = cursorCodec.decodeOrNull(cursor, SubgroupNameCursor.class);
+		CursorPageBuilder<SubgroupNameCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursor,
+			SubgroupNameCursor.class);
+		if (pageBuilder.isInvalid()) {
+			return emptyListResponse(resolvedSize);
+		}
+
+		SubgroupNameCursor cursorKey = pageBuilder.cursor();
 		String resolvedKeyword = resolveKeyword(keyword);
 
 		List<SubgroupListItem> items = subgroupRepository.findMySubgroupsByGroup(
@@ -93,7 +100,12 @@ public class SubgroupService {
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
 
-		return buildListResponse(applyResolvedImageUrls(items), resolvedSize);
+		CursorPageBuilder.Page<SubgroupListItem> page = pageBuilder.build(
+			applyResolvedImageUrls(items),
+			resolvedSize,
+			last -> new SubgroupNameCursor(last.getName(), last.getSubgroupId()));
+
+		return buildListResponse(page, resolvedSize);
 	}
 
 	@Transactional(readOnly = true)
@@ -102,7 +114,12 @@ public class SubgroupService {
 		getGroup(groupId);
 
 		int resolvedSize = resolveSize(size);
-		SubgroupNameCursor cursorKey = cursorCodec.decodeOrNull(cursor, SubgroupNameCursor.class);
+		CursorPageBuilder<SubgroupNameCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursor,
+			SubgroupNameCursor.class);
+		if (pageBuilder.isInvalid()) {
+			return CursorPageResponse.empty();
+		}
+		SubgroupNameCursor cursorKey = pageBuilder.cursor();
 
 		List<SubgroupListItem> items = subgroupRepository.findSubgroupsByGroup(
 			groupId,
@@ -111,7 +128,12 @@ public class SubgroupService {
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
 
-		return buildNameCursorPageResponse(applyResolvedImageUrls(items), resolvedSize);
+		CursorPageBuilder.Page<SubgroupListItem> page = pageBuilder.build(
+			applyResolvedImageUrls(items),
+			resolvedSize,
+			last -> new SubgroupNameCursor(last.getName(), last.getSubgroupId()));
+
+		return buildNameCursorPageResponse(page);
 	}
 
 	@Transactional(readOnly = true)
@@ -120,7 +142,13 @@ public class SubgroupService {
 		getGroup(groupId);
 
 		int resolvedSize = resolveSize(size);
-		SubgroupMemberCountCursor cursorKey = cursorCodec.decodeOrNull(cursor, SubgroupMemberCountCursor.class);
+		CursorPageBuilder<SubgroupMemberCountCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursor,
+			SubgroupMemberCountCursor.class);
+		if (pageBuilder.isInvalid()) {
+			return CursorPageResponse.empty();
+		}
+
+		SubgroupMemberCountCursor cursorKey = pageBuilder.cursor();
 		String resolvedKeyword = resolveKeyword(keyword);
 
 		List<SubgroupListItem> items = subgroupRepository.searchSubgroupsByGroup(
@@ -131,7 +159,12 @@ public class SubgroupService {
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
 
-		return buildMemberCountCursorPageResponse(applyResolvedImageUrls(items), resolvedSize);
+		CursorPageBuilder.Page<SubgroupListItem> page = pageBuilder.build(
+			applyResolvedImageUrls(items),
+			resolvedSize,
+			last -> new SubgroupMemberCountCursor(last.getMemberCount(), last.getSubgroupId()));
+
+		return buildMemberCountCursorPageResponse(page);
 	}
 
 	@Transactional(readOnly = true)
@@ -325,68 +358,44 @@ public class SubgroupService {
 		applySubgroupImage(subgroup, node.asText());
 	}
 
-	private SubgroupListResponse buildListResponse(List<SubgroupListItem> items, int resolvedSize) {
-		boolean hasNext = items.size() > resolvedSize;
-		if (hasNext) {
-			items = items.subList(0, resolvedSize);
-		}
-
-		String nextCursor = null;
-		if (hasNext && !items.isEmpty()) {
-			SubgroupListItem lastItem = items.get(items.size() - 1);
-			nextCursor = cursorCodec.encode(new SubgroupNameCursor(lastItem.getName(), lastItem.getSubgroupId()));
-		}
-
+	private SubgroupListResponse buildListResponse(CursorPageBuilder.Page<SubgroupListItem> page, int resolvedSize) {
 		return new SubgroupListResponse(
-			items,
+			page.items(),
 			new SubgroupListResponse.PageInfo(
 				SORT_NAME_ASC_ID_ASC,
-				nextCursor,
+				page.nextCursor(),
+				page.requestedSize(),
+				page.hasNext()));
+	}
+
+	private CursorPageResponse<SubgroupListItem> buildNameCursorPageResponse(
+		CursorPageBuilder.Page<SubgroupListItem> page) {
+		return new CursorPageResponse<>(
+			page.items(),
+			new CursorPageResponse.Pagination(
+				page.nextCursor(),
+				page.hasNext(),
+				page.size()));
+	}
+
+	private CursorPageResponse<SubgroupListItem> buildMemberCountCursorPageResponse(
+		CursorPageBuilder.Page<SubgroupListItem> page) {
+		return new CursorPageResponse<>(
+			page.items(),
+			new CursorPageResponse.Pagination(
+				page.nextCursor(),
+				page.hasNext(),
+				page.size()));
+	}
+
+	private SubgroupListResponse emptyListResponse(int resolvedSize) {
+		return new SubgroupListResponse(
+			List.of(),
+			new SubgroupListResponse.PageInfo(
+				SORT_NAME_ASC_ID_ASC,
+				null,
 				resolvedSize,
-				hasNext));
-	}
-
-	private CursorPageResponse<SubgroupListItem> buildNameCursorPageResponse(List<SubgroupListItem> items,
-		int resolvedSize) {
-		boolean hasNext = items.size() > resolvedSize;
-		if (hasNext) {
-			items = items.subList(0, resolvedSize);
-		}
-
-		String nextCursor = null;
-		if (hasNext && !items.isEmpty()) {
-			SubgroupListItem lastItem = items.get(items.size() - 1);
-			nextCursor = cursorCodec.encode(new SubgroupNameCursor(lastItem.getName(), lastItem.getSubgroupId()));
-		}
-
-		return new CursorPageResponse<>(
-			items,
-			new CursorPageResponse.Pagination(
-				nextCursor,
-				hasNext,
-				items.size()));
-	}
-
-	private CursorPageResponse<SubgroupListItem> buildMemberCountCursorPageResponse(List<SubgroupListItem> items,
-		int resolvedSize) {
-		boolean hasNext = items.size() > resolvedSize;
-		if (hasNext) {
-			items = items.subList(0, resolvedSize);
-		}
-
-		String nextCursor = null;
-		if (hasNext && !items.isEmpty()) {
-			SubgroupListItem lastItem = items.get(items.size() - 1);
-			nextCursor = cursorCodec
-				.encode(new SubgroupMemberCountCursor(lastItem.getMemberCount(), lastItem.getSubgroupId()));
-		}
-
-		return new CursorPageResponse<>(
-			items,
-			new CursorPageResponse.Pagination(
-				nextCursor,
-				hasNext,
-				items.size()));
+				false));
 	}
 
 	private void validateAuthenticated(Long memberId) {
