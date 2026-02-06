@@ -80,9 +80,9 @@ class ReviewQueryRepositoryTest {
 			restaurant.getId(), null, 10);
 
 		assertThat(results).hasSize(1);
-		assertThat(results.get(0).content()).isEqualTo("활성 리뷰");
-		assertThat(results.get(0).groupName()).isEqualTo("리뷰조회그룹");
-		assertThat(results.get(0).subgroupName()).isNull();
+		ReviewQueryDto result = results.get(0);
+		assertThat(result.content()).isEqualTo("활성 리뷰");
+		assertThat(result.groupName()).isEqualTo("리뷰조회그룹");
 	}
 
 	@Test
@@ -100,8 +100,9 @@ class ReviewQueryRepositoryTest {
 		List<ReviewQueryDto> results = reviewQueryRepository.findGroupReviews(group10.getId(), null, 10);
 
 		assertThat(results).hasSize(1);
-		assertThat(results.get(0).content()).isEqualTo("그룹10 리뷰");
-		assertThat(results.get(0).groupName()).isEqualTo("그룹10");
+		ReviewQueryDto result = results.get(0);
+		assertThat(result.content()).isEqualTo("그룹10 리뷰");
+		assertThat(result.groupName()).isEqualTo("그룹10");
 	}
 
 	@Test

@@ -292,8 +292,10 @@ public class ReviewService {
 		Map<Long, List<DomainImageItem>> reviewThumbnails = fileService.getDomainImageUrls(
 			DomainType.REVIEW,
 			reviewIds);
+		Map<Long, String> restaurantIdToFirstImageUrl = resolveRestaurantFirstImageUrls(page.items());
 
-		List<ReviewResponse> items = buildReviewResponses(page.items(), reviewKeywords, reviewThumbnails);
+		List<ReviewResponse> items = buildReviewResponses(
+			page.items(), reviewKeywords, reviewThumbnails, restaurantIdToFirstImageUrl);
 
 		return new CursorPageResponse<>(
 			items,
@@ -309,10 +311,27 @@ public class ReviewService {
 			.toList();
 	}
 
+	private Map<Long, String> resolveRestaurantFirstImageUrls(List<ReviewQueryDto> pageContent) {
+		List<Long> restaurantIds = pageContent.stream()
+			.map(ReviewQueryDto::restaurantId)
+			.filter(id -> id != null)
+			.distinct()
+			.toList();
+		if (restaurantIds.isEmpty()) {
+			return Map.of();
+		}
+		Map<Long, List<DomainImageItem>> byRestaurant = fileService.getDomainImageUrls(DomainType.RESTAURANT,
+			restaurantIds);
+		return byRestaurant.entrySet().stream()
+			.filter(e -> e.getValue() != null && !e.getValue().isEmpty())
+			.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getFirst().url()));
+	}
+
 	private List<ReviewResponse> buildReviewResponses(
 		List<ReviewQueryDto> pageContent,
 		Map<Long, List<String>> reviewKeywords,
-		Map<Long, List<DomainImageItem>> reviewThumbnails) {
+		Map<Long, List<DomainImageItem>> reviewThumbnails,
+		Map<Long, String> restaurantIdToFirstImageUrl) {
 		return pageContent.stream()
 			.map(review -> new ReviewResponse(
 				review.reviewId(),
@@ -325,7 +344,13 @@ public class ReviewService {
 				review.isRecommended(),
 				reviewKeywords.getOrDefault(review.reviewId(), List.of()),
 				convertToReviewImages(reviewThumbnails.get(review.reviewId())),
-				review.createdAt()))
+				review.createdAt(),
+				review.restaurantId(),
+				review.restaurantName(),
+				review.groupLogoImageUrl(),
+				review.groupAddress(),
+				review.restaurantId() != null ? restaurantIdToFirstImageUrl.get(review.restaurantId()) : null,
+				review.restaurantAddress()))
 			.toList();
 	}
 
