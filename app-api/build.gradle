@@ -124,11 +124,14 @@ def calculateTestForks() {
 }
 
 tasks.withType(Test).configureEach {
+    systemProperty "spring.profiles.active", "test"
+    maxParallelForks = calculateTestForks()
+}
+
+tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'perf'
     }
-    systemProperty "spring.profiles.active", "test"
-    maxParallelForks = calculateTestForks()
     finalizedBy tasks.jacocoTestReport
 }
 
@@ -136,7 +139,6 @@ tasks.register('unitTest', Test) {
     useJUnitPlatform {
         includeTags 'unit'
     }
-    maxParallelForks = calculateTestForks()
     outputs.upToDateWhen { false }
 }
 
@@ -144,15 +146,15 @@ tasks.register('integrationTest', Test) {
     useJUnitPlatform {
         includeTags 'integration'
     }
-    maxParallelForks = calculateTestForks()
     outputs.upToDateWhen { false }
 }
 
 tasks.register('performanceTest', Test) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform {
         includeTags 'perf'
     }
-    maxParallelForks = calculateTestForks()
     outputs.upToDateWhen { false }
 }
 
