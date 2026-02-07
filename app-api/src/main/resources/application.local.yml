@@ -9,6 +9,8 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/tasteam}
     username: ${DB_USERNAME:tasteam}
     password: ${DB_PASSWORD:tasteam}
+    hikari:
+      connection-timeout: 10000
 
   data:
     redis:
