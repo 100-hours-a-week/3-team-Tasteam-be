@@ -9,9 +9,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        generate_statistics: true
 
   flyway:
-    enabled: false # Tests use Hibernate create-drop; enable Flyway only in dedicated migration-verification runs.
+    enabled: false 
 
   security:
     jwt:
@@ -23,3 +24,8 @@ tasteam:
   admin:
     username: admin
     password: admin
+  aop:
+    logging:
+      enabled: true
+      transactional-query-logging:
+        enabled: true
