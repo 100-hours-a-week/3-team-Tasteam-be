@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.tasteam.global.dto.api.ErrorResponse;
 import com.tasteam.global.dto.api.FieldErrorResponse;
 import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.external.ExternalServiceException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,6 +28,15 @@ public class GlobalExceptionHandler {
 	 */
 	@ExceptionHandler(BusinessException.class)
 	public ResponseEntity<ErrorResponse<?>> handleBusinessException(BusinessException e) {
+		String errorCodeMessage = e.getErrorCode();
+		String errorMessage = e.getErrorMessage();
+
+		ErrorResponse<Void> response = ErrorResponse.of(errorCodeMessage, errorMessage);
+		return ResponseEntity.status(e.getHttpStatus()).body(response);
+	}
+
+	@ExceptionHandler(ExternalServiceException.class)
+	public ResponseEntity<ErrorResponse<?>> handleExternalServiceException(ExternalServiceException e) {
 		String errorCodeMessage = e.getErrorCode();
 		String errorMessage = e.getErrorMessage();
 

@@ -27,4 +27,8 @@ public interface LocalAuthControllerDocs {
 		@Validated
 		LocalAuthTokenRequest request,
 		HttpServletResponse response);
+
+	@Operation(summary = "AI 서버 헬스 체크", description = "로컬 프로필에서만 사용하는 AI 서버 연결 테스트 API입니다.")
+	@ApiResponse(responseCode = "200", description = "헬스 체크 성공")
+	SuccessResponse<Void> checkAiHealth();
 }

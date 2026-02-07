@@ -63,6 +63,10 @@ springdoc:
     path: /api/v1/swagger-ui.html
 
 ## ====== 커스텀 설정 ======
+ai:
+  base-url: ${AI_BASE_URL:http://localhost:8001}
+  response-timeout: ${AI_RESPONSE_TIMEOUT:10s}
+
 tasteam:
   admin:
     username: ${ADMIN_USERNAME:}
