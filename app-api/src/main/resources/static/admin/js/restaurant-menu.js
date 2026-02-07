@@ -112,17 +112,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         menuImageInput.click();
     });
 
-    menuImageInput.addEventListener('change', () => {
+    menuImageInput.addEventListener('change', async () => {
         const files = Array.from(menuImageInput.files || []);
-        menuImageFile = files.length > 0 ? files[0] : null;
+        const file = files.length > 0 ? files[0] : null;
         menuImagePreview.innerHTML = '';
-        menuImageFileName.textContent = menuImageFile ? menuImageFile.name : '선택된 파일 없음';
-        if (menuImageFile) {
+
+        if (!file) {
+            menuImageFile = null;
+            menuImageFileName.textContent = '선택된 파일 없음';
+            return;
+        }
+
+        try {
+            menuImageFile = await ImageOptimizer.optimizeRestaurantImage(file);
+            menuImageFileName.textContent = menuImageFile.name;
             const img = document.createElement('img');
             img.className = 'image-preview';
             img.alt = menuImageFile.name;
             img.src = URL.createObjectURL(menuImageFile);
             menuImagePreview.appendChild(img);
+        } catch (error) {
+            console.error('메뉴 이미지 최적화 오류:', error);
+            alert('메뉴 이미지 최적화 중 오류가 발생했습니다: ' + error.message);
+            menuImageFile = null;
+            menuImageFileName.textContent = '선택된 파일 없음';
         }
     });
 
