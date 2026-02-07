@@ -527,18 +527,13 @@ public class RestaurantService {
 			radiusMeter = RestaurantSearchPolicy.DEFAULT_RADIUS_METER;
 		}
 
-		// 음식 카테고리 이름 정규화 (비어있으면 전체 카테고리로 대체)
+		// 음식 카테고리 이름 정규화
 		Set<String> foodCategories = q.categories() == null
 			? Set.of()
 			: q.categories().stream()
 				.map(String::trim)
 				.filter(s -> !s.isEmpty())
 				.collect(Collectors.toUnmodifiableSet());
-		if (foodCategories.isEmpty()) {
-			foodCategories = foodCategoryRepository.findAll().stream()
-				.map(FoodCategory::getName)
-				.collect(Collectors.toUnmodifiableSet());
-		}
 
 		// 페이지 크기 기본값
 		Integer pageSize = q.size();

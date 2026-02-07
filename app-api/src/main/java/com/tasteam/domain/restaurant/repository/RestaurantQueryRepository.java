@@ -25,7 +25,7 @@ public interface RestaurantQueryRepository {
 		Long groupId,
 		double latitude,
 		double longitude,
-		double radiusMeter,
+		int radiusMeter,
 		Set<String> categories,
 		RestaurantCursor cursor,
 		int pageSize);
