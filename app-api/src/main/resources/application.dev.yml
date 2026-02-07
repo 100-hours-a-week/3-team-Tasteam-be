@@ -39,6 +39,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        generate_statistics: true
 
   sql:
     init:
@@ -104,4 +107,3 @@ tasteam:
     filters:
       min-http-status: 400
       exclude-error-codes:
-
