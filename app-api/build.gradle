@@ -124,9 +124,14 @@ def calculateTestForks() {
 }
 
 tasks.withType(Test).configureEach {
-    useJUnitPlatform()
     systemProperty "spring.profiles.active", "test"
     maxParallelForks = calculateTestForks()
+}
+
+tasks.named('test') {
+    useJUnitPlatform {
+        excludeTags 'perf'
+    }
     finalizedBy tasks.jacocoTestReport
 }
 
@@ -134,7 +139,6 @@ tasks.register('unitTest', Test) {
     useJUnitPlatform {
         includeTags 'unit'
     }
-    maxParallelForks = calculateTestForks()
     outputs.upToDateWhen { false }
 }
 
@@ -142,7 +146,15 @@ tasks.register('integrationTest', Test) {
     useJUnitPlatform {
         includeTags 'integration'
     }
-    maxParallelForks = calculateTestForks()
+    outputs.upToDateWhen { false }
+}
+
+tasks.register('performanceTest', Test) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'perf'
+    }
     outputs.upToDateWhen { false }
 }
 
@@ -217,6 +229,8 @@ jacocoTestReport {
         csv.required = false
     }
     configureJacocoClassDirs(it)
+
+    executionData.setFrom(fileTree(buildDir).include("/jacoco/*.exec").exclude("/jacoco/performanceTest.exec"))
 }
 
 tasks.named('jacocoTestCoverageVerification') {

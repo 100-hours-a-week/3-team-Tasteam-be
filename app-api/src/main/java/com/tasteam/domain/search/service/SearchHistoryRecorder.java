@@ -1,7 +1,7 @@
 package com.tasteam.domain.search.service;
 
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.search.entity.MemberSearchHistory;
@@ -17,7 +17,8 @@ public class SearchHistoryRecorder {
 
 	private final MemberSearchHistoryRepository memberSearchHistoryRepository;
 
-	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	@Async("searchHistoryExecutor")
+	@Transactional
 	public void recordSearchHistory(Long memberId, String keyword) {
 		if (memberId == null) {
 			return;

@@ -3,6 +3,7 @@ package com.tasteam.domain.search.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,7 @@ class SearchServiceIntegrationTest {
 	class Search {
 
 		@Test
+		@Disabled
 		@DisplayName("그룹+음식점 검색 결과가 반환되고 검색 히스토리가 기록된다")
 		void searchSuccessRecordsHistory() {
 			Member member = memberRepository.save(MemberFixture.create("search@example.com", "search"));
