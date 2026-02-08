@@ -527,6 +527,9 @@ CREATE INDEX idx_restaurant_active ON restaurant (id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_restaurant_name_trgm ON restaurant 
   USING gin (lower(name) gin_trgm_ops) 
   WHERE deleted_at IS NULL;
+CREATE INDEX idx_restaurant_full_address_trgm ON restaurant
+  USING gin (lower(full_address) gin_trgm_ops)
+  WHERE deleted_at IS NULL;
 
 WITH geo_candidates AS (
   SELECT id
@@ -561,6 +564,22 @@ FROM restaurant r
 JOIN final_candidates c ON c.id = r.id
 ORDER BY score DESC, r.updated_at DESC, r.id DESC
 LIMIT 20;
+```
+
+### 방안 7 적용 결과 (하이브리드 인덱스)
+적용한 인덱스:
+```sql
+CREATE INDEX IF NOT EXISTS idx_restaurant_active_id
+    ON restaurant (id)
+    WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_restaurant_name_trgm_active
+    ON restaurant USING gin (lower(name) gin_trgm_ops)
+    WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_restaurant_full_address_trgm_active
+    ON restaurant USING gin (lower(full_address) gin_trgm_ops)
+    WHERE deleted_at IS NULL;
 ```
 
 ## 비교 요약
