@@ -32,6 +32,7 @@ public class ImageOptimizationService {
 	private static final int PROFILE_SIZE = 100;
 	private static final int RESTAURANT_MAX_WIDTH = 2048;
 	private static final int REVIEW_MAX_WIDTH = 768;
+	private static final int MENU_MAX_WIDTH = 768;
 	private static final double DEFAULT_QUALITY = 0.85;
 	private static final String WEBP_FORMAT = "webp";
 	private static final String WEBP_CONTENT_TYPE = "image/webp";
@@ -140,8 +141,8 @@ public class ImageOptimizationService {
 
 		return switch (purpose) {
 			case PROFILE_IMAGE, GROUP_IMAGE -> !isWebp || width > PROFILE_SIZE || height > PROFILE_SIZE;
-			case RESTAURANT_IMAGE, MENU_IMAGE -> !isWebp || width > RESTAURANT_MAX_WIDTH;
-			case REVIEW_IMAGE -> !isWebp || width > REVIEW_MAX_WIDTH;
+			case RESTAURANT_IMAGE -> !isWebp || width > RESTAURANT_MAX_WIDTH;
+			case REVIEW_IMAGE, MENU_IMAGE -> !isWebp || width > REVIEW_MAX_WIDTH;
 			case COMMON_ASSET -> !isWebp;
 		};
 	}
@@ -151,8 +152,8 @@ public class ImageOptimizationService {
 
 		switch (purpose) {
 			case PROFILE_IMAGE, GROUP_IMAGE -> processProfileImage(image, width, height, outputStream);
-			case RESTAURANT_IMAGE, MENU_IMAGE -> processRestaurantImage(image, width, outputStream);
-			case REVIEW_IMAGE -> processReviewImage(image, width, outputStream);
+			case RESTAURANT_IMAGE -> processRestaurantImage(image, width, outputStream);
+			case REVIEW_IMAGE, MENU_IMAGE -> processReviewImage(image, width, outputStream);
 			case COMMON_ASSET -> processCommonImage(image, outputStream);
 		}
 
