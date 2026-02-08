@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "tasteam.search.query")
 public class SearchQueryProperties {
 
-	private SearchQueryStrategy strategy = SearchQueryStrategy.ONE_STEP;
+	private SearchQueryStrategy strategy = SearchQueryStrategy.TWO_STEP;
 	private int candidateLimit = 200;
 
 	public SearchQueryStrategy getStrategy() {

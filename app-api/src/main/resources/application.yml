@@ -72,7 +72,7 @@ tasteam:
     api: ${API_DOMAIN:https://api.tasteam.kr}
   search:
     query:
-      strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:ONE_STEP}
+      strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:TWO_STEP}
       candidate-limit: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:200}
   storage:
     type: ${STORAGE_TYPE:dummy}
