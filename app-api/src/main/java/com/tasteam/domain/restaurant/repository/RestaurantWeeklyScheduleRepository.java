@@ -29,4 +29,6 @@ public interface RestaurantWeeklyScheduleRepository extends JpaRepository<Restau
 		LocalDate targetDate);
 
 	List<RestaurantWeeklySchedule> findByRestaurantId(Long restaurantId);
+
+	long countByRestaurantId(Long restaurantId);
 }
