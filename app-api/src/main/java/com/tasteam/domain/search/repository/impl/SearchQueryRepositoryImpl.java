@@ -193,7 +193,8 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 	}
 
 	private NumberExpression<Double> nameSimilarity(QRestaurant r, String keywordLower) {
-		return Expressions.numberTemplate(Double.class, "similarity(lower({0}), lower({1}))", r.name, keywordLower);
+		return Expressions.numberTemplate(Double.class,
+			"cast(function('similarity', lower({0}), lower({1})) as double)", r.name, keywordLower);
 	}
 
 	private BooleanExpression nameSimilar(QRestaurant r, String keywordLower) {
@@ -251,10 +252,11 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 
 	private NumberExpression<Double> distanceWeight(NumberExpression<Double> distanceMeters, Double radiusMeters) {
 		if (radiusMeters == null) {
-			return Expressions.numberTemplate(Double.class, "0");
+			return Expressions.numberTemplate(Double.class, "0.0");
 		}
 		return Expressions.numberTemplate(Double.class,
-			"GREATEST(0, 1 - ({0} / {1}))", distanceMeters, radiusMeters);
+			"cast(greatest(0.0, 1.0 - (cast({0} as double) / cast({1} as double))) as double)",
+			distanceMeters, radiusMeters);
 	}
 
 	private BooleanExpression distanceFilter(NumberExpression<Double> distanceMeters, Double radiusMeters) {
