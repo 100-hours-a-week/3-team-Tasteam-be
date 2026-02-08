@@ -106,7 +106,7 @@ class SearchServiceConcurrencyIntegrationTest {
 
 						SearchResponse response = searchService.search(
 							members.get(index).getId(),
-							new SearchRequest(keywords.get(index), null, null, null, 10));
+							new SearchRequest(keywords.get(index), null, null, null, null, 10));
 
 						if (!response.groups().isEmpty() || !response.restaurants().items().isEmpty()) {
 							successCount.incrementAndGet();
@@ -155,7 +155,7 @@ class SearchServiceConcurrencyIntegrationTest {
 
 						SearchResponse response = searchService.search(
 							member.getId(),
-							new SearchRequest(keyword, null, null, null, 10));
+							new SearchRequest(keyword, null, null, null, null, 10));
 
 						if (!response.groups().isEmpty() || !response.restaurants().items().isEmpty()) {
 							successCount.incrementAndGet();
@@ -213,7 +213,7 @@ class SearchServiceConcurrencyIntegrationTest {
 
 						SearchResponse response = searchService.search(
 							members.get(index).getId(),
-							new SearchRequest(keyword, null, null, null, 10));
+							new SearchRequest(keyword, null, null, null, null, 10));
 
 						if (!response.groups().isEmpty() || !response.restaurants().items().isEmpty()) {
 							successCount.incrementAndGet();

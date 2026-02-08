@@ -8,5 +8,5 @@ import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 public interface SearchQueryRepository {
 
 	List<SearchRestaurantCursorRow> searchRestaurantsByKeyword(String keyword, SearchCursor cursor, int size,
-		Double latitude, Double longitude);
+		Double latitude, Double longitude, Double radiusMeters);
 }

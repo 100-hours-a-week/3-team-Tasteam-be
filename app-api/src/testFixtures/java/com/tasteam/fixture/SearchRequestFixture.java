@@ -10,30 +10,30 @@ public final class SearchRequestFixture {
 	private SearchRequestFixture() {}
 
 	public static SearchRequest createRequest() {
-		return new SearchRequest(DEFAULT_KEYWORD, null, null, null, DEFAULT_SIZE);
+		return new SearchRequest(DEFAULT_KEYWORD, null, null, null, null, DEFAULT_SIZE);
 	}
 
 	public static SearchRequest createRequest(String keyword) {
-		return new SearchRequest(keyword, null, null, null, DEFAULT_SIZE);
+		return new SearchRequest(keyword, null, null, null, null, DEFAULT_SIZE);
 	}
 
 	public static SearchRequest createRequest(String keyword, String cursor, Integer size) {
-		return new SearchRequest(keyword, null, null, cursor, size);
+		return new SearchRequest(keyword, null, null, null, cursor, size);
 	}
 
 	public static SearchRequest createRequestWithCursor(String cursor) {
-		return new SearchRequest(DEFAULT_KEYWORD, null, null, cursor, DEFAULT_SIZE);
+		return new SearchRequest(DEFAULT_KEYWORD, null, null, null, cursor, DEFAULT_SIZE);
 	}
 
 	public static SearchRequest createRequestWithoutKeyword() {
-		return new SearchRequest(null, null, null, null, DEFAULT_SIZE);
+		return new SearchRequest(null, null, null, null, null, DEFAULT_SIZE);
 	}
 
 	public static SearchRequest createRequestWithBlankKeyword() {
-		return new SearchRequest("", null, null, null, DEFAULT_SIZE);
+		return new SearchRequest("", null, null, null, null, DEFAULT_SIZE);
 	}
 
 	public static SearchRequest createRequestWithInvalidSize() {
-		return new SearchRequest(DEFAULT_KEYWORD, null, null, null, 101);
+		return new SearchRequest(DEFAULT_KEYWORD, null, null, null, null, 101);
 	}
 }
