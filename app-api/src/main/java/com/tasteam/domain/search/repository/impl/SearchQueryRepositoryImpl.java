@@ -40,6 +40,9 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 		if (properties.getStrategy() == SearchQueryStrategy.TWO_STEP) {
 			return searchTwoStep(keyword, cursor, size, latitude, longitude);
 		}
+		if (properties.getStrategy() == SearchQueryStrategy.JOIN_AGGREGATE) {
+			return searchJoinAggregate(keyword, cursor, size, latitude, longitude);
+		}
 		return searchOneStep(keyword, cursor, size, latitude, longitude);
 	}
 
@@ -125,6 +128,45 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			.fetch();
 	}
 
+	private List<SearchRestaurantCursorRow> searchJoinAggregate(String keyword, SearchCursor cursor, int size,
+		Double latitude,
+		Double longitude) {
+		QRestaurant r = QRestaurant.restaurant;
+		QRestaurantFoodCategory rfc = QRestaurantFoodCategory.restaurantFoodCategory;
+		QFoodCategory fc = QFoodCategory.foodCategory;
+		String kw = keyword.toLowerCase();
+
+		BooleanExpression nameContains = r.name.lower().contains(kw);
+		BooleanExpression addrContains = r.fullAddress.lower().contains(kw);
+		BooleanExpression categoryNameMatch = fc.name.lower().eq(kw);
+		NumberExpression<Integer> nameExactScore = nameExactScore(r, kw);
+		NumberExpression<Double> nameSimilarity = nameSimilarity(r, kw);
+		NumberExpression<Double> distanceExpr = distanceMeters(r, latitude, longitude);
+		NumberExpression<Integer> categoryScore = categoryMatchAggregate(fc, kw);
+		NumberExpression<Integer> addressScore = addressMatchScore(r, kw);
+
+		return getQueryFactory()
+			.select(Projections.constructor(
+				SearchRestaurantCursorRow.class,
+				r,
+				nameExactScore,
+				nameSimilarity,
+				distanceExpr,
+				categoryScore,
+				addressScore))
+			.from(r)
+			.leftJoin(rfc).on(rfc.restaurant.eq(r))
+			.leftJoin(rfc.foodCategory, fc)
+			.where(
+				r.deletedAt.isNull(),
+				nameContains.or(addrContains).or(categoryNameMatch),
+				cursorCondition(cursor, r, kw, latitude, longitude, categoryScore))
+			.groupBy(r.id)
+			.orderBy(buildOrderSpecifiers(r, kw, latitude, longitude, categoryScore).toArray(OrderSpecifier[]::new))
+			.limit(size)
+			.fetch();
+	}
+
 	private List<OrderSpecifier<?>> buildOrderSpecifiers(QRestaurant r, String keywordLower, Double latitude,
 		Double longitude, BooleanExpression categoryExists) {
 		List<OrderSpecifier<?>> orderSpecifiers = new ArrayList<>();
@@ -134,6 +176,21 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			orderSpecifiers.add(distanceMeters(r, latitude, longitude).asc());
 		}
 		orderSpecifiers.add(categoryMatchScore(categoryExists).desc());
+		orderSpecifiers.add(addressMatchScore(r, keywordLower).desc());
+		orderSpecifiers.add(r.updatedAt.desc());
+		orderSpecifiers.add(r.id.desc());
+		return orderSpecifiers;
+	}
+
+	private List<OrderSpecifier<?>> buildOrderSpecifiers(QRestaurant r, String keywordLower, Double latitude,
+		Double longitude, NumberExpression<Integer> categoryScore) {
+		List<OrderSpecifier<?>> orderSpecifiers = new ArrayList<>();
+		orderSpecifiers.add(nameExactScore(r, keywordLower).desc());
+		orderSpecifiers.add(nameSimilarity(r, keywordLower).desc());
+		if (latitude != null && longitude != null) {
+			orderSpecifiers.add(distanceMeters(r, latitude, longitude).asc());
+		}
+		orderSpecifiers.add(categoryScore.desc());
 		orderSpecifiers.add(addressMatchScore(r, keywordLower).desc());
 		orderSpecifiers.add(r.updatedAt.desc());
 		orderSpecifiers.add(r.id.desc());
@@ -173,6 +230,11 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			.otherwise(0);
 	}
 
+	private NumberExpression<Integer> categoryMatchAggregate(QFoodCategory fc, String keywordLower) {
+		return Expressions.numberTemplate(Integer.class,
+			"max(case when lower({0}) = {1} then 1 else 0 end)", fc.name, keywordLower);
+	}
+
 	private BooleanExpression categoryMatchExists(String keywordLower, QRestaurant r) {
 		QRestaurantFoodCategory rfc = QRestaurantFoodCategory.restaurantFoodCategory;
 		QFoodCategory fc = QFoodCategory.foodCategory;
@@ -196,6 +258,60 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 		NumberExpression<Double> nameSimilarity = nameSimilarity(r, keywordLower);
 		NumberExpression<Double> distanceExpr = distanceMeters(r, latitude, longitude);
 		NumberExpression<Integer> categoryScore = categoryMatchScore(categoryExists);
+		NumberExpression<Integer> addressScore = addressMatchScore(r, keywordLower);
+
+		BooleanExpression cond = null;
+		cond = or(cond, nameExactScore.lt(cursor.nameExact()));
+		cond = or(cond, nameExactScore.eq(cursor.nameExact())
+			.and(nameSimilarity.lt(cursor.nameSimilarity())));
+
+		if (latitude != null && longitude != null) {
+			NumberExpression<Double> distanceSortExpr = Expressions.numberTemplate(Double.class,
+				"COALESCE({0}, {1})", distanceExpr, 1e15);
+			double cursorDist = cursor.distanceMeters() == null ? 1e15 : cursor.distanceMeters();
+			cond = or(cond, nameExactScore.eq(cursor.nameExact())
+				.and(nameSimilarity.eq(cursor.nameSimilarity()))
+				.and(distanceSortExpr.gt(cursorDist)));
+		}
+
+		cond = or(cond, nameExactScore.eq(cursor.nameExact())
+			.and(nameSimilarity.eq(cursor.nameSimilarity()))
+			.and(distanceComparable(latitude, longitude, distanceExpr, cursor))
+			.and(categoryScore.lt(cursor.categoryMatch())));
+
+		cond = or(cond, nameExactScore.eq(cursor.nameExact())
+			.and(nameSimilarity.eq(cursor.nameSimilarity()))
+			.and(distanceComparable(latitude, longitude, distanceExpr, cursor))
+			.and(categoryScore.eq(cursor.categoryMatch()))
+			.and(addressScore.lt(cursor.addressMatch())));
+
+		cond = or(cond, nameExactScore.eq(cursor.nameExact())
+			.and(nameSimilarity.eq(cursor.nameSimilarity()))
+			.and(distanceComparable(latitude, longitude, distanceExpr, cursor))
+			.and(categoryScore.eq(cursor.categoryMatch()))
+			.and(addressScore.eq(cursor.addressMatch()))
+			.and(r.updatedAt.lt(cursor.updatedAt())));
+
+		cond = or(cond, nameExactScore.eq(cursor.nameExact())
+			.and(nameSimilarity.eq(cursor.nameSimilarity()))
+			.and(distanceComparable(latitude, longitude, distanceExpr, cursor))
+			.and(categoryScore.eq(cursor.categoryMatch()))
+			.and(addressScore.eq(cursor.addressMatch()))
+			.and(r.updatedAt.eq(cursor.updatedAt()))
+			.and(r.id.lt(cursor.id())));
+
+		return cond;
+	}
+
+	private BooleanExpression cursorCondition(SearchCursor cursor, QRestaurant r, String keywordLower,
+		Double latitude, Double longitude, NumberExpression<Integer> categoryScore) {
+		if (cursor == null) {
+			return null;
+		}
+
+		NumberExpression<Integer> nameExactScore = nameExactScore(r, keywordLower);
+		NumberExpression<Double> nameSimilarity = nameSimilarity(r, keywordLower);
+		NumberExpression<Double> distanceExpr = distanceMeters(r, latitude, longitude);
 		NumberExpression<Integer> addressScore = addressMatchScore(r, keywordLower);
 
 		BooleanExpression cond = null;
