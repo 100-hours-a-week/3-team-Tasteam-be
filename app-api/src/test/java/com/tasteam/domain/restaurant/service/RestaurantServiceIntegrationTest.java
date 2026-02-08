@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -361,6 +362,35 @@ class RestaurantServiceIntegrationTest {
 	class UpdateRestaurant {
 
 		@Test
+		@DisplayName("이름만 수정하면 이름만 변경되고 나머지 상태는 유지된다")
+		void updateRestaurant_nameOnly_changesOnlyTargetField() {
+			var createRequest = RestaurantRequestFixture.createRestaurantRequest(
+				"원래 식당", "서울시 강남구 역삼동 111", "02-4444-5555", null);
+
+			RestaurantCreateResponse created = restaurantService.createRestaurant(createRequest);
+			Restaurant before = restaurantRepository.findById(created.id()).orElseThrow();
+			String beforeAddress = before.getFullAddress();
+			long beforeCategoryCount = restaurantFoodCategoryRepository.countByRestaurantId(created.id());
+			long beforeImageCount = domainImageRepository.countByDomainTypeAndDomainId(DomainType.RESTAURANT,
+				created.id());
+
+			RestaurantUpdateRequest updateRequest = new RestaurantUpdateRequest(
+				"이름만 변경",
+				null,
+				null);
+
+			restaurantService.updateRestaurant(created.id(), updateRequest);
+
+			Restaurant after = restaurantRepository.findById(created.id()).orElseThrow();
+			assertThat(after.getName()).isEqualTo("이름만 변경");
+			assertThat(after.getFullAddress()).isEqualTo(beforeAddress);
+			assertThat(restaurantFoodCategoryRepository.countByRestaurantId(created.id()))
+				.isEqualTo(beforeCategoryCount);
+			assertThat(domainImageRepository.countByDomainTypeAndDomainId(DomainType.RESTAURANT, created.id()))
+				.isEqualTo(beforeImageCount);
+		}
+
+		@Test
 		@DisplayName("음식점 이미지를 수정하면 기존 이미지가 삭제되고 새 이미지가 등록된다")
 		void updateRestaurantImages() {
 			createAndSaveImage(RESTAURANT_IMAGE_UUID_3, "restaurants/old.png", "old.png");
@@ -392,15 +422,19 @@ class RestaurantServiceIntegrationTest {
 		}
 
 		@Test
-		@DisplayName("존재하지 않는 이미지를 지정하면 음식점 수정에 실패한다")
+		@DisplayName("존재하지 않는 이미지를 지정하면 수정이 롤백된다")
 		void updateRestaurant_withMissingImage_fails() {
 			var createRequest = RestaurantRequestFixture.createRestaurantRequest(
 				"이미지 누락 테스트", "서울시 강남구 역삼동 999", "02-9999-9999", null);
 
 			RestaurantCreateResponse created = restaurantService.createRestaurant(createRequest);
+			Restaurant before = restaurantRepository.findById(created.id()).orElseThrow();
+			long beforeImageCount = domainImageRepository.countByDomainTypeAndDomainId(DomainType.RESTAURANT,
+				created.id());
+			long beforeCategoryCount = restaurantFoodCategoryRepository.countByRestaurantId(created.id());
 
 			RestaurantUpdateRequest updateRequest = new RestaurantUpdateRequest(
-				"이미지 누락 테스트",
+				"수정 시도 이름",
 				null,
 				List.of(RESTAURANT_IMAGE_UUID_MISSING));
 
@@ -408,6 +442,22 @@ class RestaurantServiceIntegrationTest {
 				.isInstanceOf(BusinessException.class)
 				.extracting(ex -> ((BusinessException)ex).getErrorCode())
 				.isEqualTo(FileErrorCode.FILE_NOT_FOUND.name());
+
+			Restaurant after = restaurantRepository.findById(created.id()).orElseThrow();
+			assertThat(after.getName()).isEqualTo(before.getName());
+			assertThat(domainImageRepository.countByDomainTypeAndDomainId(DomainType.RESTAURANT, created.id()))
+				.isEqualTo(beforeImageCount);
+			assertThat(restaurantFoodCategoryRepository.countByRestaurantId(created.id()))
+				.isEqualTo(beforeCategoryCount);
+		}
+
+		@Test
+		@DisplayName("존재하지 않는 음식점을 수정하면 예외가 발생한다")
+		void updateRestaurant_notFound_throwsBusinessException() {
+			RestaurantUpdateRequest updateRequest = new RestaurantUpdateRequest("없는 식당", null, null);
+
+			assertThatThrownBy(() -> restaurantService.updateRestaurant(Long.MAX_VALUE, updateRequest))
+				.isInstanceOf(BusinessException.class);
 		}
 	}
 
@@ -427,6 +477,7 @@ class RestaurantServiceIntegrationTest {
 
 			Restaurant deleted = restaurantRepository.findById(created.id()).orElseThrow();
 			assertThat(deleted.getDeletedAt()).isNotNull();
+			assertThat(restaurantRepository.findByIdAndDeletedAtIsNull(created.id())).isEmpty();
 		}
 
 		@Test
@@ -444,6 +495,34 @@ class RestaurantServiceIntegrationTest {
 			List<DomainImage> domainImages = domainImageRepository.findAllByDomainTypeAndDomainId(
 				DomainType.RESTAURANT, created.id());
 			assertThat(domainImages).isEmpty();
+		}
+
+		@Test
+		@DisplayName("이미 삭제된 음식점을 다시 삭제해도 상태는 유지된다")
+		void deleteRestaurant_idempotentWhenAlreadyDeleted() {
+			var request = RestaurantRequestFixture.createRestaurantRequest(
+				"재삭제 식당", "서울시 강남구 역삼동 334", "02-6666-8888", null);
+
+			RestaurantCreateResponse created = restaurantService.createRestaurant(request);
+			restaurantService.deleteRestaurant(created.id());
+
+			Instant firstDeletedAt = restaurantRepository.findById(created.id()).orElseThrow().getDeletedAt();
+			restaurantService.deleteRestaurant(created.id());
+			Instant secondDeletedAt = restaurantRepository.findById(created.id()).orElseThrow().getDeletedAt();
+
+			assertThat(secondDeletedAt).isEqualTo(firstDeletedAt);
+		}
+
+		@Test
+		@DisplayName("존재하지 않는 음식점을 삭제하면 아무 일도 일어나지 않는다")
+		void deleteRestaurant_notFound_noop() {
+			long beforeRestaurantCount = restaurantRepository.count();
+			long beforeDomainImageCount = domainImageRepository.count();
+
+			restaurantService.deleteRestaurant(Long.MAX_VALUE);
+
+			assertThat(restaurantRepository.count()).isEqualTo(beforeRestaurantCount);
+			assertThat(domainImageRepository.count()).isEqualTo(beforeDomainImageCount);
 		}
 	}
 
