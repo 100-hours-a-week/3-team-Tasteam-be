@@ -1,5 +1,8 @@
 server:
   shutdown: graceful
+  tomcat:
+    mbeanregistry:
+      enabled: true
 
 spring:
   config:
@@ -15,6 +18,18 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 10000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+
+  flyway:
+    url: ${FLYWAY_URL:${DB_URL}}
+    user: ${FLYWAY_USER:${DB_USERNAME}}
+    password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
 
   data:
     redis:
@@ -23,13 +38,14 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
-    defer-datasource-initialization: true
+      ddl-auto: validate
+    properties:
+      hibernate:
+        generate_statistics: true
 
   sql:
     init:
-      mode: always
-      data-locations: classpath:data-dev.sql
+      mode: never
 
   security:
     cookie:
@@ -62,6 +78,10 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+logging:
+  level:
+    org.springdoc: ERROR
+
 naver:
   maps:
     base-url: https://maps.apigw.ntruss.com
@@ -71,8 +91,13 @@ naver:
 tasteam:
   storage:
     type: s3
+    region: ${STORAGE_REGION:ap-northeast-2}
+    bucket: ${STORAGE_BUCKET:}
+    base-url: ${STORAGE_BASE_URL:https://tasteam.kr}
+    access-mode: ${STORAGE_ACCESS_MODE:presigned}
+    presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:300}
   webhook:
-    enabled: true
+    enabled: false
     provider: discord
     discord:
       url: ${DISCORD_WEBHOOK_URL:}

@@ -57,10 +57,23 @@ INSERT INTO food_category (id, name) VALUES
 INSERT INTO restaurant_food_category (id, restaurant_id, food_category_id) VALUES
   (6301, 6001, 6201);
 
-INSERT INTO restaurant_image (
-  id, restaurant_id, image_url, sort_order, deleted_at, created_at
+-- Images (DomainImage 기반 샘플)
+INSERT INTO image (
+  id, file_name, file_size, file_type, storage_key, file_uuid, status, purpose, deleted_at, created_at, updated_at
 ) VALUES
-  (6401, 6001, 'https://picsum.photos/seed/tasteam-restaurant/800/600', 1, NULL, now());
+  (8001, 'restaurant-6001.jpg', 102400, 'image/jpeg', 'seed/restaurants/6001.jpg',
+   '11111111-1111-1111-1111-111111111111', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now()),
+  (8002, 'review-7001.jpg', 204800, 'image/jpeg', 'seed/reviews/7001.jpg',
+   '22222222-2222-2222-2222-222222222222', 'ACTIVE', 'REVIEW_IMAGE', NULL, now(), now()),
+  (8003, 'restaurant-6002.jpg', 102400, 'image/jpeg', 'seed/restaurants/6002.jpg',
+   '33333333-3333-3333-3333-333333333333', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now());
+
+INSERT INTO domain_image (
+  id, domain_type, domain_id, image_id, sort_order, created_at
+) VALUES
+  (8101, 'RESTAURANT', 6001, 8001, 0, now()),
+  (8102, 'REVIEW', 7001, 8002, 0, now()),
+  (8103, 'RESTAURANT', 6002, 8003, 0, now());
 
 -- Reviews
 INSERT INTO review (
@@ -77,11 +90,6 @@ INSERT INTO keyword (id, type, name) VALUES
 INSERT INTO review_keyword (id, review_id, keyword_id) VALUES
   (7201, 7001, 7101),
   (7202, 7001, 7102);
-
-INSERT INTO review_image (
-  id, review_id, image_url, deleted_at, created_at
-) VALUES
-  (7301, 7001, 'https://picsum.photos/seed/tasteam-review/800/600', NULL, now());
 
 -- Member search history (table name has a typo in entity mapping)
 INSERT INTO member_serach_history (
@@ -147,11 +155,6 @@ INSERT INTO food_category (id, name) VALUES
 INSERT INTO restaurant_food_category (id, restaurant_id, food_category_id) VALUES
   (6302, 6002, 6203);
 
-INSERT INTO restaurant_image (
-  id, restaurant_id, image_url, sort_order, deleted_at, created_at
-) VALUES
-  (6402, 6002, 'https://picsum.photos/seed/tasteam-cafe/800/600', 1, NULL, now());
-
 -- Additional reviews
 INSERT INTO review (
   id, restaurant_id, member_id, group_id, subgroup_id,
@@ -167,11 +170,6 @@ INSERT INTO keyword (id, type, name) VALUES
 INSERT INTO review_keyword (id, review_id, keyword_id) VALUES
   (7203, 7002, 7103),
   (7204, 7002, 7104);
-
-INSERT INTO review_image (
-  id, review_id, image_url, deleted_at, created_at
-) VALUES
-  (7302, 7002, 'https://picsum.photos/seed/tasteam-review-2/800/600', NULL, now());
 
 -- Member OAuth account
 INSERT INTO member_oauth_account (
@@ -193,9 +191,9 @@ INSERT INTO image (
   status, purpose, deleted_at, created_at, updated_at
 ) VALUES
   (9001, 'review-7002.jpg', 123456, 'image/jpeg', 'uploads/review/review-7002.jpg',
-   '11111111-1111-1111-1111-111111111111', 'ACTIVE', 'REVIEW_IMAGE', NULL, now(), now()),
+   '44444444-4444-4444-4444-444444444444', 'ACTIVE', 'REVIEW_IMAGE', NULL, now(), now()),
   (9002, 'restaurant-6002.jpg', 234567, 'image/jpeg', 'uploads/restaurant/restaurant-6002.jpg',
-   '22222222-2222-2222-2222-222222222222', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now());
+   '55555555-5555-5555-5555-555555555555', 'ACTIVE', 'RESTAURANT_IMAGE', NULL, now(), now());
 
 INSERT INTO domain_image (
   id, domain_type, domain_id, image_id, sort_order, created_at
@@ -368,20 +366,6 @@ INSERT INTO restaurant_food_category (id, restaurant_id, food_category_id) VALUE
   (8305, 8005, 6209), (8306, 8006, 6210), (8307, 8007, 6201), (8308, 8008, 6202),
   (8309, 8009, 6204), (8310, 8010, 6203);
 
-INSERT INTO restaurant_image (
-  id, restaurant_id, image_url, sort_order, deleted_at, created_at
-) VALUES
-  (8401, 8001, 'https://picsum.photos/seed/tasteam-r1/800/600', 1, NULL, now()),
-  (8402, 8002, 'https://picsum.photos/seed/tasteam-r2/800/600', 1, NULL, now()),
-  (8403, 8003, 'https://picsum.photos/seed/tasteam-r3/800/600', 1, NULL, now()),
-  (8404, 8004, 'https://picsum.photos/seed/tasteam-r4/800/600', 1, NULL, now()),
-  (8405, 8005, 'https://picsum.photos/seed/tasteam-r5/800/600', 1, NULL, now()),
-  (8406, 8006, 'https://picsum.photos/seed/tasteam-r6/800/600', 1, NULL, now()),
-  (8407, 8007, 'https://picsum.photos/seed/tasteam-r7/800/600', 1, NULL, now()),
-  (8408, 8008, 'https://picsum.photos/seed/tasteam-r8/800/600', 1, NULL, now()),
-  (8409, 8009, 'https://picsum.photos/seed/tasteam-r9/800/600', 1, NULL, now()),
-  (8410, 8010, 'https://picsum.photos/seed/tasteam-r10/800/600', 1, NULL, now());
-
 -- Reviews (10)
 INSERT INTO review (
   id, restaurant_id, member_id, group_id, subgroup_id,
@@ -414,20 +398,6 @@ INSERT INTO review_keyword (id, review_id, keyword_id) VALUES
   (9201, 9001, 7118), (9202, 9002, 7111), (9203, 9003, 7117), (9204, 9004, 7116),
   (9205, 9005, 7110), (9206, 9006, 7114), (9207, 9007, 7119), (9208, 9008, 7112),
   (9209, 9009, 7113), (9210, 9010, 7115);
-
-INSERT INTO review_image (
-  id, review_id, image_url, deleted_at, created_at
-) VALUES
-  (9101, 9001, 'https://picsum.photos/seed/tasteam-v1/800/600', NULL, now()),
-  (9102, 9002, 'https://picsum.photos/seed/tasteam-v2/800/600', NULL, now()),
-  (9103, 9003, 'https://picsum.photos/seed/tasteam-v3/800/600', NULL, now()),
-  (9104, 9004, 'https://picsum.photos/seed/tasteam-v4/800/600', NULL, now()),
-  (9105, 9005, 'https://picsum.photos/seed/tasteam-v5/800/600', NULL, now()),
-  (9106, 9006, 'https://picsum.photos/seed/tasteam-v6/800/600', NULL, now()),
-  (9107, 9007, 'https://picsum.photos/seed/tasteam-v7/800/600', NULL, now()),
-  (9108, 9008, 'https://picsum.photos/seed/tasteam-v8/800/600', NULL, now()),
-  (9109, 9009, 'https://picsum.photos/seed/tasteam-v9/800/600', NULL, now()),
-  (9110, 9010, 'https://picsum.photos/seed/tasteam-v10/800/600', NULL, now());
 
 -- File domain images (10 restaurants + 10 reviews)
 INSERT INTO image (

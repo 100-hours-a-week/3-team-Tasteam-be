@@ -333,20 +333,23 @@ erDiagram
         - status: `200`
         - body
             - `data.fileUuid`: string
-            - `data.url`: string - `tasteam.storage.baseUrl + storageKey` 조합(또는 S3 base URL)
+            - `data.url`: string - `tasteam.storage.baseUrl + storageKey` 조합(또는 presigned GET URL)
         - 예시(JSON)
             ```json
             {
               "data": {
                 "fileUuid": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
-                "url": "https://cdn.example.com/uploads/temp/a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012.jpg"
+                "url": "https://img.tasteam.com/uploads/temp/a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012.jpg"
               }
             }
             ```
+        - **운영 모드(전환 가능):**
+            - `access-mode=public`: Client → CloudFront → S3(private) 또는 Public Bucket. 사용자에게 제공되는 URL은 CloudFront/커스텀 도메인.
+            - `access-mode=presigned`: S3 private + presigned GET으로 조회(쿼리스트링 포함 URL 반환).
     - **처리 로직:**
         1. Image 행 조회(fileUuid)
         2. `status=ACTIVE`가 아니면 에러(`FILE_NOT_ACTIVE`)
-        3. `url = baseUrl + storageKey`로 조합해 반환
+        3. `access-mode=presigned`면 presigned GET, 아니면 `url = baseUrl + storageKey` 조합해 반환
     - **에러 코드:** `RESOURCE_NOT_FOUND`, `FILE_NOT_ACTIVE`, `INTERNAL_SERVER_ERROR`
 
 <br>
@@ -378,7 +381,7 @@ erDiagram
             - `data.items[]`: array
                 - `id`: number - Image 테이블 내부 PK
                 - `fileUuid`: string - 외부 식별자
-                - `url`: string - 내부에서 `baseUrl + objectKey`로 조합한 이미지 URL
+                - `url`: string - 내부에서 `baseUrl + objectKey` 조합 또는 presigned GET URL
         - 예시(JSON)
             ```json
             {
@@ -387,7 +390,7 @@ erDiagram
                   {
                     "id": 101,
                     "fileUuid": "a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012",
-                    "url": "https://cdn.example.com/uploads/temp/a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012.jpg"
+                    "url": "https://img.tasteam.com/uploads/temp/a3f1c9e0-7a9b-4e9c-bc2e-1f2c33aa9012.jpg"
                   }
                 ]
               }
@@ -396,7 +399,7 @@ erDiagram
     - **처리 로직:**
         1. `fileUuids` 입력 검증 및 길이 제한
         2. Image 조회 (`file_uuid`, `id`, `storage_key`)
-        3. `url = baseUrl + storage_key` 조합 후 DTO 매핑
+        3. `access-mode=presigned`면 presigned GET, 아니면 `url = baseUrl + storage_key` 조합 후 DTO 매핑
     - **트랜잭션 관리:** 조회 전용(읽기 전용 트랜잭션)
     - **동시성/멱등성:** 조회는 멱등, 캐시 가능(`fileUuid` 기준)
     - **에러 코드:** `INVALID_REQUEST`, `RESOURCE_NOT_FOUND`, `INTERNAL_SERVER_ERROR`
@@ -411,6 +414,29 @@ erDiagram
 | `FILE_NOT_FOUND` | 404 | fileUuid가 없음 | no | 클라이언트 재요청 시 fileUuid 재발급 |
 | `FILE_CONFLICT` | 409 | 동일 도메인-이미지 연결 이미 존재 | no | domain_links unique constraint |
 | `INTERNAL_SERVER_ERROR` | 500 | 서버 오류(DB/S3) | yes | 복구/재시도 후 재검증 |
+
+<br>
+
+### **[3-3-1] S3 오류 코드 매핑 (Presigned POST/GET, DeleteObject)**
+
+| S3 ErrorCode | 응답 코드 | ErrorCode | 의미(요약) | retryable |
+|---|---:|---|---|---|
+| `AccessDenied` | 403 | `STORAGE_ACCESS_DENIED` | S3 접근 권한 없음 | no |
+| `InvalidAccessKeyId` | 403 | `STORAGE_INVALID_CREDENTIALS` | 자격 증명 불일치 | no |
+| `SignatureDoesNotMatch` | 403 | `STORAGE_SIGNATURE_MISMATCH` | 서명 불일치 | no |
+| `ExpiredToken`, `InvalidToken` | 401 | `STORAGE_TOKEN_EXPIRED` | 토큰 만료/무효 | no |
+| `RequestTimeTooSkewed`, `RequestExpired` | 400 | `STORAGE_REQUEST_EXPIRED` | 요청 시간 불일치 | no |
+| `NoSuchBucket` | 404 | `STORAGE_BUCKET_NOT_FOUND` | 버킷 없음 | no |
+| `NoSuchKey` | 404 | `STORAGE_OBJECT_NOT_FOUND` | 객체 없음 | no |
+| `InvalidBucketName`, `InvalidBucketState` | 400 | `STORAGE_BUCKET_INVALID` | 버킷 설정 오류 | no |
+| `InvalidArgument`, `InvalidRequest`, `InvalidDigest`, `BadDigest`, `MissingContentLength`, `InvalidPart`, `InvalidPartOrder` | 400 | `STORAGE_INVALID_REQUEST` | 요청 형식 오류 | no |
+| `EntityTooLarge` | 413 | `STORAGE_ENTITY_TOO_LARGE` | 업로드 크기 초과 | no |
+| `EntityTooSmall` | 400 | `STORAGE_ENTITY_TOO_SMALL` | 업로드 크기 미달 | no |
+| `SlowDown`, `Throttling`, `ThrottlingException` | 429 | `STORAGE_THROTTLED` | 요청 과다 | yes |
+| `ServiceUnavailable` | 503 | `STORAGE_SERVICE_UNAVAILABLE` | S3 일시 장애 | yes |
+| `InternalError` | 502 | `STORAGE_INTERNAL_ERROR` | S3 내부 오류 | yes |
+| 네트워크/연결 실패 | 503 | `EXTERNAL_SERVICE_UNAVAILABLE` | 외부 서비스 연결 실패 | yes |
+| 타임아웃 | 504 | `EXTERNAL_SERVICE_TIMEOUT` | 외부 서비스 응답 지연 | yes |
 
 
 ## **[3-4] 기술 스택 (Technology Stack)**

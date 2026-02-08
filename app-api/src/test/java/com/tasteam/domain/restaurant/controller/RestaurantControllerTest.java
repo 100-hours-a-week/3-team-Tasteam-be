@@ -4,10 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willDoNothing;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,11 +24,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.ControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
-import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
-import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
 import com.tasteam.domain.restaurant.service.RestaurantService;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.domain.review.service.ReviewService;
@@ -138,7 +133,7 @@ class RestaurantControllerTest {
 		void 음식점_상세_조회_성공() throws Exception {
 			// given
 			RestaurantDetailResponse response = new RestaurantDetailResponse(
-				1L, "맛집식당", "서울시 강남구", List.of("한식"),
+				1L, "맛집식당", "서울시 강남구", "02-1234-5678", List.of("한식"),
 				List.of(), new RestaurantImageDto(1L, "https://example.com/img.jpg"),
 				false,
 				new RestaurantDetailResponse.RecommendStatResponse(10L, 2L, 83L),
@@ -158,64 +153,6 @@ class RestaurantControllerTest {
 	}
 
 	@Nested
-	@DisplayName("음식점 등록")
-	class CreateRestaurant {
-
-		@Test
-		@DisplayName("음식점 정보를 등록하면 201과 생성된 ID를 반환한다")
-		void 음식점_등록_성공() throws Exception {
-			// given
-			RestaurantCreateResponse response = new RestaurantCreateResponse(1L, Instant.now());
-			given(restaurantService.createRestaurant(any())).willReturn(response);
-
-			// when & then
-			mockMvc.perform(post("/api/v1/restaurants")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(RestaurantRequestFixture.createRestaurantRequest())))
-				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.id").value(1));
-		}
-	}
-
-	@Nested
-	@DisplayName("음식점 수정")
-	class UpdateRestaurant {
-
-		@Test
-		@DisplayName("음식점 정보를 수정하면 수정된 정보를 반환한다")
-		void 음식점_수정_성공() throws Exception {
-			// given
-			RestaurantUpdateResponse response = new RestaurantUpdateResponse(1L, Instant.now(), Instant.now());
-			given(restaurantService.updateRestaurant(eq(1L), any())).willReturn(response);
-
-			// when & then
-			mockMvc.perform(patch("/api/v1/restaurants/{restaurantId}", 1L)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(RestaurantRequestFixture.createUpdateRequest())))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.id").value(1));
-		}
-	}
-
-	@Nested
-	@DisplayName("음식점 삭제")
-	class DeleteRestaurant {
-
-		@Test
-		@DisplayName("음식점을 삭제하면 204를 반환한다")
-		void 음식점_삭제_성공() throws Exception {
-			// given
-			willDoNothing().given(restaurantService).deleteRestaurant(1L);
-
-			// when & then
-			mockMvc.perform(delete("/api/v1/restaurants/{restaurantId}", 1L))
-				.andExpect(status().isNoContent());
-		}
-	}
-
-	@Nested
 	@DisplayName("음식점 리뷰 목록 조회")
 	class GetRestaurantReviews {
 
@@ -224,11 +161,11 @@ class RestaurantControllerTest {
 		void 음식점_리뷰_목록_조회_성공() throws Exception {
 			// given
 			CursorPageResponse<ReviewResponse> response = new CursorPageResponse<>(
-				List.of(new ReviewResponse(1L,
+				List.of(new ReviewResponse(1L, 2L, 3L, "테스트그룹", "테스트하위그룹",
 					new ReviewResponse.AuthorResponse("테스트유저"),
 					"맛있어요", true, List.of("친절", "깨끗"),
-					new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg"),
-					Instant.now())),
+					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
+					Instant.now(), null, null, null, null, null, null)),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(reviewService.getRestaurantReviews(eq(1L), any())).willReturn(response);

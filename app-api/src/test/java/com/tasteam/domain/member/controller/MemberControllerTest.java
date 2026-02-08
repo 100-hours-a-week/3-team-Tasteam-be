@@ -40,6 +40,7 @@ import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
 import com.tasteam.domain.subgroup.service.SubgroupService;
+import com.tasteam.fixture.MemberRequestFixture;
 
 @ControllerWebMvcTest(MemberController.class)
 class MemberControllerTest {
@@ -71,7 +72,7 @@ class MemberControllerTest {
 		void 내_정보_조회_성공() throws Exception {
 			// given
 			MemberMeResponse response = new MemberMeResponse(
-				new MemberSummaryResponse("테스트유저", "https://example.com/profile.jpg"),
+				new MemberSummaryResponse("테스트유저", "소개", "https://example.com/profile.jpg"),
 				MemberPreviewResponse.empty(),
 				MemberPreviewResponse.empty());
 
@@ -170,8 +171,7 @@ class MemberControllerTest {
 			// given
 			willDoNothing().given(memberService).updateMyProfile(any(), any());
 
-			MemberProfileUpdateRequest request = new MemberProfileUpdateRequest(
-				"new@example.com", "https://example.com/new-profile.jpg");
+			MemberProfileUpdateRequest request = MemberRequestFixture.profileUpdateRequest();
 
 			// when & then
 			mockMvc.perform(patch("/api/v1/members/me/profile")

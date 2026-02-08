@@ -5,15 +5,11 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
-import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
-import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
-import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
-import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
 import com.tasteam.domain.review.dto.request.ReviewCreateRequest;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
@@ -33,17 +29,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public interface RestaurantControllerDocs {
 
 	@Operation(summary = "음식점 목록 조회", description = "지정한 위치 조건으로 주변 음식점을 커서 기반으로 조회합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	SuccessResponse<CursorPageResponse<RestaurantListItem>> getRestaurants(
 		@Validated @ParameterObject
 		NearbyRestaurantQueryParams queryParams);
-
-	@Operation(summary = "음식점 등록", description = "관리자 권한으로 음식점을 등록합니다.")
-	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = RestaurantCreateRequest.class)))
-	@ApiResponse(responseCode = "201", description = "등록 완료", content = @Content(schema = @Schema(implementation = RestaurantCreateResponse.class)))
-	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_CREATE")
-	SuccessResponse<RestaurantCreateResponse> createRestaurant(
-		RestaurantCreateRequest request);
 
 	@Operation(summary = "음식점 상세 조회", description = "음식점 상세 정보를 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = RestaurantDetailResponse.class)))
@@ -52,24 +41,8 @@ public interface RestaurantControllerDocs {
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
 		Long restaurantId);
 
-	@Operation(summary = "음식점 수정", description = "관리자 권한으로 음식점을 수정합니다.")
-	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = RestaurantUpdateRequest.class)))
-	@ApiResponse(responseCode = "200", description = "수정 완료", content = @Content(schema = @Schema(implementation = RestaurantUpdateResponse.class)))
-	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_UPDATE")
-	SuccessResponse<RestaurantUpdateResponse> updateRestaurant(
-		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
-		Long restaurantId,
-		RestaurantUpdateRequest request);
-
-	@Operation(summary = "음식점 삭제", description = "관리자 권한으로 음식점을 삭제합니다.")
-	@ApiResponse(responseCode = "204", description = "삭제 완료")
-	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_DELETE")
-	void deleteRestaurant(
-		@Parameter(description = "음식점 ID", example = "1001") @PathVariable
-		Long restaurantId);
-
 	@Operation(summary = "음식점 리뷰 목록 조회", description = "음식점 리뷰를 커서 기반으로 조회합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = CursorPageResponse.class)))
+	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_REVIEWS")
 	SuccessResponse<CursorPageResponse<ReviewResponse>> getRestaurantReviews(
 		@Parameter(description = "음식점 ID", example = "1001") @PathVariable

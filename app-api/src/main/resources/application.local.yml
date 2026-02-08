@@ -9,6 +9,8 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/tasteam}
     username: ${DB_USERNAME:tasteam}
     password: ${DB_PASSWORD:tasteam}
+    hikari:
+      connection-timeout: 10000
 
   data:
     redis:
@@ -18,16 +20,26 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create
+    defer-datasource-initialization: true
+
     properties:
       hibernate:
         format_sql: true
         show_sql: true
-    defer-datasource-initialization: true
+        generate_statistics: true
+
+  flyway:
+    enabled: false
+    url: ${FLYWAY_URL:${DB_URL:jdbc:postgresql://localhost:5432/tasteam}}
+    user: ${FLYWAY_USER:${DB_USERNAME:tasteam}}
+    password: ${FLYWAY_PASSWORD:${DB_PASSWORD:tasteam}}
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
 
   sql:
     init:
       mode: always
-      data-locations: classpath:data.sql
 
   security:
     jwt:
@@ -39,6 +51,7 @@ logging:
     org.hibernate.SQL: debug
     org.hibernate.tool.schema: debug
     org.springframework.security: DEBUG
+    org.springdoc: ERROR
 
 naver:
   maps:

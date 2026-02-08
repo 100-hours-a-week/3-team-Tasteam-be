@@ -9,9 +9,23 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        generate_statistics: true
+
+  flyway:
+    enabled: false 
 
   security:
     jwt:
       secret: test-secret-129310298301928309128309182309182308490127403912380912
       accessTokenExpiration: 1800000
       refreshTokenExpiration: 1209600000
+
+tasteam:
+  admin:
+    username: admin
+    password: admin
+  aop:
+    logging:
+      enabled: true
+      transactional-query-logging:
+        enabled: true

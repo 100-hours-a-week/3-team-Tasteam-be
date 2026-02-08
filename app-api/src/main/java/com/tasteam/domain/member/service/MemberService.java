@@ -4,16 +4,26 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.dto.response.DomainImageItem;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.repository.DomainImageRepository;
+import com.tasteam.domain.file.service.DomainImageLinker;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
+import com.tasteam.domain.member.dto.response.MemberGroupDetailSummaryResponse;
+import com.tasteam.domain.member.dto.response.MemberGroupDetailSummaryRow;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryRow;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
+import com.tasteam.domain.member.dto.response.MemberSubgroupDetailSummaryResponse;
+import com.tasteam.domain.member.dto.response.MemberSubgroupDetailSummaryRow;
 import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryRow;
 import com.tasteam.domain.member.entity.Member;
@@ -21,10 +31,13 @@ import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.subgroup.repository.SubgroupMemberRepository;
 import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MemberService {
@@ -32,11 +45,15 @@ public class MemberService {
 	private final MemberRepository memberRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final SubgroupMemberRepository subgroupMemberRepository;
+	private final DomainImageRepository domainImageRepository;
+	private final FileService fileService;
+	private final DomainImageLinker domainImageLinker;
 
 	@Transactional(readOnly = true)
 	public MemberMeResponse getMyProfile(Long memberId) {
 		Member member = getActiveMember(memberId);
-		return MemberMeResponse.from(member);
+		String profileImageUrl = resolveProfileImageUrl(member);
+		return MemberMeResponse.from(member, profileImageUrl);
 	}
 
 	@Transactional(readOnly = true)
@@ -72,6 +89,49 @@ public class MemberService {
 		return new ArrayList<>(grouped.values());
 	}
 
+	@Transactional(readOnly = true)
+	public List<MemberGroupDetailSummaryResponse> getMyGroupDetails(Long memberId) {
+		getActiveMember(memberId);
+		List<MemberGroupDetailSummaryRow> groupRows = groupMemberRepository.findMemberGroupDetailSummaries(
+			memberId,
+			GroupStatus.ACTIVE);
+		List<MemberSubgroupDetailSummaryRow> subgroupRows = subgroupMemberRepository.findMemberSubgroupDetailSummaries(
+			memberId,
+			SubgroupStatus.ACTIVE,
+			GroupStatus.ACTIVE);
+
+		Map<Long, String> groupImageUrlById = resolveDomainImageUrlMap(
+			DomainType.GROUP,
+			groupRows.stream().map(MemberGroupDetailSummaryRow::groupId).toList());
+		Map<Long, String> subgroupImageUrlById = resolveDomainImageUrlMap(
+			DomainType.SUBGROUP,
+			subgroupRows.stream().map(MemberSubgroupDetailSummaryRow::subGroupId).toList());
+
+		Map<Long, MemberGroupDetailSummaryResponse> grouped = new LinkedHashMap<>();
+		for (MemberGroupDetailSummaryRow row : groupRows) {
+			MemberGroupDetailSummaryResponse summary = new MemberGroupDetailSummaryResponse(
+				row.groupId(),
+				row.groupName(),
+				row.groupAddress(),
+				row.groupDetailAddress(),
+				groupImageUrlById.get(row.groupId()),
+				row.groupMemberCount(),
+				new ArrayList<>());
+			grouped.put(row.groupId(), summary);
+		}
+		for (MemberSubgroupDetailSummaryRow row : subgroupRows) {
+			MemberGroupDetailSummaryResponse summary = grouped.get(row.groupId());
+			if (summary != null) {
+				summary.subGroups().add(new MemberSubgroupDetailSummaryResponse(
+					row.subGroupId(),
+					row.subGroupName(),
+					row.memberCount(),
+					subgroupImageUrlById.get(row.subGroupId())));
+			}
+		}
+		return new ArrayList<>(grouped.values());
+	}
+
 	@Transactional
 	public void updateMyProfile(Long memberId, MemberProfileUpdateRequest request) {
 		Member member = getActiveMember(memberId);
@@ -81,9 +141,20 @@ public class MemberService {
 			member.changeEmail(request.email());
 		}
 
-		if (request.profileImageUrl() != null
-			&& !request.profileImageUrl().equals(member.getProfileImageUrl())) {
-			member.changeProfileImageUrl(request.profileImageUrl());
+		if (request.nickname() != null && !request.nickname().equals(member.getNickname())) {
+			member.changeNickname(request.nickname());
+		}
+
+		if (request.introduction() != null && !request.introduction().equals(member.getIntroduction())) {
+			member.changeIntroduction(request.introduction());
+		}
+
+		if (request.profileImageFileUuid() != null) {
+			domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.MEMBER, memberId);
+			domainImageLinker.linkImages(
+				DomainType.MEMBER,
+				memberId,
+				List.of(parseUuid(request.profileImageFileUuid())));
 		}
 	}
 
@@ -102,5 +173,37 @@ public class MemberService {
 		if (memberRepository.existsByEmailAndIdNot(email, memberId)) {
 			throw new BusinessException(MemberErrorCode.EMAIL_ALREADY_EXISTS);
 		}
+	}
+
+	private UUID parseUuid(String fileUuid) {
+		try {
+			return UUID.fromString(fileUuid);
+		} catch (IllegalArgumentException ex) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "fileUuid 형식이 올바르지 않습니다");
+		}
+	}
+
+	private String resolveProfileImageUrl(Member member) {
+		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(
+			DomainType.MEMBER,
+			List.of(member.getId()));
+
+		List<DomainImageItem> memberImages = images.get(member.getId());
+		if (memberImages == null || memberImages.isEmpty()) {
+			return null;
+		}
+		return memberImages.getFirst().url();
+	}
+
+	private Map<Long, String> resolveDomainImageUrlMap(DomainType domainType, List<Long> domainIds) {
+		if (domainIds.isEmpty()) {
+			return Map.of();
+		}
+		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(domainType, domainIds);
+		return images.entrySet().stream()
+			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
+			.collect(java.util.stream.Collectors.toMap(
+				Map.Entry::getKey,
+				entry -> entry.getValue().getFirst().url()));
 	}
 }

@@ -14,11 +14,16 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.file.dto.response.DomainImageItem;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.main.dto.request.MainPageRequest;
+import com.tasteam.domain.main.dto.response.AiRecommendResponse;
+import com.tasteam.domain.main.dto.response.HomePageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Banners;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Section;
@@ -28,11 +33,9 @@ import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
 import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
 import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
-import com.tasteam.domain.restaurant.repository.RestaurantImageRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
-import com.tasteam.domain.restaurant.repository.projection.RestaurantImageProjection;
 
 import lombok.RequiredArgsConstructor;
 
@@ -44,10 +47,10 @@ public class MainService {
 
 	private final RestaurantRepository restaurantRepository;
 	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
-	private final RestaurantImageRepository restaurantImageRepository;
 	private final AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final GroupRepository groupRepository;
+	private final FileService fileService;
 
 	@Transactional(readOnly = true)
 	public MainPageResponse getMain(Long memberId, MainPageRequest request) {
@@ -77,6 +80,54 @@ public class MainService {
 				toSectionItems(aiRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant)));
 
 		return new MainPageResponse(new Banners(false, List.of()), sections);
+	}
+
+	@Transactional(readOnly = true)
+	public HomePageResponse getHome(Long memberId, MainPageRequest request) {
+		LocationContext location = resolveLocation(memberId, request);
+
+		List<MainRestaurantDistanceProjection> newRestaurants = fetchNewSection(location);
+		List<MainRestaurantDistanceProjection> hotRestaurants = fetchHotSection(location);
+
+		Set<Long> allIdSet = new HashSet<>();
+		Stream.of(newRestaurants, hotRestaurants)
+			.flatMap(List::stream)
+			.forEach(r -> allIdSet.add(r.getId()));
+		List<Long> allIds = new ArrayList<>(allIdSet);
+
+		Map<Long, String> categoryByRestaurant = fetchCategories(allIds);
+		Map<Long, String> thumbnailByRestaurant = fetchThumbnails(allIds);
+		Map<Long, String> summaryByRestaurant = fetchSummaries(allIds);
+
+		List<HomePageResponse.Section> sections = List.of(
+			new HomePageResponse.Section("NEW", "신규 개장",
+				toHomeSectionItems(newRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant)),
+			new HomePageResponse.Section("HOT", "이번주 Hot",
+				toHomeSectionItems(hotRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant)));
+
+		return new HomePageResponse(sections);
+	}
+
+	@Transactional(readOnly = true)
+	public AiRecommendResponse getAiRecommend(Long memberId, MainPageRequest request) {
+		LocationContext location = resolveLocation(memberId, request);
+
+		List<MainRestaurantDistanceProjection> aiRestaurants = fetchAiRecommendSection(location);
+
+		List<Long> allIds = aiRestaurants.stream()
+			.map(MainRestaurantDistanceProjection::getId)
+			.toList();
+
+		Map<Long, String> categoryByRestaurant = fetchCategories(allIds);
+		Map<Long, String> thumbnailByRestaurant = fetchThumbnails(allIds);
+		Map<Long, String> summaryByRestaurant = fetchSummaries(allIds);
+
+		AiRecommendResponse.Section section = new AiRecommendResponse.Section(
+			"AI_RECOMMEND",
+			"AI 추천",
+			toAiSectionItems(aiRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant));
+
+		return new AiRecommendResponse(section);
 	}
 
 	private LocationContext resolveLocation(Long memberId, MainPageRequest request) {
@@ -222,13 +273,14 @@ public class MainService {
 		if (restaurantIds.isEmpty()) {
 			return Map.of();
 		}
-		return restaurantImageRepository
-			.findRestaurantImages(restaurantIds)
-			.stream()
+		Map<Long, List<DomainImageItem>> domainImages = fileService.getDomainImageUrls(
+			DomainType.RESTAURANT,
+			restaurantIds);
+		return domainImages.entrySet().stream()
+			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
 			.collect(Collectors.toMap(
-				RestaurantImageProjection::getRestaurantId,
-				RestaurantImageProjection::getImageUrl,
-				(existing, ignored) -> existing));
+				Map.Entry::getKey,
+				entry -> entry.getValue().getFirst().url()));
 	}
 
 	private Map<Long, String> fetchSummaries(List<Long> restaurantIds) {
@@ -256,6 +308,38 @@ public class MainService {
 				categoryByRestaurant.get(restaurant.getId()),
 				thumbnailByRestaurant.get(restaurant.getId()),
 				false,
+				summaryByRestaurant.get(restaurant.getId())))
+			.toList();
+	}
+
+	private List<HomePageResponse.SectionItem> toHomeSectionItems(
+		List<MainRestaurantDistanceProjection> restaurants,
+		Map<Long, String> categoryByRestaurant,
+		Map<Long, String> thumbnailByRestaurant,
+		Map<Long, String> summaryByRestaurant) {
+		return restaurants.stream()
+			.map(restaurant -> new HomePageResponse.SectionItem(
+				restaurant.getId(),
+				restaurant.getName(),
+				restaurant.getDistanceMeter(),
+				categoryByRestaurant.get(restaurant.getId()),
+				thumbnailByRestaurant.get(restaurant.getId()),
+				summaryByRestaurant.get(restaurant.getId())))
+			.toList();
+	}
+
+	private List<AiRecommendResponse.SectionItem> toAiSectionItems(
+		List<MainRestaurantDistanceProjection> restaurants,
+		Map<Long, String> categoryByRestaurant,
+		Map<Long, String> thumbnailByRestaurant,
+		Map<Long, String> summaryByRestaurant) {
+		return restaurants.stream()
+			.map(restaurant -> new AiRecommendResponse.SectionItem(
+				restaurant.getId(),
+				restaurant.getName(),
+				restaurant.getDistanceMeter(),
+				categoryByRestaurant.get(restaurant.getId()),
+				thumbnailByRestaurant.get(restaurant.getId()),
 				summaryByRestaurant.get(restaurant.getId())))
 			.toList();
 	}

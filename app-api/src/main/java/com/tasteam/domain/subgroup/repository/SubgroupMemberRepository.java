@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.tasteam.domain.group.type.GroupStatus;
+import com.tasteam.domain.member.dto.response.MemberSubgroupDetailSummaryRow;
 import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryRow;
 import com.tasteam.domain.subgroup.dto.SubgroupMemberListItem;
 import com.tasteam.domain.subgroup.entity.SubgroupMember;
@@ -52,6 +53,33 @@ public interface SubgroupMemberRepository extends JpaRepository<SubgroupMember, 
 		order by g.id asc, s.id asc
 		""")
 	List<MemberSubgroupSummaryRow> findMemberSubgroupSummaries(
+		@Param("memberId")
+		Long memberId,
+		@Param("activeSubgroupStatus")
+		SubgroupStatus activeSubgroupStatus,
+		@Param("activeGroupStatus")
+		GroupStatus activeGroupStatus);
+
+	@Query("""
+		select new com.tasteam.domain.member.dto.response.MemberSubgroupDetailSummaryRow(
+			g.id,
+			s.id,
+			s.name,
+			s.memberCount,
+			s.profileImageUrl
+		)
+		from SubgroupMember sm
+		join Subgroup s on s.id = sm.subgroupId
+		join s.group g
+		where sm.member.id = :memberId
+			and sm.deletedAt is null
+			and s.deletedAt is null
+			and s.status = :activeSubgroupStatus
+			and g.deletedAt is null
+			and g.status = :activeGroupStatus
+		order by g.name asc, s.name asc
+		""")
+	List<MemberSubgroupDetailSummaryRow> findMemberSubgroupDetailSummaries(
 		@Param("memberId")
 		Long memberId,
 		@Param("activeSubgroupStatus")

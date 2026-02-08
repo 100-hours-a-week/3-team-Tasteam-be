@@ -21,6 +21,7 @@ public final class RestaurantRequestFixture {
 	public static final Integer DEFAULT_SIZE = 20;
 	public static final String DEFAULT_NAME = "테스트식당";
 	public static final String DEFAULT_ADDRESS = "서울시 강남구 테헤란로 1";
+	public static final String DEFAULT_PHONE_NUMBER = "02-1234-5678";
 
 	private RestaurantRequestFixture() {}
 
@@ -36,9 +37,15 @@ public final class RestaurantRequestFixture {
 		return new RestaurantCreateRequest(
 			DEFAULT_NAME,
 			DEFAULT_ADDRESS,
+			DEFAULT_PHONE_NUMBER,
 			List.of(1L, 2L),
 			List.of(UUID.randomUUID()),
 			List.of(new WeeklyScheduleRequest(1, LocalTime.of(9, 0), LocalTime.of(22, 0), false, null, null)));
+	}
+
+	public static RestaurantCreateRequest createRestaurantRequest(String name, String address, String phoneNumber,
+		List<UUID> imageIds) {
+		return new RestaurantCreateRequest(name, address, phoneNumber, null, imageIds, null);
 	}
 
 	public static RestaurantUpdateRequest createUpdateRequest() {
@@ -57,12 +64,12 @@ public final class RestaurantRequestFixture {
 	}
 
 	public static MenuCreateRequest createMenuRequest() {
-		return new MenuCreateRequest(1L, "된장찌개", "구수한 된장찌개", 9000, null, true, 0);
+		return new MenuCreateRequest(1L, "된장찌개", "구수한 된장찌개", 9000, null, null, true, 0);
 	}
 
 	public static MenuBulkCreateRequest createMenuBulkRequest() {
 		return new MenuBulkCreateRequest(List.of(
-			new MenuCreateRequest(1L, "된장찌개", "구수한 된장찌개", 9000, null, true, 0),
-			new MenuCreateRequest(1L, "김치찌개", "매콤한 김치찌개", 8000, null, false, 1)));
+			new MenuCreateRequest(1L, "된장찌개", "구수한 된장찌개", 9000, null, null, true, 0),
+			new MenuCreateRequest(1L, "김치찌개", "매콤한 김치찌개", 8000, null, null, false, 1)));
 	}
 }

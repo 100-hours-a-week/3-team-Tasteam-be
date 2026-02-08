@@ -35,15 +35,19 @@ public class Restaurant extends BaseTimeEntity {
 	@Comment("WGS84")
 	private Point location;
 
+	@Column(name = "phone_number", length = 100)
+	private String phoneNumber;
+
 	@Column(name = "deleted_at")
 	@Comment("소프트 삭제")
 	private Instant deletedAt;
 
-	public static Restaurant create(String name, String fullAddress, Point location) {
+	public static Restaurant create(String name, String fullAddress, Point location, String phoneNumber) {
 		return Restaurant.builder()
 			.name(name)
 			.fullAddress(fullAddress)
 			.location(location)
+			.phoneNumber(phoneNumber)
 			.deletedAt(null)
 			.build();
 	}

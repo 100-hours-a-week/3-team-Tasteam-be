@@ -47,4 +47,12 @@ public class GroupAuthCode extends BaseCreatedAtEntity {
 	public void verify(Instant verifiedAt) {
 		this.verifiedAt = verifiedAt;
 	}
+
+	public static GroupAuthCode create(Long groupId, String code, Instant expiresAt) {
+		return GroupAuthCode.builder()
+			.groupId(groupId)
+			.code(code)
+			.expiresAt(expiresAt)
+			.build();
+	}
 }

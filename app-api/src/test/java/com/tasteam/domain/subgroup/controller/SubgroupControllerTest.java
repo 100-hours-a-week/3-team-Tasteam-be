@@ -48,11 +48,11 @@ class SubgroupControllerTest {
 		void 서브그룹_리뷰_목록_조회_성공() throws Exception {
 			// given
 			CursorPageResponse<ReviewResponse> response = new CursorPageResponse<>(
-				List.of(new ReviewResponse(1L,
+				List.of(new ReviewResponse(1L, 2L, 3L, "테스트그룹", "테스트하위그룹",
 					new ReviewResponse.AuthorResponse("테스트유저"),
 					"맛있어요", true, List.of("친절"),
-					new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg"),
-					Instant.now())),
+					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
+					Instant.now(), 10L, "테스트음식점", null, null, null, "서울시 강남구 테스트로 123")),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(reviewService.getSubgroupReviews(eq(1L), any())).willReturn(response);

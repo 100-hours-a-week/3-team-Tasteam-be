@@ -38,6 +38,8 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.RESTAURANTS),
 			permit(GET, ApiEndpoints.RESTAURANTS_DETAIL),
 			permit(GET, ApiEndpoints.RESTAURANTS_REVIEWS),
+			permit(GET, ApiEndpoints.RESTAURANTS_MENUS),
+			permit(GET, ApiEndpoints.FOOD_CATEGORIES),
 
 			// 메인
 			permit(GET, ApiEndpoints.MAIN),
@@ -46,6 +48,7 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.REVIEWS),
 			permit(GET, ApiEndpoints.REVIEWS_DETAIL),
 			permit(GET, ApiEndpoints.GROUPS_REVIEWS),
+			permit(GET, ApiEndpoints.GROUPS_REVIEWS_RESTAURANTS),
 			permit(GET, ApiEndpoints.SUBGROUPS_REVIEWS),
 			permit(GET, ApiEndpoints.MEMBERS_REVIEWS),
 			permit(GET, ApiEndpoints.GROUPS_DETAIL),
@@ -54,9 +57,6 @@ public final class ApiEndpointSecurityPolicy {
 
 			// 검색 (토큰 유무 무관)
 			permit(POST, ApiEndpoints.SEARCH),
-
-			// 메인 (토큰 유무 무관)
-			permit(GET, ApiEndpoints.MAIN),
 
 			// Swagger
 			permit(GET, ApiEndpoints.SWAGGER_UI),
@@ -69,6 +69,10 @@ public final class ApiEndpointSecurityPolicy {
 			// 모니터링
 			permit(GET, ApiEndpoints.ACTUATOR),
 			permit(GET, ApiEndpoints.HEALTH_CHECK),
+
+			// Admin Static Pages
+			permit(GET, ApiEndpoints.ADMIN_STATIC),
+			permit(POST, ApiEndpoints.ADMIN_AUTH_LOGIN),
 
 			// Test
 			permit(GET, ApiEndpoints.TEST));

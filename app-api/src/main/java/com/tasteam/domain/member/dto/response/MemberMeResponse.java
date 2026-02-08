@@ -6,9 +6,9 @@ public record MemberMeResponse(
 	MemberSummaryResponse member,
 	MemberPreviewResponse<GroupRequestPreviewResponse> groupRequests,
 	MemberPreviewResponse<ReviewSummaryResponse> reviews) {
-	public static MemberMeResponse from(Member member) {
+	public static MemberMeResponse from(Member member, String profileImageUrl) {
 		return new MemberMeResponse(
-			MemberSummaryResponse.from(member),
+			MemberSummaryResponse.from(member, profileImageUrl),
 			MemberPreviewResponse.empty(),
 			MemberPreviewResponse.empty());
 	}

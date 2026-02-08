@@ -18,7 +18,7 @@ public class SubgroupCreateRequest {
 
 	private String description;
 
-	private String profileImageUrl;
+	private String profileImageFileUuid;
 
 	@NotNull
 	private SubgroupJoinType joinType;

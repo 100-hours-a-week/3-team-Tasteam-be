@@ -1,0 +1,237 @@
+package com.tasteam.domain.restaurant.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.tasteam.config.annotation.ServiceIntegrationTest;
+import com.tasteam.domain.file.entity.DomainImage;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.entity.FilePurpose;
+import com.tasteam.domain.file.entity.Image;
+import com.tasteam.domain.file.entity.ImageStatus;
+import com.tasteam.domain.file.repository.DomainImageRepository;
+import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.restaurant.dto.GeocodingResult;
+import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
+import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
+import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
+import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
+import com.tasteam.domain.restaurant.entity.Restaurant;
+import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
+import com.tasteam.domain.restaurant.repository.RestaurantRepository;
+import com.tasteam.fixture.ImageFixture;
+import com.tasteam.fixture.RestaurantRequestFixture;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.FileErrorCode;
+
+@ServiceIntegrationTest
+@Transactional
+class RestaurantServiceIntegrationTest {
+
+	private static final UUID RESTAURANT_IMAGE_UUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+	private static final UUID RESTAURANT_IMAGE_UUID_2 = UUID.fromString("22222222-2222-2222-2222-222222222222");
+	private static final UUID RESTAURANT_IMAGE_UUID_3 = UUID.fromString("33333333-3333-3333-3333-333333333333");
+	private static final UUID RESTAURANT_IMAGE_UUID_4 = UUID.fromString("44444444-4444-4444-4444-444444444444");
+	private static final UUID RESTAURANT_IMAGE_UUID_5 = UUID.fromString("55555555-5555-5555-5555-555555555555");
+	private static final UUID RESTAURANT_IMAGE_UUID_MISSING = UUID.fromString("66666666-6666-6666-6666-666666666666");
+
+	@Autowired
+	private RestaurantService restaurantService;
+
+	@Autowired
+	private RestaurantRepository restaurantRepository;
+
+	@Autowired
+	private ImageRepository imageRepository;
+
+	@Autowired
+	private DomainImageRepository domainImageRepository;
+
+	@MockitoBean
+	private NaverGeocodingClient naverGeocodingClient;
+
+	private GeocodingResult mockGeocodingResult;
+
+	@BeforeEach
+	void setUp() {
+		mockGeocodingResult = new GeocodingResult(
+			"서울특별시",
+			"강남구",
+			"역삼동",
+			"06234",
+			127.0365,
+			37.4979);
+		given(naverGeocodingClient.geocode(anyString())).willReturn(mockGeocodingResult);
+	}
+
+	@Nested
+	@DisplayName("음식점 생성")
+	class CreateRestaurant {
+
+		@Test
+		@DisplayName("이미지 없이 음식점을 생성한다")
+		void createRestaurantWithoutImages() {
+			var request = RestaurantRequestFixture.createRestaurantRequest(
+				"맛있는 식당", "서울시 강남구 역삼동 123", "02-1111-2222", null);
+
+			RestaurantCreateResponse response = restaurantService.createRestaurant(request);
+
+			assertThat(response.id()).isNotNull();
+			assertThat(response.createdAt()).isNotNull();
+
+			Restaurant saved = restaurantRepository.findById(response.id()).orElseThrow();
+			assertThat(saved.getName()).isEqualTo("맛있는 식당");
+		}
+
+		@Test
+		@DisplayName("이미지와 함께 음식점을 생성하면 이미지가 ACTIVE 상태로 변경된다")
+		void createRestaurantWithImages() {
+			createAndSaveImage(RESTAURANT_IMAGE_UUID, "restaurants/restaurant.png", "restaurant.png");
+
+			var request = RestaurantRequestFixture.createRestaurantRequest(
+				"이미지 있는 식당", "서울시 강남구 역삼동 456", "02-2222-3333", List.of(RESTAURANT_IMAGE_UUID));
+
+			RestaurantCreateResponse response = restaurantService.createRestaurant(request);
+
+			assertThat(response.id()).isNotNull();
+
+			Image updatedImage = imageRepository.findByFileUuid(RESTAURANT_IMAGE_UUID).orElseThrow();
+			assertThat(updatedImage.getStatus()).isEqualTo(ImageStatus.ACTIVE);
+
+			List<DomainImage> domainImages = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
+				DomainType.RESTAURANT, List.of(response.id()));
+			assertThat(domainImages).hasSize(1);
+		}
+	}
+
+	@Nested
+	@DisplayName("음식점 상세 조회")
+	class GetRestaurantDetail {
+
+		@Test
+		@DisplayName("음식점 상세를 조회하면 이미지가 포함된다")
+		void getRestaurantDetailWithImage() {
+			createAndSaveImage(RESTAURANT_IMAGE_UUID_2, "restaurants/restaurant.png", "restaurant.png");
+
+			var request = RestaurantRequestFixture.createRestaurantRequest(
+				"상세 조회 식당", "서울시 강남구 역삼동 789", "02-3333-4444", List.of(RESTAURANT_IMAGE_UUID_2));
+
+			RestaurantCreateResponse created = restaurantService.createRestaurant(request);
+
+			RestaurantDetailResponse detail = restaurantService.getRestaurantDetail(created.id());
+
+			assertThat(detail.id()).isEqualTo(created.id());
+			assertThat(detail.name()).isEqualTo("상세 조회 식당");
+			assertThat(detail.image()).isNotNull();
+			assertThat(detail.image().url()).contains("restaurant.png");
+		}
+	}
+
+	@Nested
+	@DisplayName("음식점 수정")
+	class UpdateRestaurant {
+
+		@Test
+		@DisplayName("음식점 이미지를 수정하면 기존 이미지가 삭제되고 새 이미지가 등록된다")
+		void updateRestaurantImages() {
+			createAndSaveImage(RESTAURANT_IMAGE_UUID_3, "restaurants/old.png", "old.png");
+
+			var createRequest = RestaurantRequestFixture.createRestaurantRequest(
+				"수정할 식당", "서울시 강남구 역삼동 111", "02-4444-5555", List.of(RESTAURANT_IMAGE_UUID_3));
+
+			RestaurantCreateResponse created = restaurantService.createRestaurant(createRequest);
+
+			imageRepository.save(ImageFixture.create(FilePurpose.RESTAURANT_IMAGE, "restaurants/new.png",
+				RESTAURANT_IMAGE_UUID_4, "new.png", 2048L));
+
+			RestaurantUpdateRequest updateRequest = new RestaurantUpdateRequest(
+				"수정된 식당",
+				null,
+				List.of(RESTAURANT_IMAGE_UUID_4));
+
+			RestaurantUpdateResponse response = restaurantService.updateRestaurant(created.id(), updateRequest);
+
+			assertThat(response.id()).isEqualTo(created.id());
+
+			Image newImage = imageRepository.findByFileUuid(RESTAURANT_IMAGE_UUID_4).orElseThrow();
+			assertThat(newImage.getStatus()).isEqualTo(ImageStatus.ACTIVE);
+
+			List<DomainImage> domainImages = domainImageRepository.findAllByDomainTypeAndDomainIdIn(
+				DomainType.RESTAURANT, List.of(created.id()));
+			assertThat(domainImages).hasSize(1);
+			assertThat(domainImages.get(0).getImage().getFileUuid()).isEqualTo(RESTAURANT_IMAGE_UUID_4);
+		}
+
+		@Test
+		@DisplayName("존재하지 않는 이미지를 지정하면 음식점 수정에 실패한다")
+		void updateRestaurant_withMissingImage_fails() {
+			var createRequest = RestaurantRequestFixture.createRestaurantRequest(
+				"이미지 누락 테스트", "서울시 강남구 역삼동 999", "02-9999-9999", null);
+
+			RestaurantCreateResponse created = restaurantService.createRestaurant(createRequest);
+
+			RestaurantUpdateRequest updateRequest = new RestaurantUpdateRequest(
+				"이미지 누락 테스트",
+				null,
+				List.of(RESTAURANT_IMAGE_UUID_MISSING));
+
+			assertThatThrownBy(() -> restaurantService.updateRestaurant(created.id(), updateRequest))
+				.isInstanceOf(BusinessException.class)
+				.extracting(ex -> ((BusinessException)ex).getErrorCode())
+				.isEqualTo(FileErrorCode.FILE_NOT_FOUND.name());
+		}
+	}
+
+	@Nested
+	@DisplayName("음식점 삭제")
+	class DeleteRestaurant {
+
+		@Test
+		@DisplayName("음식점을 삭제하면 soft delete 처리된다")
+		void deleteRestaurant() {
+			var request = RestaurantRequestFixture.createRestaurantRequest(
+				"삭제할 식당", "서울시 강남구 역삼동 222", "02-5555-6666", null);
+
+			RestaurantCreateResponse created = restaurantService.createRestaurant(request);
+
+			restaurantService.deleteRestaurant(created.id());
+
+			Restaurant deleted = restaurantRepository.findById(created.id()).orElseThrow();
+			assertThat(deleted.getDeletedAt()).isNotNull();
+		}
+
+		@Test
+		@DisplayName("음식점을 삭제하면 연관된 이미지도 삭제된다")
+		void deleteRestaurantWithImages() {
+			createAndSaveImage(RESTAURANT_IMAGE_UUID_5, "restaurants/delete.png", "delete.png");
+
+			var request = RestaurantRequestFixture.createRestaurantRequest(
+				"이미지와 함께 삭제할 식당", "서울시 강남구 역삼동 333", "02-6666-7777", List.of(RESTAURANT_IMAGE_UUID_5));
+
+			RestaurantCreateResponse created = restaurantService.createRestaurant(request);
+
+			restaurantService.deleteRestaurant(created.id());
+
+			List<DomainImage> domainImages = domainImageRepository.findAllByDomainTypeAndDomainId(
+				DomainType.RESTAURANT, created.id());
+			assertThat(domainImages).isEmpty();
+		}
+	}
+
+	private void createAndSaveImage(UUID fileUuid, String storageKey, String fileName) {
+		imageRepository.save(ImageFixture.create(FilePurpose.RESTAURANT_IMAGE, storageKey, fileUuid, fileName));
+	}
+}

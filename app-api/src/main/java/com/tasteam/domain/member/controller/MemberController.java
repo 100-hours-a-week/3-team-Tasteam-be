@@ -18,6 +18,7 @@ import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
 import com.tasteam.domain.favorite.service.FavoriteService;
 import com.tasteam.domain.member.controller.docs.MemberControllerDocs;
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
+import com.tasteam.domain.member.dto.response.MemberGroupDetailSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
 import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
@@ -56,6 +57,13 @@ public class MemberController implements MemberControllerDocs {
 		@CurrentUser
 		Long memberId) {
 		return SuccessResponse.success(memberService.getMyGroupSummaries(memberId));
+	}
+
+	@GetMapping("/groups")
+	public SuccessResponse<List<MemberGroupDetailSummaryResponse>> getMyGroups(
+		@CurrentUser
+		Long memberId) {
+		return SuccessResponse.success(memberService.getMyGroupDetails(memberId));
 	}
 
 	@GetMapping("/groups/{groupId}/subgroups")

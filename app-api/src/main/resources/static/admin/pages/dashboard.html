@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Tasteam</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Tasteam Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/admin/pages/dashboard.html" class="active">대시보드</a></li>
+                <li><a href="/admin/pages/restaurants.html">음식점 관리</a></li>
+                <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
+                <li><a href="#" id="logoutBtn">로그아웃</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <div class="content-header">
+                <h1>대시보드</h1>
+            </div>
+            <div class="dashboard-cards">
+                <div class="card">
+                    <h3>음식점 관리</h3>
+                    <p>음식점 등록, 수정, 메뉴 관리, 운영시간 설정</p>
+                    <a href="/admin/pages/restaurants.html" class="btn btn-primary">바로가기</a>
+                </div>
+                <div class="card">
+                    <h3>그룹 관리</h3>
+                    <p>그룹 생성, 신청 조회 및 승인</p>
+                    <a href="/admin/pages/groups.html" class="btn btn-primary">바로가기</a>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/admin/js/auth.js"></script>
+    <script>
+        checkAuth();
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            logout();
+        });
+    </script>
+</body>
+</html>

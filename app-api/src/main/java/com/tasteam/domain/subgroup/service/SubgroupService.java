@@ -2,7 +2,9 @@ package com.tasteam.domain.subgroup.service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -11,6 +13,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.tasteam.domain.file.dto.response.DomainImageItem;
+import com.tasteam.domain.file.entity.DomainImage;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.entity.Image;
+import com.tasteam.domain.file.entity.ImageStatus;
+import com.tasteam.domain.file.repository.DomainImageRepository;
+import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
@@ -37,13 +47,17 @@ import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.global.utils.CursorPageBuilder;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SubgroupService {
@@ -57,6 +71,9 @@ public class SubgroupService {
 	private final SubgroupMemberRepository subgroupMemberRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final CursorCodec cursorCodec;
+	private final ImageRepository imageRepository;
+	private final DomainImageRepository domainImageRepository;
+	private final FileService fileService;
 
 	@Transactional(readOnly = true)
 	public SubgroupListResponse getMySubgroups(Long groupId, Long memberId, String keyword, String cursor,
@@ -66,7 +83,13 @@ public class SubgroupService {
 		validateGroupMember(group.getId(), memberId);
 
 		int resolvedSize = resolveSize(size);
-		SubgroupNameCursor cursorKey = cursorCodec.decodeOrNull(cursor, SubgroupNameCursor.class);
+		CursorPageBuilder<SubgroupNameCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursor,
+			SubgroupNameCursor.class);
+		if (pageBuilder.isInvalid()) {
+			return emptyListResponse(resolvedSize);
+		}
+
+		SubgroupNameCursor cursorKey = pageBuilder.cursor();
 		String resolvedKeyword = resolveKeyword(keyword);
 
 		List<SubgroupListItem> items = subgroupRepository.findMySubgroupsByGroup(
@@ -77,17 +100,26 @@ public class SubgroupService {
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
 
-		return buildListResponse(items, resolvedSize);
+		CursorPageBuilder.Page<SubgroupListItem> page = pageBuilder.build(
+			applyResolvedImageUrls(items),
+			resolvedSize,
+			last -> new SubgroupNameCursor(last.getName(), last.getSubgroupId()));
+
+		return buildListResponse(page, resolvedSize);
 	}
 
 	@Transactional(readOnly = true)
 	public CursorPageResponse<SubgroupListItem> getGroupSubgroups(Long groupId, Long memberId, String cursor,
 		Integer size) {
-		validateAuthenticated(memberId);
 		getGroup(groupId);
 
 		int resolvedSize = resolveSize(size);
-		SubgroupNameCursor cursorKey = cursorCodec.decodeOrNull(cursor, SubgroupNameCursor.class);
+		CursorPageBuilder<SubgroupNameCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursor,
+			SubgroupNameCursor.class);
+		if (pageBuilder.isInvalid()) {
+			return CursorPageResponse.empty();
+		}
+		SubgroupNameCursor cursorKey = pageBuilder.cursor();
 
 		List<SubgroupListItem> items = subgroupRepository.findSubgroupsByGroup(
 			groupId,
@@ -96,7 +128,12 @@ public class SubgroupService {
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
 
-		return buildNameCursorPageResponse(items, resolvedSize);
+		CursorPageBuilder.Page<SubgroupListItem> page = pageBuilder.build(
+			applyResolvedImageUrls(items),
+			resolvedSize,
+			last -> new SubgroupNameCursor(last.getName(), last.getSubgroupId()));
+
+		return buildNameCursorPageResponse(page);
 	}
 
 	@Transactional(readOnly = true)
@@ -105,7 +142,13 @@ public class SubgroupService {
 		getGroup(groupId);
 
 		int resolvedSize = resolveSize(size);
-		SubgroupMemberCountCursor cursorKey = cursorCodec.decodeOrNull(cursor, SubgroupMemberCountCursor.class);
+		CursorPageBuilder<SubgroupMemberCountCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursor,
+			SubgroupMemberCountCursor.class);
+		if (pageBuilder.isInvalid()) {
+			return CursorPageResponse.empty();
+		}
+
+		SubgroupMemberCountCursor cursorKey = pageBuilder.cursor();
 		String resolvedKeyword = resolveKeyword(keyword);
 
 		List<SubgroupListItem> items = subgroupRepository.searchSubgroupsByGroup(
@@ -116,7 +159,12 @@ public class SubgroupService {
 			cursorKey == null ? null : cursorKey.id(),
 			PageRequest.of(0, resolvedSize + 1));
 
-		return buildMemberCountCursorPageResponse(items, resolvedSize);
+		CursorPageBuilder.Page<SubgroupListItem> page = pageBuilder.build(
+			applyResolvedImageUrls(items),
+			resolvedSize,
+			last -> new SubgroupMemberCountCursor(last.getMemberCount(), last.getSubgroupId()));
+
+		return buildMemberCountCursorPageResponse(page);
 	}
 
 	@Transactional(readOnly = true)
@@ -131,6 +179,8 @@ public class SubgroupService {
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.NO_PERMISSION));
 		}
 
+		String profileImageUrl = resolveProfileImageUrl(subgroup);
+
 		return new SubgroupDetailResponse(
 			new SubgroupDetailResponse.SubgroupDetail(
 				subgroup.getGroup().getId(),
@@ -138,7 +188,7 @@ public class SubgroupService {
 				subgroup.getName(),
 				subgroup.getDescription(),
 				subgroup.getMemberCount(),
-				subgroup.getProfileImageUrl(),
+				profileImageUrl,
 				subgroup.getCreatedAt()));
 	}
 
@@ -192,7 +242,6 @@ public class SubgroupService {
 			.group(group)
 			.name(request.getName())
 			.description(request.getDescription())
-			.profileImageUrl(request.getProfileImageUrl())
 			.joinType(request.getJoinType())
 			.joinPassword(encodedPassword)
 			.status(SubgroupStatus.ACTIVE)
@@ -203,6 +252,10 @@ public class SubgroupService {
 			subgroupRepository.save(subgroup);
 		} catch (DataIntegrityViolationException e) {
 			throw new BusinessException(GroupErrorCode.ALREADY_EXISTS);
+		}
+
+		if (request.getProfileImageFileUuid() != null) {
+			applySubgroupImage(subgroup, request.getProfileImageFileUuid());
 		}
 
 		Member member = memberRepository.findByIdAndDeletedAtIsNull(memberId)
@@ -283,7 +336,7 @@ public class SubgroupService {
 
 		String updatedName = applyStringIfPresent(request.getName(), subgroup::updateName, false);
 		applyStringIfPresent(request.getDescription(), subgroup::updateDescription, true);
-		applyStringIfPresent(request.getProfileImageUrl(), subgroup::updateProfileImageUrl, true);
+		applyProfileImageFileUuid(request.getProfileImageFileUuid(), subgroup);
 
 		if (updatedName != null
 			&& subgroupRepository.existsByGroup_IdAndNameAndDeletedAtIsNullAndIdNot(groupId, updatedName, subgroupId)) {
@@ -291,68 +344,58 @@ public class SubgroupService {
 		}
 	}
 
-	private SubgroupListResponse buildListResponse(List<SubgroupListItem> items, int resolvedSize) {
-		boolean hasNext = items.size() > resolvedSize;
-		if (hasNext) {
-			items = items.subList(0, resolvedSize);
+	private void applyProfileImageFileUuid(JsonNode node, Subgroup subgroup) {
+		if (node == null) {
+			return;
 		}
-
-		String nextCursor = null;
-		if (hasNext && !items.isEmpty()) {
-			SubgroupListItem lastItem = items.get(items.size() - 1);
-			nextCursor = cursorCodec.encode(new SubgroupNameCursor(lastItem.getName(), lastItem.getSubgroupId()));
+		if (node.isNull()) {
+			domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.SUBGROUP, subgroup.getId());
+			return;
 		}
+		if (!node.isTextual()) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+		applySubgroupImage(subgroup, node.asText());
+	}
 
+	private SubgroupListResponse buildListResponse(CursorPageBuilder.Page<SubgroupListItem> page, int resolvedSize) {
 		return new SubgroupListResponse(
-			items,
+			page.items(),
 			new SubgroupListResponse.PageInfo(
 				SORT_NAME_ASC_ID_ASC,
-				nextCursor,
+				page.nextCursor(),
+				page.requestedSize(),
+				page.hasNext()));
+	}
+
+	private CursorPageResponse<SubgroupListItem> buildNameCursorPageResponse(
+		CursorPageBuilder.Page<SubgroupListItem> page) {
+		return new CursorPageResponse<>(
+			page.items(),
+			new CursorPageResponse.Pagination(
+				page.nextCursor(),
+				page.hasNext(),
+				page.size()));
+	}
+
+	private CursorPageResponse<SubgroupListItem> buildMemberCountCursorPageResponse(
+		CursorPageBuilder.Page<SubgroupListItem> page) {
+		return new CursorPageResponse<>(
+			page.items(),
+			new CursorPageResponse.Pagination(
+				page.nextCursor(),
+				page.hasNext(),
+				page.size()));
+	}
+
+	private SubgroupListResponse emptyListResponse(int resolvedSize) {
+		return new SubgroupListResponse(
+			List.of(),
+			new SubgroupListResponse.PageInfo(
+				SORT_NAME_ASC_ID_ASC,
+				null,
 				resolvedSize,
-				hasNext));
-	}
-
-	private CursorPageResponse<SubgroupListItem> buildNameCursorPageResponse(List<SubgroupListItem> items,
-		int resolvedSize) {
-		boolean hasNext = items.size() > resolvedSize;
-		if (hasNext) {
-			items = items.subList(0, resolvedSize);
-		}
-
-		String nextCursor = null;
-		if (hasNext && !items.isEmpty()) {
-			SubgroupListItem lastItem = items.get(items.size() - 1);
-			nextCursor = cursorCodec.encode(new SubgroupNameCursor(lastItem.getName(), lastItem.getSubgroupId()));
-		}
-
-		return new CursorPageResponse<>(
-			items,
-			new CursorPageResponse.Pagination(
-				nextCursor,
-				hasNext,
-				items.size()));
-	}
-
-	private CursorPageResponse<SubgroupListItem> buildMemberCountCursorPageResponse(List<SubgroupListItem> items,
-		int resolvedSize) {
-		boolean hasNext = items.size() > resolvedSize;
-		if (hasNext) {
-			items = items.subList(0, resolvedSize);
-		}
-
-		String nextCursor = null;
-		if (hasNext && !items.isEmpty()) {
-			SubgroupListItem lastItem = items.get(items.size() - 1);
-			nextCursor = cursorCodec
-				.encode(new SubgroupMemberCountCursor(lastItem.getMemberCount(), lastItem.getSubgroupId()));
-		}
-
-		return new CursorPageResponse<>(
-			items,
-			new CursorPageResponse.Pagination(
-				nextCursor,
-				hasNext,
-				items.size()));
+				false));
 	}
 
 	private void validateAuthenticated(Long memberId) {
@@ -453,5 +496,92 @@ public class SubgroupService {
 		} catch (NumberFormatException e) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
+	}
+
+	private void applySubgroupImage(Subgroup subgroup, String fileUuid) {
+		Image image = validateImageForAttach(DomainType.SUBGROUP, subgroup.getId(), fileUuid);
+		attachDomainImageSafely(DomainType.SUBGROUP, subgroup.getId(), image);
+	}
+
+	private Image validateImageForAttach(DomainType domainType, Long domainId, String fileUuid) {
+		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() == ImageStatus.DELETED) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		if (image.getStatus() != ImageStatus.PENDING
+			&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(domainType, domainId, image).isEmpty()) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+		return image;
+	}
+
+	private void attachDomainImageSafely(DomainType domainType, Long domainId, Image image) {
+		try {
+			domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
+			domainImageRepository.save(DomainImage.create(domainType, domainId, image, 0));
+		} catch (DataIntegrityViolationException ex) {
+			// DB enum/check가 코드보다 늦게 반영된 환경에서도 생성/수정을 막지 않기 위한 fallback.
+			log.warn("도메인 이미지 링크 저장 실패. domainType={}, domainId={}", domainType, domainId, ex);
+		}
+
+		if (image.getStatus() == ImageStatus.PENDING) {
+			image.activate();
+			imageRepository.save(image);
+		}
+	}
+
+	private java.util.UUID parseUuid(String fileUuid) {
+		try {
+			return java.util.UUID.fromString(fileUuid);
+		} catch (IllegalArgumentException ex) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "fileUuid 형식이 올바르지 않습니다");
+		}
+	}
+
+	private String resolveProfileImageUrl(Subgroup subgroup) {
+		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(
+			DomainType.SUBGROUP,
+			List.of(subgroup.getId()));
+
+		List<DomainImageItem> subgroupImages = images.get(subgroup.getId());
+		if (subgroupImages == null || subgroupImages.isEmpty()) {
+			return null;
+		}
+		return subgroupImages.getFirst().url();
+	}
+
+	private List<SubgroupListItem> applyResolvedImageUrls(List<SubgroupListItem> items) {
+		if (items.isEmpty()) {
+			return items;
+		}
+		Map<Long, String> imageUrlBySubgroupId = resolveImageUrlByDomainId(
+			items.stream().map(SubgroupListItem::getSubgroupId).toList());
+
+		return items.stream()
+			.map(item -> SubgroupListItem.builder()
+				.subgroupId(item.getSubgroupId())
+				.name(item.getName())
+				.description(item.getDescription())
+				.memberCount(item.getMemberCount())
+				.profileImageUrl(imageUrlBySubgroupId.get(item.getSubgroupId()))
+				.joinType(item.getJoinType())
+				.createdAt(item.getCreatedAt())
+				.build())
+			.toList();
+	}
+
+	private Map<Long, String> resolveImageUrlByDomainId(List<Long> domainIds) {
+		if (domainIds.isEmpty()) {
+			return Map.of();
+		}
+		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(DomainType.SUBGROUP, domainIds);
+		return images.entrySet().stream()
+			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
+			.collect(Collectors.toMap(
+				Map.Entry::getKey,
+				entry -> entry.getValue().getFirst().url()));
 	}
 }

@@ -53,3 +53,7 @@ application.yaml
 application-*.yaml
 *.log
 *.gz
+*.tmp
+/.github/issue
+/scripts
+scripts/create-issues.sh

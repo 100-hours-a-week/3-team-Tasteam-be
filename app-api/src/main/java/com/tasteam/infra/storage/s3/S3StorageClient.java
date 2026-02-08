@@ -1,34 +1,32 @@
 package com.tasteam.infra.storage.s3;
 
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
+import java.time.DateTimeException;
 import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.Base64;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+import java.util.Date;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.HttpMethod;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.infra.storage.PresignedPostRequest;
 import com.tasteam.infra.storage.PresignedPostResponse;
 import com.tasteam.infra.storage.StorageClient;
 import com.tasteam.infra.storage.StorageProperties;
+import com.tasteam.infra.storage.s3.policy.S3PresignPolicy;
+import com.tasteam.infra.storage.s3.policy.S3PresignPolicyBuilder;
 
 import lombok.RequiredArgsConstructor;
 
@@ -38,106 +36,53 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class S3StorageClient implements StorageClient {
 
-	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-	private static final DateTimeFormatter AMZ_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
-		.withZone(ZoneOffset.UTC);
-
 	private final AmazonS3 amazonS3;
 	private final AWSCredentialsProvider credentialsProvider;
 	private final StorageProperties properties;
+	private final S3PresignPolicyBuilder presignPolicyBuilder;
 
 	@Override
 	public PresignedPostResponse createPresignedPost(PresignedPostRequest request) {
-		Assert.notNull(request, "presigned 요청은 필수입니다");
-		Assert.hasText(request.objectKey(), "objectKey는 필수입니다");
-		Assert.hasText(request.contentType(), "contentType은 필수입니다");
-		Assert.isTrue(request.minContentLength() > 0, "minContentLength는 1 이상이어야 합니다");
-		Assert.isTrue(request.maxContentLength() >= request.minContentLength(),
-			"maxContentLength는 minContentLength 이상이어야 합니다");
+		try {
+			validatePresignedPostRequest(request);
+			AWSCredentials credentials = getValidatedCredentials();
 
-		AWSCredentials credentials = credentialsProvider.getCredentials();
-		Assert.hasText(credentials.getAWSAccessKeyId(), "AWS access key가 필요합니다");
-		Assert.hasText(credentials.getAWSSecretKey(), "AWS secret key가 필요합니다");
+			S3PresignPolicy policy = presignPolicyBuilder.build(
+				request,
+				credentials,
+				resolveRegion(),
+				resolveBucket(),
+				properties.getPresignedExpirationSeconds());
 
-		Instant now = Instant.now();
-		Instant expiry = now.plusSeconds(properties.getPresignedExpirationSeconds());
-		String amzDate = AMZ_DATE_FORMATTER.format(now);
-		String dateStamp = amzDate.substring(0, 8);
-		String region = resolveRegion();
-		String credentialScope = dateStamp + "/" + region + "/s3/aws4_request";
-		String credential = credentials.getAWSAccessKeyId() + "/" + credentialScope;
+			return new PresignedPostResponse(resolveBaseUrl(), policy.fields(), policy.expiresAt());
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
+	}
 
-		String policyBase64 = createPolicy(request, expiry, credential, amzDate);
-		byte[] signatureKey = getSignatureKey(credentials.getAWSSecretKey(), dateStamp, region, "s3");
-		String signature = bytesToHex(hmacSha256(signatureKey, policyBase64));
-
-		Map<String, String> fields = new LinkedHashMap<>();
-		fields.put("key", request.objectKey());
-		fields.put("policy", policyBase64);
-		fields.put("x-amz-algorithm", "AWS4-HMAC-SHA256");
-		fields.put("x-amz-credential", credential);
-		fields.put("x-amz-date", amzDate);
-		fields.put("x-amz-signature", signature);
-		fields.put("Content-Type", request.contentType());
-
-		return new PresignedPostResponse(resolveBaseUrl(), Map.copyOf(fields), expiry);
+	@Override
+	public String createPresignedGetUrl(String objectKey) {
+		try {
+			Assert.hasText(objectKey, "objectKey는 필수입니다");
+			Instant expiry = calculateExpiry(properties.getPresignedExpirationSeconds());
+			return amazonS3.generatePresignedUrl(
+				resolveBucket(),
+				objectKey,
+				Date.from(expiry),
+				HttpMethod.GET).toString();
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
 	}
 
 	@Override
 	public void deleteObject(String objectKey) {
-		Assert.hasText(objectKey, "objectKey는 필수입니다");
-		amazonS3.deleteObject(new DeleteObjectRequest(resolveBucket(), objectKey));
-	}
-
-	private String createPolicy(PresignedPostRequest request, Instant expiry, String credential, String amzDate) {
-		ObjectNode policyNode = OBJECT_MAPPER.createObjectNode();
-		policyNode.put("expiration", expiry.toString());
-
-		ArrayNode conditions = policyNode.putArray("conditions");
-		conditions.add(OBJECT_MAPPER.createObjectNode().put("bucket", resolveBucket()));
-		conditions.add(OBJECT_MAPPER.createObjectNode().put("key", request.objectKey()));
-		ArrayNode contentLengthRange = OBJECT_MAPPER.createArrayNode()
-			.add("content-length-range")
-			.add(request.minContentLength())
-			.add(request.maxContentLength());
-		conditions.add(contentLengthRange);
-		conditions.add(OBJECT_MAPPER.createObjectNode().put("Content-Type", request.contentType()));
-		conditions.add(OBJECT_MAPPER.createObjectNode().put("x-amz-algorithm", "AWS4-HMAC-SHA256"));
-		conditions.add(OBJECT_MAPPER.createObjectNode().put("x-amz-credential", credential));
-		conditions.add(OBJECT_MAPPER.createObjectNode().put("x-amz-date", amzDate));
-
 		try {
-			byte[] policyBytes = OBJECT_MAPPER.writeValueAsBytes(policyNode);
-			return Base64.getEncoder().encodeToString(policyBytes);
-		} catch (JsonProcessingException ex) {
-			throw new IllegalStateException("policy 직렬화에 실패했습니다", ex);
+			Assert.hasText(objectKey, "objectKey는 필수입니다");
+			amazonS3.deleteObject(new DeleteObjectRequest(resolveBucket(), objectKey));
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
 		}
-	}
-
-	private byte[] hmacSha256(byte[] key, String data) {
-		try {
-			Mac mac = Mac.getInstance("HmacSHA256");
-			mac.init(new SecretKeySpec(key, "HmacSHA256"));
-			return mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-		} catch (GeneralSecurityException ex) {
-			throw new IllegalStateException("signature 생성 실패", ex);
-		}
-	}
-
-	private byte[] getSignatureKey(String secretKey, String dateStamp, String regionName, String serviceName) {
-		byte[] kSecret = ("AWS4" + secretKey).getBytes(StandardCharsets.UTF_8);
-		byte[] kDate = hmacSha256(kSecret, dateStamp);
-		byte[] kRegion = hmacSha256(kDate, regionName);
-		byte[] kService = hmacSha256(kRegion, serviceName);
-		return hmacSha256(kService, "aws4_request");
-	}
-
-	private String bytesToHex(byte[] bytes) {
-		StringBuilder builder = new StringBuilder(bytes.length * 2);
-		for (byte b : bytes) {
-			builder.append(String.format("%02x", b));
-		}
-		return builder.toString();
 	}
 
 	private String resolveBaseUrl() {
@@ -156,5 +101,89 @@ public class S3StorageClient implements StorageClient {
 	private String resolveRegion() {
 		Assert.hasText(properties.getRegion(), "tasteam.storage.region은 필수입니다");
 		return properties.getRegion();
+	}
+
+	private void validatePresignedPostRequest(PresignedPostRequest request) {
+		Assert.notNull(request, "presigned 요청은 필수입니다");
+		Assert.hasText(request.objectKey(), "objectKey는 필수입니다");
+		Assert.hasText(request.contentType(), "contentType은 필수입니다");
+		Assert.isTrue(request.minContentLength() > 0, "minContentLength는 1 이상이어야 합니다");
+		Assert.isTrue(request.maxContentLength() >= request.minContentLength(),
+			"maxContentLength는 minContentLength 이상이어야 합니다");
+	}
+
+	private AWSCredentials getValidatedCredentials() {
+		AWSCredentials credentials = credentialsProvider.getCredentials();
+		Assert.hasText(credentials.getAWSAccessKeyId(), "AWS access key가 필요합니다");
+		Assert.hasText(credentials.getAWSSecretKey(), "AWS secret key가 필요합니다");
+		return credentials;
+	}
+
+	private Instant calculateExpiry(long expirationSeconds) {
+		try {
+			return Instant.now().plusSeconds(expirationSeconds);
+		} catch (DateTimeException ex) {
+			throw new IllegalStateException("presigned 만료 시간을 계산할 수 없습니다", ex);
+		}
+	}
+
+	private RuntimeException mapStorageException(RuntimeException ex) {
+		if (ex instanceof BusinessException businessException) {
+			return businessException;
+		}
+		if (ex instanceof AmazonServiceException serviceException) {
+			return mapServiceException(serviceException);
+		}
+		if (ex instanceof AmazonClientException clientException) {
+			return mapClientException(clientException);
+		}
+		return new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
+	}
+
+	private RuntimeException mapServiceException(AmazonServiceException ex) {
+		String errorCode = ex.getErrorCode();
+		if (errorCode == null || errorCode.isBlank()) {
+			if (ex.getStatusCode() >= 500) {
+				return new BusinessException(FileErrorCode.STORAGE_SERVICE_UNAVAILABLE, ex.getMessage());
+			}
+			return new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
+		}
+		return switch (errorCode) {
+			case "AccessDenied" -> new BusinessException(FileErrorCode.STORAGE_ACCESS_DENIED, ex.getMessage());
+			case "InvalidAccessKeyId" ->
+				new BusinessException(FileErrorCode.STORAGE_INVALID_CREDENTIALS, ex.getMessage());
+			case "SignatureDoesNotMatch" ->
+				new BusinessException(FileErrorCode.STORAGE_SIGNATURE_MISMATCH, ex.getMessage());
+			case "ExpiredToken", "InvalidToken" ->
+				new BusinessException(FileErrorCode.STORAGE_TOKEN_EXPIRED, ex.getMessage());
+			case "RequestTimeTooSkewed", "RequestExpired" ->
+				new BusinessException(FileErrorCode.STORAGE_REQUEST_EXPIRED, ex.getMessage());
+			case "NoSuchBucket" -> new BusinessException(FileErrorCode.STORAGE_BUCKET_NOT_FOUND, ex.getMessage());
+			case "NoSuchKey" -> new BusinessException(FileErrorCode.STORAGE_OBJECT_NOT_FOUND, ex.getMessage());
+			case "InvalidBucketName", "InvalidBucketState" ->
+				new BusinessException(FileErrorCode.STORAGE_BUCKET_INVALID, ex.getMessage());
+			case "EntityTooLarge" -> new BusinessException(FileErrorCode.STORAGE_ENTITY_TOO_LARGE, ex.getMessage());
+			case "EntityTooSmall" -> new BusinessException(FileErrorCode.STORAGE_ENTITY_TOO_SMALL, ex.getMessage());
+			case "InvalidArgument", "InvalidRequest", "InvalidDigest", "BadDigest", "MissingContentLength",
+				"InvalidPart", "InvalidPartOrder" ->
+				new BusinessException(FileErrorCode.STORAGE_INVALID_REQUEST, ex.getMessage());
+			case "SlowDown", "Throttling", "ThrottlingException" ->
+				new BusinessException(FileErrorCode.STORAGE_THROTTLED, ex.getMessage());
+			case "InternalError" -> new BusinessException(FileErrorCode.STORAGE_INTERNAL_ERROR, ex.getMessage());
+			case "ServiceUnavailable" ->
+				new BusinessException(FileErrorCode.STORAGE_SERVICE_UNAVAILABLE, ex.getMessage());
+			default -> new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
+		};
+	}
+
+	private RuntimeException mapClientException(AmazonClientException ex) {
+		Throwable cause = ex.getCause();
+		if (cause instanceof SocketTimeoutException) {
+			return new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_TIMEOUT, ex.getMessage());
+		}
+		if (cause instanceof ConnectException) {
+			return new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_UNAVAILABLE, ex.getMessage());
+		}
+		return new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_UNAVAILABLE, ex.getMessage());
 	}
 }

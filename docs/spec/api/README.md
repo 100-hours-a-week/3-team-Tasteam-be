@@ -969,10 +969,12 @@ GET /api/v1/restaurants/{restaurantId}/reviews?cursor=string&size=0
         "가성비",
         "점심"
       ],
-      "thumbnailImage": {
-        "id": "a3f1c9e0-7a9b...",
-        "url": "https://cdn.xxx..."
-      },
+      "thumbnailImages": [
+        {
+          "id": "a3f1c9e0-7a9b...",
+          "url": "https://cdn.xxx..."
+        }
+      ],
       "createdAt": "2026-01-12T13:10:00Z"
     }
   ],
@@ -2327,10 +2329,12 @@ GET /groups/{groupId}/reviews
         "가성비",
         "점심"
       ],
-      "thumbnailImage": {
-        "id": "a3f1c9e0-7a9b...",
-        "url": "https://cdn.xxx..."
-      },
+      "thumbnailImages": [
+        {
+          "id": "a3f1c9e0-7a9b...",
+          "url": "https://cdn.xxx..."
+        }
+      ],
       "createdAt": "2026-01-12T13:10:00Z"
     }
   ],
@@ -2853,10 +2857,12 @@ GET /subgroups/{subgroupId}/reviews
         "가성비",
         "점심"
       ],
-      "thumbnailImage": {
-        "id": "a3f1c9e0-7a9b...",
-        "url": "https://cdn.xxx..."
-      },
+      "thumbnailImages": [
+        {
+          "id": "a3f1c9e0-7a9b...",
+          "url": "https://cdn.xxx..."
+        }
+      ],
       "createdAt": "2026-01-12T13:10:00Z"
     }
   ],

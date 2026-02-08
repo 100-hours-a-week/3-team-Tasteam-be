@@ -64,11 +64,18 @@ springdoc:
 
 ## ====== 커스텀 설정 ======
 tasteam:
+  admin:
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
+  domain:
+    service: ${SERVICE_DOMAIN:https://tasteam.kr}
+    api: ${API_DOMAIN:https://api.tasteam.kr}
   storage:
     type: ${STORAGE_TYPE:dummy}
     region: ${STORAGE_REGION:}
     bucket: ${STORAGE_BUCKET:}
     base-url: ${STORAGE_BASE_URL:}
+    access-mode: ${STORAGE_ACCESS_MODE:public}
     access-key: ${STORAGE_ACCESS_KEY:}
     secret-key: ${STORAGE_SECRET_KEY:}
     presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:300}

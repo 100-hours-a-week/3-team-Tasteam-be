@@ -18,6 +18,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.tasteam.domain.file.dto.response.DomainImageItem;
+import com.tasteam.domain.file.entity.DomainImage;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.entity.Image;
+import com.tasteam.domain.file.entity.ImageStatus;
+import com.tasteam.domain.file.repository.DomainImageRepository;
+import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.dto.GroupCreateRequest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
 import com.tasteam.domain.group.dto.GroupEmailAuthenticationResponse;
@@ -43,12 +51,15 @@ import com.tasteam.domain.subgroup.repository.SubgroupMemberRepository;
 import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.notification.email.EmailSender;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GroupService {
@@ -60,6 +71,9 @@ public class GroupService {
 	private final EmailSender emailSender;
 	private final SubgroupMemberRepository subgroupMemberRepository;
 	private final SubgroupRepository subgroupRepository;
+	private final ImageRepository imageRepository;
+	private final DomainImageRepository domainImageRepository;
+	private final FileService fileService;
 
 	@Transactional
 	public GroupCreateResponse createGroup(GroupCreateRequest request) {
@@ -72,7 +86,6 @@ public class GroupService {
 		Group group = Group.builder()
 			.name(request.name())
 			.type(request.type())
-			.logoImageUrl(request.logoImageUrl())
 			.address(request.address())
 			.detailAddress(request.detailAddress())
 			.location(toPoint(request.location()))
@@ -82,6 +95,11 @@ public class GroupService {
 			.build();
 
 		Group savedGroup = groupRepository.save(group);
+
+		if (request.logoImageFileUuid() != null) {
+			saveDomainImage(DomainType.GROUP, savedGroup.getId(), request.logoImageFileUuid());
+		}
+
 		if (savedGroup.getJoinType() == GroupJoinType.PASSWORD) {
 			groupAuthCodeRepository.save(GroupAuthCode.builder()
 				.groupId(savedGroup.getId())
@@ -95,20 +113,23 @@ public class GroupService {
 
 	@Transactional(readOnly = true)
 	public GroupGetResponse getGroup(Long groupId) {
-		return groupRepository.findByIdAndDeletedAtIsNull(groupId)
-			.map(group -> new GroupGetResponse(
-				new GroupGetResponse.GroupData(
-					group.getId(),
-					group.getName(),
-					group.getLogoImageUrl(),
-					group.getAddress(),
-					group.getDetailAddress(),
-					group.getEmailDomain(),
-					groupMemberRepository.countByGroupIdAndDeletedAtIsNull(group.getId()),
-					group.getStatus().name(),
-					group.getCreatedAt(),
-					group.getUpdatedAt())))
+		Group group = groupRepository.findByIdAndDeletedAtIsNull(groupId)
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
+
+		String logoImageUrl = resolveLogoImageUrl(group.getId());
+
+		return new GroupGetResponse(
+			new GroupGetResponse.GroupData(
+				group.getId(),
+				group.getName(),
+				logoImageUrl,
+				group.getAddress(),
+				group.getDetailAddress(),
+				group.getEmailDomain(),
+				groupMemberRepository.countByGroupIdAndDeletedAtIsNull(group.getId()),
+				group.getStatus().name(),
+				group.getCreatedAt(),
+				group.getUpdatedAt()));
 	}
 
 	@Transactional
@@ -120,7 +141,7 @@ public class GroupService {
 		applyStringIfPresent(request.address(), group::updateAddress, false);
 		applyStringIfPresent(request.detailAddress(), group::updateDetailAddress, true);
 		applyStringIfPresent(request.emailDomain(), group::updateEmailDomain, true);
-		applyLogoImageUrl(request.logoImageUrl(), group);
+		applyLogoImageUrl(request.logoImageFileUuid(), group);
 		applyStatusIfPresent(request.status(), group);
 	}
 
@@ -374,13 +395,13 @@ public class GroupService {
 			return;
 		}
 		if (node.isNull()) {
-			group.updateLogoImageUrl(null);
+			domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.GROUP, group.getId());
 			return;
 		}
 		if (!node.isTextual()) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
-		group.updateLogoImageUrl(node.asText());
+		saveDomainImage(DomainType.GROUP, group.getId(), node.asText());
 	}
 
 	private Point toPoint(GroupCreateRequest.Location location) {
@@ -423,5 +444,47 @@ public class GroupService {
 		} catch (NumberFormatException e) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
+	}
+
+	private void saveDomainImage(DomainType domainType, Long domainId, String fileUuid) {
+		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() == ImageStatus.DELETED) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		if (image.getStatus() != ImageStatus.PENDING
+			&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(domainType, domainId, image).isEmpty()) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
+		domainImageRepository.save(DomainImage.create(domainType, domainId, image, 0));
+
+		if (image.getStatus() == ImageStatus.PENDING) {
+			image.activate();
+			imageRepository.save(image);
+		}
+	}
+
+	private java.util.UUID parseUuid(String fileUuid) {
+		try {
+			return java.util.UUID.fromString(fileUuid);
+		} catch (IllegalArgumentException ex) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "fileUuid 형식이 올바르지 않습니다");
+		}
+	}
+
+	private String resolveLogoImageUrl(Long groupId) {
+		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(
+			DomainType.GROUP,
+			List.of(groupId));
+
+		List<DomainImageItem> groupImages = images.get(groupId);
+		if (groupImages == null || groupImages.isEmpty()) {
+			return null;
+		}
+		return groupImages.getFirst().url();
 	}
 }
