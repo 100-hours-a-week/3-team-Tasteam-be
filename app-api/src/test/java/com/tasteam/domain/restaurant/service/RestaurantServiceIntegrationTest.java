@@ -4,7 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,6 +18,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.config.annotation.ServiceIntegrationTest;
@@ -25,13 +30,21 @@ import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
+import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
+import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
+import com.tasteam.domain.restaurant.entity.FoodCategory;
 import com.tasteam.domain.restaurant.entity.Restaurant;
+import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
 import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
+import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantAddressRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantWeeklyScheduleRepository;
 import com.tasteam.fixture.ImageFixture;
 import com.tasteam.fixture.RestaurantRequestFixture;
 import com.tasteam.global.exception.business.BusinessException;
@@ -55,10 +68,25 @@ class RestaurantServiceIntegrationTest {
 	private RestaurantRepository restaurantRepository;
 
 	@Autowired
+	private RestaurantAddressRepository restaurantAddressRepository;
+
+	@Autowired
+	private RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
+
+	@Autowired
+	private RestaurantWeeklyScheduleRepository restaurantWeeklyScheduleRepository;
+
+	@Autowired
+	private FoodCategoryRepository foodCategoryRepository;
+
+	@Autowired
 	private ImageRepository imageRepository;
 
 	@Autowired
 	private DomainImageRepository domainImageRepository;
+
+	@MockitoBean
+	private RestaurantEventPublisher eventPublisher;
 
 	@MockitoBean
 	private NaverGeocodingClient naverGeocodingClient;
@@ -82,6 +110,47 @@ class RestaurantServiceIntegrationTest {
 	class CreateRestaurant {
 
 		@Test
+		@DisplayName("유효한 생성 요청이면 음식점과 연관 엔티티가 모두 생성되고 식별자를 반환한다")
+		void createRestaurant_createsAllEntitiesAndReturnsIdentifier() {
+			createAndSaveImage(RESTAURANT_IMAGE_UUID, "restaurants/main.png", "main.png");
+			createAndSaveImage(RESTAURANT_IMAGE_UUID_2, "restaurants/sub.png", "sub.png");
+
+			FoodCategory korean = foodCategoryRepository.save(FoodCategory.create("한식"));
+			FoodCategory western = foodCategoryRepository.save(FoodCategory.create("양식"));
+
+			RestaurantCreateRequest request = new RestaurantCreateRequest(
+				"종합 생성 식당",
+				"서울시 강남구 역삼동 777",
+				"02-7777-8888",
+				List.of(korean.getId(), western.getId()),
+				List.of(RESTAURANT_IMAGE_UUID, RESTAURANT_IMAGE_UUID_2),
+				List.of(
+					new WeeklyScheduleRequest(1, LocalTime.of(9, 0), LocalTime.of(21, 0), false,
+						LocalDate.of(2026, 1, 1), null),
+					new WeeklyScheduleRequest(2, null, null, true, LocalDate.of(2026, 1, 1), null)));
+
+			RestaurantCreateResponse response = restaurantService.createRestaurant(request);
+
+			assertThat(response.id()).isNotNull();
+			assertThat(response.createdAt()).isNotNull();
+
+			Restaurant savedRestaurant = restaurantRepository.findById(response.id()).orElseThrow();
+			assertThat(savedRestaurant.getName()).isEqualTo("종합 생성 식당");
+			assertThat(savedRestaurant.getPhoneNumber()).isEqualTo("02-7777-8888");
+
+			assertThat(restaurantAddressRepository.existsByRestaurantId(response.id())).isTrue();
+			assertThat(restaurantFoodCategoryRepository.countByRestaurantId(response.id())).isEqualTo(2);
+			assertThat(restaurantWeeklyScheduleRepository.countByRestaurantId(response.id())).isEqualTo(2);
+			assertThat(domainImageRepository.countByDomainTypeAndDomainId(DomainType.RESTAURANT, response.id()))
+				.isEqualTo(2);
+
+			Image firstImage = imageRepository.findByFileUuid(RESTAURANT_IMAGE_UUID).orElseThrow();
+			Image secondImage = imageRepository.findByFileUuid(RESTAURANT_IMAGE_UUID_2).orElseThrow();
+			assertThat(firstImage.getStatus()).isEqualTo(ImageStatus.ACTIVE);
+			assertThat(secondImage.getStatus()).isEqualTo(ImageStatus.ACTIVE);
+		}
+
+		@Test
 		@DisplayName("이미지 없이 음식점을 생성한다")
 		void createRestaurantWithoutImages() {
 			var request = RestaurantRequestFixture.createRestaurantRequest(
@@ -94,6 +163,75 @@ class RestaurantServiceIntegrationTest {
 
 			Restaurant saved = restaurantRepository.findById(response.id()).orElseThrow();
 			assertThat(saved.getName()).isEqualTo("맛있는 식당");
+		}
+
+		@Test
+		@DisplayName("선택 입력이 없으면 연관 엔티티를 만들지 않고 생성한다")
+		void createRestaurant_withOptionalFieldsMissing_createsConditionally() {
+			RestaurantCreateRequest request = new RestaurantCreateRequest(
+				"선택값 없는 식당",
+				"서울시 강남구 역삼동 100",
+				null,
+				null,
+				null,
+				null);
+
+			RestaurantCreateResponse response = restaurantService.createRestaurant(request);
+
+			assertThat(response.id()).isNotNull();
+			assertThat(response.createdAt()).isNotNull();
+
+			Restaurant saved = restaurantRepository.findById(response.id()).orElseThrow();
+			assertThat(saved.getPhoneNumber()).isNull();
+
+			assertThat(restaurantAddressRepository.existsByRestaurantId(response.id())).isTrue();
+			assertThat(restaurantFoodCategoryRepository.countByRestaurantId(response.id())).isZero();
+			assertThat(restaurantWeeklyScheduleRepository.countByRestaurantId(response.id())).isZero();
+			assertThat(domainImageRepository.countByDomainTypeAndDomainId(DomainType.RESTAURANT, response.id()))
+				.isZero();
+		}
+
+		@Test
+		@Transactional(propagation = Propagation.NOT_SUPPORTED)
+		@DisplayName("중간 단계에서 실패하면 전체 생성이 롤백된다")
+		void createRestaurant_rollsBackWhenIntermediateFailureOccurs() {
+			FoodCategory korean = foodCategoryRepository.save(FoodCategory.create("롤백한식"));
+
+			long restaurantCountBefore = restaurantRepository.count();
+			long addressCountBefore = restaurantAddressRepository.count();
+			long mappingCountBefore = restaurantFoodCategoryRepository.count();
+			long scheduleCountBefore = restaurantWeeklyScheduleRepository.count();
+			long domainImageCountBefore = domainImageRepository.count();
+
+			RestaurantCreateRequest request = new RestaurantCreateRequest(
+				"롤백 식당",
+				"서울시 강남구 역삼동 101",
+				"02-1010-1010",
+				List.of(korean.getId()),
+				List.of(RESTAURANT_IMAGE_UUID_MISSING),
+				List.of(new WeeklyScheduleRequest(3, LocalTime.of(10, 0), LocalTime.of(20, 0), false, null, null)));
+
+			assertThatThrownBy(() -> restaurantService.createRestaurant(request))
+				.isInstanceOf(BusinessException.class)
+				.extracting(ex -> ((BusinessException)ex).getErrorCode())
+				.isEqualTo(FileErrorCode.FILE_NOT_FOUND.name());
+
+			assertThat(restaurantRepository.count()).isEqualTo(restaurantCountBefore);
+			assertThat(restaurantAddressRepository.count()).isEqualTo(addressCountBefore);
+			assertThat(restaurantFoodCategoryRepository.count()).isEqualTo(mappingCountBefore);
+			assertThat(restaurantWeeklyScheduleRepository.count()).isEqualTo(scheduleCountBefore);
+			assertThat(domainImageRepository.count()).isEqualTo(domainImageCountBefore);
+		}
+
+		@Test
+		@DisplayName("음식점 생성이 완료되면 생성 이벤트를 발행한다")
+		void createRestaurant_publishesCreatedEvent() {
+			var request = RestaurantRequestFixture.createRestaurantRequest(
+				"이벤트 식당", "서울시 강남구 역삼동 202", "02-2020-2020", null);
+
+			RestaurantCreateResponse response = restaurantService.createRestaurant(request);
+
+			verify(eventPublisher, times(1)).publishRestaurantCreated(response.id());
 		}
 
 		@Test

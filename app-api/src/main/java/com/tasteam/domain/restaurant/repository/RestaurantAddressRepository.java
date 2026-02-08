@@ -9,4 +9,6 @@ import com.tasteam.domain.restaurant.entity.RestaurantAddress;
 public interface RestaurantAddressRepository extends JpaRepository<RestaurantAddress, Long> {
 
 	Optional<RestaurantAddress> findByRestaurantId(Long restaurantId);
+
+	boolean existsByRestaurantId(Long restaurantId);
 }

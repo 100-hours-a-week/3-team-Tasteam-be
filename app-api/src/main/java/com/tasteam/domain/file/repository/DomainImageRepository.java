@@ -33,5 +33,7 @@ public interface DomainImageRepository extends JpaRepository<DomainImage, Long> 
 
 	List<DomainImage> findAllByDomainTypeAndDomainId(DomainType domainType, Long domainId);
 
+	long countByDomainTypeAndDomainId(DomainType domainType, Long domainId);
+
 	void deleteAllByDomainTypeAndDomainId(DomainType domainType, Long domainId);
 }
