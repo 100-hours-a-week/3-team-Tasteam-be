@@ -7,6 +7,7 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.tasteam.global.dto.api.ErrorResponse;
 import com.tasteam.global.dto.api.FieldErrorResponse;
@@ -53,6 +54,23 @@ public class GlobalExceptionHandler {
 			"INVALID_REQUEST",
 			"요청 값이 올바르지 않습니다.",
 			errors);
+		return ResponseEntity.badRequest().body(response);
+	}
+
+	/**
+	 * 경로 변수/쿼리 파라미터 타입 불일치 처리 핸들러.
+	 */
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	public ResponseEntity<ErrorResponse<?>> handleTypeMismatchException(MethodArgumentTypeMismatchException e) {
+		FieldErrorResponse error = FieldErrorResponse.of(
+			e.getName(),
+			"요청 값의 타입이 올바르지 않습니다.",
+			e.getValue());
+
+		ErrorResponse<List<FieldErrorResponse>> response = ErrorResponse.of(
+			"INVALID_REQUEST",
+			"요청 값이 올바르지 않습니다.",
+			List.of(error));
 		return ResponseEntity.badRequest().body(response);
 	}
 
