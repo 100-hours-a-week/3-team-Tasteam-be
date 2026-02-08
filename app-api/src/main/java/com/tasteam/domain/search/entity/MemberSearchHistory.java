@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 @Builder(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "member_serach_history")
+@Table(name = "member_search_history")
 @Comment("회원 검색어 기록")
 public class MemberSearchHistory extends BaseTimeEntity {
 
