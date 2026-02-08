@@ -19,12 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.file.dto.response.DomainImageItem;
-import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.entity.Image;
-import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
-import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.file.service.DomainImageLinker;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
@@ -67,7 +64,6 @@ import com.tasteam.domain.restaurant.validator.GroupRestaurantSearchConditionVal
 import com.tasteam.domain.restaurant.validator.RestaurantFoodCategoryValidator;
 import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.global.exception.business.BusinessException;
-import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.utils.CursorCodec;
@@ -87,7 +83,6 @@ public class RestaurantService {
 	private final AiRestaurantFeatureRepository aiRestaurantFeatureRepository;
 	private final AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
 	private final ReviewRepository reviewRepository;
-	private final ImageRepository imageRepository;
 	private final GroupRepository groupRepository;
 	private final RestaurantEventPublisher eventPublisher;
 	private final CursorCodec cursorCodec;
@@ -98,6 +93,7 @@ public class RestaurantService {
 	private final RestaurantScheduleService restaurantScheduleService;
 	private final RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
 	private final FileService fileService;
+	private final DomainImageLinker domainImageLinker;
 
 	@Transactional(readOnly = true)
 	public RestaurantDetailResponse getRestaurantDetail(long restaurantId) {
@@ -467,22 +463,7 @@ public class RestaurantService {
 	}
 
 	private void saveImagesIfPresent(Restaurant restaurant, List<UUID> imageIds) {
-		if (imageIds == null || imageIds.isEmpty()) {
-			return;
-		}
-
-		for (int index = 0; index < imageIds.size(); index++) {
-			UUID fileUuid = imageIds.get(index);
-			int sortOrder = index;
-			Image image = imageRepository.findByFileUuid(fileUuid)
-				.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-			if (image.getStatus() != ImageStatus.PENDING) {
-				throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-			}
-			image.activate();
-			DomainImage domainImage = DomainImage.create(DomainType.RESTAURANT, restaurant.getId(), image, sortOrder);
-			domainImageRepository.save(domainImage);
-		}
+		domainImageLinker.linkImages(DomainType.RESTAURANT, restaurant.getId(), imageIds);
 	}
 
 	private Map<Long, List<RestaurantImageDto>> loadRestaurantThumbnails(List<Long> restaurantIds) {
@@ -546,18 +527,13 @@ public class RestaurantService {
 			radiusMeter = RestaurantSearchPolicy.DEFAULT_RADIUS_METER;
 		}
 
-		// 음식 카테고리 이름 정규화 (비어있으면 전체 카테고리로 대체)
+		// 음식 카테고리 이름 정규화
 		Set<String> foodCategories = q.categories() == null
 			? Set.of()
 			: q.categories().stream()
 				.map(String::trim)
 				.filter(s -> !s.isEmpty())
 				.collect(Collectors.toUnmodifiableSet());
-		if (foodCategories.isEmpty()) {
-			foodCategories = foodCategoryRepository.findAll().stream()
-				.map(FoodCategory::getName)
-				.collect(Collectors.toUnmodifiableSet());
-		}
 
 		// 페이지 크기 기본값
 		Integer pageSize = q.size();

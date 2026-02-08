@@ -114,7 +114,7 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 		Long groupId,
 		double latitude,
 		double longitude,
-		double radiusMeter,
+		int radiusMeter,
 		Set<String> categories,
 		RestaurantCursor cursor,
 		int pageSize) {
@@ -164,13 +164,14 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 			  distance_meter ASC,
 			  r.id ASC
 			LIMIT :pageSize
-			""".formatted(hasCategories ? """
-			JOIN restaurant_food_category rfc
-			     ON rfc.restaurant_id = r.id
-			JOIN food_category fc
-			     ON fc.id = rfc.food_category_id
-			         AND fc.name IN (:categories)
-			""" : "");
+			""".formatted(
+			hasCategories ? """
+				JOIN restaurant_food_category rfc
+				     ON rfc.restaurant_id = r.id
+				JOIN food_category fc
+				     ON fc.id = rfc.food_category_id
+					         AND fc.name IN (:categories)
+				""" : "");
 
 		Map<String, Object> params = new HashMap<>();
 		params.put("latitude", latitude);

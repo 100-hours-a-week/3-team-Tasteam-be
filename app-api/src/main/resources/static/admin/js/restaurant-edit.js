@@ -189,17 +189,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         setImageStatus('저장된 이미지', 'idle');
     };
 
-    imageInput.addEventListener('change', () => {
-        selectedFiles = Array.from(imageInput.files || []).slice(0, 5);
+    imageInput.addEventListener('change', async () => {
+        const files = Array.from(imageInput.files || []).slice(0, 5);
         if (imageInput.files.length > 5) {
             alert('이미지는 최대 5장까지 업로드할 수 있습니다.');
             imageInput.value = '';
             selectedFiles = [];
+            return;
         }
-        renderImagePreviews(selectedFiles, previewContainer);
-        if (selectedFiles.length > 0) {
-            setImageStatus(`새 이미지 ${selectedFiles.length}장 선택됨`, 'idle');
-        } else {
+
+        if (files.length === 0) {
+            selectedFiles = [];
+            setImageStatus('저장된 이미지', 'idle');
+            return;
+        }
+
+        setImageStatus('이미지 최적화 중...', 'saving');
+
+        try {
+            const { optimized, errors } = await ImageOptimizer.optimizeImages(files, 'restaurant');
+
+            if (errors.length > 0) {
+                console.error('이미지 최적화 실패:', errors);
+                alert(`일부 이미지 최적화 실패:\n${errors.map(e => `- ${e.file}: ${e.error}`).join('\n')}`);
+            }
+
+            selectedFiles = optimized;
+            renderImagePreviews(selectedFiles, previewContainer);
+            setImageStatus(`새 이미지 ${selectedFiles.length}장 선택됨 (최적화 완료)`, 'success');
+        } catch (error) {
+            console.error('이미지 최적화 오류:', error);
+            alert('이미지 최적화 중 오류가 발생했습니다: ' + error.message);
+            selectedFiles = [];
             setImageStatus('저장된 이미지', 'idle');
         }
     });
@@ -246,15 +267,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let imageIds = null;
         if (selectedFiles.length > 0) {
-            try {
-                const presigned = await createPresignedUploads('RESTAURANT_IMAGE', selectedFiles);
-                const uploads = presigned.data?.uploads || [];
-                await Promise.all(uploads.map((item, index) => uploadToPresigned(item, selectedFiles[index])));
-                imageIds = uploads.map(item => item.fileUuid);
-            } catch (error) {
-                alert('이미지 업로드에 실패했습니다: ' + error.message);
-                return;
-            }
+            alert('이미지는 "이미지 저장" 버튼으로 먼저 저장해주세요.');
+            return;
         }
 
         const data = {

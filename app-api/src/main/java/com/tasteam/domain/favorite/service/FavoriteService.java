@@ -15,6 +15,7 @@ import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.global.utils.CursorPageBuilder;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,27 +31,29 @@ public class FavoriteService {
 
 	@Transactional(readOnly = true)
 	public CursorPageResponse<FavoriteRestaurantItem> getMyFavoriteRestaurants(Long memberId, String cursorStr) {
-		FavoriteCursor cursor = cursorCodec.decodeOrNull(cursorStr, FavoriteCursor.class);
-
-		List<FavoriteRestaurantQueryDto> result = favoriteQueryRepository.findFavoriteRestaurants(
-			memberId, cursor, DEFAULT_PAGE_SIZE + 1);
-
-		boolean hasNext = result.size() > DEFAULT_PAGE_SIZE;
-		List<FavoriteRestaurantQueryDto> pageContent = hasNext ? result.subList(0, DEFAULT_PAGE_SIZE) : result;
-
-		String nextCursor = null;
-		if (hasNext && !pageContent.isEmpty()) {
-			FavoriteRestaurantQueryDto last = pageContent.getLast();
-			nextCursor = cursorCodec.encode(new FavoriteCursor(last.createdAt(), last.favoriteId()));
+		CursorPageBuilder<FavoriteCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursorStr,
+			FavoriteCursor.class);
+		if (pageBuilder.isInvalid()) {
+			return CursorPageResponse.empty();
 		}
 
-		List<Long> restaurantIds = pageContent.stream()
+		List<FavoriteRestaurantQueryDto> result = favoriteQueryRepository.findFavoriteRestaurants(
+			memberId,
+			pageBuilder.cursor(),
+			CursorPageBuilder.fetchSize(DEFAULT_PAGE_SIZE));
+
+		CursorPageBuilder.Page<FavoriteRestaurantQueryDto> page = pageBuilder.build(
+			result,
+			DEFAULT_PAGE_SIZE,
+			last -> new FavoriteCursor(last.createdAt(), last.favoriteId()));
+
+		List<Long> restaurantIds = page.items().stream()
 			.map(FavoriteRestaurantQueryDto::restaurantId)
 			.toList();
 
 		Map<Long, String> thumbnails = findThumbnails(restaurantIds);
 
-		List<FavoriteRestaurantItem> items = pageContent.stream()
+		List<FavoriteRestaurantItem> items = page.items().stream()
 			.map(dto -> new FavoriteRestaurantItem(
 				dto.restaurantId(),
 				dto.restaurantName(),
@@ -60,7 +63,7 @@ public class FavoriteService {
 
 		return new CursorPageResponse<>(
 			items,
-			new CursorPageResponse.Pagination(nextCursor, hasNext, items.size()));
+			new CursorPageResponse.Pagination(page.nextCursor(), page.hasNext(), page.size()));
 	}
 
 	private Map<Long, String> findThumbnails(List<Long> restaurantIds) {
