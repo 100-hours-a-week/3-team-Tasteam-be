@@ -10,4 +10,9 @@ public final class GroupAuthCodeFixture {
 	public static GroupAuthCode create(Long groupId, String code, Instant expiresAt) {
 		return GroupAuthCode.create(groupId, code, expiresAt);
 	}
+
+	public static GroupAuthCode expire(GroupAuthCode authCode, Instant expiresAt) {
+		authCode.expire(expiresAt);
+		return authCode;
+	}
 }

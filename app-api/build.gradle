@@ -5,6 +5,10 @@ plugins {
     id 'com.github.spotbugs' version '6.0.26'
 }
 
+configurations {
+    mockitoAgent
+}
+
 dependencies {
     /* ==================================================
      * Core / Web
@@ -109,6 +113,9 @@ dependencies {
 
     testImplementation "org.assertj:assertj-core:3.27.6"
     testImplementation "org.mockito:mockito-core:5.17.0"
+    mockitoAgent("org.mockito:mockito-core:5.17.0") {
+        transitive = false
+    }
 
     testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.12.2"
 
@@ -126,6 +133,7 @@ def calculateTestForks() {
 tasks.withType(Test).configureEach {
     systemProperty "spring.profiles.active", "test"
     maxParallelForks = calculateTestForks()
+    jvmArgs += "-javaagent:${configurations.mockitoAgent.singleFile}"
 }
 
 tasks.named('test') {
