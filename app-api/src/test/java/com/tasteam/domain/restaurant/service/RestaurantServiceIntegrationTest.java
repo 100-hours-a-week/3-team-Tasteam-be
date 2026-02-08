@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -29,6 +30,8 @@ import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.member.entity.Member;
+import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
@@ -36,16 +39,23 @@ import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
+import com.tasteam.domain.restaurant.entity.AiRestaurantFeature;
+import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
 import com.tasteam.domain.restaurant.entity.FoodCategory;
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
 import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
+import com.tasteam.domain.restaurant.repository.AiRestaurantFeatureRepository;
+import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
 import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantAddressRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantWeeklyScheduleRepository;
+import com.tasteam.domain.review.entity.Review;
+import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.fixture.ImageFixture;
+import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.RestaurantRequestFixture;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.FileErrorCode;
@@ -78,6 +88,18 @@ class RestaurantServiceIntegrationTest {
 
 	@Autowired
 	private FoodCategoryRepository foodCategoryRepository;
+
+	@Autowired
+	private AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
+
+	@Autowired
+	private AiRestaurantFeatureRepository aiRestaurantFeatureRepository;
+
+	@Autowired
+	private ReviewRepository reviewRepository;
+
+	@Autowired
+	private MemberRepository memberRepository;
 
 	@Autowired
 	private ImageRepository imageRepository;
@@ -260,21 +282,77 @@ class RestaurantServiceIntegrationTest {
 	class GetRestaurantDetail {
 
 		@Test
-		@DisplayName("음식점 상세를 조회하면 이미지가 포함된다")
-		void getRestaurantDetailWithImage() {
+		@DisplayName("상세 조회 시 조합된 정보가 응답에 반영된다")
+		void getRestaurantDetail_combinesComposedData() {
 			createAndSaveImage(RESTAURANT_IMAGE_UUID_2, "restaurants/restaurant.png", "restaurant.png");
 
-			var request = RestaurantRequestFixture.createRestaurantRequest(
-				"상세 조회 식당", "서울시 강남구 역삼동 789", "02-3333-4444", List.of(RESTAURANT_IMAGE_UUID_2));
+			FoodCategory korean = foodCategoryRepository.save(FoodCategory.create("상세한식"));
+			FoodCategory western = foodCategoryRepository.save(FoodCategory.create("상세양식"));
+
+			RestaurantCreateRequest request = new RestaurantCreateRequest(
+				"상세 조회 식당",
+				"서울시 강남구 역삼동 789",
+				"02-3333-4444",
+				List.of(korean.getId(), western.getId()),
+				List.of(RESTAURANT_IMAGE_UUID_2),
+				List.of(new WeeklyScheduleRequest(1, LocalTime.of(9, 0), LocalTime.of(22, 0), false, null, null)));
+
+			RestaurantCreateResponse created = restaurantService.createRestaurant(request);
+			Restaurant restaurant = restaurantRepository.findById(created.id()).orElseThrow();
+
+			Member member = memberRepository.save(MemberFixture.create("detail-reviewer@example.com", "상세리뷰어"));
+			reviewRepository.save(Review.create(restaurant, member, 1L, null, "추천", true));
+			reviewRepository.save(Review.create(restaurant, member, 1L, null, "추천2", true));
+			reviewRepository.save(Review.create(restaurant, member, 1L, null, "비추천", false));
+
+			aiRestaurantReviewAnalysisRepository.save(
+				AiRestaurantReviewAnalysis.create(created.id(), "AI 요약", BigDecimal.valueOf(0.75)));
+			aiRestaurantFeatureRepository.save(AiRestaurantFeature.create(restaurant, "AI 특징"));
+
+			RestaurantDetailResponse detail = restaurantService.getRestaurantDetail(created.id());
+
+			assertThat(detail.id()).isEqualTo(created.id());
+			assertThat(detail.name()).isNotBlank();
+			assertThat(detail.foodCategories()).isNotEmpty();
+			assertThat(detail.businessHoursWeek()).hasSize(7);
+			assertThat(detail.image()).isNotNull();
+			assertThat(detail.recommendStat()).isNotNull();
+			assertThat(detail.recommendStat().recommendedCount()).isEqualTo(2L);
+			assertThat(detail.recommendStat().notRecommendedCount()).isEqualTo(1L);
+			assertThat(detail.recommendStat().positiveRatio()).isNotNull();
+			assertThat(detail.aiSummary()).isNotNull();
+			assertThat(detail.aiFeatures()).isNotNull();
+		}
+
+		@Test
+		@DisplayName("선택 데이터가 없으면 null 분기로 반환된다")
+		void getRestaurantDetail_returnsNullForOptionalDataWhenAbsent() {
+			RestaurantCreateRequest request = new RestaurantCreateRequest(
+				"옵셔널 없는 식당",
+				"서울시 강남구 역삼동 790",
+				"02-0000-0000",
+				null,
+				null,
+				null);
 
 			RestaurantCreateResponse created = restaurantService.createRestaurant(request);
 
 			RestaurantDetailResponse detail = restaurantService.getRestaurantDetail(created.id());
 
 			assertThat(detail.id()).isEqualTo(created.id());
-			assertThat(detail.name()).isEqualTo("상세 조회 식당");
-			assertThat(detail.image()).isNotNull();
-			assertThat(detail.image().url()).contains("restaurant.png");
+			assertThat(detail.businessHoursWeek()).hasSize(7);
+			assertThat(detail.image()).isNull();
+			assertThat(detail.aiSummary()).isNull();
+			assertThat(detail.aiFeatures()).isNull();
+			assertThat(detail.recommendStat()).isNotNull();
+			assertThat(detail.recommendStat().positiveRatio()).isNull();
+		}
+
+		@Test
+		@DisplayName("존재하지 않는 음식점 상세 조회는 예외가 발생한다")
+		void getRestaurantDetail_notFound_throwsBusinessException() {
+			assertThatThrownBy(() -> restaurantService.getRestaurantDetail(Long.MAX_VALUE))
+				.isInstanceOf(BusinessException.class);
 		}
 	}
 
