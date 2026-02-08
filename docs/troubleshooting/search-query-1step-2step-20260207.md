@@ -118,8 +118,7 @@ Execution Time: 208.747 ms
 ### 필터 조건 (WHERE)
 - `deleted_at IS NULL`
 - 키워드가 이름에 포함되거나 (`name ILIKE %kw%`)
-- 키워드가 주소에 포함되거나 (`full_address ILIKE %kw%`)
-- 키워드가 카테고리명과 정확히 일치하는 음식점이거나 (`food_category.name = kw`)
+- 또는 키워드와 이름 유사도 매칭 (`name % kw`)
 - 위/경도와 반경이 있을 경우 거리 제한 적용 (`distance <= radius`)
 
 ### 정렬 기준 (ORDER BY)
@@ -581,6 +580,118 @@ CREATE INDEX IF NOT EXISTS idx_restaurant_full_address_trgm_active
     ON restaurant USING gin (lower(full_address) gin_trgm_ops)
     WHERE deleted_at IS NULL;
 ```
+
+### 하이브리드 쿼리 EXPLAIN (geo + text + category)
+```sql
+WITH geo_candidates AS (
+  SELECT id
+  FROM restaurant
+  WHERE deleted_at IS NULL
+    AND ST_DWithin(location::geography, ST_MakePoint(126.9, 37.5)::geography, 3000)
+),
+text_candidates AS (
+  SELECT id FROM restaurant
+  WHERE deleted_at IS NULL AND lower(name) % '치킨'
+  UNION
+  SELECT id FROM restaurant
+  WHERE deleted_at IS NULL AND lower(full_address) LIKE '%치킨%'
+  UNION
+  SELECT rfc.restaurant_id
+  FROM restaurant_food_category rfc
+  JOIN food_category fc ON fc.id = rfc.food_category_id
+  WHERE lower(fc.name) = '치킨'
+),
+final_candidates AS (
+  SELECT g.id
+  FROM geo_candidates g
+  INNER JOIN text_candidates t ON t.id = g.id
+  LIMIT 500
+)
+SELECT r.*,
+  (CASE WHEN lower(r.name) = '치킨' THEN 100 ELSE 0 END
+   + similarity(lower(r.name), '치킨') * 30
+   + GREATEST(0, 1 - ST_Distance(r.location::geography, ST_MakePoint(126.9, 37.5)::geography) / 3000) * 50
+  ) AS score
+FROM restaurant r
+JOIN final_candidates c ON c.id = r.id
+ORDER BY score DESC, r.updated_at DESC, r.id DESC
+LIMIT 20;
+```
+
+실행 계획(원문):
+```
+Limit  (cost=3911.67..3911.67 rows=1 width=147) (actual time=403.528..403.722 rows=0 loops=1)
+  Buffers: shared hit=6711
+  ->  Sort  (cost=3911.67..3911.67 rows=1 width=147) (actual time=403.437..403.630 rows=0 loops=1)
+        Sort Key: ((((CASE WHEN (lower((r.name)::text) = '치킨'::text) THEN 100 ELSE 0 END)::double precision + (similarity(lower((r.name)::text), '치킨'::text) * '30'::double precision)) + (GREATEST('0'::double precision, ('1'::double precision - (st_distance((r.location)::geography, '0101000020E61000009A99999999B95F400000000000C04240'::geography, true) / '3000'::double precision))) * '50'::double precision))) DESC, r.updated_at DESC, r.id DESC
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=6711
+        ->  Nested Loop  (cost=3723.88..3911.66 rows=1 width=147) (actual time=403.100..403.293 rows=0 loops=1)
+              Buffers: shared hit=6702
+              ->  Limit  (cost=3723.58..3890.82 rows=1 width=8) (actual time=402.996..403.188 rows=0 loops=1)
+                    Buffers: shared hit=6702
+                    ->  Nested Loop  (cost=3723.58..3890.82 rows=1 width=8) (actual time=402.979..403.171 rows=0 loops=1)
+                          Join Filter: (restaurant_1.id = restaurant.id)
+                          Rows Removed by Join Filter: 31334
+                          Buffers: shared hit=6702
+                          ->  Unique  (cost=3719.10..3719.24 rows=27 width=8) (actual time=201.042..201.334 rows=1 loops=1)
+                                Buffers: shared hit=4060
+                                ->  Sort  (cost=3719.10..3719.17 rows=27 width=8) (actual time=200.940..201.152 rows=2 loops=1)
+                                      Sort Key: restaurant_1.id
+                                      Sort Method: quicksort  Memory: 25kB
+                                      Buffers: shared hit=4060
+                                      ->  Append  (cost=30.23..3718.46 rows=27 width=8) (actual time=7.881..200.367 rows=2 loops=1)
+                                            Buffers: shared hit=4060
+                                            ->  Bitmap Heap Scan on restaurant restaurant_1  (cost=30.23..68.28 rows=10 width=8) (actual time=7.801..130.555 rows=1 loops=1)
+                                                  Recheck Cond: ((lower((name)::text) % '치킨'::text) AND (deleted_at IS NULL))
+                                                  Rows Removed by Index Recheck: 30559
+                                                  Heap Blocks: exact=2002
+                                                  Buffers: shared hit=2021
+                                                  ->  Bitmap Index Scan on idx_restaurant_name_trgm_active  (cost=0.00..30.22 rows=10 width=0) (actual time=6.585..6.586 rows=30560 loops=1)
+                                                        Index Cond: (lower((name)::text) % '치킨'::text)
+                                                        Buffers: shared hit=19
+                                            ->  Seq Scan on restaurant restaurant_2  (cost=0.00..3597.26 rows=10 width=8) (actual time=67.866..67.866 rows=0 loops=1)
+                                                  Filter: ((deleted_at IS NULL) AND (lower((full_address)::text) ~~ '%치킨%'::text))
+                                                  Rows Removed by Filter: 104017
+                                                  Buffers: shared hit=2037
+                                            ->  Hash Join  (cost=22.95..52.79 rows=7 width=8) (actual time=1.609..1.824 rows=1 loops=1)
+                                                  Hash Cond: (rfc.food_category_id = fc.id)
+                                                  Buffers: shared hit=2
+                                                  ->  Seq Scan on restaurant_food_category rfc  (cost=0.00..25.70 rows=1570 width=16) (actual time=0.102..0.103 rows=12 loops=1)
+                                                        Buffers: shared hit=1
+                                                  ->  Hash  (cost=22.90..22.90 rows=4 width=8) (actual time=0.400..0.485 rows=1 loops=1)
+                                                        Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                                        Buffers: shared hit=1
+                                                        ->  Seq Scan on food_category fc  (cost=0.00..22.90 rows=4 width=8) (actual time=0.170..0.173 rows=1 loops=1)
+                                                              Filter: (lower((name)::text) = '치킨'::text)
+                                                              Rows Removed by Filter: 9
+                                                              Buffers: shared hit=1
+                          ->  Materialize  (cost=4.48..167.56 rows=10 width=8) (actual time=114.307..199.139 rows=31334 loops=1)
+                                Buffers: shared hit=2642
+                                ->  Bitmap Heap Scan on restaurant  (cost=4.48..167.51 rows=10 width=8) (actual time=114.006..187.715 rows=31334 loops=1)
+                                      Filter: ((deleted_at IS NULL) AND st_dwithin((location)::geography, '0101000020E61000009A99999999B95F400000000000C04240'::geography, '3000'::double precision, true))
+                                      Rows Removed by Filter: 20223
+                                      Heap Blocks: exact=2037
+                                      Buffers: shared hit=2642
+                                      ->  Bitmap Index Scan on idx_restaurant_geography_gist  (cost=0.00..4.48 rows=10 width=0) (actual time=12.452..12.453 rows=51557 loops=1)
+                                            Index Cond: ((location)::geography && _st_expand('0101000020E61000009A99999999B95F400000000000C04240'::geography, '3000'::double precision))
+                                            Buffers: shared hit=529
+              ->  Index Scan using restaurant_pkey on restaurant r  (cost=0.29..8.31 rows=1 width=139) (never executed)
+                    Index Cond: (id = restaurant.id)
+Planning:
+  Buffers: shared hit=517 read=5 dirtied=2
+Planning Time: 83.840 ms
+Execution Time: 407.991 ms
+```
+
+### 비교용: 현재 TWO_STEP (score + distance filter) 실행 계획
+```
+Execution Time: 1872.196 ms
+```
+
+### 요약
+- 하이브리드 쿼리: 407.991 ms (해당 조건에서는 0건 반환)
+- 현재 TWO_STEP: 1872.196 ms
 
 ## 비교 요약
 | 방안 | 예상 성능 | 구현 난이도 | 유지보수 |
