@@ -29,7 +29,8 @@ WITH duplicates AS (
     FROM member_search_history
     WHERE deleted_at IS NULL
 )
-DELETE FROM member_search_history
+UPDATE member_search_history
+SET deleted_at = NOW()
 WHERE id IN (SELECT id FROM duplicates WHERE rn > 1);
 
 CREATE UNIQUE INDEX idx_member_search_history_member_keyword_active
