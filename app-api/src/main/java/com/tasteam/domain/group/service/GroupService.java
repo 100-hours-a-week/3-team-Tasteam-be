@@ -14,6 +14,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -74,6 +75,7 @@ public class GroupService {
 	private final ImageRepository imageRepository;
 	private final DomainImageRepository domainImageRepository;
 	private final FileService fileService;
+	private final PasswordEncoder passwordEncoder;
 
 	@Transactional
 	public GroupCreateResponse createGroup(GroupCreateRequest request) {
@@ -103,7 +105,7 @@ public class GroupService {
 		if (savedGroup.getJoinType() == GroupJoinType.PASSWORD) {
 			groupAuthCodeRepository.save(GroupAuthCode.builder()
 				.groupId(savedGroup.getId())
-				.code(request.code())
+				.code(passwordEncoder.encode(request.code()))
 				.email(null)
 				.expiresAt(null)
 				.build());
@@ -229,7 +231,7 @@ public class GroupService {
 		GroupAuthCode authCode = groupAuthCodeRepository.findByGroupId(groupId)
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_PASSWORD_MISMATCH));
 
-		if (!authCode.getCode().equals(code)) {
+		if (!passwordEncoder.matches(code, authCode.getCode())) {
 			throw new BusinessException(GroupErrorCode.GROUP_PASSWORD_MISMATCH);
 		}
 
@@ -262,9 +264,12 @@ public class GroupService {
 	public void withdrawGroup(Long groupId, Long memberId) {
 		Group group = groupRepository.findByIdAndDeletedAtIsNull(groupId)
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
-		GroupMember groupMember = groupMemberRepository.findByGroupIdAndMember_IdAndDeletedAtIsNull(
+		GroupMember groupMember = groupMemberRepository.findByGroupIdAndMember_Id(
 			group.getId(),
 			memberId).orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
+		if (groupMember.getDeletedAt() != null) {
+			return;
+		}
 		groupMember.softDelete(Instant.now());
 
 		List<SubgroupMember> subgroupMembers = subgroupMemberRepository.findActiveMembersByMemberAndGroup(

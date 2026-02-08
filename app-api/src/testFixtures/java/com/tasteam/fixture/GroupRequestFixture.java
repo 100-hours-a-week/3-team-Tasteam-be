@@ -50,7 +50,7 @@ public final class GroupRequestFixture {
 		return new GroupCreateRequest(
 			name,
 			null,
-			GroupType.UNOFFICIAL,
+			GroupType.OFFICIAL,
 			DEFAULT_ADDRESS,
 			null,
 			new GroupCreateRequest.Location(37.5, 127.0),
@@ -63,7 +63,7 @@ public final class GroupRequestFixture {
 		return new GroupCreateRequest(
 			name,
 			logoUuid,
-			GroupType.UNOFFICIAL,
+			GroupType.OFFICIAL,
 			DEFAULT_ADDRESS,
 			null,
 			new GroupCreateRequest.Location(37.5, 127.0),
