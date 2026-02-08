@@ -1,5 +1,6 @@
 package com.tasteam.infra.storage.s3;
 
+import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.time.DateTimeException;
@@ -18,6 +19,10 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.util.IOUtils;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.FileErrorCode;
@@ -80,6 +85,39 @@ public class S3StorageClient implements StorageClient {
 		try {
 			Assert.hasText(objectKey, "objectKey는 필수입니다");
 			amazonS3.deleteObject(new DeleteObjectRequest(resolveBucket(), objectKey));
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
+	}
+
+	@Override
+	public byte[] downloadObject(String objectKey) {
+		Assert.hasText(objectKey, "objectKey는 필수입니다");
+		try (S3Object s3Object = amazonS3.getObject(resolveBucket(), objectKey)) {
+			return IOUtils.toByteArray(s3Object.getObjectContent());
+		} catch (IOException ex) {
+			throw new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
+	}
+
+	@Override
+	public void uploadObject(String objectKey, byte[] data, String contentType) {
+		try {
+			Assert.hasText(objectKey, "objectKey는 필수입니다");
+			Assert.notNull(data, "data는 필수입니다");
+			Assert.hasText(contentType, "contentType은 필수입니다");
+
+			ObjectMetadata metadata = new ObjectMetadata();
+			metadata.setContentLength(data.length);
+			metadata.setContentType(contentType);
+
+			amazonS3.putObject(new PutObjectRequest(
+				resolveBucket(),
+				objectKey,
+				new java.io.ByteArrayInputStream(data),
+				metadata));
 		} catch (RuntimeException ex) {
 			throw mapStorageException(ex);
 		}
