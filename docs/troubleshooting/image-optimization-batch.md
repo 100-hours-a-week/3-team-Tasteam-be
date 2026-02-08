@@ -106,6 +106,36 @@ for (Image image : images) {
 }
 ```
 
+### 6. S3 고아 이미지 발생
+**문제**: S3 업로드 성공 후 DB 커밋 실패 시 S3에 고아 이미지가 남을 수 있음.
+
+**원인**: S3 업로드 → DB 저장 순서로 처리하므로, DB 커밋 실패 시 S3에만 이미지 존재.
+
+**대응**:
+- S3 Lifecycle Policy로 자동 정리 권장
+- 또는 주기적으로 고아 이미지 탐지 스크립트 실행
+
+**고아 이미지 탐지 쿼리**:
+```sql
+-- DB에 없는 S3 키 찾기 (S3 목록과 비교 필요)
+SELECT storage_key FROM image WHERE status = 'ACTIVE';
+```
+
+**S3 Lifecycle Policy 예시** (7일 후 미사용 이미지 삭제):
+```json
+{
+  "Rules": [{
+    "ID": "CleanupOrphanImages",
+    "Status": "Enabled",
+    "Filter": { "Prefix": "optimized/" },
+    "Expiration": { "Days": 7 },
+    "NoncurrentVersionExpiration": { "NoncurrentDays": 7 }
+  }]
+}
+```
+
+**설계 결정**: DB 커밋 실패 시 S3 고아 이미지(정리 가능) vs S3 업로드 실패 시 DB만 존재(서비스 장애). 전자가 안전하므로 S3 먼저 업로드.
+
 ## 모니터링
 
 ### 로그 확인

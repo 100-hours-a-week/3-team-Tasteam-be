@@ -125,9 +125,8 @@ public class ImageOptimizationService {
 
 			UUID newUuid = UUID.randomUUID();
 			String newStorageKey = generateOptimizedStorageKey(originalImage.getPurpose(), newUuid);
-			storageClient.uploadObject(newStorageKey, optimizedData, WEBP_CONTENT_TYPE);
-
 			String newFileName = replaceExtension(originalImage.getFileName(), WEBP_FORMAT);
+
 			Image newImage = Image.create(
 				originalImage.getPurpose(),
 				newFileName,
@@ -135,10 +134,12 @@ public class ImageOptimizationService {
 				WEBP_CONTENT_TYPE,
 				newStorageKey,
 				newUuid);
-			newImage.activate();
 			imageRepository.save(newImage);
 
+			storageClient.uploadObject(newStorageKey, optimizedData, WEBP_CONTENT_TYPE);
+
 			domainImage.replaceImage(newImage);
+			newImage.activate();
 
 			originalImage.markDeletedAt(Instant.now());
 
