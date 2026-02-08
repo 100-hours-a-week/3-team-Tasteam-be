@@ -344,6 +344,7 @@ CREATE INDEX idx_restaurant_addr_trgm ON restaurant USING gin (lower(full_addres
 ### 방안 2: 공간 인덱스 선필터링
 ```sql
 CREATE INDEX idx_restaurant_location ON restaurant USING gist (location);
+CREATE INDEX idx_restaurant_geography ON restaurant USING gist (geography(location));
 
 WITH geo_filtered AS (
   SELECT r.id
@@ -392,6 +393,15 @@ ORDER BY
   r.updated_at DESC,
   r.id DESC
 LIMIT 20;
+```
+
+### 방안 2 적용 결과 (공간 인덱스)
+적용한 인덱스:
+```sql
+CREATE INDEX IF NOT EXISTS idx_restaurant_location_gist
+    ON restaurant USING gist (location);
+CREATE INDEX IF NOT EXISTS idx_restaurant_geography_gist
+    ON restaurant USING gist (geography(location));
 ```
 
 ### 방안 3: 카테고리 서브쿼리 최적화 (현재 코드 기준)
