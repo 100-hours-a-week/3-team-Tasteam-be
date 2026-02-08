@@ -27,6 +27,7 @@ import com.tasteam.domain.search.repository.SearchQueryStrategy;
 public class SearchQueryRepositoryImpl extends QueryDslSupport implements SearchQueryRepository {
 
 	private final SearchQueryProperties properties;
+	private static final double MIN_NAME_SIMILARITY = 0.3;
 
 	public SearchQueryRepositoryImpl(SearchQueryProperties properties) {
 		super(Restaurant.class);
@@ -55,7 +56,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 		String kw = keyword.toLowerCase();
 
 		BooleanExpression nameContains = r.name.lower().contains(kw);
-		BooleanExpression addrContains = r.fullAddress.lower().contains(kw);
+		BooleanExpression nameSimilar = nameSimilar(r, kw);
 		BooleanExpression categoryExists = categoryMatchExists(kw, r);
 		NumberExpression<Integer> nameExactScore = nameExactScore(r, kw);
 		NumberExpression<Double> nameSimilarity = nameSimilarity(r, kw);
@@ -76,7 +77,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			.from(r)
 			.where(
 				r.deletedAt.isNull(),
-				nameContains.or(addrContains).or(categoryExists),
+				nameContains.or(nameSimilar),
 				distanceFilter(distanceExpr, radiusMeters),
 				cursorCondition(cursor, r, totalScore, radiusMeters))
 			.orderBy(scoreOrderSpecifiers(r, totalScore).toArray(OrderSpecifier[]::new))
@@ -92,7 +93,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 		String kw = keyword.toLowerCase();
 
 		BooleanExpression nameContains = r.name.lower().contains(kw);
-		BooleanExpression addrContains = r.fullAddress.lower().contains(kw);
+		BooleanExpression nameSimilar = nameSimilar(r, kw);
 		BooleanExpression categoryExists = categoryMatchExists(kw, r);
 		NumberExpression<Integer> nameExactScore = nameExactScore(r, kw);
 		NumberExpression<Double> nameSimilarity = nameSimilarity(r, kw);
@@ -106,7 +107,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			.from(r)
 			.where(
 				r.deletedAt.isNull(),
-				nameContains.or(addrContains).or(categoryExists),
+				nameContains.or(nameSimilar),
 				distanceFilter(distanceExpr, radiusMeters),
 				cursorCondition(cursor, r, totalScore, radiusMeters))
 			.orderBy(scoreOrderSpecifiers(r, totalScore).toArray(OrderSpecifier[]::new))
@@ -145,8 +146,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 		String kw = keyword.toLowerCase();
 
 		BooleanExpression nameContains = r.name.lower().contains(kw);
-		BooleanExpression addrContains = r.fullAddress.lower().contains(kw);
-		BooleanExpression categoryNameMatch = fc.name.lower().eq(kw);
+		BooleanExpression nameSimilar = nameSimilar(r, kw);
 		NumberExpression<Integer> nameExactScore = nameExactScore(r, kw);
 		NumberExpression<Double> nameSimilarity = nameSimilarity(r, kw);
 		NumberExpression<Double> distanceExpr = distanceMeters(r, latitude, longitude);
@@ -168,7 +168,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			.leftJoin(rfc.foodCategory, fc)
 			.where(
 				r.deletedAt.isNull(),
-				nameContains.or(addrContains).or(categoryNameMatch),
+				nameContains.or(nameSimilar),
 				distanceFilter(distanceExpr, radiusMeters),
 				cursorCondition(cursor, r, totalScore, radiusMeters))
 			.groupBy(r.id)
@@ -194,6 +194,10 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 
 	private NumberExpression<Double> nameSimilarity(QRestaurant r, String keywordLower) {
 		return Expressions.numberTemplate(Double.class, "similarity(lower({0}), lower({1}))", r.name, keywordLower);
+	}
+
+	private BooleanExpression nameSimilar(QRestaurant r, String keywordLower) {
+		return nameSimilarity(r, keywordLower).goe(MIN_NAME_SIMILARITY);
 	}
 
 	private NumberExpression<Double> distanceMeters(QRestaurant r, Double latitude, Double longitude) {
@@ -239,8 +243,10 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 	private NumberExpression<Double> totalScore(NumberExpression<Integer> nameExactScore,
 		NumberExpression<Double> nameSimilarity, NumberExpression<Double> distanceMeters, Double radiusMeters) {
 		NumberExpression<Double> distanceWeight = distanceWeight(distanceMeters, radiusMeters);
-		return Expressions.numberTemplate(Double.class,
-			"({0} * 100) + ({1} * 30) + ({2} * 50)", nameExactScore, nameSimilarity, distanceWeight);
+		return nameExactScore.doubleValue()
+			.multiply(100.0)
+			.add(nameSimilarity.multiply(30.0))
+			.add(distanceWeight.multiply(50.0));
 	}
 
 	private NumberExpression<Double> distanceWeight(NumberExpression<Double> distanceMeters, Double radiusMeters) {
