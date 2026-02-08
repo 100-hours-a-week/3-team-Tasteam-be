@@ -72,7 +72,7 @@ jobs:
           fi
 
       # 4. 서버로 JAR 파일 전송
-      - name: Transfer to Server
+      - name: Transfer JAR to Server
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -80,11 +80,11 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           source: "./rollback-temp/*.jar"
-          target: "/home/${{ secrets.USERNAME }}/backend/rollback"
+          target: "/home/${{ secrets.USERNAME }}/backend/temp"
           strip_components: 1
 
-      # 5. 롤백 실행
-      - name: Deploy Rollback
+      # 5. 무중단 배포 스크립트 실행 (롤백)
+      - name: Execute Blue-Green Deployment (Rollback)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -92,100 +92,44 @@ jobs:
           key: ${{ secrets.KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            ROLLBACK_DIR="/home/${{ secrets.USERNAME }}/backend/rollback"
-            DEPLOY_DIR="/home/${{ secrets.USERNAME }}/backend"
-            BACKUP_DIR="/home/${{ secrets.USERNAME }}/backend/backup-$(date +%Y%m%d-%H%M%S)"
+            # JAR 파일명 추출 및 경로 설정
+            JAR_NAME=$(ls -t /home/${{ secrets.USERNAME }}/backend/temp/*.jar | head -1)
+            DEPLOY_SCRIPT="/home/${{ secrets.USERNAME }}/deploy/deploy.sh"
 
-            # 롤백할 JAR 파일 찾기
-            ROLLBACK_JAR=$(ls -t $ROLLBACK_DIR/*.jar | head -1)
-            if [ -z "$ROLLBACK_JAR" ]; then
-              echo "❌ 롤백할 JAR 파일을 찾을 수 없습니다."
-              exit 1
-            fi
+            # 스크립트 실행 권한 부여
+            chmod +x $DEPLOY_SCRIPT
 
-            echo "🔄 롤백 시작..."
-            echo "롤백할 JAR: $(basename $ROLLBACK_JAR)"
-
-            # 현재 실행 중인 서비스 확인
-            CURRENT_PORT=$(cat $DEPLOY_DIR/current_port.txt 2>/dev/null || echo "8080")
-            if [ "$CURRENT_PORT" = "8080" ]; then
-              TARGET_PORT=8081
-            else
-              TARGET_PORT=8080
-            fi
-
-            echo "현재 활성 포트: $CURRENT_PORT"
-            echo "롤백 타겟 포트: $TARGET_PORT"
-
-            # 현재 배포된 JAR 백업
-            mkdir -p $BACKUP_DIR
-            if [ -f "$DEPLOY_DIR/application.jar" ]; then
-              cp $DEPLOY_DIR/application.jar $BACKUP_DIR/
-              echo "✅ 현재 JAR 백업 완료: $BACKUP_DIR"
-            fi
-
-            # 타겟 포트에서 실행 중인 애플리케이션 종료
-            TARGET_PID=$(lsof -ti:$TARGET_PORT)
-            if [ ! -z "$TARGET_PID" ]; then
-              echo "타겟 포트($TARGET_PORT)에서 실행 중인 프로세스 종료: $TARGET_PID"
-              kill -15 $TARGET_PID
-              sleep 5
-            fi
-
-            # 롤백 JAR를 타겟 포트에 배포
-            cp $ROLLBACK_JAR $DEPLOY_DIR/application-rollback.jar
-            nohup java -jar $DEPLOY_DIR/application-rollback.jar --server.port=$TARGET_PORT > $DEPLOY_DIR/rollback-$TARGET_PORT.log 2>&1 &
-
-            # 헬스체크 (최대 60초)
-            echo "헬스체크 시작..."
-            for i in {1..12}; do
-              sleep 5
-              HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$TARGET_PORT/actuator/health || echo "000")
-              if [ "$HTTP_STATUS" = "200" ]; then
-                echo "✅ 롤백된 애플리케이션 정상 구동 확인 (포트: $TARGET_PORT)"
-
-                # Nginx 포트 전환
-                echo "Nginx 포트 전환 중..."
-                echo "set \$service_port $TARGET_PORT;" > $DEPLOY_DIR/service_port.conf
-                sudo nginx -s reload
-
-                # 이전 포트 애플리케이션 종료
-                OLD_PID=$(lsof -ti:$CURRENT_PORT)
-                if [ ! -z "$OLD_PID" ]; then
-                  echo "이전 포트($CURRENT_PORT) 애플리케이션 종료: $OLD_PID"
-                  kill -15 $OLD_PID
-                fi
-
-                # 현재 포트 업데이트
-                echo $TARGET_PORT > $DEPLOY_DIR/current_port.txt
-
-                # 정리
-                rm -rf $ROLLBACK_DIR/*
-
-                echo "✅ 롤백 완료!"
-                echo "활성 포트: $TARGET_PORT"
-                exit 0
-              fi
-              echo "대기 중... ($i/12)"
-            done
-
-            echo "❌ 롤백 실패: 헬스체크 타임아웃"
-            ROLLBACK_PID=$(lsof -ti:$TARGET_PORT)
-            if [ ! -z "$ROLLBACK_PID" ]; then
-              kill -15 $ROLLBACK_PID
-            fi
-            exit 1
+            # 무중단 배포 스크립트 호출 (롤백 JAR로)
+            echo "🔄 롤백 시작: Run Number ${{ inputs.run_number }}"
+            $DEPLOY_SCRIPT $JAR_NAME
 
       # 6. 롤백 결과 알림
       - name: Notify Rollback Result
         if: always()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "백엔드 ${{ inputs.environment == 'main' && '운영' || '개발' }} 서버 롤백 ${{ job.status == 'success' && '성공 ✅' || '실패 ❌' }}"
-          description: |
-            **결과:** ${{ job.status }}
-            **환경:** ${{ inputs.environment == 'main' && '운영' || '개발' }}
-            **롤백 대상 Run Number:** ${{ inputs.run_number }}
-            **실행자:** ${{ github.actor }}
-          color: ${{ job.status == 'success' && '0x00ff00' || '0xff0000' }}
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            TITLE="백엔드 ${{ inputs.environment == 'main' && '운영' || '개발' }} 서버 롤백 성공 ✅"
+            COLOR=65280
+          else
+            TITLE="백엔드 ${{ inputs.environment == 'main' && '운영' || '개발' }} 서버 롤백 실패 ❌"
+            COLOR=16711680
+          fi
+
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{
+                 \"embeds\": [{
+                   \"title\": \"$TITLE\",
+                   \"color\": $COLOR,
+                   \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
+                   \"fields\": [
+                     {\"name\": \"결과\", \"value\": \"${{ job.status }}\", \"inline\": true},
+                     {\"name\": \"환경\", \"value\": \"${{ inputs.environment == 'main' && '운영' || '개발' }}\", \"inline\": true},
+                     {\"name\": \"실행자\", \"value\": \"${{ github.actor }}\", \"inline\": true},
+                     {\"name\": \"롤백 대상 Run Number\", \"value\": \"${{ inputs.run_number }}\", \"inline\": false},
+                     {\"name\": \"서버 환경\", \"value\": \"${{ inputs.environment == 'main' && '운영' || '개발' }} 서버\", \"inline\": false},
+                     {\"name\": \"워크플로우\", \"value\": \"[실행 로그 보기](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\", \"inline\": false}
+                   ]
+                 }]
+               }" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
