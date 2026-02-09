@@ -121,56 +121,51 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 		boolean hasCategories = categories != null && !categories.isEmpty();
 
 		String sql = """
-			SELECT
-			  r.id AS id,
-			  r.name AS name,
-			  r.full_address AS address,
-			  ST_Distance(
-			    r.location::geography,
-			    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-			  ) AS distance_meter
-			FROM restaurant r
-			%s
-			WHERE r.deleted_at IS NULL
-			AND ST_DWithin(
-			  r.location::geography,
-			  ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
-			  :radiusMeter
+			WITH ranked AS (
+			  SELECT
+				r.id,
+				r.name,
+				r.full_address,
+				ST_Distance(
+				  r.location::geography,
+				  ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
+				) AS distance_meter
+			  FROM restaurant r
+			  %s
+			  WHERE r.deleted_at IS NULL
+				AND ST_DWithin(
+				  r.location::geography,
+				  ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
+				  :radiusMeter
+				)
+				AND EXISTS (
+				  SELECT 1
+				  FROM review rv
+				  WHERE rv.restaurant_id = r.id
+					AND rv.group_id = :groupId
+				)
 			)
-			AND EXISTS (
-			  SELECT 1
-			  FROM review rv
-			  WHERE rv.restaurant_id = r.id
-			    AND rv.group_id = :groupId
-			)
-			-- 커서 조건 (cursor != null 인 경우만)
-			AND (
+			SELECT *
+			FROM ranked
+			WHERE (
 			  CAST(:cursorDistance AS double precision) IS NULL
 			  OR (
-			    ST_Distance(
-			      r.location::geography,
-			      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-			    ) > CAST(:cursorDistance AS double precision)
-			    OR (
-			      ST_Distance(
-			        r.location::geography,
-			        ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-			      ) = CAST(:cursorDistance AS double precision)
-			      AND r.id > CAST(:cursorId AS bigint)
-			    )
+				distance_meter > CAST(:cursorDistance AS double precision)
+				OR (
+				  distance_meter = CAST(:cursorDistance AS double precision)
+				  AND id > CAST(:cursorId AS bigint)
+				)
 			  )
 			)
-			ORDER BY
-			  distance_meter ASC,
-			  r.id ASC
+			ORDER BY distance_meter ASC, id ASC
 			LIMIT :pageSize
 			""".formatted(
 			hasCategories ? """
-				JOIN restaurant_food_category rfc
-				     ON rfc.restaurant_id = r.id
-				JOIN food_category fc
-				     ON fc.id = rfc.food_category_id
-					         AND fc.name IN (:categories)
+					JOIN restaurant_food_category rfc
+						 ON rfc.restaurant_id = r.id
+					JOIN food_category fc
+						 ON fc.id = rfc.food_category_id
+						AND fc.name IN (:categories)
 				""" : "");
 
 		Map<String, Object> params = new HashMap<>();

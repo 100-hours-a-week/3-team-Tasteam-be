@@ -97,7 +97,7 @@ INSERT INTO review_image (
   (7301, 7001, 'https://picsum.photos/seed/tasteam-review/800/600', NULL, now())
 ON CONFLICT (id) DO NOTHING;
 
--- Member search history (table name has a typo in entity mapping)
+-- Member search history
 INSERT INTO member_search_history (
   id, member_id, keyword, count, deleted_at, created_at, updated_at
 ) VALUES
