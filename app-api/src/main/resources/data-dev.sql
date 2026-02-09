@@ -98,7 +98,7 @@ INSERT INTO review_image (
 ON CONFLICT (id) DO NOTHING;
 
 -- Member search history (table name has a typo in entity mapping)
-INSERT INTO member_serach_history (
+INSERT INTO member_search_history (
   id, member_id, keyword, count, deleted_at, created_at, updated_at
 ) VALUES
   (7401, 1001, '합정 맛집', 1, NULL, now(), now())
@@ -266,7 +266,7 @@ INSERT INTO group_auth_code (
 ON CONFLICT (id) DO NOTHING;
 
 -- Additional search history
-INSERT INTO member_serach_history (
+INSERT INTO member_search_history (
   id, member_id, keyword, count, deleted_at, created_at, updated_at
 ) VALUES
   (7402, 1002, '강남 카페', 1, NULL, now(), now())
@@ -591,7 +591,7 @@ INSERT INTO ai_restaurant_recommendation (
 ON CONFLICT (id) DO NOTHING;
 
 -- Search history for new members
-INSERT INTO member_serach_history (
+INSERT INTO member_search_history (
   id, member_id, keyword, count, deleted_at, created_at, updated_at
 ) VALUES
   (7403, 1101, '종로 양식', 1, NULL, now(), now()),

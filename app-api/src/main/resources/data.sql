@@ -92,7 +92,7 @@ INSERT INTO review_keyword (id, review_id, keyword_id) VALUES
   (7202, 7001, 7102);
 
 -- Member search history (table name has a typo in entity mapping)
-INSERT INTO member_serach_history (
+INSERT INTO member_search_history (
   id, member_id, keyword, count, deleted_at, created_at, updated_at
 ) VALUES
   (7401, 1001, '합정 맛집', 1, NULL, now(), now());
@@ -227,7 +227,7 @@ INSERT INTO group_auth_code (
   (9801, 2002, 'LOCAL-1234', 'local.user2@tasteam.dev', NULL, now() + interval '15 minutes', now());
 
 -- Additional search history
-INSERT INTO member_serach_history (
+INSERT INTO member_search_history (
   id, member_id, keyword, count, deleted_at, created_at, updated_at
 ) VALUES
   (7402, 1002, '강남 카페', 1, NULL, now(), now());
@@ -502,7 +502,7 @@ INSERT INTO ai_restaurant_recommendation (
   (9712, 8010, '카페 작업 장소로 좋습니다.', now());
 
 -- Search history for new members
-INSERT INTO member_serach_history (
+INSERT INTO member_search_history (
   id, member_id, keyword, count, deleted_at, created_at, updated_at
 ) VALUES
   (7403, 1101, '종로 양식', 1, NULL, now(), now()),
