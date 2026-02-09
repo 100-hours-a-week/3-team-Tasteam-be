@@ -49,7 +49,19 @@ public class DummyStorageClient implements StorageClient {
 	@Override
 	public void deleteObject(String objectKey) {
 		Assert.hasText(objectKey, "objectKey는 필수입니다");
-		// No external storage to clean up.
+	}
+
+	@Override
+	public byte[] downloadObject(String objectKey) {
+		Assert.hasText(objectKey, "objectKey는 필수입니다");
+		return new byte[0];
+	}
+
+	@Override
+	public void uploadObject(String objectKey, byte[] data, String contentType) {
+		Assert.hasText(objectKey, "objectKey는 필수입니다");
+		Assert.notNull(data, "data는 필수입니다");
+		Assert.hasText(contentType, "contentType은 필수입니다");
 	}
 
 	private String buildFallbackUrl(String objectKey) {

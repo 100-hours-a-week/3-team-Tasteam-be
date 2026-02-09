@@ -78,6 +78,12 @@ dependencies {
     implementation "com.amazonaws:aws-java-sdk-s3:1.12.538"
 
     /* ==================================================
+     * Image Processing
+     * ================================================== */
+    implementation "net.coobird:thumbnailator:0.4.20"
+    implementation "org.sejda.imageio:webp-imageio:0.1.6"
+
+    /* ==================================================
      * Developer Productivity
      * ================================================== */
     compileOnly "org.projectlombok:lombok:1.18.42"

@@ -92,6 +92,11 @@ tasteam:
       min-size-bytes: ${FILE_UPLOAD_MIN_SIZE_BYTES:1}
       max-size-bytes: ${FILE_UPLOAD_MAX_SIZE_BYTES:10485760}
       allowed-content-types: ${FILE_UPLOAD_ALLOWED_CONTENT_TYPES:image/jpeg,image/jpg,image/png,image/webp}
+  image:
+    optimization:
+      enabled: ${IMAGE_OPTIMIZATION_ENABLED:false}
+      cron: ${IMAGE_OPTIMIZATION_CRON:0 0 3 * * ?}
+      batch-size: ${IMAGE_OPTIMIZATION_BATCH_SIZE:100}
   aop:
     logging:
       enabled: ${TASTEAM_AOP_LOGGING_ENABLED:true}

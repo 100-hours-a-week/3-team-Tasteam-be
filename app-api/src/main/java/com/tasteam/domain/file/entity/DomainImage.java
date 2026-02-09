@@ -66,6 +66,11 @@ public class DomainImage extends BaseCreatedAtEntity {
 		this.sortOrder = Objects.requireNonNullElse(sortOrder, 0);
 	}
 
+	public void replaceImage(Image newImage) {
+		Assert.notNull(newImage, "새 이미지는 필수입니다");
+		this.image = newImage;
+	}
+
 	private static void validateCreate(DomainType domainType, Long domainId, Image image) {
 		Assert.notNull(domainType, "도메인 타입은 필수입니다");
 		Assert.notNull(domainId, "도메인 ID는 필수입니다");

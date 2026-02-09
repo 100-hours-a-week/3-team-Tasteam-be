@@ -3,6 +3,7 @@ package com.tasteam.config;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -23,6 +24,8 @@ public class TestStorageConfiguration {
 
 	private static final class FakeStorageClient implements StorageClient {
 
+		private final Map<String, byte[]> objects = new ConcurrentHashMap<>();
+
 		@Override
 		public PresignedPostResponse createPresignedPost(PresignedPostRequest request) {
 			Map<String, String> fields = new LinkedHashMap<>();
@@ -40,6 +43,18 @@ public class TestStorageConfiguration {
 		}
 
 		@Override
-		public void deleteObject(String objectKey) {}
+		public void deleteObject(String objectKey) {
+			objects.remove(objectKey);
+		}
+
+		@Override
+		public byte[] downloadObject(String objectKey) {
+			return objects.getOrDefault(objectKey, new byte[0]);
+		}
+
+		@Override
+		public void uploadObject(String objectKey, byte[] data, String contentType) {
+			objects.put(objectKey, data == null ? new byte[0] : data);
+		}
 	}
 }
