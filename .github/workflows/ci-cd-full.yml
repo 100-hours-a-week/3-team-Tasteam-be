@@ -9,6 +9,14 @@ on:
     branches:
       - develop
       - main
+  workflow_dispatch:
+    inputs:
+      run_flyway_repair:
+        description: "Run Flyway repair on target servers before deploy"
+        required: true
+        default: "false"
+        type: choice
+        options: ["false", "true"]
 
 jobs:
   # PR 시에만 테스트 실행
@@ -209,6 +217,40 @@ jobs:
         with:
           name: backend-jar-${{ github.ref_name }}-${{ github.run_number }}
           path: ./deploy-temp
+
+      - name: Flyway Repair via app JAR (develop only or manual)
+        if: >-
+          (github.event_name == 'workflow_dispatch' && inputs.run_flyway_repair == 'true') ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/develop' && secrets.RUN_FLYWAY_REPAIR_DEV == 'true')
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            set -e
+            cd /home/${{ secrets.USERNAME }}/backend
+
+            if [ -f .env ]; then
+              set -a
+              . ./.env
+              set +a
+            fi
+
+            JAR_PATH=$(ls -t /home/${{ secrets.USERNAME }}/backend/temp/app-api-*.jar | head -1)
+            if [ -z "$JAR_PATH" ]; then
+              echo "JAR not found in backend/temp" >&2
+              exit 1
+            fi
+
+            echo "=== Flyway repair start (using $JAR_PATH) ==="
+            java -jar "$JAR_PATH" \
+              --spring.flyway.enabled=true \
+              --spring.flyway.repair-on-migrate=true \
+              --spring.main.web-application-type=none \
+              --spring.jpa.hibernate.ddl-auto=none
+            echo "=== Flyway repair done ==="
 
       # 서버로 JAR 전송
       - name: Transfer JAR to Server
