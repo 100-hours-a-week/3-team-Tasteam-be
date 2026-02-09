@@ -2,8 +2,8 @@
 name: "[Feat] 기능 템플릿"
 about: '기능을 제안해주세요 '
 title: "[BE / Feat]"
-labels: BE, 기능
-assignees: ImGdevel
+labels: BE
+assignees: ''
 
 ---
 

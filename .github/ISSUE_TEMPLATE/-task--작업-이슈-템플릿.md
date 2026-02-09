@@ -3,7 +3,7 @@ name: "[Task] 작업 이슈 템플릿"
 about: 작업이 있다면 이슈로 올려두세요
 title: "[BE / Task]"
 labels: BE, TASK
-assignees: ImGdevel
+assignees: ''
 
 ---
 
