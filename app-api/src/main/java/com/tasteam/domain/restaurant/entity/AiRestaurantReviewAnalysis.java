@@ -1,13 +1,21 @@
 package com.tasteam.domain.restaurant.entity;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.util.Map;
 
 import org.hibernate.annotations.Comment;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import com.tasteam.domain.common.BaseTimeEntity;
+import com.tasteam.domain.restaurant.type.AnalysisStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -24,7 +32,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "ai_restaurant_review_analysis")
-@Comment("AI가 음식점의 리뷰 데이터를 분석하여 생성한 요약 및 긍정 비율 정보를 저장하는 테이블")
+@Comment("음식점별 AI 리뷰 분석 스냅샷(1행)을 저장하는 테이블")
 public class AiRestaurantReviewAnalysis extends BaseTimeEntity {
 
 	@Id
@@ -35,20 +43,72 @@ public class AiRestaurantReviewAnalysis extends BaseTimeEntity {
 	@Column(name = "restaurant_id", nullable = false, unique = true)
 	private Long restaurantId;
 
-	@Column(name = "summary", nullable = false, length = 500)
-	@Comment("빈 문자열 불가")
-	private String summary;
+	@Column(name = "overall_summary", nullable = false, length = 1000)
+	private String overallSummary;
 
-	@Column(name = "positive_review_ratio", nullable = false, precision = 3, scale = 2)
-	@Comment("긍정 리뷰 비율 (0.00 ~ 1.00)")
-	private BigDecimal positiveReviewRatio;
+	@JdbcTypeCode(SqlTypes.JSON)
+	@Column(name = "category_summaries", nullable = false, columnDefinition = "jsonb")
+	@Comment("카테고리별 요약. 예) service/price/food")
+	private Map<String, String> categorySummaries;
 
-	public static AiRestaurantReviewAnalysis create(Long restaurantId, String summary,
-		BigDecimal positiveReviewRatio) {
+	@Column(name = "positive_ratio", nullable = false, precision = 5, scale = 4)
+	@Comment("긍정 비율 (0.0000 ~ 1.0000)")
+	private BigDecimal positiveRatio;
+
+	@Column(name = "negative_ratio", nullable = false, precision = 5, scale = 4)
+	@Comment("부정 비율 (0.0000 ~ 1.0000)")
+	private BigDecimal negativeRatio;
+
+	@Column(name = "analyzed_at")
+	@Comment("마지막 분석 완료 시점")
+	private Instant analyzedAt;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "status", nullable = false, length = 32)
+	private AnalysisStatus status;
+
+	public static AiRestaurantReviewAnalysis create(
+		Long restaurantId,
+		String overallSummary,
+		Map<String, String> categorySummaries,
+		BigDecimal positiveRatio,
+		BigDecimal negativeRatio,
+		Instant analyzedAt,
+		AnalysisStatus status) {
 		return AiRestaurantReviewAnalysis.builder()
 			.restaurantId(restaurantId)
-			.summary(summary)
-			.positiveReviewRatio(positiveReviewRatio)
+			.overallSummary(overallSummary)
+			.categorySummaries(categorySummaries)
+			.positiveRatio(positiveRatio)
+			.negativeRatio(negativeRatio)
+			.analyzedAt(analyzedAt)
+			.status(status)
 			.build();
+	}
+
+	public static AiRestaurantReviewAnalysis create(Long restaurantId, String overallSummary,
+		BigDecimal positiveRatio) {
+		BigDecimal boundedPositive = positiveRatio == null
+			? BigDecimal.ZERO
+			: positiveRatio.max(BigDecimal.ZERO).min(BigDecimal.ONE).setScale(4, RoundingMode.HALF_UP);
+		BigDecimal calculatedNegative = BigDecimal.ONE.subtract(boundedPositive).setScale(4, RoundingMode.HALF_UP);
+		return create(
+			restaurantId,
+			overallSummary,
+			Map.of(),
+			boundedPositive,
+			calculatedNegative,
+			Instant.now(),
+			AnalysisStatus.COMPLETED);
+	}
+
+	@Deprecated
+	public String getSummary() {
+		return overallSummary;
+	}
+
+	@Deprecated
+	public BigDecimal getPositiveReviewRatio() {
+		return positiveRatio;
 	}
 }

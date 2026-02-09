@@ -40,13 +40,13 @@ import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
-import com.tasteam.domain.restaurant.entity.AiRestaurantFeature;
+import com.tasteam.domain.restaurant.entity.AiRestaurantComparison;
 import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
 import com.tasteam.domain.restaurant.entity.FoodCategory;
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
 import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
-import com.tasteam.domain.restaurant.repository.AiRestaurantFeatureRepository;
+import com.tasteam.domain.restaurant.repository.AiRestaurantComparisonRepository;
 import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
 import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantAddressRepository;
@@ -94,7 +94,7 @@ class RestaurantServiceIntegrationTest {
 	private AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
 
 	@Autowired
-	private AiRestaurantFeatureRepository aiRestaurantFeatureRepository;
+	private AiRestaurantComparisonRepository aiRestaurantComparisonRepository;
 
 	@Autowired
 	private ReviewRepository reviewRepository;
@@ -308,7 +308,7 @@ class RestaurantServiceIntegrationTest {
 
 			aiRestaurantReviewAnalysisRepository.save(
 				AiRestaurantReviewAnalysis.create(created.id(), "AI 요약", BigDecimal.valueOf(0.75)));
-			aiRestaurantFeatureRepository.save(AiRestaurantFeature.create(restaurant, "AI 특징"));
+			aiRestaurantComparisonRepository.save(AiRestaurantComparison.create(restaurant, "AI 특징"));
 
 			RestaurantDetailResponse detail = restaurantService.getRestaurantDetail(created.id());
 
