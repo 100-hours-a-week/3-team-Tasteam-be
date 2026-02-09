@@ -1,2 +1,0 @@
-ALTER TABLE group_auth_code
-    ALTER COLUMN code TYPE VARCHAR(255);
