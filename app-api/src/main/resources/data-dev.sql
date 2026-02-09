@@ -605,10 +605,3 @@ INSERT INTO member_search_history (
   (7411, 1109, '마곡 중식', 1, NULL, now(), now()),
   (7412, 1110, '잠실 카페', 1, NULL, now(), now())
 ON CONFLICT (id) DO NOTHING;
-
--- Keep identity sequence aligned after explicit id inserts.
-SELECT setval(
-  pg_get_serial_sequence('member_search_history', 'id'),
-  COALESCE((SELECT MAX(id) FROM member_search_history), 1),
-  true
-);

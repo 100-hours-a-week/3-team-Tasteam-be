@@ -1,5 +1,4 @@
-DROP INDEX IF EXISTS idx_member_search_history_member_keyword;
-
+-- Ensure member_search_history has no active duplicates and a unique partial index.
 WITH duplicates AS (
     SELECT id,
            ROW_NUMBER() OVER (
@@ -33,6 +32,6 @@ UPDATE member_search_history
 SET deleted_at = NOW()
 WHERE id IN (SELECT id FROM duplicates WHERE rn > 1);
 
-CREATE UNIQUE INDEX idx_member_search_history_member_keyword_active
+CREATE UNIQUE INDEX IF NOT EXISTS idx_member_search_history_member_keyword_active
     ON member_search_history (member_id, keyword)
     WHERE deleted_at IS NULL;
