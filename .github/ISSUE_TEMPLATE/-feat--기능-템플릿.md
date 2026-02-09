@@ -1,15 +1,11 @@
 ---
 name: "[Feat] 기능 템플릿"
 about: '기능을 제안해주세요 '
-title: "[FEAT]"
+title: "[BE / Feat]"
 labels: BE, 기능
 assignees: ImGdevel
 
 ---
-
-# ✨ [FEATURE] <한 줄 요약>
-IssueType: FEATURE
-Labels:
 
 <!-- 참고: GitHub 기본 이슈 템플릿은 .github/ISSUE_TEMPLATE/ 를 참고하세요. -->
 <!-- 이 파일은 scripts/create-issues.sh 자동화용 마크다운 템플릿입니다. -->

@@ -1,15 +1,12 @@
 ---
-name: "[BUG] 버그 이슈 템플릿"
-about: 문제점을 보고 합니다
-title: "[BE/BUG]"
+name: "[BE/Bug] 버그 이슈 템플릿"
+about: 에러/버그 문제점을 보고 합니다
+title: "[BE / Bug]"
 labels: BE, BUG
 assignees: ImGdevel
 
 ---
 
-# 🐛 [BUG] <한 줄 요약>
-IssueType: BUG
-Labels:
 <!-- 참고: GitHub 기본 이슈 템플릿은 .github/ISSUE_TEMPLATE/ 를 참고하세요. -->
 <!-- 이 파일은 scripts/create-issues.sh 자동화용 마크다운 템플릿입니다. -->
 
