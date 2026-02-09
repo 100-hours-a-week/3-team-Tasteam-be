@@ -3,7 +3,7 @@ name: "[BE/Bug] 버그 이슈 템플릿"
 about: 에러/버그 문제점을 보고 합니다
 title: "[BE / Bug]"
 labels: BE, BUG
-assignees: ImGdevel
+assignees: ''
 
 ---
 
