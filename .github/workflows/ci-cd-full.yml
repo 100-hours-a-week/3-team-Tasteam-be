@@ -9,6 +9,14 @@ on:
     branches:
       - develop
       - main
+  workflow_dispatch:
+    inputs:
+      run_flyway_repair:
+        description: "Run Flyway repair on target servers before deploy"
+        required: true
+        default: "false"
+        type: choice
+        options: ["false", "true"]
 
 jobs:
   # PR 시에만 테스트 실행
@@ -209,6 +217,28 @@ jobs:
         with:
           name: backend-jar-${{ github.ref_name }}-${{ github.run_number }}
           path: ./deploy-temp
+
+      - name: Flyway Repair (develop only or manual)
+        if: >-
+          (github.event_name == 'workflow_dispatch' && inputs.run_flyway_repair == 'true') ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/develop' && secrets.RUN_FLYWAY_REPAIR_DEV == 'true')
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            set -e
+            cd /home/${{ secrets.USERNAME }}/backend
+            echo "=== Flyway repair start ==="
+            # NOTE: flyway CLI 경로/옵션은 환경에 맞게 조정. 아래는 예시입니다.
+            ./flyway \
+              -url=${DB_URL} \
+              -user=${DB_USERNAME} \
+              -password=${DB_PASSWORD} \
+              repair
+            echo "=== Flyway repair done ==="
 
       # 서버로 JAR 전송
       - name: Transfer JAR to Server
