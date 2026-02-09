@@ -113,4 +113,23 @@ public class ImageOptimizationJob {
 		this.errorMessage = reason;
 		this.processedAt = Instant.now();
 	}
+
+	@Override
+	public String toString() {
+		Long imageId = image != null ? image.getId() : null;
+		return "ImageOptimizationJob{"
+			+ "id=" + id
+			+ ", imageId=" + imageId
+			+ ", status=" + status
+			+ ", originalSize=" + originalSize
+			+ ", optimizedSize=" + optimizedSize
+			+ ", originalWidth=" + originalWidth
+			+ ", originalHeight=" + originalHeight
+			+ ", optimizedWidth=" + optimizedWidth
+			+ ", optimizedHeight=" + optimizedHeight
+			+ ", errorMessage='" + errorMessage + '\''
+			+ ", createdAt=" + createdAt
+			+ ", processedAt=" + processedAt
+			+ '}';
+	}
 }

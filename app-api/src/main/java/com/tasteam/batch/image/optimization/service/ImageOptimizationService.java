@@ -178,10 +178,13 @@ public class ImageOptimizationService {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
 		switch (purpose) {
-			case PROFILE_IMAGE, GROUP_IMAGE -> processProfileImage(image, width, height, outputStream);
+			case PROFILE_IMAGE -> processProfileImage(image, width, height, outputStream);
+			case GROUP_IMAGE -> processProfileImage(image, width, height, outputStream);
 			case RESTAURANT_IMAGE -> processRestaurantImage(image, width, outputStream);
-			case REVIEW_IMAGE, MENU_IMAGE -> processReviewImage(image, width, outputStream);
+			case REVIEW_IMAGE -> processReviewImage(image, width, outputStream);
+			case MENU_IMAGE -> processReviewImage(image, width, outputStream);
 			case COMMON_ASSET -> processCommonImage(image, outputStream);
+			default -> throw new IllegalArgumentException("Unsupported file purpose: " + purpose);
 		}
 
 		return outputStream.toByteArray();
