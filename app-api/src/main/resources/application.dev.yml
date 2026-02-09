@@ -27,7 +27,7 @@ spring:
       leak-detection-threshold: 60000
 
   flyway:
-    enabled: false
+    enabled: true
     url: ${FLYWAY_URL:${DB_URL}}
     user: ${FLYWAY_USER:${DB_USERNAME}}
     password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
