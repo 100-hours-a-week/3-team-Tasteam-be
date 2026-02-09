@@ -3,7 +3,6 @@ package com.tasteam.domain.subgroup.service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -14,12 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.tasteam.domain.file.dto.response.DomainImageItem;
-import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.entity.Image;
-import com.tasteam.domain.file.entity.ImageStatus;
-import com.tasteam.domain.file.repository.DomainImageRepository;
-import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
@@ -47,12 +41,13 @@ import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
-import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
 import com.tasteam.global.utils.CursorPageBuilder;
+import com.tasteam.global.utils.JsonNodePatchUtils;
+import com.tasteam.global.utils.PaginationParamUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,8 +66,6 @@ public class SubgroupService {
 	private final SubgroupMemberRepository subgroupMemberRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final CursorCodec cursorCodec;
-	private final ImageRepository imageRepository;
-	private final DomainImageRepository domainImageRepository;
 	private final FileService fileService;
 
 	@Transactional(readOnly = true)
@@ -82,7 +75,7 @@ public class SubgroupService {
 		Group group = getGroup(groupId);
 		validateGroupMember(group.getId(), memberId);
 
-		int resolvedSize = resolveSize(size);
+		int resolvedSize = PaginationParamUtils.resolveSize(size);
 		CursorPageBuilder<SubgroupNameCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursor,
 			SubgroupNameCursor.class);
 		if (pageBuilder.isInvalid()) {
@@ -113,7 +106,7 @@ public class SubgroupService {
 		Integer size) {
 		getGroup(groupId);
 
-		int resolvedSize = resolveSize(size);
+		int resolvedSize = PaginationParamUtils.resolveSize(size);
 		CursorPageBuilder<SubgroupNameCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursor,
 			SubgroupNameCursor.class);
 		if (pageBuilder.isInvalid()) {
@@ -133,7 +126,7 @@ public class SubgroupService {
 			resolvedSize,
 			last -> new SubgroupNameCursor(last.getName(), last.getSubgroupId()));
 
-		return buildNameCursorPageResponse(page);
+		return buildCursorPageResponse(page);
 	}
 
 	@Transactional(readOnly = true)
@@ -141,7 +134,7 @@ public class SubgroupService {
 		Integer size) {
 		getGroup(groupId);
 
-		int resolvedSize = resolveSize(size);
+		int resolvedSize = PaginationParamUtils.resolveSize(size);
 		CursorPageBuilder<SubgroupMemberCountCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursor,
 			SubgroupMemberCountCursor.class);
 		if (pageBuilder.isInvalid()) {
@@ -164,7 +157,7 @@ public class SubgroupService {
 			resolvedSize,
 			last -> new SubgroupMemberCountCursor(last.getMemberCount(), last.getSubgroupId()));
 
-		return buildMemberCountCursorPageResponse(page);
+		return buildCursorPageResponse(page);
 	}
 
 	@Transactional(readOnly = true)
@@ -179,7 +172,7 @@ public class SubgroupService {
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.NO_PERMISSION));
 		}
 
-		String profileImageUrl = resolveProfileImageUrl(subgroup);
+		String profileImageUrl = fileService.getPrimaryDomainImageUrl(DomainType.SUBGROUP, subgroup.getId());
 
 		return new SubgroupDetailResponse(
 			new SubgroupDetailResponse.SubgroupDetail(
@@ -199,8 +192,8 @@ public class SubgroupService {
 			throw new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND);
 		}
 
-		int resolvedSize = resolveSize(size);
-		Long cursorId = parseCursor(cursor);
+		int resolvedSize = PaginationParamUtils.resolveSize(size);
+		Long cursorId = PaginationParamUtils.parseLongCursor(cursor);
 
 		List<SubgroupMemberListItem> items = subgroupMemberRepository.findSubgroupMembers(
 			subgroupId,
@@ -334,8 +327,9 @@ public class SubgroupService {
 			SubgroupStatus.ACTIVE)
 			.orElseThrow(() -> new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND));
 
-		String updatedName = applyStringIfPresent(request.getName(), subgroup::updateName, false);
-		applyStringIfPresent(request.getDescription(), subgroup::updateDescription, true);
+		String updatedName = JsonNodePatchUtils.applyStringIfPresent(
+			request.getName(), subgroup::updateName, false, true);
+		JsonNodePatchUtils.applyStringIfPresent(request.getDescription(), subgroup::updateDescription, true, false);
 		applyProfileImageFileUuid(request.getProfileImageFileUuid(), subgroup);
 
 		if (updatedName != null
@@ -349,7 +343,7 @@ public class SubgroupService {
 			return;
 		}
 		if (node.isNull()) {
-			domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.SUBGROUP, subgroup.getId());
+			fileService.clearDomainImages(DomainType.SUBGROUP, subgroup.getId());
 			return;
 		}
 		if (!node.isTextual()) {
@@ -368,17 +362,7 @@ public class SubgroupService {
 				page.hasNext()));
 	}
 
-	private CursorPageResponse<SubgroupListItem> buildNameCursorPageResponse(
-		CursorPageBuilder.Page<SubgroupListItem> page) {
-		return new CursorPageResponse<>(
-			page.items(),
-			new CursorPageResponse.Pagination(
-				page.nextCursor(),
-				page.hasNext(),
-				page.size()));
-	}
-
-	private CursorPageResponse<SubgroupListItem> buildMemberCountCursorPageResponse(
+	private CursorPageResponse<SubgroupListItem> buildCursorPageResponse(
 		CursorPageBuilder.Page<SubgroupListItem> page) {
 		return new CursorPageResponse<>(
 			page.items(),
@@ -447,38 +431,6 @@ public class SubgroupService {
 		}
 	}
 
-	private String applyStringIfPresent(JsonNode node, Consumer<String> updater, boolean nullable) {
-		if (node == null) {
-			return null;
-		}
-		if (node.isNull()) {
-			if (!nullable) {
-				throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-			}
-			updater.accept(null);
-			return null;
-		}
-		if (!node.isTextual()) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-		String value = node.asText();
-		if (!nullable && value.isBlank()) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-		updater.accept(value);
-		return value;
-	}
-
-	private int resolveSize(Integer size) {
-		if (size == null) {
-			return 10;
-		}
-		if (size < 1 || size > 100) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-		return size;
-	}
-
 	private String resolveKeyword(String keyword) {
 		if (keyword == null) {
 			return null;
@@ -487,70 +439,17 @@ public class SubgroupService {
 		return trimmed.isBlank() ? null : trimmed;
 	}
 
-	private Long parseCursor(String cursor) {
-		if (cursor == null || cursor.isBlank()) {
-			return null;
-		}
-		try {
-			return Long.parseLong(cursor);
-		} catch (NumberFormatException e) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-	}
-
 	private void applySubgroupImage(Subgroup subgroup, String fileUuid) {
-		Image image = validateImageForAttach(DomainType.SUBGROUP, subgroup.getId(), fileUuid);
-		attachDomainImageSafely(DomainType.SUBGROUP, subgroup.getId(), image);
-	}
-
-	private Image validateImageForAttach(DomainType domainType, Long domainId, String fileUuid) {
-		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
-			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-
-		if (image.getStatus() == ImageStatus.DELETED) {
-			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-		}
-
-		if (image.getStatus() != ImageStatus.PENDING
-			&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(domainType, domainId, image).isEmpty()) {
-			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-		}
-		return image;
-	}
-
-	private void attachDomainImageSafely(DomainType domainType, Long domainId, Image image) {
 		try {
-			domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
-			domainImageRepository.save(DomainImage.create(domainType, domainId, image, 0));
+			fileService.replaceDomainImage(DomainType.SUBGROUP, subgroup.getId(), fileUuid);
 		} catch (DataIntegrityViolationException ex) {
 			// DB enum/check가 코드보다 늦게 반영된 환경에서도 생성/수정을 막지 않기 위한 fallback.
-			log.warn("도메인 이미지 링크 저장 실패. domainType={}, domainId={}", domainType, domainId, ex);
+			log.warn(
+				"도메인 이미지 링크 저장 실패. domainType={}, domainId={}",
+				DomainType.SUBGROUP,
+				subgroup.getId(),
+				ex);
 		}
-
-		if (image.getStatus() == ImageStatus.PENDING) {
-			image.activate();
-			imageRepository.save(image);
-		}
-	}
-
-	private java.util.UUID parseUuid(String fileUuid) {
-		try {
-			return java.util.UUID.fromString(fileUuid);
-		} catch (IllegalArgumentException ex) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "fileUuid 형식이 올바르지 않습니다");
-		}
-	}
-
-	private String resolveProfileImageUrl(Subgroup subgroup) {
-		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(
-			DomainType.SUBGROUP,
-			List.of(subgroup.getId()));
-
-		List<DomainImageItem> subgroupImages = images.get(subgroup.getId());
-		if (subgroupImages == null || subgroupImages.isEmpty()) {
-			return null;
-		}
-		return subgroupImages.getFirst().url();
 	}
 
 	private List<SubgroupListItem> applyResolvedImageUrls(List<SubgroupListItem> items) {

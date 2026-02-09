@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -19,13 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.tasteam.domain.file.dto.response.DomainImageItem;
-import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.entity.Image;
-import com.tasteam.domain.file.entity.ImageStatus;
-import com.tasteam.domain.file.repository.DomainImageRepository;
-import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.dto.GroupCreateRequest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
@@ -53,10 +46,11 @@ import com.tasteam.domain.subgroup.repository.SubgroupMemberRepository;
 import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
-import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.notification.email.EmailSender;
+import com.tasteam.global.utils.JsonNodePatchUtils;
+import com.tasteam.global.utils.PaginationParamUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,8 +67,6 @@ public class GroupService {
 	private final EmailSender emailSender;
 	private final SubgroupMemberRepository subgroupMemberRepository;
 	private final SubgroupRepository subgroupRepository;
-	private final ImageRepository imageRepository;
-	private final DomainImageRepository domainImageRepository;
 	private final FileService fileService;
 	private final PasswordEncoder passwordEncoder;
 	private final GroupEventPublisher groupEventPublisher;
@@ -101,7 +93,7 @@ public class GroupService {
 		Group savedGroup = groupRepository.save(group);
 
 		if (request.logoImageFileUuid() != null) {
-			saveDomainImage(DomainType.GROUP, savedGroup.getId(), request.logoImageFileUuid());
+			fileService.replaceDomainImage(DomainType.GROUP, savedGroup.getId(), request.logoImageFileUuid());
 		}
 
 		if (savedGroup.getJoinType() == GroupJoinType.PASSWORD) {
@@ -120,7 +112,7 @@ public class GroupService {
 		Group group = groupRepository.findByIdAndDeletedAtIsNull(groupId)
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 
-		String logoImageUrl = resolveLogoImageUrl(group.getId());
+		String logoImageUrl = fileService.getPrimaryDomainImageUrl(DomainType.GROUP, group.getId());
 
 		return new GroupGetResponse(
 			new GroupGetResponse.GroupData(
@@ -141,10 +133,10 @@ public class GroupService {
 		Group group = groupRepository.findByIdAndDeletedAtIsNull(groupId)
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 
-		applyStringIfPresent(request.name(), group::updateName, false);
-		applyStringIfPresent(request.address(), group::updateAddress, false);
-		applyStringIfPresent(request.detailAddress(), group::updateDetailAddress, true);
-		applyStringIfPresent(request.emailDomain(), group::updateEmailDomain, true);
+		JsonNodePatchUtils.applyStringIfPresent(request.name(), group::updateName, false, false);
+		JsonNodePatchUtils.applyStringIfPresent(request.address(), group::updateAddress, false, false);
+		JsonNodePatchUtils.applyStringIfPresent(request.detailAddress(), group::updateDetailAddress, true, false);
+		JsonNodePatchUtils.applyStringIfPresent(request.emailDomain(), group::updateEmailDomain, true, false);
 		applyLogoImageUrl(request.logoImageFileUuid(), group);
 		applyStatusIfPresent(request.status(), group);
 	}
@@ -307,8 +299,8 @@ public class GroupService {
 		groupRepository.findByIdAndDeletedAtIsNull(groupId)
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 
-		int resolvedSize = resolveSize(size);
-		Long cursorId = parseCursor(cursor);
+		int resolvedSize = PaginationParamUtils.resolveSize(size);
+		Long cursorId = PaginationParamUtils.parseLongCursor(cursor);
 
 		List<GroupMemberListItem> items = groupMemberRepository.findGroupMembers(
 			groupId,
@@ -369,23 +361,6 @@ public class GroupService {
 		}
 	}
 
-	private void applyStringIfPresent(JsonNode node, Consumer<String> updater, boolean nullable) {
-		if (node == null) {
-			return;
-		}
-		if (node.isNull()) {
-			if (!nullable) {
-				throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-			}
-			updater.accept(null);
-			return;
-		}
-		if (!node.isTextual()) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-		updater.accept(node.asText());
-	}
-
 	private void applyStatusIfPresent(JsonNode node, Group group) {
 		if (node == null) {
 			return;
@@ -406,13 +381,13 @@ public class GroupService {
 			return;
 		}
 		if (node.isNull()) {
-			domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.GROUP, group.getId());
+			fileService.clearDomainImages(DomainType.GROUP, group.getId());
 			return;
 		}
 		if (!node.isTextual()) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
-		saveDomainImage(DomainType.GROUP, group.getId(), node.asText());
+		fileService.replaceDomainImage(DomainType.GROUP, group.getId(), node.asText());
 	}
 
 	private Point toPoint(GroupCreateRequest.Location location) {
@@ -434,68 +409,5 @@ public class GroupService {
 	private String generateVerificationCode() {
 		int code = ThreadLocalRandom.current().nextInt(100000, 1000000);
 		return String.valueOf(code);
-	}
-
-	private int resolveSize(Integer size) {
-		if (size == null) {
-			return 10;
-		}
-		if (size < 1 || size > 100) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-		return size;
-	}
-
-	private Long parseCursor(String cursor) {
-		if (cursor == null || cursor.isBlank()) {
-			return null;
-		}
-		try {
-			return Long.parseLong(cursor);
-		} catch (NumberFormatException e) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-	}
-
-	private void saveDomainImage(DomainType domainType, Long domainId, String fileUuid) {
-		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
-			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-
-		if (image.getStatus() == ImageStatus.DELETED) {
-			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-		}
-
-		if (image.getStatus() != ImageStatus.PENDING
-			&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(domainType, domainId, image).isEmpty()) {
-			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-		}
-
-		domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
-		domainImageRepository.save(DomainImage.create(domainType, domainId, image, 0));
-
-		if (image.getStatus() == ImageStatus.PENDING) {
-			image.activate();
-			imageRepository.save(image);
-		}
-	}
-
-	private java.util.UUID parseUuid(String fileUuid) {
-		try {
-			return java.util.UUID.fromString(fileUuid);
-		} catch (IllegalArgumentException ex) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "fileUuid 형식이 올바르지 않습니다");
-		}
-	}
-
-	private String resolveLogoImageUrl(Long groupId) {
-		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(
-			DomainType.GROUP,
-			List.of(groupId));
-
-		List<DomainImageItem> groupImages = images.get(groupId);
-		if (groupImages == null || groupImages.isEmpty()) {
-			return null;
-		}
-		return groupImages.getFirst().url();
 	}
 }
