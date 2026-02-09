@@ -22,6 +22,11 @@ public class AsyncConfig implements AsyncConfigurer {
 		return new TaskExecutorAdapter(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
 	}
 
+	@Bean(name = "notificationExecutor")
+	public Executor notificationExecutor() {
+		return new TaskExecutorAdapter(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
+	}
+
 	@Bean(name = "searchHistoryExecutor")
 	public Executor searchHistoryExecutor() {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

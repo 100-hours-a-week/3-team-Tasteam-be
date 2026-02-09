@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.tasteam.domain.notification.dto.response.NotificationResponse;
 import com.tasteam.domain.notification.dto.response.UnreadCountResponse;
 import com.tasteam.domain.notification.entity.Notification;
+import com.tasteam.domain.notification.entity.NotificationType;
 import com.tasteam.domain.notification.repository.NotificationRepository;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.dto.pagination.OffsetPagination;
@@ -57,5 +58,15 @@ public class NotificationService {
 	public UnreadCountResponse getUnreadCount(Long memberId) {
 		long count = notificationRepository.countByMemberIdAndReadAtIsNull(memberId);
 		return new UnreadCountResponse((int)count);
+	}
+
+	@Transactional
+	public Notification createNotification(
+		Long memberId,
+		NotificationType type,
+		String title,
+		String body,
+		String deepLink) {
+		return notificationRepository.save(Notification.create(memberId, type, title, body, deepLink));
 	}
 }
