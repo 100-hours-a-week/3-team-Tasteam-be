@@ -14,7 +14,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +27,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.tasteam.config.TestCurrentUserContext;
-import com.tasteam.config.annotation.IntegrationTest;
+import com.tasteam.config.TestSecurityConfig;
+import com.tasteam.config.TestStorageConfiguration;
+import com.tasteam.config.TestcontainersConfiguration;
 import com.tasteam.config.annotation.WithCustomMockUser;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
@@ -45,7 +51,10 @@ import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.fixture.ImageFixture;
 import com.tasteam.fixture.MemberFixture;
 
-@IntegrationTest
+@ActiveProfiles("test")
+@Import({TestSecurityConfig.class, TestStorageConfiguration.class, TestcontainersConfiguration.class})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@AutoConfigureMockMvc
 @Transactional
 @DisplayName("Group/Subgroup API Smoke 통합 테스트")
 class GroupSubgroupApiSmokeIntegrationTest {
