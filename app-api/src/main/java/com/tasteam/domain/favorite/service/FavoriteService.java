@@ -17,7 +17,7 @@ import com.tasteam.domain.favorite.dto.SubgroupFavoriteRestaurantQueryDto;
 import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
 import com.tasteam.domain.favorite.dto.response.FavoritePageTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
-import com.tasteam.domain.favorite.dto.response.FavoriteTargetsResponse;
+import com.tasteam.domain.favorite.dto.response.RestaurantFavoriteTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.SubgroupFavoriteRestaurantItem;
 import com.tasteam.domain.favorite.entity.MemberFavoriteRestaurant;
 import com.tasteam.domain.favorite.entity.SubgroupFavoriteRestaurant;
@@ -101,7 +101,7 @@ public class FavoriteService {
 		Long subgroupId,
 		String cursorStr) {
 		requireAuthenticated(memberId);
-		requireSubgroupMembership(memberId, subgroupId);
+		requireSubgroupViewPermission(memberId, subgroupId);
 
 		CursorPageBuilder<SubgroupFavoriteCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursorStr,
 			SubgroupFavoriteCursor.class);
@@ -141,7 +141,7 @@ public class FavoriteService {
 	}
 
 	@Transactional(readOnly = true)
-	public FavoriteTargetsResponse getFavoriteTargets(Long memberId, Long restaurantId) {
+	public RestaurantFavoriteTargetsResponse getFavoriteTargets(Long memberId, Long restaurantId) {
 		requireAuthenticated(memberId);
 		validateRestaurant(restaurantId);
 		return createRestaurantFavoriteTargetsResponse(memberId, restaurantId);
@@ -231,8 +231,8 @@ public class FavoriteService {
 			subgroupCounts);
 	}
 
-	private FavoriteTargetsResponse createRestaurantFavoriteTargetsResponse(Long memberId, Long restaurantId) {
-		long myFavoriteCount = memberFavoriteRestaurantRepository.countByMemberIdAndDeletedAtIsNull(memberId);
+	private RestaurantFavoriteTargetsResponse createRestaurantFavoriteTargetsResponse(Long memberId,
+		Long restaurantId) {
 		FavoriteState myFavoriteState = memberFavoriteRestaurantRepository
 			.findByMemberIdAndRestaurantIdAndDeletedAtIsNull(memberId, restaurantId)
 			.isPresent() ? FavoriteState.FAVORITED : FavoriteState.NOT_FAVORITED;
@@ -243,24 +243,14 @@ public class FavoriteService {
 			GroupStatus.ACTIVE);
 		List<Long> subgroupIds = subgroupTargets.stream().map(FavoriteSubgroupTargetRow::subgroupId).toList();
 
-		Map<Long, Long> subgroupCounts = subgroupIds.isEmpty()
-			? Map.of()
-			: subgroupFavoriteRestaurantRepository.countBySubgroupIds(subgroupIds)
-				.stream()
-				.collect(Collectors.toMap(FavoriteCountBySubgroupDto::subgroupId,
-					FavoriteCountBySubgroupDto::favoriteCount));
-
 		Set<Long> favoritedSubgroupIds = subgroupIds.isEmpty() ? Set.of()
 			: Set.copyOf(subgroupFavoriteRestaurantRepository.findFavoritedSubgroupIds(memberId, subgroupIds,
 				restaurantId));
 
-		return favoriteAssembler.toFavoriteTargetsResponse(
-			myFavoriteCount,
+		return favoriteAssembler.toRestaurantFavoriteTargetsResponse(
 			myFavoriteState,
 			subgroupTargets,
-			subgroupCounts,
-			favoritedSubgroupIds,
-			true);
+			favoritedSubgroupIds);
 	}
 
 	private MemberFavoriteRestaurant restoreMemberFavoriteIfDeleted(MemberFavoriteRestaurant existing) {
@@ -312,6 +302,19 @@ public class FavoriteService {
 			throw new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND);
 		}
 
+		subgroupMemberRepository.findBySubgroupIdAndMember_IdAndDeletedAtIsNull(subgroupId, memberId)
+			.orElseThrow(() -> new BusinessException(CommonErrorCode.NO_PERMISSION));
+	}
+
+	private void requireSubgroupViewPermission(Long memberId, Long subgroupId) {
+		var subgroup = subgroupRepository.findByIdAndDeletedAtIsNull(subgroupId)
+			.orElseThrow(() -> new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND));
+		if (subgroup.getStatus() != SubgroupStatus.ACTIVE) {
+			throw new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND);
+		}
+		if (subgroup.getJoinType() == com.tasteam.domain.subgroup.type.SubgroupJoinType.OPEN) {
+			return;
+		}
 		subgroupMemberRepository.findBySubgroupIdAndMember_IdAndDeletedAtIsNull(subgroupId, memberId)
 			.orElseThrow(() -> new BusinessException(CommonErrorCode.NO_PERMISSION));
 	}

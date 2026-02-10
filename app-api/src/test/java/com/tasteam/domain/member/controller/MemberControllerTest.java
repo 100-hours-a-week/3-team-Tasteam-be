@@ -29,8 +29,8 @@ import com.tasteam.config.annotation.ControllerWebMvcTest;
 import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
 import com.tasteam.domain.favorite.dto.response.FavoritePageTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
-import com.tasteam.domain.favorite.dto.response.FavoriteTargetItem;
-import com.tasteam.domain.favorite.dto.response.FavoriteTargetsResponse;
+import com.tasteam.domain.favorite.dto.response.RestaurantFavoriteTargetItem;
+import com.tasteam.domain.favorite.dto.response.RestaurantFavoriteTargetsResponse;
 import com.tasteam.domain.favorite.service.FavoriteService;
 import com.tasteam.domain.favorite.type.FavoriteState;
 import com.tasteam.domain.favorite.type.FavoriteTargetType;
@@ -342,9 +342,10 @@ class MemberControllerTest {
 		@Test
 		@DisplayName("음식점 맥락 찜 타겟을 조회하면 상태 정보를 반환한다")
 		void 음식점_맥락_찜_타겟_조회_성공() throws Exception {
-			FavoriteTargetsResponse response = new FavoriteTargetsResponse(List.of(
-				new FavoriteTargetItem(FavoriteTargetType.ME, null, "내 찜", 3L, FavoriteState.FAVORITED),
-				new FavoriteTargetItem(FavoriteTargetType.SUBGROUP, 22L, "점심팟", 5L, FavoriteState.NOT_FAVORITED)));
+			RestaurantFavoriteTargetsResponse response = new RestaurantFavoriteTargetsResponse(List.of(
+				new RestaurantFavoriteTargetItem(FavoriteTargetType.ME, null, "내 찜", FavoriteState.FAVORITED),
+				new RestaurantFavoriteTargetItem(FavoriteTargetType.SUBGROUP, 22L, "점심팟",
+					FavoriteState.NOT_FAVORITED)));
 			given(favoriteService.getFavoriteTargets(anyLong(), anyLong())).willReturn(response);
 
 			mockMvc.perform(get("/api/v1/members/me/restaurants/{restaurantId}/favorite-targets", 101L))

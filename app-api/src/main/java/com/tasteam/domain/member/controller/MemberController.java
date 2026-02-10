@@ -20,7 +20,7 @@ import com.tasteam.domain.favorite.dto.request.FavoriteCreateRequest;
 import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
 import com.tasteam.domain.favorite.dto.response.FavoritePageTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
-import com.tasteam.domain.favorite.dto.response.FavoriteTargetsResponse;
+import com.tasteam.domain.favorite.dto.response.RestaurantFavoriteTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.SubgroupFavoriteRestaurantItem;
 import com.tasteam.domain.favorite.service.FavoriteService;
 import com.tasteam.domain.member.controller.docs.MemberControllerDocs;
@@ -139,7 +139,7 @@ public class MemberController implements MemberControllerDocs {
 
 	@PreAuthorize("hasRole('USER')")
 	@GetMapping("/restaurants/{restaurantId}/favorite-targets")
-	public SuccessResponse<FavoriteTargetsResponse> getRestaurantFavoriteTargets(
+	public SuccessResponse<RestaurantFavoriteTargetsResponse> getRestaurantFavoriteTargets(
 		@CurrentUser
 		Long memberId,
 		@PathVariable @Positive

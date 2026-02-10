@@ -12,8 +12,8 @@ import com.tasteam.domain.favorite.dto.SubgroupFavoriteRestaurantQueryDto;
 import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
 import com.tasteam.domain.favorite.dto.response.FavoritePageTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
-import com.tasteam.domain.favorite.dto.response.FavoriteTargetItem;
-import com.tasteam.domain.favorite.dto.response.FavoriteTargetsResponse;
+import com.tasteam.domain.favorite.dto.response.RestaurantFavoriteTargetItem;
+import com.tasteam.domain.favorite.dto.response.RestaurantFavoriteTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.SubgroupFavoriteRestaurantItem;
 import com.tasteam.domain.favorite.entity.MemberFavoriteRestaurant;
 import com.tasteam.domain.favorite.entity.SubgroupFavoriteRestaurant;
@@ -57,33 +57,26 @@ public class FavoriteAssembler {
 			.toList();
 	}
 
-	public FavoriteTargetsResponse toFavoriteTargetsResponse(
-		long myFavoriteCount,
+	public RestaurantFavoriteTargetsResponse toRestaurantFavoriteTargetsResponse(
 		FavoriteState myFavoriteState,
 		List<FavoriteSubgroupTargetRow> subgroupTargets,
-		Map<Long, Long> subgroupFavoriteCounts,
-		Set<Long> favoritedSubgroupIds,
-		boolean includeState) {
-		FavoriteTargetItem myTarget = new FavoriteTargetItem(
+		Set<Long> favoritedSubgroupIds) {
+		RestaurantFavoriteTargetItem myTarget = new RestaurantFavoriteTargetItem(
 			FavoriteTargetType.ME,
 			null,
 			"내 찜",
-			myFavoriteCount,
-			includeState ? myFavoriteState : null);
+			myFavoriteState);
 
-		List<FavoriteTargetItem> subgroupItems = subgroupTargets.stream()
-			.map(subgroup -> new FavoriteTargetItem(
+		List<RestaurantFavoriteTargetItem> subgroupItems = subgroupTargets.stream()
+			.map(subgroup -> new RestaurantFavoriteTargetItem(
 				FavoriteTargetType.SUBGROUP,
 				subgroup.subgroupId(),
 				subgroup.subgroupName(),
-				subgroupFavoriteCounts.getOrDefault(subgroup.subgroupId(), 0L),
-				includeState
-					? favoritedSubgroupIds.contains(subgroup.subgroupId()) ? FavoriteState.FAVORITED
-						: FavoriteState.NOT_FAVORITED
-					: null))
+				favoritedSubgroupIds.contains(subgroup.subgroupId()) ? FavoriteState.FAVORITED
+					: FavoriteState.NOT_FAVORITED))
 			.toList();
 
-		return new FavoriteTargetsResponse(
+		return new RestaurantFavoriteTargetsResponse(
 			java.util.stream.Stream.concat(java.util.stream.Stream.of(myTarget), subgroupItems.stream()).toList());
 	}
 
