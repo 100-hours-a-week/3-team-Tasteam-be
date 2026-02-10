@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>배치 작업 관리 - Tasteam Admin</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Tasteam Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/admin/pages/dashboard.html">대시보드</a></li>
+                <li><a href="/admin/pages/restaurants.html">음식점 관리</a></li>
+                <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
+                <li><a href="/admin/pages/jobs.html" class="active">배치 작업</a></li>
+                <li><a href="#" id="logoutBtn">로그아웃</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <div class="content-header">
+                <h1>배치 작업 관리</h1>
+            </div>
+            <div class="job-cards">
+                <div class="card job-card">
+                    <h3>이미지 최적화</h3>
+                    <p>S3에 저장된 이미지를 WebP 포맷으로 변환하고 정책에 맞게 리사이즈합니다.</p>
+                    <div class="job-config">
+                        <label for="batchSize">배치 크기:</label>
+                        <input type="number" id="batchSize" value="100" min="1" max="500">
+                    </div>
+                    <button id="runImageOptimization" class="btn btn-primary">실행</button>
+                    <div id="jobResult" class="job-result" style="display: none;">
+                        <h4>실행 결과</h4>
+                        <ul>
+                            <li>성공: <span id="successCount">0</span></li>
+                            <li>실패: <span id="failedCount">0</span></li>
+                            <li>건너뜀: <span id="skippedCount">0</span></li>
+                        </ul>
+                    </div>
+                    <div id="jobError" class="error-message" style="display: none;"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/admin/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/jobs.js"></script>
+</body>
+</html>
