@@ -41,6 +41,8 @@ import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.infra.storage.PresignedPostResponse;
 import com.tasteam.infra.storage.StorageClient;
 
+import jakarta.persistence.EntityManager;
+
 @ServiceIntegrationTest
 @Transactional
 class FileServiceIntegrationTest {
@@ -62,6 +64,9 @@ class FileServiceIntegrationTest {
 
 	@Autowired
 	private FileCleanupProperties cleanupProperties;
+
+	@Autowired
+	private EntityManager entityManager;
 
 	@BeforeEach
 	void setUp() {
@@ -207,12 +212,9 @@ class FileServiceIntegrationTest {
 		@Test
 		@DisplayName("createdAt이 TTL보다 오래된 PENDING 이미지(deletedAt 없음)는 deletedAt이 마킹된다")
 		void cleanupPendingImagesCreatedBeforeTtlMarksDeletedAt() {
-			Image image = ImageFixture.createWithCreatedAt(
-				FilePurpose.REVIEW_IMAGE,
-				"uploads/test/old-pending.png",
-				FILE_UUID_CLEANUP_3,
-				Instant.now().minus(cleanupProperties.ttlDuration()).minusSeconds(100));
-			imageRepository.save(image);
+			createAndSaveImage(FILE_UUID_CLEANUP_3, "uploads/test/old-pending.png");
+			Instant expiredCreatedAt = Instant.now().minus(cleanupProperties.ttlDuration()).minusSeconds(100);
+			updateCreatedAt(FILE_UUID_CLEANUP_3, expiredCreatedAt);
 
 			fileService.cleanupPendingDeletedImages();
 
@@ -224,20 +226,18 @@ class FileServiceIntegrationTest {
 		@Test
 		@DisplayName("findCleanupPendingImages는 TTL이 지난 대기 이미지 목록을 반환한다")
 		void findCleanupPendingImagesReturnsExpiredImages() {
-			Image expiredWithDeletedAt = ImageFixture.create(
-				FilePurpose.REVIEW_IMAGE, "uploads/test/expired1.png", FILE_UUID_CLEANUP_1);
-			expiredWithDeletedAt.markDeletedAt(Instant.now().minus(cleanupProperties.ttlDuration()).minusSeconds(100));
+			Instant expiredTime = Instant.now().minus(cleanupProperties.ttlDuration()).minusSeconds(100);
+
+			createAndSaveImage(FILE_UUID_CLEANUP_1, "uploads/test/expired1.png");
+			Image expiredWithDeletedAt = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_1).orElseThrow();
+			expiredWithDeletedAt.markDeletedAt(expiredTime);
 			imageRepository.save(expiredWithDeletedAt);
 
-			Image expiredByCreatedAt = ImageFixture.createWithCreatedAt(
-				FilePurpose.REVIEW_IMAGE,
-				"uploads/test/expired2.png",
-				FILE_UUID_CLEANUP_2,
-				Instant.now().minus(cleanupProperties.ttlDuration()).minusSeconds(100));
-			imageRepository.save(expiredByCreatedAt);
+			createAndSaveImage(FILE_UUID_CLEANUP_2, "uploads/test/expired2.png");
+			updateCreatedAt(FILE_UUID_CLEANUP_2, expiredTime);
 
-			Image recentImage = ImageFixture.create(
-				FilePurpose.REVIEW_IMAGE, "uploads/test/recent.png", FILE_UUID_CLEANUP_3);
+			createAndSaveImage(FILE_UUID_CLEANUP_3, "uploads/test/recent.png");
+			Image recentImage = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_3).orElseThrow();
 			recentImage.markDeletedAt(Instant.now().minusSeconds(10));
 			imageRepository.save(recentImage);
 
@@ -251,5 +251,14 @@ class FileServiceIntegrationTest {
 
 	private void createAndSaveImage(UUID fileUuid, String storageKey) {
 		imageRepository.save(ImageFixture.create(FilePurpose.REVIEW_IMAGE, storageKey, fileUuid));
+	}
+
+	private void updateCreatedAt(UUID fileUuid, Instant createdAt) {
+		entityManager.createNativeQuery("UPDATE image SET created_at = :createdAt WHERE file_uuid = :fileUuid")
+			.setParameter("createdAt", createdAt)
+			.setParameter("fileUuid", fileUuid)
+			.executeUpdate();
+		entityManager.flush();
+		entityManager.clear();
 	}
 }
