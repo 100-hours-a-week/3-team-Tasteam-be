@@ -209,12 +209,21 @@ public class FileService {
 
 	@Transactional(readOnly = true)
 	public String getPrimaryDomainImageUrl(DomainType domainType, Long domainId) {
-		Map<Long, List<DomainImageItem>> images = getDomainImageUrls(domainType, List.of(domainId));
-		List<DomainImageItem> domainImages = images.get(domainId);
-		if (domainImages == null || domainImages.isEmpty()) {
-			return null;
+		return getPrimaryDomainImageUrlMap(domainType, List.of(domainId)).get(domainId);
+	}
+
+	@Transactional(readOnly = true)
+	public Map<Long, String> getPrimaryDomainImageUrlMap(DomainType domainType, List<Long> domainIds) {
+		if (domainIds == null || domainIds.isEmpty()) {
+			return Map.of();
 		}
-		return domainImages.getFirst().url();
+
+		Map<Long, List<DomainImageItem>> images = getDomainImageUrls(domainType, domainIds);
+		return images.entrySet().stream()
+			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
+			.collect(Collectors.toMap(
+				Map.Entry::getKey,
+				entry -> entry.getValue().getFirst().url()));
 	}
 
 	@Transactional(readOnly = true)

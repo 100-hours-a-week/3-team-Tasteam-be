@@ -3,7 +3,6 @@ package com.tasteam.domain.subgroup.service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -12,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
@@ -476,11 +474,6 @@ public class SubgroupService {
 		if (domainIds.isEmpty()) {
 			return Map.of();
 		}
-		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(DomainType.SUBGROUP, domainIds);
-		return images.entrySet().stream()
-			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
-			.collect(Collectors.toMap(
-				Map.Entry::getKey,
-				entry -> entry.getValue().getFirst().url()));
+		return fileService.getPrimaryDomainImageUrlMap(DomainType.SUBGROUP, domainIds);
 	}
 }
