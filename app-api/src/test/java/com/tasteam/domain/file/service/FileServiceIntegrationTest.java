@@ -20,6 +20,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.config.annotation.ServiceIntegrationTest;
+import com.tasteam.domain.file.config.FileCleanupProperties;
 import com.tasteam.domain.file.dto.request.DomainImageLinkRequest;
 import com.tasteam.domain.file.dto.request.PresignedUploadFileRequest;
 import com.tasteam.domain.file.dto.request.PresignedUploadRequest;
@@ -40,6 +41,8 @@ import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.infra.storage.PresignedPostResponse;
 import com.tasteam.infra.storage.StorageClient;
 
+import jakarta.persistence.EntityManager;
+
 @ServiceIntegrationTest
 @Transactional
 class FileServiceIntegrationTest {
@@ -58,6 +61,12 @@ class FileServiceIntegrationTest {
 
 	@MockitoBean
 	private StorageClient storageClient;
+
+	@Autowired
+	private FileCleanupProperties cleanupProperties;
+
+	@Autowired
+	private EntityManager entityManager;
 
 	@BeforeEach
 	void setUp() {
@@ -223,23 +232,91 @@ class FileServiceIntegrationTest {
 	@DisplayName("이미지 정리")
 	class CleanupImages {
 
+		private static final UUID FILE_UUID_CLEANUP_1 = UUID.fromString("33333333-cccc-dddd-eeee-333333333333");
+		private static final UUID FILE_UUID_CLEANUP_2 = UUID.fromString("44444444-dddd-eeee-ffff-444444444444");
+		private static final UUID FILE_UUID_CLEANUP_3 = UUID.fromString("55555555-eeee-ffff-0000-555555555555");
+
 		@Test
-		@DisplayName("만료된 PENDING 이미지가 DELETED 처리되고 스토리지 삭제가 호출된다")
+		@DisplayName("deletedAt이 TTL보다 오래된 PENDING 이미지가 DELETED 처리되고 스토리지 삭제가 호출된다")
 		void cleanupPendingDeletedImagesSuccess() {
-			createAndSaveImage(FILE_UUID, "uploads/test/cleanup.png");
-			Image image = imageRepository.findByFileUuid(FILE_UUID).orElseThrow();
+			createAndSaveImage(FILE_UUID_CLEANUP_1, "uploads/test/cleanup.png");
+			Image image = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_1).orElseThrow();
+			Instant expiredDeletedAt = Instant.now().minus(cleanupProperties.ttlDuration()).minusSeconds(100);
+			image.markDeletedAt(expiredDeletedAt);
+			imageRepository.save(image);
+
+			int cleaned = fileService.cleanupPendingDeletedImages();
+
+			Image updated = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_1).orElseThrow();
+			assertThat(cleaned).isEqualTo(1);
+			assertThat(updated.getStatus()).isEqualTo(ImageStatus.DELETED);
+		}
+
+		@Test
+		@DisplayName("deletedAt이 TTL 이내인 PENDING 이미지는 삭제되지 않는다")
+		void cleanupPendingDeletedImagesWithinTtlNotDeleted() {
+			createAndSaveImage(FILE_UUID_CLEANUP_2, "uploads/test/recent.png");
+			Image image = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_2).orElseThrow();
 			image.markDeletedAt(Instant.now().minusSeconds(10));
 			imageRepository.save(image);
 
 			int cleaned = fileService.cleanupPendingDeletedImages();
 
-			Image updated = imageRepository.findByFileUuid(FILE_UUID).orElseThrow();
-			assertThat(cleaned).isEqualTo(1);
-			assertThat(updated.getStatus()).isEqualTo(ImageStatus.DELETED);
+			Image updated = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_2).orElseThrow();
+			assertThat(cleaned).isEqualTo(0);
+			assertThat(updated.getStatus()).isEqualTo(ImageStatus.PENDING);
+		}
+
+		@Test
+		@DisplayName("createdAt이 TTL보다 오래된 PENDING 이미지(deletedAt 없음)는 deletedAt이 마킹된다")
+		void cleanupPendingImagesCreatedBeforeTtlMarksDeletedAt() {
+			createAndSaveImage(FILE_UUID_CLEANUP_3, "uploads/test/old-pending.png");
+			Instant expiredCreatedAt = Instant.now().minus(cleanupProperties.ttlDuration()).minusSeconds(100);
+			updateCreatedAt(FILE_UUID_CLEANUP_3, expiredCreatedAt);
+
+			fileService.cleanupPendingDeletedImages();
+
+			Image updated = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_3).orElseThrow();
+			assertThat(updated.getDeletedAt()).isNotNull();
+			assertThat(updated.getStatus()).isEqualTo(ImageStatus.PENDING);
+		}
+
+		@Test
+		@DisplayName("findCleanupPendingImages는 TTL이 지난 대기 이미지 목록을 반환한다")
+		void findCleanupPendingImagesReturnsExpiredImages() {
+			Instant expiredTime = Instant.now().minus(cleanupProperties.ttlDuration()).minusSeconds(100);
+
+			createAndSaveImage(FILE_UUID_CLEANUP_1, "uploads/test/expired1.png");
+			Image expiredWithDeletedAt = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_1).orElseThrow();
+			expiredWithDeletedAt.markDeletedAt(expiredTime);
+			imageRepository.save(expiredWithDeletedAt);
+
+			createAndSaveImage(FILE_UUID_CLEANUP_2, "uploads/test/expired2.png");
+			updateCreatedAt(FILE_UUID_CLEANUP_2, expiredTime);
+
+			createAndSaveImage(FILE_UUID_CLEANUP_3, "uploads/test/recent.png");
+			Image recentImage = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_3).orElseThrow();
+			recentImage.markDeletedAt(Instant.now().minusSeconds(10));
+			imageRepository.save(recentImage);
+
+			List<Image> pendingImages = fileService.findCleanupPendingImages();
+
+			assertThat(pendingImages).hasSize(2);
+			assertThat(pendingImages).extracting(Image::getFileUuid)
+				.containsExactlyInAnyOrder(FILE_UUID_CLEANUP_1, FILE_UUID_CLEANUP_2);
 		}
 	}
 
 	private void createAndSaveImage(UUID fileUuid, String storageKey) {
 		imageRepository.save(ImageFixture.create(FilePurpose.REVIEW_IMAGE, storageKey, fileUuid));
+	}
+
+	private void updateCreatedAt(UUID fileUuid, Instant createdAt) {
+		entityManager.createNativeQuery("UPDATE image SET created_at = :createdAt WHERE file_uuid = :fileUuid")
+			.setParameter("createdAt", createdAt)
+			.setParameter("fileUuid", fileUuid)
+			.executeUpdate();
+		entityManager.flush();
+		entityManager.clear();
 	}
 }

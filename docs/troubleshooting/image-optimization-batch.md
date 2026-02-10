@@ -136,6 +136,29 @@ SELECT storage_key FROM image WHERE status = 'ACTIVE';
 
 **설계 결정**: DB 커밋 실패 시 S3 고아 이미지(정리 가능) vs S3 업로드 실패 시 DB만 존재(서비스 장애). 전자가 안전하므로 S3 먼저 업로드.
 
+### 7. 트랜잭션 안전성 (이미지 교체 방식)
+**설계**: 최적화된 이미지는 원본을 덮어쓰지 않고 새 Image 엔티티로 생성.
+
+**처리 순서** (실패 시 원본 이미지 유지):
+```
+1. 새 Image 생성 (PENDING 상태)
+2. S3에 최적화된 이미지 업로드
+3. DomainImage.replaceImage(newImage)  // 연결 변경
+4. newImage.activate()  // ACTIVE로 전환
+5. originalImage.markDeletedAt(now)  // 삭제 마킹
+```
+
+**실패 시나리오별 동작**:
+| 실패 지점 | 결과 | 복구 |
+|-----------|------|------|
+| 1단계 (Image 생성) | 롤백, 원본 유지 | 자동 |
+| 2단계 (S3 업로드) | 롤백, 원본 유지 | 자동 |
+| 3~5단계 (DB 커밋) | S3에 고아 이미지 | Lifecycle Policy |
+
+**원본 이미지 삭제 정책**:
+- `deletedAt` 설정 후 TTL(24시간) 경과 후 실제 삭제
+- TTL 내 장애 발생 시 원본 복구 가능 (S3 버전닝)
+
 ## 모니터링
 
 ### 로그 확인
@@ -166,7 +189,49 @@ WHERE i.status = 'ACTIVE'
 AND i.id NOT IN (SELECT image_id FROM image_optimization_job);
 ```
 
-## 수동 실행
+## Admin API
+
+### 최적화 대상 조회
+```
+GET /api/v1/admin/jobs/image-optimization/pending?limit=100
+```
+
+**응답:**
+```json
+{
+  "data": [
+    {
+      "imageId": 123,
+      "fileName": "photo.jpg",
+      "fileSize": 2048000,
+      "fileType": "image/jpeg",
+      "purpose": "REVIEW_IMAGE",
+      "domainType": "REVIEW",
+      "domainId": 456,
+      "createdAt": "2026-02-09T10:00:00Z"
+    }
+  ]
+}
+```
+
+### 최적화 실행
+```
+POST /api/v1/admin/jobs/image-optimization?batchSize=100
+```
+
+**응답:**
+```json
+{
+  "data": {
+    "jobName": "image-optimization",
+    "successCount": 95,
+    "failedCount": 3,
+    "skippedCount": 2
+  }
+}
+```
+
+## 수동 실행 (코드)
 배치를 수동으로 트리거하려면 서비스 메서드 직접 호출:
 ```java
 @Autowired
