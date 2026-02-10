@@ -202,23 +202,31 @@ INSERT INTO domain_image (
   (9102, 'RESTAURANT', 6002, 9002, 0, now());
 
 -- AI restaurant analysis data
-INSERT INTO ai_restaurant_feature (
-  id, restaurant_id, content, created_at, updated_at
+INSERT INTO ai_restaurant_comparison (
+  id, restaurant_id, category_lift, comparison_display,
+  total_candidates, validated_count, analyzed_at, status, created_at, updated_at
 ) VALUES
-  (9501, 6001, '점심에 방문하기 좋은 합정 로컬 맛집입니다.', now(), now()),
-  (9502, 6002, '조용한 분위기의 카페로 작업하기에 좋습니다.', now(), now());
+  (9501, 6001, '{"service": 0.1200, "price": 0.0800, "food": 0.1000}'::jsonb,
+   '["점심에 방문하기 좋은 합정 로컬 맛집입니다."]'::jsonb, 20, 15, now(), 'COMPLETED', now(), now()),
+  (9502, 6002, '{"service": 0.1000, "price": 0.0500, "food": 0.1100}'::jsonb,
+   '["조용한 분위기의 카페로 작업하기에 좋습니다."]'::jsonb, 18, 12, now(), 'COMPLETED', now(), now());
 
 INSERT INTO ai_restaurant_review_analysis (
-  id, restaurant_id, summary, positive_review_ratio, created_at, updated_at
+  id, restaurant_id, overall_summary, category_summaries,
+  positive_ratio, negative_ratio, analyzed_at, status, created_at, updated_at
 ) VALUES
-  (9601, 6001, '가성비와 위치가 좋은 편입니다.', 0.85, now(), now()),
-  (9602, 6002, '커피 품질과 좌석이 좋은 편입니다.', 0.90, now(), now());
+  (9601, 6001, '가성비와 위치가 좋은 편입니다.',
+   '{"service": "응대가 빠른 편입니다.", "price": "가격 만족도가 높습니다.", "food": "식사 품질이 안정적입니다."}'::jsonb,
+   0.8500, 0.1500, now(), 'COMPLETED', now(), now()),
+  (9602, 6002, '커피 품질과 좌석이 좋은 편입니다.',
+   '{"service": "직원 응대가 친절합니다.", "price": "가격이 합리적이라는 평가가 많습니다.", "food": "커피 맛 만족도가 높습니다."}'::jsonb,
+   0.9000, 0.1000, now(), 'COMPLETED', now(), now());
 
 INSERT INTO ai_restaurant_recommendation (
-  id, restaurant_id, reason, created_at
+  id, restaurant_id, reason, cache_key, expires_at, created_at
 ) VALUES
-  (9701, 6001, '점심 추천도가 높아 그룹 모임에 적합합니다.', now()),
-  (9702, 6002, '카페 이용 고객 만족도가 높습니다.', now());
+  (9701, 6001, '점심 추천도가 높아 그룹 모임에 적합합니다.', 'seed:member:1001:query:lunch', now() + interval '1 day', now()),
+  (9702, 6002, '카페 이용 고객 만족도가 높습니다.', 'seed:member:1002:query:cafe', now() + interval '1 day', now());
 
 -- Group auth code
 INSERT INTO group_auth_code (
@@ -459,47 +467,49 @@ INSERT INTO refresh_token (
   (8210, 1105, '5555555555555555555555555555555555555555555555555555555555555555', '6666666666666666666666666666666666666666666666666666666666666666', now() + interval '30 days', NULL, NULL, now());
 
 -- AI analysis (sample for 10 restaurants)
-INSERT INTO ai_restaurant_feature (
-  id, restaurant_id, content, created_at, updated_at
+INSERT INTO ai_restaurant_comparison (
+  id, restaurant_id, category_lift, comparison_display,
+  total_candidates, validated_count, analyzed_at, status, created_at, updated_at
 ) VALUES
-  (9503, 8001, '분위기가 안정적인 양식당입니다.', now(), now()),
-  (9504, 8002, '빠른 회전율의 분식집입니다.', now(), now()),
-  (9505, 8003, '디저트 종류가 다양한 베이커리입니다.', now(), now()),
-  (9506, 8004, '치킨의 풍미가 좋은 곳입니다.', now(), now()),
-  (9507, 8005, '피자 토핑이 풍부한 곳입니다.', now(), now()),
-  (9508, 8006, '아시아 음식 특유의 향이 있습니다.', now(), now()),
-  (9509, 8007, '국물 요리가 강점입니다.', now(), now()),
-  (9510, 8008, '신선한 해산물을 제공합니다.', now(), now()),
-  (9511, 8009, '중식 볶음 요리가 인기입니다.', now(), now()),
-  (9512, 8010, '커피 향이 좋은 카페입니다.', now(), now());
+  (9503, 8001, '{"service": 0.0900, "price": 0.0400, "food": 0.1200}'::jsonb, '["분위기가 안정적인 양식당입니다."]'::jsonb, 20, 14, now(), 'COMPLETED', now(), now()),
+  (9504, 8002, '{"service": 0.1100, "price": 0.1000, "food": 0.0600}'::jsonb, '["빠른 회전율의 분식집입니다."]'::jsonb, 20, 13, now(), 'COMPLETED', now(), now()),
+  (9505, 8003, '{"service": 0.0800, "price": 0.0500, "food": 0.1300}'::jsonb, '["디저트 종류가 다양한 베이커리입니다."]'::jsonb, 20, 16, now(), 'COMPLETED', now(), now()),
+  (9506, 8004, '{"service": 0.0700, "price": 0.0600, "food": 0.1400}'::jsonb, '["치킨의 풍미가 좋은 곳입니다."]'::jsonb, 20, 15, now(), 'COMPLETED', now(), now()),
+  (9507, 8005, '{"service": 0.0600, "price": 0.0700, "food": 0.1500}'::jsonb, '["피자 토핑이 풍부한 곳입니다."]'::jsonb, 20, 12, now(), 'COMPLETED', now(), now()),
+  (9508, 8006, '{"service": 0.0500, "price": 0.0300, "food": 0.0900}'::jsonb, '["아시아 음식 특유의 향이 있습니다."]'::jsonb, 20, 11, now(), 'COMPLETED', now(), now()),
+  (9509, 8007, '{"service": 0.1000, "price": 0.0800, "food": 0.1200}'::jsonb, '["국물 요리가 강점입니다."]'::jsonb, 20, 15, now(), 'COMPLETED', now(), now()),
+  (9510, 8008, '{"service": 0.0900, "price": 0.0600, "food": 0.1600}'::jsonb, '["신선한 해산물을 제공합니다."]'::jsonb, 20, 17, now(), 'COMPLETED', now(), now()),
+  (9511, 8009, '{"service": 0.0700, "price": 0.0900, "food": 0.1100}'::jsonb, '["중식 볶음 요리가 인기입니다."]'::jsonb, 20, 14, now(), 'COMPLETED', now(), now()),
+  (9512, 8010, '{"service": 0.1200, "price": 0.0500, "food": 0.1000}'::jsonb, '["커피 향이 좋은 카페입니다."]'::jsonb, 20, 18, now(), 'COMPLETED', now(), now());
 
 INSERT INTO ai_restaurant_review_analysis (
-  id, restaurant_id, summary, positive_review_ratio, created_at, updated_at
+  id, restaurant_id, overall_summary, category_summaries,
+  positive_ratio, negative_ratio, analyzed_at, status, created_at, updated_at
 ) VALUES
-  (9603, 8001, '전체적으로 만족도가 높습니다.', 0.88, now(), now()),
-  (9604, 8002, '가성비가 좋다는 평가가 많습니다.', 0.82, now(), now()),
-  (9605, 8003, '디저트 만족도가 높습니다.', 0.90, now(), now()),
-  (9606, 8004, '치킨 식감이 좋습니다.', 0.86, now(), now()),
-  (9607, 8005, '토핑에 대한 평가가 좋습니다.', 0.84, now(), now()),
-  (9608, 8006, '향신료 호불호가 있습니다.', 0.72, now(), now()),
-  (9609, 8007, '국물 맛이 강점입니다.', 0.89, now(), now()),
-  (9610, 8008, '신선도에 대한 만족도가 높습니다.', 0.91, now(), now()),
-  (9611, 8009, '볶음 요리가 인기입니다.', 0.80, now(), now()),
-  (9612, 8010, '카페 분위기가 좋습니다.', 0.93, now(), now());
+  (9603, 8001, '전체적으로 만족도가 높습니다.', '{"service":"서비스 만족도가 높습니다.","price":"가격 대비 만족도가 높습니다.","food":"음식 품질 평가가 좋습니다."}'::jsonb, 0.8800, 0.1200, now(), 'COMPLETED', now(), now()),
+  (9604, 8002, '가성비가 좋다는 평가가 많습니다.', '{"service":"빠른 제공 속도가 장점입니다.","price":"가성비가 좋다는 의견이 많습니다.","food":"메뉴 만족도가 안정적입니다."}'::jsonb, 0.8200, 0.1800, now(), 'COMPLETED', now(), now()),
+  (9605, 8003, '디저트 만족도가 높습니다.', '{"service":"응대가 친절하다는 평가가 있습니다.","price":"가격이 합리적이라는 의견이 많습니다.","food":"디저트 품질이 좋습니다."}'::jsonb, 0.9000, 0.1000, now(), 'COMPLETED', now(), now()),
+  (9606, 8004, '치킨 식감이 좋습니다.', '{"service":"포장 및 응대가 무난합니다.","price":"가격이 적절하다는 의견이 있습니다.","food":"치킨 식감 만족도가 높습니다."}'::jsonb, 0.8600, 0.1400, now(), 'COMPLETED', now(), now()),
+  (9607, 8005, '토핑에 대한 평가가 좋습니다.', '{"service":"주문 처리 속도가 빠른 편입니다.","price":"가격 대비 토핑 구성이 좋습니다.","food":"토핑 만족도가 높습니다."}'::jsonb, 0.8400, 0.1600, now(), 'COMPLETED', now(), now()),
+  (9608, 8006, '향신료 호불호가 있습니다.', '{"service":"서비스는 안정적입니다.","price":"가격 평가는 보통 수준입니다.","food":"향신료 취향 차이가 있습니다."}'::jsonb, 0.7200, 0.2800, now(), 'COMPLETED', now(), now()),
+  (9609, 8007, '국물 맛이 강점입니다.', '{"service":"응대가 빠른 편입니다.","price":"가격 대비 만족도가 높습니다.","food":"국물 맛 평가가 좋습니다."}'::jsonb, 0.8900, 0.1100, now(), 'COMPLETED', now(), now()),
+  (9610, 8008, '신선도에 대한 만족도가 높습니다.', '{"service":"친절도에 대한 평가가 좋습니다.","price":"가격은 다소 높지만 수용 가능하다는 의견입니다.","food":"신선도 만족도가 높습니다."}'::jsonb, 0.9100, 0.0900, now(), 'COMPLETED', now(), now()),
+  (9611, 8009, '볶음 요리가 인기입니다.', '{"service":"서비스는 무난합니다.","price":"가격 대비 적절하다는 의견이 있습니다.","food":"볶음 요리 선호도가 높습니다."}'::jsonb, 0.8000, 0.2000, now(), 'COMPLETED', now(), now()),
+  (9612, 8010, '카페 분위기가 좋습니다.', '{"service":"직원 응대가 친절합니다.","price":"가격이 합리적이라는 평가가 많습니다.","food":"커피 맛과 분위기 만족도가 높습니다."}'::jsonb, 0.9300, 0.0700, now(), 'COMPLETED', now(), now());
 
 INSERT INTO ai_restaurant_recommendation (
-  id, restaurant_id, reason, created_at
+  id, restaurant_id, reason, cache_key, expires_at, created_at
 ) VALUES
-  (9703, 8001, '모임 장소로 추천됩니다.', now()),
-  (9704, 8002, '빠르게 식사할 곳으로 추천됩니다.', now()),
-  (9705, 8003, '디저트 모임에 적합합니다.', now()),
-  (9706, 8004, '치킨 선호자에게 추천됩니다.', now()),
-  (9707, 8005, '피자 모임에 적합합니다.', now()),
-  (9708, 8006, '이색 음식 체험에 좋습니다.', now()),
-  (9709, 8007, '따뜻한 국물 메뉴가 인기입니다.', now()),
-  (9710, 8008, '신선한 해산물로 추천됩니다.', now()),
-  (9711, 8009, '중식 볶음 메뉴가 강점입니다.', now()),
-  (9712, 8010, '카페 작업 장소로 좋습니다.', now());
+  (9703, 8001, '모임 장소로 추천됩니다.', 'seed:member:1101:query:restaurant-8001', now() + interval '1 day', now()),
+  (9704, 8002, '빠르게 식사할 곳으로 추천됩니다.', 'seed:member:1102:query:restaurant-8002', now() + interval '1 day', now()),
+  (9705, 8003, '디저트 모임에 적합합니다.', 'seed:member:1103:query:restaurant-8003', now() + interval '1 day', now()),
+  (9706, 8004, '치킨 선호자에게 추천됩니다.', 'seed:member:1104:query:restaurant-8004', now() + interval '1 day', now()),
+  (9707, 8005, '피자 모임에 적합합니다.', 'seed:member:1105:query:restaurant-8005', now() + interval '1 day', now()),
+  (9708, 8006, '이색 음식 체험에 좋습니다.', 'seed:member:1106:query:restaurant-8006', now() + interval '1 day', now()),
+  (9709, 8007, '따뜻한 국물 메뉴가 인기입니다.', 'seed:member:1107:query:restaurant-8007', now() + interval '1 day', now()),
+  (9710, 8008, '신선한 해산물로 추천됩니다.', 'seed:member:1108:query:restaurant-8008', now() + interval '1 day', now()),
+  (9711, 8009, '중식 볶음 메뉴가 강점입니다.', 'seed:member:1109:query:restaurant-8009', now() + interval '1 day', now()),
+  (9712, 8010, '카페 작업 장소로 좋습니다.', 'seed:member:1110:query:restaurant-8010', now() + interval '1 day', now());
 
 -- Search history for new members
 INSERT INTO member_search_history (
@@ -520,5 +530,23 @@ INSERT INTO member_search_history (
 SELECT setval(
   pg_get_serial_sequence('member_search_history', 'id'),
   COALESCE((SELECT MAX(id) FROM member_search_history), 1),
+  true
+);
+
+SELECT setval(
+  pg_get_serial_sequence('ai_restaurant_comparison', 'id'),
+  COALESCE((SELECT MAX(id) FROM ai_restaurant_comparison), 1),
+  true
+);
+
+SELECT setval(
+  pg_get_serial_sequence('ai_restaurant_review_analysis', 'id'),
+  COALESCE((SELECT MAX(id) FROM ai_restaurant_review_analysis), 1),
+  true
+);
+
+SELECT setval(
+  pg_get_serial_sequence('ai_restaurant_recommendation', 'id'),
+  COALESCE((SELECT MAX(id) FROM ai_restaurant_recommendation), 1),
   true
 );
