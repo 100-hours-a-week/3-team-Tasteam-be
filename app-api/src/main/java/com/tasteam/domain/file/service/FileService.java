@@ -202,22 +202,30 @@ public class FileService {
 
 	@Transactional(readOnly = true)
 	public List<Image> findCleanupPendingImages() {
-		Instant cutoff = Instant.now().minus(cleanupProperties.ttlDuration());
-		List<Image> markedForDeletion = imageRepository.findAllByStatusAndDeletedAtIsNotNull(ImageStatus.PENDING);
-		List<Image> expired = imageRepository.findAllByStatusAndDeletedAtIsNullAndCreatedAtBefore(
-			ImageStatus.PENDING,
-			cutoff);
+		Instant deletionCutoff = Instant.now().minus(cleanupProperties.ttlDuration());
 
-		List<Image> result = new java.util.ArrayList<>(markedForDeletion);
-		result.addAll(expired);
+		List<Image> pendingExpired = imageRepository.findAllByStatusAndDeletedAtIsNullAndCreatedAtBefore(
+			ImageStatus.PENDING,
+			deletionCutoff);
+
+		List<Image> markedAndExpired = imageRepository.findAllByStatusAndDeletedAtBefore(
+			ImageStatus.PENDING,
+			deletionCutoff);
+
+		List<Image> result = new java.util.ArrayList<>(pendingExpired);
+		result.addAll(markedAndExpired);
 		return result;
 	}
 
 	@Transactional
 	public int cleanupPendingDeletedImages() {
-		markExpiredImages();
+		Instant deletionCutoff = Instant.now().minus(cleanupProperties.ttlDuration());
 
-		List<Image> targets = imageRepository.findAllByStatusAndDeletedAtIsNotNull(ImageStatus.PENDING);
+		markExpiredPendingImages(deletionCutoff);
+
+		List<Image> targets = imageRepository.findAllByStatusAndDeletedAtBefore(
+			ImageStatus.PENDING,
+			deletionCutoff);
 		int cleaned = 0;
 
 		for (Image image : targets) {
@@ -229,8 +237,7 @@ public class FileService {
 		return cleaned;
 	}
 
-	private void markExpiredImages() {
-		Instant cutoff = Instant.now().minus(cleanupProperties.ttlDuration());
+	private void markExpiredPendingImages(Instant cutoff) {
 		List<Image> expired = imageRepository.findAllByStatusAndDeletedAtIsNullAndCreatedAtBefore(
 			ImageStatus.PENDING,
 			cutoff);
