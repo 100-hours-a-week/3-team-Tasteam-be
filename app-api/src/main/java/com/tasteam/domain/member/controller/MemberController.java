@@ -2,6 +2,7 @@ package com.tasteam.domain.member.controller;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -118,13 +119,13 @@ public class MemberController implements MemberControllerDocs {
 
 	@PreAuthorize("hasRole('USER')")
 	@DeleteMapping("/favorites/restaurants/{restaurantId}")
-	public SuccessResponse<Void> deleteMyFavoriteRestaurant(
+	public ResponseEntity<Void> deleteMyFavoriteRestaurant(
 		@CurrentUser
 		Long memberId,
 		@PathVariable @Positive
 		Long restaurantId) {
 		favoriteService.deleteMyFavorite(memberId, restaurantId);
-		return SuccessResponse.success();
+		return ResponseEntity.noContent().build();
 	}
 
 	@PreAuthorize("hasRole('USER')")
@@ -173,7 +174,7 @@ public class MemberController implements MemberControllerDocs {
 
 	@PreAuthorize("hasRole('USER')")
 	@DeleteMapping("/subgroups/{subgroupId}/favorites/restaurants/{restaurantId}")
-	public SuccessResponse<Void> deleteSubgroupFavoriteRestaurant(
+	public ResponseEntity<Void> deleteSubgroupFavoriteRestaurant(
 		@CurrentUser
 		Long memberId,
 		@PathVariable @Positive
@@ -181,7 +182,7 @@ public class MemberController implements MemberControllerDocs {
 		@PathVariable @Positive
 		Long restaurantId) {
 		favoriteService.deleteSubgroupFavorite(memberId, subgroupId, restaurantId);
-		return SuccessResponse.success();
+		return ResponseEntity.noContent().build();
 	}
 
 	@PreAuthorize("hasRole('USER')")

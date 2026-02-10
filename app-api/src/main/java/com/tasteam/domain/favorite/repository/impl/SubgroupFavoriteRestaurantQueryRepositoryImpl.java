@@ -40,6 +40,7 @@ public class SubgroupFavoriteRestaurantQueryRepositoryImpl extends QueryDslSuppo
 			.join(r).on(r.id.eq(sf.restaurantId).and(r.deletedAt.isNull()))
 			.where(
 				sf.subgroupId.eq(subgroupId),
+				sf.deletedAt.isNull(),
 				cursorCondition(cursor, sf))
 			.orderBy(sf.createdAt.desc(), sf.id.desc())
 			.limit(size)

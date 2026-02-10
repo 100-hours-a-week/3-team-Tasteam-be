@@ -124,7 +124,7 @@ public interface SubgroupMemberRepository extends JpaRepository<SubgroupMember, 
 			and s.status = :activeSubgroupStatus
 			and g.deletedAt is null
 			and g.status = :activeGroupStatus
-		order by s.name asc, s.id asc
+		order by s.name desc, s.id desc
 		""")
 	List<FavoriteSubgroupTargetRow> findFavoriteSubgroupTargets(
 		@Param("memberId")

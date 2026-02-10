@@ -8,7 +8,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,11 +19,7 @@ import lombok.NoArgsConstructor;
 @Builder(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "subgroup_favorite_restaurant", uniqueConstraints = {
-	@UniqueConstraint(name = "uq_subgroup_favorite_subgroup_restaurant", columnNames = {"subgroup_id",
-		"restaurant_id"}),
-	@UniqueConstraint(name = "uq_subgroup_favorite_restaurant_member", columnNames = {"restaurant_id", "member_id"})
-})
+@Table(name = "subgroup_favorite_restaurant")
 public class SubgroupFavoriteRestaurant extends BaseCreatedAtEntity {
 
 	@Id
@@ -40,11 +35,22 @@ public class SubgroupFavoriteRestaurant extends BaseCreatedAtEntity {
 	@Column(name = "restaurant_id", nullable = false)
 	private Long restaurantId;
 
+	@Column(name = "deleted_at")
+	private java.time.Instant deletedAt;
+
 	public static SubgroupFavoriteRestaurant create(Long memberId, Long subgroupId, Long restaurantId) {
 		return SubgroupFavoriteRestaurant.builder()
 			.memberId(memberId)
 			.subgroupId(subgroupId)
 			.restaurantId(restaurantId)
 			.build();
+	}
+
+	public void delete() {
+		this.deletedAt = java.time.Instant.now();
+	}
+
+	public void restore() {
+		this.deletedAt = null;
 	}
 }

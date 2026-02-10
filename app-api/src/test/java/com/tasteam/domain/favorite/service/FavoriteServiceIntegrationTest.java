@@ -36,6 +36,7 @@ import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.SubgroupFixture;
 import com.tasteam.fixture.SubgroupMemberFixture;
 import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.FavoriteErrorCode;
 
 @ServiceIntegrationTest
@@ -143,6 +144,32 @@ class FavoriteServiceIntegrationTest {
 		favoriteService.deleteSubgroupFavorite(member.getId(), subgroup.getId(), restaurant.getId());
 
 		assertThat(subgroupFavoriteRepository.findBySubgroupIdAndRestaurantId(subgroup.getId(),
+			restaurant.getId())).get().extracting(SubgroupFavoriteRestaurant::getDeletedAt).isNotNull();
+	}
+
+	@Test
+	@DisplayName("소모임 찜 삭제는 생성한 회원만 가능하다")
+	void deleteSubgroupFavorite_onlyOwnerCanDelete() {
+		Member another = memberRepository.save(MemberFixture.create("another@example.com", "다른유저"));
+		SubgroupFavoriteRestaurant favorite = subgroupFavoriteRepository.save(
+			SubgroupFavoriteRestaurant.create(another.getId(), subgroup.getId(), restaurant.getId()));
+
+		assertThatThrownBy(() -> favoriteService.deleteSubgroupFavorite(member.getId(), subgroup.getId(),
+			restaurant.getId()))
+			.isInstanceOf(BusinessException.class)
+			.satisfies(ex -> assertThat(((BusinessException)ex).getErrorCode()).isEqualTo(
+				CommonErrorCode.NO_PERMISSION.name()));
+
+		assertThat(favorite.getDeletedAt()).isNull();
+	}
+
+	@Test
+	@DisplayName("내 찜 삭제는 멱등하게 동작한다")
+	void deleteMyFavorite_isIdempotent() {
+		favoriteService.deleteMyFavorite(member.getId(), restaurant.getId());
+		favoriteService.deleteMyFavorite(member.getId(), restaurant.getId());
+
+		assertThat(memberFavoriteRepository.findByMemberIdAndRestaurantIdAndDeletedAtIsNull(member.getId(),
 			restaurant.getId())).isEmpty();
 	}
 

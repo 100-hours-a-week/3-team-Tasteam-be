@@ -315,8 +315,7 @@ class MemberControllerTest {
 			willDoNothing().given(favoriteService).deleteMyFavorite(anyLong(), anyLong());
 
 			mockMvc.perform(delete("/api/v1/members/me/favorites/restaurants/{restaurantId}", 101L))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true));
+				.andExpect(status().isNoContent());
 		}
 	}
 

@@ -20,5 +20,18 @@ class SubgroupFavoriteRestaurantTest {
 		assertThat(favorite.getMemberId()).isEqualTo(1L);
 		assertThat(favorite.getSubgroupId()).isEqualTo(2L);
 		assertThat(favorite.getRestaurantId()).isEqualTo(3L);
+		assertThat(favorite.getDeletedAt()).isNull();
+	}
+
+	@Test
+	@DisplayName("삭제 후 복구하면 deletedAt이 다시 null이 된다")
+	void deleteAndRestore() {
+		SubgroupFavoriteRestaurant favorite = SubgroupFavoriteRestaurant.create(1L, 2L, 3L);
+
+		favorite.delete();
+		assertThat(favorite.getDeletedAt()).isNotNull();
+
+		favorite.restore();
+		assertThat(favorite.getDeletedAt()).isNull();
 	}
 }

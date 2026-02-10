@@ -14,13 +14,17 @@ public interface SubgroupFavoriteRestaurantRepository extends JpaRepository<Subg
 
 	Optional<SubgroupFavoriteRestaurant> findBySubgroupIdAndRestaurantId(Long subgroupId, Long restaurantId);
 
-	boolean existsBySubgroupIdAndRestaurantId(Long subgroupId, Long restaurantId);
+	Optional<SubgroupFavoriteRestaurant> findByMemberIdAndSubgroupIdAndRestaurantId(
+		Long memberId,
+		Long subgroupId,
+		Long restaurantId);
 
-	boolean existsByRestaurantIdAndMemberId(Long restaurantId, Long memberId);
+	Optional<SubgroupFavoriteRestaurant> findByMemberIdAndSubgroupIdAndRestaurantIdAndDeletedAtIsNull(
+		Long memberId,
+		Long subgroupId,
+		Long restaurantId);
 
-	void deleteBySubgroupIdAndRestaurantId(Long subgroupId, Long restaurantId);
-
-	long countBySubgroupId(Long subgroupId);
+	long countBySubgroupIdAndDeletedAtIsNull(Long subgroupId);
 
 	@Query("""
 		select new com.tasteam.domain.favorite.dto.FavoriteCountBySubgroupDto(
@@ -29,6 +33,7 @@ public interface SubgroupFavoriteRestaurantRepository extends JpaRepository<Subg
 		)
 		from SubgroupFavoriteRestaurant sfr
 		where sfr.subgroupId in :subgroupIds
+			and sfr.deletedAt is null
 		group by sfr.subgroupId
 		""")
 	List<FavoriteCountBySubgroupDto> countBySubgroupIds(
@@ -40,8 +45,12 @@ public interface SubgroupFavoriteRestaurantRepository extends JpaRepository<Subg
 		from SubgroupFavoriteRestaurant sfr
 		where sfr.subgroupId in :subgroupIds
 			and sfr.restaurantId = :restaurantId
+			and sfr.memberId = :memberId
+			and sfr.deletedAt is null
 		""")
 	List<Long> findFavoritedSubgroupIds(
+		@Param("memberId")
+		Long memberId,
 		@Param("subgroupIds")
 		List<Long> subgroupIds,
 		@Param("restaurantId")

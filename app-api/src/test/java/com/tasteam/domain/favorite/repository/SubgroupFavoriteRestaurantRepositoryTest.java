@@ -1,12 +1,10 @@
 package com.tasteam.domain.favorite.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 
 import com.tasteam.config.annotation.RepositoryJpaTest;
 import com.tasteam.domain.favorite.entity.SubgroupFavoriteRestaurant;
@@ -28,32 +26,28 @@ class SubgroupFavoriteRestaurantRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("(subgroup_id, restaurant_id)는 유니크 제약조건을 가진다")
-	void duplicateSubgroupRestaurant_throwsException() {
-		repository.saveAndFlush(SubgroupFavoriteRestaurant.create(1L, 11L, 101L));
-
-		assertThatThrownBy(() -> repository.saveAndFlush(SubgroupFavoriteRestaurant.create(2L, 11L, 101L)))
-			.isInstanceOf(DataIntegrityViolationException.class);
-	}
-
-	@Test
-	@DisplayName("(restaurant_id, member_id)는 유니크 제약조건을 가진다")
-	void duplicateRestaurantMember_throwsException() {
+	@DisplayName("삭제된 데이터가 있으면 동일 찜을 다시 저장할 수 있다")
+	void allowInsertWhenDeleted() {
 		repository.saveAndFlush(SubgroupFavoriteRestaurant.create(3L, 12L, 102L));
+		SubgroupFavoriteRestaurant deleted = repository.findByMemberIdAndSubgroupIdAndRestaurantId(3L, 12L, 102L)
+			.orElseThrow();
+		deleted.delete();
+		repository.flush();
 
-		assertThatThrownBy(() -> repository.saveAndFlush(SubgroupFavoriteRestaurant.create(3L, 13L, 102L)))
-			.isInstanceOf(DataIntegrityViolationException.class);
+		SubgroupFavoriteRestaurant inserted = repository.saveAndFlush(SubgroupFavoriteRestaurant.create(3L, 12L,
+			102L));
+		assertThat(inserted.getId()).isNotNull();
 	}
 
 	@Test
-	@DisplayName("deleteBySubgroupIdAndRestaurantId는 대상 데이터만 삭제한다")
-	void deleteBySubgroupIdAndRestaurantId_deletesTargetOnly() {
+	@DisplayName("findByMemberIdAndSubgroupIdAndRestaurantIdAndDeletedAtIsNull은 삭제된 행을 제외한다")
+	void findActive_excludesDeleted() {
 		repository.saveAndFlush(SubgroupFavoriteRestaurant.create(4L, 14L, 104L));
-		repository.saveAndFlush(SubgroupFavoriteRestaurant.create(5L, 15L, 105L));
+		SubgroupFavoriteRestaurant deleted = repository.findByMemberIdAndSubgroupIdAndRestaurantId(4L, 14L, 104L)
+			.orElseThrow();
+		deleted.delete();
+		repository.flush();
 
-		repository.deleteBySubgroupIdAndRestaurantId(14L, 104L);
-
-		assertThat(repository.findBySubgroupIdAndRestaurantId(14L, 104L)).isEmpty();
-		assertThat(repository.findBySubgroupIdAndRestaurantId(15L, 105L)).isPresent();
+		assertThat(repository.findByMemberIdAndSubgroupIdAndRestaurantIdAndDeletedAtIsNull(4L, 14L, 104L)).isEmpty();
 	}
 }

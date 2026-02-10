@@ -166,18 +166,19 @@ public class FavoriteService {
 		validateRestaurant(restaurantId);
 		requireSubgroupMembership(memberId, subgroupId);
 
-		if (subgroupFavoriteRestaurantRepository.findBySubgroupIdAndRestaurantId(subgroupId, restaurantId)
-			.isPresent()) {
-			throw new BusinessException(FavoriteErrorCode.FAVORITE_ALREADY_EXISTS);
-		}
+		SubgroupFavoriteRestaurant favorite = subgroupFavoriteRestaurantRepository
+			.findByMemberIdAndSubgroupIdAndRestaurantId(memberId, subgroupId, restaurantId)
+			.map(existing -> restoreSubgroupFavoriteIfDeleted(existing))
+			.orElseGet(() -> {
+				try {
+					return subgroupFavoriteRestaurantRepository.save(
+						SubgroupFavoriteRestaurant.create(memberId, subgroupId, restaurantId));
+				} catch (org.springframework.dao.DataIntegrityViolationException ex) {
+					throw new BusinessException(FavoriteErrorCode.FAVORITE_ALREADY_EXISTS);
+				}
+			});
 
-		try {
-			SubgroupFavoriteRestaurant created = subgroupFavoriteRestaurantRepository.save(
-				SubgroupFavoriteRestaurant.create(memberId, subgroupId, restaurantId));
-			return favoriteAssembler.toCreateResponse(created);
-		} catch (org.springframework.dao.DataIntegrityViolationException ex) {
-			throw new BusinessException(FavoriteErrorCode.FAVORITE_ALREADY_EXISTS);
-		}
+		return favoriteAssembler.toCreateResponse(favorite);
 	}
 
 	@Transactional
@@ -185,10 +186,8 @@ public class FavoriteService {
 		requireAuthenticated(memberId);
 		validateRestaurant(restaurantId);
 
-		MemberFavoriteRestaurant favorite = memberFavoriteRestaurantRepository
-			.findByMemberIdAndRestaurantIdAndDeletedAtIsNull(memberId, restaurantId)
-			.orElseThrow(() -> new BusinessException(FavoriteErrorCode.FAVORITE_ALREADY_DELETED));
-		favorite.delete();
+		memberFavoriteRestaurantRepository.findByMemberIdAndRestaurantIdAndDeletedAtIsNull(memberId, restaurantId)
+			.ifPresent(MemberFavoriteRestaurant::delete);
 	}
 
 	@Transactional
@@ -199,8 +198,15 @@ public class FavoriteService {
 
 		SubgroupFavoriteRestaurant favorite = subgroupFavoriteRestaurantRepository
 			.findBySubgroupIdAndRestaurantId(subgroupId, restaurantId)
-			.orElseThrow(() -> new BusinessException(FavoriteErrorCode.FAVORITE_ALREADY_DELETED));
-		subgroupFavoriteRestaurantRepository.delete(favorite);
+			.orElse(null);
+
+		if (favorite == null || favorite.getDeletedAt() != null) {
+			return;
+		}
+		if (!favorite.getMemberId().equals(memberId)) {
+			throw new BusinessException(CommonErrorCode.NO_PERMISSION);
+		}
+		favorite.delete();
 	}
 
 	private FavoriteTargetsResponse createFavoriteTargetsResponse(Long memberId, Long restaurantId) {
@@ -219,13 +225,17 @@ public class FavoriteService {
 			GroupStatus.ACTIVE);
 		List<Long> subgroupIds = subgroupTargets.stream().map(FavoriteSubgroupTargetRow::subgroupId).toList();
 
-		Map<Long, Long> subgroupCounts = subgroupFavoriteRestaurantRepository.countBySubgroupIds(subgroupIds)
-			.stream()
-			.collect(
-				Collectors.toMap(FavoriteCountBySubgroupDto::subgroupId, FavoriteCountBySubgroupDto::favoriteCount));
+		Map<Long, Long> subgroupCounts = subgroupIds.isEmpty()
+			? Map.of()
+			: subgroupFavoriteRestaurantRepository.countBySubgroupIds(subgroupIds)
+				.stream()
+				.collect(Collectors.toMap(FavoriteCountBySubgroupDto::subgroupId,
+					FavoriteCountBySubgroupDto::favoriteCount));
 
 		Set<Long> favoritedSubgroupIds = restaurantId == null ? Set.of()
-			: Set.copyOf(subgroupFavoriteRestaurantRepository.findFavoritedSubgroupIds(subgroupIds, restaurantId));
+			: subgroupIds.isEmpty() ? Set.of()
+				: Set.copyOf(subgroupFavoriteRestaurantRepository.findFavoritedSubgroupIds(memberId, subgroupIds,
+					restaurantId));
 
 		return favoriteAssembler.toFavoriteTargetsResponse(
 			myFavoriteCount,
@@ -237,6 +247,14 @@ public class FavoriteService {
 	}
 
 	private MemberFavoriteRestaurant restoreMemberFavoriteIfDeleted(MemberFavoriteRestaurant existing) {
+		if (existing.getDeletedAt() == null) {
+			throw new BusinessException(FavoriteErrorCode.FAVORITE_ALREADY_EXISTS);
+		}
+		existing.restore();
+		return existing;
+	}
+
+	private SubgroupFavoriteRestaurant restoreSubgroupFavoriteIfDeleted(SubgroupFavoriteRestaurant existing) {
 		if (existing.getDeletedAt() == null) {
 			throw new BusinessException(FavoriteErrorCode.FAVORITE_ALREADY_EXISTS);
 		}
