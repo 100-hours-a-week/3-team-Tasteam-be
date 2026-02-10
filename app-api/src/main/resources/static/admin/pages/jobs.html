@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>배치 작업 관리 - Tasteam Admin</title>
     <link rel="stylesheet" href="/admin/css/admin.css">
+    <style>
+        .pending-images { margin-top: 20px; }
+        .pending-images table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .pending-images th, .pending-images td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        .pending-images th { background: #f5f5f5; }
+        .pending-count { font-weight: bold; color: #1976d2; }
+        .file-size { color: #666; }
+    </style>
 </head>
 <body>
     <div class="admin-layout">
@@ -32,7 +40,10 @@
                         <label for="batchSize">배치 크기:</label>
                         <input type="number" id="batchSize" value="100" min="1" max="500">
                     </div>
-                    <button id="runImageOptimization" class="btn btn-primary">실행</button>
+                    <div class="button-group">
+                        <button id="loadPendingImages" class="btn btn-secondary">대기 이미지 조회</button>
+                        <button id="runImageOptimization" class="btn btn-primary">최적화 실행</button>
+                    </div>
                     <div id="jobResult" class="job-result" style="display: none;">
                         <h4>실행 결과</h4>
                         <ul>
@@ -42,6 +53,24 @@
                         </ul>
                     </div>
                     <div id="jobError" class="error-message" style="display: none;"></div>
+
+                    <div id="pendingImages" class="pending-images" style="display: none;">
+                        <h4>최적화 대기 이미지 (<span id="pendingCount" class="pending-count">0</span>개)</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>파일명</th>
+                                    <th>크기</th>
+                                    <th>타입</th>
+                                    <th>용도</th>
+                                    <th>도메인</th>
+                                    <th>생성일</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingImagesBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>
