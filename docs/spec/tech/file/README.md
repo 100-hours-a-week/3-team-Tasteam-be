@@ -65,7 +65,7 @@ File에 대한 메타데이터·상태·정리 책임을 독립된 도메인(Ima
     - `Image Lifecycle Service` : Image 상태(PENDING→ACTIVE→DELETED) 전환, 정리 스케줄, 도메인 연결 유효성 검증
     - `Domain Image Gateway` : 각 도메인에서 받은 `fileUuid`와 도메인 식별자를 `DomainImage`로 Persist + `Image` 상태 업데이트
     - `Storage Adapter (S3)` : Presigned POST 서명 생성, ACL/Expires 설정
-    - `Cleanup Scheduler` : 배치 처리로 `deleted_at IS NOT NULL AND status=PENDING` 이미지 메타·S3 Object 제거
+    - `Cleanup Scheduler` : 배치 처리로 TTL(기본 24시간)이 지난 PENDING 이미지 메타·S3 Object 제거
 - 주요 의존성:
     - PostgreSQL (Image, DomainImage, 상태 트랜잭션)
     - Amazon S3 (Presigned POST, Object TTL)
@@ -74,7 +74,7 @@ File에 대한 메타데이터·상태·정리 책임을 독립된 도메인(Ima
 - 핵심 흐름(요약):
     - Presigned 요청 → Image(PENDING) 생성 + 외부 UUID(`file_uuid`, fileUuid) 발급(동시에 `storage_key`에 UUID 기반 key 생성) → S3 Presigned 발급 → 클라이언트 업로드
     - 도메인이 `fileUuid` 전달 → DomainImage 저장 + Image 상태 `ACTIVE`
-    - scheduler로 `deleted_at IS NOT NULL AND status=PENDING` rows 추출 → S3 cleanup → Image 상태 `DELETED`
+    - scheduler로 TTL이 지난 PENDING rows 추출 (createdAt 또는 deletedAt 기준) → S3 cleanup → Image 상태 `DELETED`
 - 이미지 변경 정책: Image 메타/파일은 immutable, 변경 필요 시 삭제 + 신규 업로드 + 재연결
 
 ```mermaid
