@@ -19,8 +19,8 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
-    defer-datasource-initialization: true
+      ddl-auto: validate
+    defer-datasource-initialization: false
 
     properties:
       hibernate:
@@ -29,7 +29,7 @@ spring:
         generate_statistics: true
 
   flyway:
-    enabled: false
+    enabled: true
     url: ${FLYWAY_URL:${DB_URL:jdbc:postgresql://localhost:5432/tasteam}}
     user: ${FLYWAY_USER:${DB_USERNAME:tasteam}}
     password: ${FLYWAY_PASSWORD:${DB_PASSWORD:tasteam}}
@@ -39,7 +39,7 @@ spring:
 
   sql:
     init:
-      mode: always
+      mode: never
 
   security:
     jwt:
@@ -60,5 +60,9 @@ naver:
     api-key: ${NAVER_MAPS_API_KEY:dummy}
 
 tasteam:
+  ai:
+    analysis:
+      comparison-min-reviews: ${TASTEAM_AI_ANALYSIS_COMPARISON_MIN_REVIEWS:10}
+      comparison-batch-size: ${TASTEAM_AI_ANALYSIS_COMPARISON_BATCH_SIZE:10}
   webhook:
     enabled: false
