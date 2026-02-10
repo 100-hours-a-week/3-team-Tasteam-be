@@ -1,5 +1,6 @@
 package com.tasteam.infra.ai.dto;
 
+import java.time.Instant;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -12,6 +13,8 @@ public record AiSentimentRequest(
 		Integer id,
 		@JsonProperty("restaurant_id")
 		long restaurantId,
-		String content) {
+		String content,
+		@JsonProperty("created_at")
+		Instant createdAt) {
 	}
 }

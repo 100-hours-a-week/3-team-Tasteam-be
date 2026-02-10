@@ -58,7 +58,7 @@ public class AiClient {
 
 	public AiStrengthsResponse extractStrengths(AiStrengthsRequest request) {
 		return execute("extract strengths", requestId -> aiRestClient.post()
-			.uri("/api/v1/llm/extract/strengths")
+			.uri("/api/v1/llm/comparison")
 			.header(REQUEST_ID_HEADER, requestId)
 			.body(request)
 			.retrieve()
