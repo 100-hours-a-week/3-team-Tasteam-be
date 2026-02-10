@@ -32,6 +32,7 @@ import com.tasteam.domain.review.entity.Keyword;
 import com.tasteam.domain.review.entity.KeywordType;
 import com.tasteam.domain.review.entity.Review;
 import com.tasteam.domain.review.entity.ReviewKeyword;
+import com.tasteam.domain.review.event.ReviewEventPublisher;
 import com.tasteam.domain.review.repository.KeywordRepository;
 import com.tasteam.domain.review.repository.ReviewKeywordRepository;
 import com.tasteam.domain.review.repository.ReviewQueryRepository;
@@ -68,6 +69,7 @@ public class ReviewService {
 	private final FileService fileService;
 	private final CursorCodec cursorCodec;
 	private final DomainImageLinker domainImageLinker;
+	private final ReviewEventPublisher reviewEventPublisher;
 
 	@Transactional(readOnly = true)
 	public List<ReviewKeywordItemResponse> getReviewKeywords(KeywordType type) {
@@ -154,6 +156,8 @@ public class ReviewService {
 		if (request.imageIds() != null && !request.imageIds().isEmpty()) {
 			domainImageLinker.linkImages(DomainType.REVIEW, review.getId(), request.imageIds());
 		}
+
+		reviewEventPublisher.publishReviewCreated(restaurantId);
 
 		return new ReviewCreateResponse(
 			review.getId(),

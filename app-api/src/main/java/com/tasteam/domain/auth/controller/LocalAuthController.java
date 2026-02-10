@@ -13,6 +13,7 @@ import com.tasteam.domain.auth.dto.response.LocalAuthTokenResponse;
 import com.tasteam.domain.auth.service.LocalAuthTokenService;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
+import com.tasteam.infra.ai.AiClient;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class LocalAuthController implements LocalAuthControllerDocs {
 
 	private final LocalAuthTokenService localAuthTokenService;
 	private final JwtCookieProvider jwtCookieProvider;
+	private final AiClient aiClient;
 
 	@PostMapping("/token")
 	public SuccessResponse<LocalAuthTokenResponse> issueLocalToken(
@@ -42,5 +44,11 @@ public class LocalAuthController implements LocalAuthControllerDocs {
 			tokenPair.memberId());
 
 		return SuccessResponse.success(tokenResponse);
+	}
+
+	@PostMapping("/ai/health")
+	public SuccessResponse<Void> checkAiHealth() {
+		aiClient.healthCheck();
+		return SuccessResponse.success();
 	}
 }

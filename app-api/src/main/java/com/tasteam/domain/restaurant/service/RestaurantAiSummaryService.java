@@ -10,9 +10,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.tasteam.domain.restaurant.entity.AiRestaurantFeature;
+import com.tasteam.domain.restaurant.entity.AiRestaurantComparison;
 import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
-import com.tasteam.domain.restaurant.repository.AiRestaurantFeatureRepository;
+import com.tasteam.domain.restaurant.repository.AiRestaurantComparisonRepository;
 import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ public class RestaurantAiSummaryService {
 
 	private static final String REVIEW_SUMMARY_FALLBACK = "리뷰가 더 모이면 AI 요약이 제공됩니다.";
 
-	private final AiRestaurantFeatureRepository aiRestaurantFeatureRepository;
+	private final AiRestaurantComparisonRepository aiRestaurantComparisonRepository;
 	private final AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
 
 	@Transactional(readOnly = true)
@@ -31,14 +31,16 @@ public class RestaurantAiSummaryService {
 		Optional<AiRestaurantReviewAnalysis> aiAnalysis = aiRestaurantReviewAnalysisRepository
 			.findByRestaurantId(restaurantId);
 
-		String aiSummary = aiAnalysis.map(AiRestaurantReviewAnalysis::getSummary).orElse(null);
+		String aiSummary = aiAnalysis.map(AiRestaurantReviewAnalysis::getOverallSummary).orElse(null);
 		Long positiveRatio = aiAnalysis
-			.map(AiRestaurantReviewAnalysis::getPositiveReviewRatio)
+			.map(AiRestaurantReviewAnalysis::getPositiveRatio)
 			.map(this::toPercentage)
 			.orElse(null);
 
-		String aiFeature = aiRestaurantFeatureRepository.findByRestaurantId(restaurantId)
-			.map(AiRestaurantFeature::getContent)
+		String aiFeature = aiRestaurantComparisonRepository.findByRestaurantId(restaurantId)
+			.map(AiRestaurantComparison::getComparisonDisplay)
+			.filter(display -> !display.isEmpty())
+			.map(List::getFirst)
 			.orElse(null);
 
 		return new RestaurantAiSummaryResult(aiSummary, aiFeature, positiveRatio);
@@ -50,7 +52,7 @@ public class RestaurantAiSummaryService {
 			.stream()
 			.collect(Collectors.toMap(
 				AiRestaurantReviewAnalysis::getRestaurantId,
-				AiRestaurantReviewAnalysis::getSummary));
+				AiRestaurantReviewAnalysis::getOverallSummary));
 
 		return restaurantIds.stream()
 			.collect(Collectors.toMap(
