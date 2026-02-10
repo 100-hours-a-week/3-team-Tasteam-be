@@ -53,14 +53,14 @@ import com.tasteam.global.exception.business.BusinessException;
 
 @ServiceIntegrationTest
 @Transactional
-@DisplayName("SubgroupService 통합 테스트")
-class SubgroupServiceIntegrationTest {
+@DisplayName("SubgroupFacade 통합 테스트")
+class SubgroupFacadeIntegrationTest {
 
 	private static final UUID IMAGE_UUID_1 = UUID.fromString("11111111-1111-1111-1111-111111111111");
 	private static final UUID IMAGE_UUID_2 = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
 	@Autowired
-	private SubgroupService subgroupService;
+	private SubgroupFacade subgroupFacade;
 
 	@Autowired
 	private MemberRepository memberRepository;
@@ -110,7 +110,7 @@ class SubgroupServiceIntegrationTest {
 		void createSubgroup_withoutImage_success() {
 			SubgroupCreateRequest request = SubgroupRequestFixture.createRequest("테스트하위그룹", "설명");
 
-			SubgroupCreateResponse response = subgroupService.createSubgroup(group.getId(), member1.getId(), request);
+			SubgroupCreateResponse response = subgroupFacade.createSubgroup(group.getId(), member1.getId(), request);
 
 			assertThat(response.data().id()).isNotNull();
 			Subgroup subgroup = subgroupRepository.findById(response.data().id()).get();
@@ -125,7 +125,7 @@ class SubgroupServiceIntegrationTest {
 			SubgroupCreateRequest request = SubgroupRequestFixture.createRequestWithImage("이미지하위그룹",
 				IMAGE_UUID_1.toString());
 
-			SubgroupCreateResponse response = subgroupService.createSubgroup(group.getId(), member1.getId(), request);
+			SubgroupCreateResponse response = subgroupFacade.createSubgroup(group.getId(), member1.getId(), request);
 
 			Image image = imageRepository.findByFileUuid(IMAGE_UUID_1).get();
 			assertThat(image.getStatus()).isEqualTo(ImageStatus.ACTIVE);
@@ -139,7 +139,7 @@ class SubgroupServiceIntegrationTest {
 		void createSubgroup_withPasswordJoinType_success() {
 			SubgroupCreateRequest request = SubgroupRequestFixture.createPasswordRequest("비밀번호하위그룹", "password123");
 
-			SubgroupCreateResponse response = subgroupService.createSubgroup(group.getId(), member1.getId(), request);
+			SubgroupCreateResponse response = subgroupFacade.createSubgroup(group.getId(), member1.getId(), request);
 
 			Subgroup subgroup = subgroupRepository.findById(response.data().id()).get();
 			assertThat(subgroup.getJoinPassword()).isNotNull();
@@ -150,9 +150,9 @@ class SubgroupServiceIntegrationTest {
 		@DisplayName("동일 group 내 중복 이름은 예외를 발생시킨다")
 		void createSubgroup_duplicateName_throwsBusinessException() {
 			SubgroupCreateRequest request = SubgroupRequestFixture.createRequest("중복이름", "설명");
-			subgroupService.createSubgroup(group.getId(), member1.getId(), request);
+			subgroupFacade.createSubgroup(group.getId(), member1.getId(), request);
 
-			assertThatThrownBy(() -> subgroupService.createSubgroup(group.getId(), member1.getId(), request))
+			assertThatThrownBy(() -> subgroupFacade.createSubgroup(group.getId(), member1.getId(), request))
 				.isInstanceOf(BusinessException.class);
 		}
 
@@ -163,7 +163,7 @@ class SubgroupServiceIntegrationTest {
 
 			SubgroupCreateRequest request = SubgroupRequestFixture.createRequest("비활성그룹하위", "설명");
 
-			assertThatThrownBy(() -> subgroupService.createSubgroup(group.getId(), member1.getId(), request))
+			assertThatThrownBy(() -> subgroupFacade.createSubgroup(group.getId(), member1.getId(), request))
 				.isInstanceOf(BusinessException.class);
 		}
 	}
@@ -189,7 +189,7 @@ class SubgroupServiceIntegrationTest {
 		@Test
 		@DisplayName("OPEN joinType 하위그룹에 즉시 가입되고 memberCount가 증가한다")
 		void joinSubgroup_openType_success() {
-			subgroupService.joinSubgroup(group.getId(), openSubgroup.getId(), member2.getId(), null);
+			subgroupFacade.joinSubgroup(group.getId(), openSubgroup.getId(), member2.getId(), null);
 
 			Subgroup updated = subgroupRepository.findById(openSubgroup.getId()).get();
 			assertThat(updated.getMemberCount()).isEqualTo(2);
@@ -200,7 +200,7 @@ class SubgroupServiceIntegrationTest {
 		void joinSubgroup_withPassword_success() {
 			SubgroupJoinRequest request = new SubgroupJoinRequest("correctPassword");
 
-			assertThatThrownBy(() -> subgroupService.joinSubgroup(
+			assertThatThrownBy(() -> subgroupFacade.joinSubgroup(
 				group.getId(), passwordSubgroup.getId(), member2.getId(), request))
 				.isInstanceOf(BusinessException.class);
 		}
@@ -210,7 +210,7 @@ class SubgroupServiceIntegrationTest {
 		void joinSubgroup_passwordMismatch_throwsBusinessException() {
 			SubgroupJoinRequest request = new SubgroupJoinRequest("wrongPassword");
 
-			assertThatThrownBy(() -> subgroupService.joinSubgroup(
+			assertThatThrownBy(() -> subgroupFacade.joinSubgroup(
 				group.getId(), passwordSubgroup.getId(), member2.getId(), request))
 				.isInstanceOf(BusinessException.class);
 		}
@@ -224,7 +224,7 @@ class SubgroupServiceIntegrationTest {
 			membership.softDelete(java.time.Instant.now());
 			openSubgroup.decreaseMemberCount();
 
-			subgroupService.joinSubgroup(group.getId(), openSubgroup.getId(), member2.getId(), null);
+			subgroupFacade.joinSubgroup(group.getId(), openSubgroup.getId(), member2.getId(), null);
 
 			Subgroup updated = subgroupRepository.findById(openSubgroup.getId()).get();
 			assertThat(updated.getMemberCount()).isEqualTo(2);
@@ -251,7 +251,7 @@ class SubgroupServiceIntegrationTest {
 		@Test
 		@DisplayName("탈퇴 시 softDelete되고 memberCount가 감소한다")
 		void withdrawSubgroup_success() {
-			subgroupService.withdrawSubgroup(subgroup.getId(), member1.getId());
+			subgroupFacade.withdrawSubgroup(subgroup.getId(), member1.getId());
 
 			Subgroup updated = subgroupRepository.findById(subgroup.getId()).get();
 			assertThat(updated.getMemberCount()).isEqualTo(1);
@@ -263,9 +263,9 @@ class SubgroupServiceIntegrationTest {
 		@Test
 		@DisplayName("이미 탈퇴한 회원이 재탈퇴 시 idempotent하게 처리된다")
 		void withdrawSubgroup_alreadyWithdrawn_idempotent() {
-			subgroupService.withdrawSubgroup(subgroup.getId(), member1.getId());
+			subgroupFacade.withdrawSubgroup(subgroup.getId(), member1.getId());
 
-			subgroupService.withdrawSubgroup(subgroup.getId(), member1.getId());
+			subgroupFacade.withdrawSubgroup(subgroup.getId(), member1.getId());
 
 			Subgroup updated = subgroupRepository.findById(subgroup.getId()).get();
 			assertThat(updated.getMemberCount()).isEqualTo(1);
@@ -291,7 +291,7 @@ class SubgroupServiceIntegrationTest {
 			SubgroupUpdateRequest request = new SubgroupUpdateRequest(
 				objectMapper.valueToTree("수정후이름"), null, null);
 
-			subgroupService.updateSubgroup(group.getId(), subgroup.getId(), member1.getId(), request);
+			subgroupFacade.updateSubgroup(group.getId(), subgroup.getId(), member1.getId(), request);
 
 			Subgroup updated = subgroupRepository.findById(subgroup.getId()).get();
 			assertThat(updated.getName()).isEqualTo("수정후이름");
@@ -303,7 +303,7 @@ class SubgroupServiceIntegrationTest {
 			SubgroupUpdateRequest request = new SubgroupUpdateRequest(
 				null, objectMapper.valueToTree("수정후설명"), null);
 
-			subgroupService.updateSubgroup(group.getId(), subgroup.getId(), member1.getId(), request);
+			subgroupFacade.updateSubgroup(group.getId(), subgroup.getId(), member1.getId(), request);
 
 			Subgroup updated = subgroupRepository.findById(subgroup.getId()).get();
 			assertThat(updated.getDescription()).isEqualTo("수정후설명");
@@ -319,7 +319,7 @@ class SubgroupServiceIntegrationTest {
 			SubgroupUpdateRequest request = new SubgroupUpdateRequest(
 				null, null, objectMapper.nullNode());
 
-			subgroupService.updateSubgroup(group.getId(), subgroup.getId(), member1.getId(), request);
+			subgroupFacade.updateSubgroup(group.getId(), subgroup.getId(), member1.getId(), request);
 
 			List<DomainImage> links = domainImageRepository.findAllByDomainTypeAndDomainId(
 				DomainType.SUBGROUP, subgroup.getId());
@@ -332,7 +332,7 @@ class SubgroupServiceIntegrationTest {
 			SubgroupUpdateRequest request = new SubgroupUpdateRequest(
 				null, null, objectMapper.valueToTree(IMAGE_UUID_2.toString()));
 
-			subgroupService.updateSubgroup(group.getId(), subgroup.getId(), member1.getId(), request);
+			subgroupFacade.updateSubgroup(group.getId(), subgroup.getId(), member1.getId(), request);
 
 			Image newImage = imageRepository.findByFileUuid(IMAGE_UUID_2).get();
 			assertThat(newImage.getStatus()).isEqualTo(ImageStatus.ACTIVE);
@@ -359,7 +359,7 @@ class SubgroupServiceIntegrationTest {
 		@Test
 		@DisplayName("getMySubgroups는 회원이 속한 하위그룹만 반환한다")
 		void getMySubgroups_returnsOnlyMemberSubgroups() {
-			SubgroupListResponse response = subgroupService.getMySubgroups(
+			SubgroupListResponse response = subgroupFacade.getMySubgroups(
 				group.getId(), member1.getId(), null, null, 10);
 
 			assertThat(response.data()).hasSize(1);
@@ -369,7 +369,7 @@ class SubgroupServiceIntegrationTest {
 		@Test
 		@DisplayName("getGroupSubgroups는 ACTIVE 상태만 반환한다")
 		void getGroupSubgroups_returnsActiveSubgroupsOnly() {
-			CursorPageResponse<SubgroupListItem> response = subgroupService.getGroupSubgroups(
+			CursorPageResponse<SubgroupListItem> response = subgroupFacade.getGroupSubgroups(
 				group.getId(), member1.getId(), null, 10);
 
 			assertThat(response.items()).hasSizeGreaterThanOrEqualTo(2);
@@ -378,7 +378,7 @@ class SubgroupServiceIntegrationTest {
 		@Test
 		@DisplayName("searchGroupSubgroups는 keyword로 검색하고 memberCount desc 정렬된다")
 		void searchGroupSubgroups_byKeyword_success() {
-			CursorPageResponse<SubgroupListItem> response = subgroupService.searchGroupSubgroups(
+			CursorPageResponse<SubgroupListItem> response = subgroupFacade.searchGroupSubgroups(
 				group.getId(), "B", null, 10);
 
 			assertThat(response.items()).hasSize(1);
@@ -406,7 +406,7 @@ class SubgroupServiceIntegrationTest {
 		@Test
 		@DisplayName("OPEN joinType 하위그룹은 모든 회원이 조회 가능하다")
 		void getSubgroup_openType_success() {
-			SubgroupDetailResponse response = subgroupService.getSubgroup(openSubgroup.getId(), member2.getId());
+			SubgroupDetailResponse response = subgroupFacade.getSubgroup(openSubgroup.getId(), member2.getId());
 
 			assertThat(response.data().subgroupId()).isEqualTo(openSubgroup.getId());
 		}
@@ -414,7 +414,7 @@ class SubgroupServiceIntegrationTest {
 		@Test
 		@DisplayName("PASSWORD joinType 하위그룹은 비회원이 조회 불가하다")
 		void getSubgroup_passwordType_nonMember_throwsBusinessException() {
-			assertThatThrownBy(() -> subgroupService.getSubgroup(passwordSubgroup.getId(), member2.getId()))
+			assertThatThrownBy(() -> subgroupFacade.getSubgroup(passwordSubgroup.getId(), member2.getId()))
 				.isInstanceOf(BusinessException.class);
 		}
 	}
@@ -438,7 +438,7 @@ class SubgroupServiceIntegrationTest {
 		@Test
 		@DisplayName("회원 목록을 반환한다")
 		void getSubgroupMembers_returnsMemberList() {
-			CursorPageResponse<SubgroupMemberListItem> response = subgroupService.getSubgroupMembers(
+			CursorPageResponse<SubgroupMemberListItem> response = subgroupFacade.getSubgroupMembers(
 				subgroup.getId(), null, 10);
 
 			assertThat(response.items()).hasSizeGreaterThanOrEqualTo(1);
@@ -447,7 +447,7 @@ class SubgroupServiceIntegrationTest {
 		@Test
 		@DisplayName("탈퇴한 회원은 목록에서 제외된다")
 		void getSubgroupMembers_excludesWithdrawn() {
-			CursorPageResponse<SubgroupMemberListItem> response = subgroupService.getSubgroupMembers(
+			CursorPageResponse<SubgroupMemberListItem> response = subgroupFacade.getSubgroupMembers(
 				subgroup.getId(), null, 10);
 
 			assertThat(response.items()).hasSize(1);

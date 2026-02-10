@@ -179,6 +179,53 @@ public class FileService {
 					Collectors.toList())));
 	}
 
+	@Transactional
+	public void replaceDomainImage(DomainType domainType, Long domainId, String fileUuid) {
+		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() == ImageStatus.DELETED) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		if (image.getStatus() != ImageStatus.PENDING
+			&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(domainType, domainId, image).isEmpty()) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
+		domainImageRepository.save(DomainImage.create(domainType, domainId, image, 0));
+
+		if (image.getStatus() == ImageStatus.PENDING) {
+			image.activate();
+			imageRepository.save(image);
+		}
+	}
+
+	@Transactional
+	public void clearDomainImages(DomainType domainType, Long domainId) {
+		domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
+	}
+
+	@Transactional(readOnly = true)
+	public String getPrimaryDomainImageUrl(DomainType domainType, Long domainId) {
+		return getPrimaryDomainImageUrlMap(domainType, List.of(domainId)).get(domainId);
+	}
+
+	@Transactional(readOnly = true)
+	public Map<Long, String> getPrimaryDomainImageUrlMap(DomainType domainType, List<Long> domainIds) {
+		if (domainIds == null || domainIds.isEmpty()) {
+			return Map.of();
+		}
+
+		Map<Long, List<DomainImageItem>> images = getDomainImageUrls(domainType, domainIds);
+		return images.entrySet().stream()
+			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
+			.collect(Collectors.toMap(
+				Map.Entry::getKey,
+				entry -> entry.getValue().getFirst().url()));
+	}
+
 	@Transactional(readOnly = true)
 	public ImageSummaryResponse getImageSummary(ImageSummaryRequest request) {
 		List<UUID> uuids = request.fileUuids().stream()

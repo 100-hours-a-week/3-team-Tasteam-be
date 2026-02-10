@@ -135,6 +135,64 @@ class FileServiceIntegrationTest {
 	}
 
 	@Nested
+	@DisplayName("도메인 이미지 교체/삭제/대표 URL")
+	class ReplaceAndClearDomainImage {
+
+		@Test
+		@DisplayName("도메인 이미지를 교체하면 기존 링크는 제거되고 새 링크만 남는다")
+		void replaceDomainImageSuccess() {
+			UUID firstUuid = UUID.randomUUID();
+			UUID secondUuid = UUID.randomUUID();
+			createAndSaveImage(firstUuid, "uploads/test/replace-1.png");
+			createAndSaveImage(secondUuid, "uploads/test/replace-2.png");
+
+			fileService.replaceDomainImage(DomainType.GROUP, 10L, firstUuid.toString());
+			fileService.replaceDomainImage(DomainType.GROUP, 10L, secondUuid.toString());
+
+			List<DomainImage> links = domainImageRepository.findAllByDomainTypeAndDomainId(DomainType.GROUP, 10L);
+			assertThat(links).hasSize(1);
+			assertThat(links.getFirst().getImage().getFileUuid()).isEqualTo(secondUuid);
+
+			Image second = imageRepository.findByFileUuid(secondUuid).orElseThrow();
+			assertThat(second.getStatus()).isEqualTo(ImageStatus.ACTIVE);
+		}
+
+		@Test
+		@DisplayName("도메인 이미지 삭제 시 연결이 모두 제거된다")
+		void clearDomainImagesSuccess() {
+			UUID firstUuid = UUID.randomUUID();
+			createAndSaveImage(firstUuid, "uploads/test/clear-1.png");
+			fileService.replaceDomainImage(DomainType.SUBGROUP, 20L, firstUuid.toString());
+
+			fileService.clearDomainImages(DomainType.SUBGROUP, 20L);
+
+			List<DomainImage> links = domainImageRepository.findAllByDomainTypeAndDomainId(DomainType.SUBGROUP, 20L);
+			assertThat(links).isEmpty();
+		}
+
+		@Test
+		@DisplayName("도메인 대표 이미지 URL 조회 시 첫 번째 URL이 반환된다")
+		void getPrimaryDomainImageUrlSuccess() {
+			UUID firstUuid = UUID.randomUUID();
+			createAndSaveImage(firstUuid, "uploads/test/primary-url.png");
+			fileService.replaceDomainImage(DomainType.GROUP, 30L, firstUuid.toString());
+
+			String imageUrl = fileService.getPrimaryDomainImageUrl(DomainType.GROUP, 30L);
+
+			assertThat(imageUrl).isNotBlank();
+			assertThat(imageUrl).startsWith("http");
+		}
+
+		@Test
+		@DisplayName("도메인 이미지가 없으면 대표 URL은 null 이다")
+		void getPrimaryDomainImageUrlEmptyReturnsNull() {
+			String imageUrl = fileService.getPrimaryDomainImageUrl(DomainType.GROUP, 999L);
+
+			assertThat(imageUrl).isNull();
+		}
+	}
+
+	@Nested
 	@DisplayName("이미지 URL 조회")
 	class GetImageUrl {
 

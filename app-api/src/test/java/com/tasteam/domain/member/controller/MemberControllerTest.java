@@ -39,7 +39,7 @@ import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
-import com.tasteam.domain.subgroup.service.SubgroupService;
+import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.fixture.MemberRequestFixture;
 
 @ControllerWebMvcTest(MemberController.class)
@@ -55,7 +55,7 @@ class MemberControllerTest {
 	private MemberService memberService;
 
 	@MockitoBean
-	private SubgroupService subgroupService;
+	private SubgroupFacade subgroupFacade;
 
 	@MockitoBean
 	private ReviewService reviewService;
@@ -148,7 +148,7 @@ class MemberControllerTest {
 				List.of(item),
 				new SubgroupListResponse.PageInfo("name", null, 20, false));
 
-			given(subgroupService.getMySubgroups(eq(1L), any(), any(), any(), any())).willReturn(response);
+			given(subgroupFacade.getMySubgroups(eq(1L), any(), any(), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/api/v1/members/me/groups/{groupId}/subgroups", 1L)

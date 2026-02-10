@@ -28,14 +28,14 @@ import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.entity.GroupMember;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
-import com.tasteam.domain.group.service.GroupService;
+import com.tasteam.domain.group.service.GroupFacade;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
 import com.tasteam.domain.subgroup.entity.Subgroup;
 import com.tasteam.domain.subgroup.repository.SubgroupRepository;
-import com.tasteam.domain.subgroup.service.SubgroupService;
+import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.fixture.GroupFixture;
 import com.tasteam.fixture.GroupRequestFixture;
 import com.tasteam.fixture.ImageFixture;
@@ -51,10 +51,10 @@ class GroupSubgroupImageActivationIntegrationTest {
 	private static final String MISSING_FILE_UUID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 
 	@Autowired
-	private GroupService groupService;
+	private GroupFacade groupFacade;
 
 	@Autowired
-	private SubgroupService subgroupService;
+	private SubgroupFacade subgroupFacade;
 
 	@Autowired
 	private GroupRepository groupRepository;
@@ -90,7 +90,7 @@ class GroupSubgroupImageActivationIntegrationTest {
 				fileUuid.toString(),
 				"123456");
 
-			GroupCreateResponse response = groupService.createGroup(request);
+			GroupCreateResponse response = groupFacade.createGroup(request);
 
 			Image updatedImage = imageRepository.findByFileUuid(fileUuid).orElseThrow();
 			assertThat(updatedImage.getStatus()).isEqualTo(ImageStatus.ACTIVE);
@@ -109,7 +109,7 @@ class GroupSubgroupImageActivationIntegrationTest {
 			imageRepository.save(ImageFixture.create(FilePurpose.GROUP_IMAGE, "uploads/group/image/group-update.png",
 				fileUuid, "group-update.png"));
 
-			groupService.updateGroup(
+			groupFacade.updateGroup(
 				group.getId(),
 				new GroupUpdateRequest(null, null, null, null, null, TextNode.valueOf(fileUuid.toString())));
 
@@ -130,7 +130,7 @@ class GroupSubgroupImageActivationIntegrationTest {
 				MISSING_FILE_UUID,
 				"123456");
 
-			assertThatThrownBy(() -> groupService.createGroup(request))
+			assertThatThrownBy(() -> groupFacade.createGroup(request))
 				.isInstanceOf(BusinessException.class)
 				.extracting(ex -> ((BusinessException)ex).getErrorCode())
 				.isEqualTo(FileErrorCode.FILE_NOT_FOUND.name());
@@ -156,7 +156,7 @@ class GroupSubgroupImageActivationIntegrationTest {
 			var request = SubgroupRequestFixture.createRequestWithImage(
 				"subgroup-" + System.nanoTime(), fileUuid.toString());
 
-			SubgroupCreateResponse response = subgroupService.createSubgroup(group.getId(), member.getId(), request);
+			SubgroupCreateResponse response = subgroupFacade.createSubgroup(group.getId(), member.getId(), request);
 
 			Image updatedImage = imageRepository.findByFileUuid(fileUuid).orElseThrow();
 			assertThat(updatedImage.getStatus()).isEqualTo(ImageStatus.ACTIVE);
@@ -176,7 +176,7 @@ class GroupSubgroupImageActivationIntegrationTest {
 				.save(GroupFixture.create("subgroup-update-group-" + System.nanoTime(), "서울시 강남구"));
 			groupMemberRepository.save(GroupMember.create(group.getId(), member));
 
-			SubgroupCreateResponse created = subgroupService.createSubgroup(
+			SubgroupCreateResponse created = subgroupFacade.createSubgroup(
 				group.getId(),
 				member.getId(),
 				SubgroupRequestFixture.createRequest("subgroup-update-" + System.nanoTime()));
@@ -186,7 +186,7 @@ class GroupSubgroupImageActivationIntegrationTest {
 			imageRepository.save(ImageFixture.create(FilePurpose.PROFILE_IMAGE,
 				"uploads/profile/image/subgroup-update.png", fileUuid, "subgroup-update.png"));
 
-			subgroupService.updateSubgroup(
+			subgroupFacade.updateSubgroup(
 				group.getId(),
 				subgroup.getId(),
 				member.getId(),
@@ -211,7 +211,7 @@ class GroupSubgroupImageActivationIntegrationTest {
 
 			var request = SubgroupRequestFixture.createRequestWithImage("subgroup-missing", MISSING_FILE_UUID);
 
-			assertThatThrownBy(() -> subgroupService.createSubgroup(group.getId(), member.getId(), request))
+			assertThatThrownBy(() -> subgroupFacade.createSubgroup(group.getId(), member.getId(), request))
 				.isInstanceOf(BusinessException.class)
 				.extracting(ex -> ((BusinessException)ex).getErrorCode())
 				.isEqualTo(FileErrorCode.FILE_NOT_FOUND.name());

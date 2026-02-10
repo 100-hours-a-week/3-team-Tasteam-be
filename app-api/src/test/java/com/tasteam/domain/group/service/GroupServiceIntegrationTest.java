@@ -62,14 +62,14 @@ import com.tasteam.global.notification.email.EmailSender;
 
 @ServiceIntegrationTest
 @Transactional
-@DisplayName("GroupService 통합 테스트")
-class GroupServiceIntegrationTest {
+@DisplayName("GroupFacade 통합 테스트")
+class GroupFacadeIntegrationTest {
 
 	private static final UUID LOGO_UUID_1 = UUID.fromString("11111111-1111-1111-1111-111111111111");
 	private static final UUID LOGO_UUID_2 = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
 	@Autowired
-	private GroupService groupService;
+	private GroupFacade groupFacade;
 
 	@Autowired
 	private MemberRepository memberRepository;
@@ -123,7 +123,7 @@ class GroupServiceIntegrationTest {
 		void createGroup_emailJoinType_success() {
 			GroupCreateRequest request = GroupRequestFixture.createEmailGroupRequest("이메일그룹", "example.com");
 
-			GroupCreateResponse response = groupService.createGroup(request);
+			GroupCreateResponse response = groupFacade.createGroup(request);
 
 			Group group = groupRepository.findById(response.id()).get();
 			assertThat(group.getEmailDomain()).isEqualTo("example.com");
@@ -135,7 +135,7 @@ class GroupServiceIntegrationTest {
 			GroupCreateRequest request = GroupRequestFixture.createEmailGroupRequestWithLogo(
 				"로고그룹", LOGO_UUID_1.toString(), "example.com");
 
-			GroupCreateResponse response = groupService.createGroup(request);
+			GroupCreateResponse response = groupFacade.createGroup(request);
 
 			Image logo = imageRepository.findByFileUuid(LOGO_UUID_1).get();
 			assertThat(logo.getStatus()).isEqualTo(ImageStatus.ACTIVE);
@@ -150,7 +150,7 @@ class GroupServiceIntegrationTest {
 			GroupCreateRequest request = GroupRequestFixture.createPasswordGroupRequest(
 				"비밀번호그룹", "password123");
 
-			GroupCreateResponse response = groupService.createGroup(request);
+			GroupCreateResponse response = groupFacade.createGroup(request);
 
 			GroupAuthCode authCode = groupAuthCodeRepository.findByGroupId(response.id()).get();
 			assertThat(authCode.getCode()).isNotEqualTo("password123");
@@ -161,9 +161,9 @@ class GroupServiceIntegrationTest {
 		@DisplayName("중복된 그룹 이름은 예외를 발생시킨다")
 		void createGroup_duplicateName_throwsBusinessException() {
 			GroupCreateRequest request = GroupRequestFixture.createEmailGroupRequest("중복그룹", "example.com");
-			groupService.createGroup(request);
+			groupFacade.createGroup(request);
 
-			assertThatThrownBy(() -> groupService.createGroup(request))
+			assertThatThrownBy(() -> groupFacade.createGroup(request))
 				.isInstanceOf(BusinessException.class);
 		}
 
@@ -172,7 +172,7 @@ class GroupServiceIntegrationTest {
 		void createGroup_invalidEmailDomain_throwsBusinessException() {
 			GroupCreateRequest request = GroupRequestFixture.createEmailGroupRequest("도메인없음그룹", null);
 
-			assertThatThrownBy(() -> groupService.createGroup(request))
+			assertThatThrownBy(() -> groupFacade.createGroup(request))
 				.isInstanceOf(BusinessException.class);
 		}
 	}
@@ -193,7 +193,7 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("groupId로 그룹을 조회하면 memberCount가 포함된다")
 		void getGroup_success() {
-			GroupGetResponse response = groupService.getGroup(group.getId());
+			GroupGetResponse response = groupFacade.getGroup(group.getId());
 
 			assertThat(response.data().groupId()).isEqualTo(group.getId());
 			assertThat(response.data().memberCount()).isEqualTo(2);
@@ -202,7 +202,7 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("존재하지 않는 그룹은 예외를 발생시킨다")
 		void getGroup_notFound_throwsBusinessException() {
-			assertThatThrownBy(() -> groupService.getGroup(999999L))
+			assertThatThrownBy(() -> groupFacade.getGroup(999999L))
 				.isInstanceOf(BusinessException.class);
 		}
 	}
@@ -224,7 +224,7 @@ class GroupServiceIntegrationTest {
 			GroupUpdateRequest request = new GroupUpdateRequest(
 				objectMapper.valueToTree("수정후그룹"), null, null, null, null, null);
 
-			groupService.updateGroup(group.getId(), request);
+			groupFacade.updateGroup(group.getId(), request);
 
 			Group updated = groupRepository.findById(group.getId()).get();
 			assertThat(updated.getName()).isEqualTo("수정후그룹");
@@ -236,7 +236,7 @@ class GroupServiceIntegrationTest {
 			GroupUpdateRequest request = new GroupUpdateRequest(
 				null, null, null, null, objectMapper.valueToTree("INACTIVE"), null);
 
-			groupService.updateGroup(group.getId(), request);
+			groupFacade.updateGroup(group.getId(), request);
 
 			Group updated = groupRepository.findById(group.getId()).get();
 			assertThat(updated.getStatus()).isEqualTo(GroupStatus.INACTIVE);
@@ -252,7 +252,7 @@ class GroupServiceIntegrationTest {
 			GroupUpdateRequest request = new GroupUpdateRequest(
 				null, null, null, null, null, objectMapper.nullNode());
 
-			groupService.updateGroup(group.getId(), request);
+			groupFacade.updateGroup(group.getId(), request);
 
 			List<DomainImage> links = domainImageRepository.findAllByDomainTypeAndDomainId(
 				DomainType.GROUP, group.getId());
@@ -265,7 +265,7 @@ class GroupServiceIntegrationTest {
 			GroupUpdateRequest request = new GroupUpdateRequest(
 				null, null, null, null, null, objectMapper.valueToTree(LOGO_UUID_2.toString()));
 
-			groupService.updateGroup(group.getId(), request);
+			groupFacade.updateGroup(group.getId(), request);
 
 			Image newLogo = imageRepository.findByFileUuid(LOGO_UUID_2).get();
 			assertThat(newLogo.getStatus()).isEqualTo(ImageStatus.ACTIVE);
@@ -284,7 +284,7 @@ class GroupServiceIntegrationTest {
 		@BeforeEach
 		void setUp() {
 			GroupCreateRequest request = GroupRequestFixture.createEmailGroupRequest("이메일인증그룹", "example.com");
-			GroupCreateResponse response = groupService.createGroup(request);
+			GroupCreateResponse response = groupFacade.createGroup(request);
 			emailGroup = groupRepository.findById(response.id()).get();
 		}
 
@@ -293,7 +293,7 @@ class GroupServiceIntegrationTest {
 		void sendGroupEmailVerification_success() {
 			Instant before = Instant.now();
 
-			groupService.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
+			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
 
 			verify(emailSender, times(1)).sendGroupJoinVerification(anyString(), anyString(), any(Instant.class));
 			GroupAuthCode authCode = groupAuthCodeRepository.findByGroupId(emailGroup.getId()).get();
@@ -304,7 +304,7 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("이메일 도메인이 일치하지 않으면 예외를 발생시킨다")
 		void sendGroupEmailVerification_emailDomainMismatch_throwsBusinessException() {
-			assertThatThrownBy(() -> groupService.sendGroupEmailVerification(
+			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
 				emailGroup.getId(), "user@other.com"))
 				.isInstanceOf(BusinessException.class);
 		}
@@ -312,9 +312,9 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("이미 미검증 코드가 존재하고 유효 시간 내인 경우 예외를 발생시킨다")
 		void sendGroupEmailVerification_alreadyPending_throwsBusinessException() {
-			groupService.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
+			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
 
-			assertThatThrownBy(() -> groupService.sendGroupEmailVerification(
+			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
 				emailGroup.getId(), "user2@example.com"))
 				.isInstanceOf(BusinessException.class);
 		}
@@ -330,9 +330,9 @@ class GroupServiceIntegrationTest {
 		@BeforeEach
 		void setUp() {
 			GroupCreateRequest request = GroupRequestFixture.createEmailGroupRequest("이메일가입그룹", "example.com");
-			GroupCreateResponse response = groupService.createGroup(request);
+			GroupCreateResponse response = groupFacade.createGroup(request);
 			emailGroup = groupRepository.findById(response.id()).get();
-			groupService.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
+			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
 			GroupAuthCode authCode = groupAuthCodeRepository.findByGroupId(emailGroup.getId()).get();
 			verificationCode = authCode.getCode();
 		}
@@ -340,7 +340,7 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("올바른 코드와 유효 시간 내 인증 시 가입 성공하고 GroupMember가 생성된다")
 		void authenticateGroupByEmail_success() {
-			GroupEmailAuthenticationResponse response = groupService.authenticateGroupByEmail(
+			GroupEmailAuthenticationResponse response = groupFacade.authenticateGroupByEmail(
 				emailGroup.getId(), member3.getId(), verificationCode);
 
 			assertThat(response.verified()).isTrue();
@@ -356,7 +356,7 @@ class GroupServiceIntegrationTest {
 				authCode,
 				Instant.now().minusSeconds(1)));
 
-			assertThatThrownBy(() -> groupService.authenticateGroupByEmail(
+			assertThatThrownBy(() -> groupFacade.authenticateGroupByEmail(
 				emailGroup.getId(), member3.getId(), verificationCode))
 				.isInstanceOf(BusinessException.class);
 		}
@@ -364,7 +364,7 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("틀린 코드는 예외를 발생시킨다")
 		void authenticateGroupByEmail_wrongCode_throwsBusinessException() {
-			assertThatThrownBy(() -> groupService.authenticateGroupByEmail(
+			assertThatThrownBy(() -> groupFacade.authenticateGroupByEmail(
 				emailGroup.getId(), member3.getId(), "999999"))
 				.isInstanceOf(BusinessException.class);
 		}
@@ -375,7 +375,7 @@ class GroupServiceIntegrationTest {
 			GroupMember membership = groupMemberRepository.save(GroupMemberFixture.create(emailGroup.getId(), member3));
 			membership.softDelete(Instant.now());
 
-			groupService.authenticateGroupByEmail(emailGroup.getId(), member3.getId(), verificationCode);
+			groupFacade.authenticateGroupByEmail(emailGroup.getId(), member3.getId(), verificationCode);
 
 			GroupMember restored = groupMemberRepository.findByGroupIdAndMember_Id(
 				emailGroup.getId(), member3.getId()).get();
@@ -393,14 +393,14 @@ class GroupServiceIntegrationTest {
 		void setUp() {
 			GroupCreateRequest request = GroupRequestFixture.createPasswordGroupRequest(
 				"비밀번호가입그룹", "correctPassword");
-			GroupCreateResponse response = groupService.createGroup(request);
+			GroupCreateResponse response = groupFacade.createGroup(request);
 			passwordGroup = groupRepository.findById(response.id()).get();
 		}
 
 		@Test
 		@DisplayName("올바른 password로 가입 성공한다")
 		void authenticateGroupByPassword_success() {
-			GroupPasswordAuthenticationResponse response = groupService.authenticateGroupByPassword(
+			GroupPasswordAuthenticationResponse response = groupFacade.authenticateGroupByPassword(
 				passwordGroup.getId(), member2.getId(), "correctPassword");
 
 			assertThat(response.verified()).isTrue();
@@ -411,7 +411,7 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("틀린 password는 예외를 발생시킨다")
 		void authenticateGroupByPassword_wrongPassword_throwsBusinessException() {
-			assertThatThrownBy(() -> groupService.authenticateGroupByPassword(
+			assertThatThrownBy(() -> groupFacade.authenticateGroupByPassword(
 				passwordGroup.getId(), member2.getId(), "wrongPassword"))
 				.isInstanceOf(BusinessException.class);
 		}
@@ -423,7 +423,7 @@ class GroupServiceIntegrationTest {
 				.save(GroupMemberFixture.create(passwordGroup.getId(), member2));
 			membership.softDelete(Instant.now());
 
-			groupService.authenticateGroupByPassword(passwordGroup.getId(), member2.getId(), "correctPassword");
+			groupFacade.authenticateGroupByPassword(passwordGroup.getId(), member2.getId(), "correctPassword");
 
 			GroupMember restored = groupMemberRepository.findByGroupIdAndMember_Id(
 				passwordGroup.getId(), member2.getId()).get();
@@ -456,7 +456,7 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("그룹 탈퇴 시 GroupMember가 softDelete된다")
 		void withdrawGroup_success() {
-			groupService.withdrawGroup(group.getId(), member1.getId());
+			groupFacade.withdrawGroup(group.getId(), member1.getId());
 
 			GroupMember membership = groupMemberRepository.findByGroupIdAndMember_Id(
 				group.getId(), member1.getId()).get();
@@ -466,9 +466,9 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("이미 탈퇴한 회원이 재탈퇴 시 idempotent하게 처리된다")
 		void withdrawGroup_alreadyWithdrawn_idempotent() {
-			groupService.withdrawGroup(group.getId(), member1.getId());
+			groupFacade.withdrawGroup(group.getId(), member1.getId());
 
-			groupService.withdrawGroup(group.getId(), member1.getId());
+			groupFacade.withdrawGroup(group.getId(), member1.getId());
 
 			GroupMember membership = groupMemberRepository.findByGroupIdAndMember_Id(
 				group.getId(), member1.getId()).get();
@@ -478,7 +478,7 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("그룹 탈퇴 시 모든 하위그룹에서도 cascading soft delete된다")
 		void withdrawGroup_cascadesToSubgroups() {
-			groupService.withdrawGroup(group.getId(), member1.getId());
+			groupFacade.withdrawGroup(group.getId(), member1.getId());
 
 			SubgroupMember sub1Membership = subgroupMemberRepository.findBySubgroupIdAndMember_Id(
 				subgroup1.getId(), member1.getId()).get();
@@ -506,7 +506,7 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("그룹 회원 목록을 반환한다")
 		void getGroupMembers_returnsMemberList() {
-			GroupMemberListResponse response = groupService.getGroupMembers(group.getId(), null, 10);
+			GroupMemberListResponse response = groupFacade.getGroupMembers(group.getId(), null, 10);
 
 			assertThat(response.data()).hasSizeGreaterThanOrEqualTo(1);
 		}
@@ -514,7 +514,7 @@ class GroupServiceIntegrationTest {
 		@Test
 		@DisplayName("탈퇴한 회원은 목록에서 제외된다")
 		void getGroupMembers_excludesWithdrawn() {
-			GroupMemberListResponse response = groupService.getGroupMembers(group.getId(), null, 10);
+			GroupMemberListResponse response = groupFacade.getGroupMembers(group.getId(), null, 10);
 
 			assertThat(response.data()).hasSize(1);
 			assertThat(response.data().get(0).memberId()).isEqualTo(member1.getId());
