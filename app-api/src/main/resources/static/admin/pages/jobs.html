@@ -72,6 +72,39 @@
                         </table>
                     </div>
                 </div>
+
+                <div class="card job-card">
+                    <h3>이미지 정리</h3>
+                    <p>PENDING 상태로 만료된 이미지와 삭제 예정 이미지를 S3에서 삭제합니다.</p>
+                    <div class="button-group">
+                        <button id="loadCleanupPending" class="btn btn-secondary">정리 대기 조회</button>
+                        <button id="runImageCleanup" class="btn btn-primary">정리 실행</button>
+                    </div>
+                    <div id="cleanupResult" class="job-result" style="display: none;">
+                        <h4>실행 결과</h4>
+                        <p>정리된 이미지: <span id="cleanedCount" class="pending-count">0</span>개</p>
+                    </div>
+                    <div id="cleanupError" class="error-message" style="display: none;"></div>
+
+                    <div id="cleanupPendingImages" class="pending-images" style="display: none;">
+                        <h4>정리 대기 이미지 (<span id="cleanupPendingCount" class="pending-count">0</span>개)</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>파일명</th>
+                                    <th>크기</th>
+                                    <th>타입</th>
+                                    <th>용도</th>
+                                    <th>상태</th>
+                                    <th>생성일</th>
+                                    <th>삭제예정일</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cleanupPendingBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </main>
     </div>

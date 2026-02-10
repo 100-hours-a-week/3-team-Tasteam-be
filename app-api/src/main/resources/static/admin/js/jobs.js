@@ -109,3 +109,70 @@ document.getElementById('runImageOptimization').addEventListener('click', async 
         button.textContent = '최적화 실행';
     }
 });
+
+document.getElementById('loadCleanupPending').addEventListener('click', async () => {
+    const button = document.getElementById('loadCleanupPending');
+    const pendingDiv = document.getElementById('cleanupPendingImages');
+    const errorDiv = document.getElementById('cleanupError');
+
+    button.disabled = true;
+    button.textContent = '조회 중...';
+    errorDiv.style.display = 'none';
+
+    try {
+        const response = await apiRequest('/admin/jobs/image-cleanup/pending');
+        const images = response.data;
+
+        document.getElementById('cleanupPendingCount').textContent = images.length;
+
+        const tbody = document.getElementById('cleanupPendingBody');
+        tbody.innerHTML = images.map(img => `
+            <tr>
+                <td>${img.imageId}</td>
+                <td title="${img.fileName}">${img.fileName.length > 30 ? img.fileName.substring(0, 30) + '...' : img.fileName}</td>
+                <td class="file-size">${formatFileSize(img.fileSize)}</td>
+                <td>${img.fileType}</td>
+                <td>${getPurposeLabel(img.purpose)}</td>
+                <td>${img.status}</td>
+                <td>${formatDate(img.createdAt)}</td>
+                <td>${formatDate(img.deletedAt)}</td>
+            </tr>
+        `).join('');
+
+        pendingDiv.style.display = 'block';
+    } catch (error) {
+        errorDiv.textContent = error.message;
+        errorDiv.style.display = 'block';
+    } finally {
+        button.disabled = false;
+        button.textContent = '정리 대기 조회';
+    }
+});
+
+document.getElementById('runImageCleanup').addEventListener('click', async () => {
+    const button = document.getElementById('runImageCleanup');
+    const resultDiv = document.getElementById('cleanupResult');
+    const errorDiv = document.getElementById('cleanupError');
+
+    button.disabled = true;
+    button.textContent = '실행 중...';
+    resultDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+
+    try {
+        const response = await apiRequest('/admin/jobs/image-cleanup', {
+            method: 'POST'
+        });
+
+        document.getElementById('cleanedCount').textContent = response.data.successCount;
+        resultDiv.style.display = 'block';
+
+        document.getElementById('loadCleanupPending').click();
+    } catch (error) {
+        errorDiv.textContent = error.message;
+        errorDiv.style.display = 'block';
+    } finally {
+        button.disabled = false;
+        button.textContent = '정리 실행';
+    }
+});

@@ -200,6 +200,19 @@ public class FileService {
 		return new ImageSummaryResponse(items);
 	}
 
+	@Transactional(readOnly = true)
+	public List<Image> findCleanupPendingImages() {
+		Instant cutoff = Instant.now().minus(cleanupProperties.ttlDuration());
+		List<Image> markedForDeletion = imageRepository.findAllByStatusAndDeletedAtIsNotNull(ImageStatus.PENDING);
+		List<Image> expired = imageRepository.findAllByStatusAndDeletedAtIsNullAndCreatedAtBefore(
+			ImageStatus.PENDING,
+			cutoff);
+
+		List<Image> result = new java.util.ArrayList<>(markedForDeletion);
+		result.addAll(expired);
+		return result;
+	}
+
 	@Transactional
 	public int cleanupPendingDeletedImages() {
 		markExpiredImages();
