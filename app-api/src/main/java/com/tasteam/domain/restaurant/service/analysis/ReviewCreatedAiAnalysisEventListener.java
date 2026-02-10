@@ -1,7 +1,9 @@
 package com.tasteam.domain.restaurant.service.analysis;
 
-import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import com.tasteam.domain.review.event.ReviewCreatedEvent;
 
@@ -13,7 +15,8 @@ public class ReviewCreatedAiAnalysisEventListener {
 
 	private final RestaurantReviewAnalysisService restaurantReviewAnalysisService;
 
-	@EventListener
+	@Async("aiAnalysisExecutor")
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void onReviewCreated(ReviewCreatedEvent event) {
 		restaurantReviewAnalysisService.onReviewCreated(event.restaurantId());
 	}
