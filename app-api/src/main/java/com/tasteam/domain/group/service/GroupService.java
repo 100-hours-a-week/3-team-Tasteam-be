@@ -39,6 +39,7 @@ import com.tasteam.domain.group.dto.GroupUpdateRequest;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.entity.GroupAuthCode;
 import com.tasteam.domain.group.entity.GroupMember;
+import com.tasteam.domain.group.event.GroupEventPublisher;
 import com.tasteam.domain.group.repository.GroupAuthCodeRepository;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
@@ -76,6 +77,7 @@ public class GroupService {
 	private final DomainImageRepository domainImageRepository;
 	private final FileService fileService;
 	private final PasswordEncoder passwordEncoder;
+	private final GroupEventPublisher groupEventPublisher;
 
 	@Transactional
 	public GroupCreateResponse createGroup(GroupCreateRequest request) {
@@ -210,6 +212,8 @@ public class GroupService {
 
 		authCode.verify(Instant.now());
 
+		groupEventPublisher.publishMemberJoined(groupId, memberId, group.getName(), groupMember.getCreatedAt());
+
 		return new GroupEmailAuthenticationResponse(
 			true,
 			groupMember.getCreatedAt());
@@ -247,6 +251,8 @@ public class GroupService {
 		} else if (groupMember.getDeletedAt() != null) {
 			groupMember.restore();
 		}
+
+		groupEventPublisher.publishMemberJoined(groupId, memberId, group.getName(), groupMember.getCreatedAt());
 
 		return new GroupPasswordAuthenticationResponse(
 			true,
