@@ -38,6 +38,17 @@ public class AsyncConfig implements AsyncConfigurer {
 		return executor;
 	}
 
+	@Bean(name = "aiAnalysisExecutor")
+	public Executor aiAnalysisExecutor() {
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(1);
+		executor.setMaxPoolSize(1);
+		executor.setQueueCapacity(200);
+		executor.setThreadNamePrefix("ai-analysis-");
+		executor.initialize();
+		return executor;
+	}
+
 	@Override
 	public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
 		return (ex, method, params) -> log.error("비동기 메서드 {}에서 예외 발생: {}", method.getName(),
