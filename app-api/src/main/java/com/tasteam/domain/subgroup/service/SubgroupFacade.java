@@ -18,57 +18,58 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class SubgroupService {
+public class SubgroupFacade {
 
-	private final SubgroupFacade subgroupFacade;
+	private final SubgroupQueryService subgroupQueryService;
+	private final SubgroupCommandService subgroupCommandService;
 
 	@Transactional(readOnly = true)
 	public SubgroupListResponse getMySubgroups(Long groupId, Long memberId, String keyword, String cursor,
 		Integer size) {
-		return subgroupFacade.getMySubgroups(groupId, memberId, keyword, cursor, size);
+		return subgroupQueryService.getMySubgroups(groupId, memberId, keyword, cursor, size);
 	}
 
 	@Transactional(readOnly = true)
 	public CursorPageResponse<SubgroupListItem> getGroupSubgroups(Long groupId, Long memberId, String cursor,
 		Integer size) {
-		return subgroupFacade.getGroupSubgroups(groupId, memberId, cursor, size);
+		return subgroupQueryService.getGroupSubgroups(groupId, memberId, cursor, size);
 	}
 
 	@Transactional(readOnly = true)
 	public CursorPageResponse<SubgroupListItem> searchGroupSubgroups(Long groupId, String keyword, String cursor,
 		Integer size) {
-		return subgroupFacade.searchGroupSubgroups(groupId, keyword, cursor, size);
+		return subgroupQueryService.searchGroupSubgroups(groupId, keyword, cursor, size);
 	}
 
 	@Transactional(readOnly = true)
 	public SubgroupDetailResponse getSubgroup(Long subgroupId, Long memberId) {
-		return subgroupFacade.getSubgroup(subgroupId, memberId);
+		return subgroupQueryService.getSubgroup(subgroupId, memberId);
 	}
 
 	@Transactional(readOnly = true)
 	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, String cursor,
 		Integer size) {
-		return subgroupFacade.getSubgroupMembers(subgroupId, cursor, size);
+		return subgroupQueryService.getSubgroupMembers(subgroupId, cursor, size);
 	}
 
 	@Transactional
 	public SubgroupCreateResponse createSubgroup(Long groupId, Long memberId, SubgroupCreateRequest request) {
-		return subgroupFacade.createSubgroup(groupId, memberId, request);
+		return subgroupCommandService.createSubgroup(groupId, memberId, request);
 	}
 
 	@Transactional
 	public SubgroupJoinResponse joinSubgroup(Long groupId, Long subgroupId, Long memberId,
 		SubgroupJoinRequest request) {
-		return subgroupFacade.joinSubgroup(groupId, subgroupId, memberId, request);
+		return subgroupCommandService.joinSubgroup(groupId, subgroupId, memberId, request);
 	}
 
 	@Transactional
 	public void withdrawSubgroup(Long subgroupId, Long memberId) {
-		subgroupFacade.withdrawSubgroup(subgroupId, memberId);
+		subgroupCommandService.withdrawSubgroup(subgroupId, memberId);
 	}
 
 	@Transactional
 	public void updateSubgroup(Long groupId, Long subgroupId, Long memberId, SubgroupUpdateRequest request) {
-		subgroupFacade.updateSubgroup(groupId, subgroupId, memberId, request);
+		subgroupCommandService.updateSubgroup(groupId, subgroupId, memberId, request);
 	}
 }
