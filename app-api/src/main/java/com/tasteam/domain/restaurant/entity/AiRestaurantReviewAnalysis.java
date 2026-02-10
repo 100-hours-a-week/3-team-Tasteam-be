@@ -3,7 +3,9 @@ package com.tasteam.domain.restaurant.entity;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.hibernate.annotations.Comment;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -86,6 +88,28 @@ public class AiRestaurantReviewAnalysis extends BaseTimeEntity {
 			.build();
 	}
 
+	public void markAnalyzing() {
+		status = AnalysisStatus.ANALYZING;
+	}
+
+	public void markCompleted() {
+		status = AnalysisStatus.COMPLETED;
+	}
+
+	public void updateAnalysis(
+		String overallSummary,
+		Map<String, String> categorySummaries,
+		BigDecimal positiveRatio,
+		BigDecimal negativeRatio,
+		Instant analyzedAt) {
+		this.overallSummary = Objects.requireNonNullElse(overallSummary, "");
+		this.categorySummaries = categorySummaries == null ? Map.of() : new HashMap<>(categorySummaries);
+		this.positiveRatio = normalizeRatio(positiveRatio);
+		this.negativeRatio = normalizeRatio(negativeRatio);
+		this.analyzedAt = analyzedAt;
+		this.status = AnalysisStatus.COMPLETED;
+	}
+
 	public static AiRestaurantReviewAnalysis create(Long restaurantId, String overallSummary,
 		BigDecimal positiveRatio) {
 		BigDecimal boundedPositive = positiveRatio == null
@@ -102,6 +126,17 @@ public class AiRestaurantReviewAnalysis extends BaseTimeEntity {
 			AnalysisStatus.COMPLETED);
 	}
 
+	public static AiRestaurantReviewAnalysis createEmpty(Long restaurantId, AnalysisStatus status) {
+		return create(
+			restaurantId,
+			"",
+			Map.of(),
+			BigDecimal.ZERO,
+			BigDecimal.ZERO,
+			null,
+			status);
+	}
+
 	@Deprecated
 	public String getSummary() {
 		return overallSummary;
@@ -110,5 +145,12 @@ public class AiRestaurantReviewAnalysis extends BaseTimeEntity {
 	@Deprecated
 	public BigDecimal getPositiveReviewRatio() {
 		return positiveRatio;
+	}
+
+	private BigDecimal normalizeRatio(BigDecimal value) {
+		return (value == null ? BigDecimal.ZERO : value)
+			.max(BigDecimal.ZERO)
+			.min(BigDecimal.ONE)
+			.setScale(4, RoundingMode.HALF_UP);
 	}
 }

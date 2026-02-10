@@ -2,8 +2,11 @@ package com.tasteam.domain.restaurant.entity;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.hibernate.annotations.Comment;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -86,6 +89,28 @@ public class AiRestaurantComparison extends BaseTimeEntity {
 			.build();
 	}
 
+	public void markAnalyzing() {
+		status = AnalysisStatus.ANALYZING;
+	}
+
+	public void markCompleted() {
+		status = AnalysisStatus.COMPLETED;
+	}
+
+	public void updateComparison(
+		Map<String, BigDecimal> categoryLift,
+		List<String> comparisonDisplay,
+		int totalCandidates,
+		int validatedCount,
+		Instant analyzedAt) {
+		this.categoryLift = categoryLift == null ? Map.of() : new HashMap<>(categoryLift);
+		this.comparisonDisplay = comparisonDisplay == null ? List.of() : new ArrayList<>(comparisonDisplay);
+		this.totalCandidates = Math.max(totalCandidates, 0);
+		this.validatedCount = Math.max(validatedCount, 0);
+		this.analyzedAt = analyzedAt;
+		this.status = AnalysisStatus.COMPLETED;
+	}
+
 	public static AiRestaurantComparison create(Restaurant restaurant, String comparisonSentence) {
 		return AiRestaurantComparison.builder()
 			.restaurantId(restaurant.getId())
@@ -101,5 +126,16 @@ public class AiRestaurantComparison extends BaseTimeEntity {
 	@Deprecated
 	public String getContent() {
 		return comparisonDisplay == null || comparisonDisplay.isEmpty() ? null : comparisonDisplay.getFirst();
+	}
+
+	public static AiRestaurantComparison createEmpty(Long restaurantId, AnalysisStatus status) {
+		return AiRestaurantComparison.create(
+			restaurantId,
+			Map.of(),
+			List.of(),
+			0,
+			0,
+			null,
+			Objects.requireNonNull(status));
 	}
 }
