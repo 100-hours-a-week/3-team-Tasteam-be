@@ -1,0 +1,88 @@
+package com.tasteam.domain.favorite.service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.springframework.stereotype.Component;
+
+import com.tasteam.domain.favorite.dto.FavoriteRestaurantQueryDto;
+import com.tasteam.domain.favorite.dto.FavoriteSubgroupTargetRow;
+import com.tasteam.domain.favorite.dto.SubgroupFavoriteRestaurantQueryDto;
+import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
+import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
+import com.tasteam.domain.favorite.dto.response.FavoriteTargetItem;
+import com.tasteam.domain.favorite.dto.response.FavoriteTargetsResponse;
+import com.tasteam.domain.favorite.dto.response.SubgroupFavoriteRestaurantItem;
+import com.tasteam.domain.favorite.entity.MemberFavoriteRestaurant;
+import com.tasteam.domain.favorite.entity.SubgroupFavoriteRestaurant;
+import com.tasteam.domain.favorite.type.FavoriteState;
+import com.tasteam.domain.favorite.type.FavoriteTargetType;
+
+@Component
+public class FavoriteAssembler {
+
+	public FavoriteCreateResponse toCreateResponse(MemberFavoriteRestaurant favorite) {
+		return new FavoriteCreateResponse(favorite.getId(), favorite.getRestaurantId(), favorite.getCreatedAt());
+	}
+
+	public FavoriteCreateResponse toCreateResponse(SubgroupFavoriteRestaurant favorite) {
+		return new FavoriteCreateResponse(favorite.getId(), favorite.getRestaurantId(), favorite.getCreatedAt());
+	}
+
+	public List<FavoriteRestaurantItem> toFavoriteRestaurantItems(
+		List<FavoriteRestaurantQueryDto> items,
+		Map<Long, String> thumbnails) {
+		return items.stream()
+			.map(dto -> new FavoriteRestaurantItem(
+				dto.restaurantId(),
+				dto.restaurantName(),
+				thumbnails.get(dto.restaurantId()),
+				dto.createdAt()))
+			.toList();
+	}
+
+	public List<SubgroupFavoriteRestaurantItem> toSubgroupFavoriteRestaurantItems(
+		Long subgroupId,
+		List<SubgroupFavoriteRestaurantQueryDto> items,
+		Map<Long, String> thumbnails) {
+		return items.stream()
+			.map(dto -> new SubgroupFavoriteRestaurantItem(
+				dto.restaurantId(),
+				dto.restaurantName(),
+				thumbnails.get(dto.restaurantId()),
+				subgroupId,
+				dto.createdAt()))
+			.toList();
+	}
+
+	public FavoriteTargetsResponse toFavoriteTargetsResponse(
+		long myFavoriteCount,
+		FavoriteState myFavoriteState,
+		List<FavoriteSubgroupTargetRow> subgroupTargets,
+		Map<Long, Long> subgroupFavoriteCounts,
+		Set<Long> favoritedSubgroupIds,
+		boolean includeState) {
+		FavoriteTargetItem myTarget = new FavoriteTargetItem(
+			FavoriteTargetType.ME,
+			null,
+			"내 찜",
+			myFavoriteCount,
+			includeState ? myFavoriteState : null);
+
+		List<FavoriteTargetItem> subgroupItems = subgroupTargets.stream()
+			.map(subgroup -> new FavoriteTargetItem(
+				FavoriteTargetType.SUBGROUP,
+				subgroup.subgroupId(),
+				subgroup.subgroupName(),
+				subgroupFavoriteCounts.getOrDefault(subgroup.subgroupId(), 0L),
+				includeState
+					? favoritedSubgroupIds.contains(subgroup.subgroupId()) ? FavoriteState.FAVORITED
+						: FavoriteState.NOT_FAVORITED
+					: null))
+			.toList();
+
+		return new FavoriteTargetsResponse(
+			java.util.stream.Stream.concat(java.util.stream.Stream.of(myTarget), subgroupItems.stream()).toList());
+	}
+}
