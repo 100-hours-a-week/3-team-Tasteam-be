@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.ControllerWebMvcTest;
 import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
+import com.tasteam.domain.favorite.dto.response.FavoritePageTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
 import com.tasteam.domain.favorite.dto.response.FavoriteTargetItem;
 import com.tasteam.domain.favorite.dto.response.FavoriteTargetsResponse;
@@ -326,16 +327,16 @@ class MemberControllerTest {
 		@Test
 		@DisplayName("찜 타겟 목록을 조회하면 내 찜과 소모임 타겟을 반환한다")
 		void 찜_타겟_조회_성공() throws Exception {
-			FavoriteTargetsResponse response = new FavoriteTargetsResponse(List.of(
-				new FavoriteTargetItem(FavoriteTargetType.ME, null, "내 찜", 3L, null),
-				new FavoriteTargetItem(FavoriteTargetType.SUBGROUP, 22L, "점심팟", 5L, null)));
+			FavoritePageTargetsResponse response = new FavoritePageTargetsResponse(
+				new FavoritePageTargetsResponse.MyFavoriteTarget(3L),
+				List.of(new FavoritePageTargetsResponse.SubgroupFavoriteTarget(22L, "점심팟", 5L)));
 			given(favoriteService.getFavoriteTargets(anyLong())).willReturn(response);
 
 			mockMvc.perform(get("/api/v1/members/me/favorite-targets"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.targets[0].targetType").value("ME"))
-				.andExpect(jsonPath("$.data.targets[1].targetId").value(22));
+				.andExpect(jsonPath("$.data.myFavorite.favoriteCount").value(3))
+				.andExpect(jsonPath("$.data.subgroupFavorites[0].subgroupId").value(22));
 		}
 
 		@Test

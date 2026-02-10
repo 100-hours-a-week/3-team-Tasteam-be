@@ -10,6 +10,7 @@ import com.tasteam.domain.favorite.dto.FavoriteRestaurantQueryDto;
 import com.tasteam.domain.favorite.dto.FavoriteSubgroupTargetRow;
 import com.tasteam.domain.favorite.dto.SubgroupFavoriteRestaurantQueryDto;
 import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
+import com.tasteam.domain.favorite.dto.response.FavoritePageTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
 import com.tasteam.domain.favorite.dto.response.FavoriteTargetItem;
 import com.tasteam.domain.favorite.dto.response.FavoriteTargetsResponse;
@@ -84,5 +85,22 @@ public class FavoriteAssembler {
 
 		return new FavoriteTargetsResponse(
 			java.util.stream.Stream.concat(java.util.stream.Stream.of(myTarget), subgroupItems.stream()).toList());
+	}
+
+	public FavoritePageTargetsResponse toFavoritePageTargetsResponse(
+		long myFavoriteCount,
+		List<FavoriteSubgroupTargetRow> subgroupTargets,
+		Map<Long, Long> subgroupFavoriteCounts) {
+		FavoritePageTargetsResponse.MyFavoriteTarget myFavorite = new FavoritePageTargetsResponse.MyFavoriteTarget(
+			myFavoriteCount);
+
+		List<FavoritePageTargetsResponse.SubgroupFavoriteTarget> subgroupFavorites = subgroupTargets.stream()
+			.map(subgroup -> new FavoritePageTargetsResponse.SubgroupFavoriteTarget(
+				subgroup.subgroupId(),
+				subgroup.subgroupName(),
+				subgroupFavoriteCounts.getOrDefault(subgroup.subgroupId(), 0L)))
+			.toList();
+
+		return new FavoritePageTargetsResponse(myFavorite, subgroupFavorites);
 	}
 }

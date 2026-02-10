@@ -15,6 +15,7 @@ import com.tasteam.domain.favorite.dto.FavoriteSubgroupTargetRow;
 import com.tasteam.domain.favorite.dto.SubgroupFavoriteCursor;
 import com.tasteam.domain.favorite.dto.SubgroupFavoriteRestaurantQueryDto;
 import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
+import com.tasteam.domain.favorite.dto.response.FavoritePageTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
 import com.tasteam.domain.favorite.dto.response.FavoriteTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.SubgroupFavoriteRestaurantItem;
@@ -134,16 +135,16 @@ public class FavoriteService {
 	}
 
 	@Transactional(readOnly = true)
-	public FavoriteTargetsResponse getFavoriteTargets(Long memberId) {
+	public FavoritePageTargetsResponse getFavoriteTargets(Long memberId) {
 		requireAuthenticated(memberId);
-		return createFavoriteTargetsResponse(memberId, null);
+		return createFavoritePageTargetsResponse(memberId);
 	}
 
 	@Transactional(readOnly = true)
 	public FavoriteTargetsResponse getFavoriteTargets(Long memberId, Long restaurantId) {
 		requireAuthenticated(memberId);
 		validateRestaurant(restaurantId);
-		return createFavoriteTargetsResponse(memberId, restaurantId);
+		return createRestaurantFavoriteTargetsResponse(memberId, restaurantId);
 	}
 
 	@Transactional
@@ -209,15 +210,32 @@ public class FavoriteService {
 		favorite.delete();
 	}
 
-	private FavoriteTargetsResponse createFavoriteTargetsResponse(Long memberId, Long restaurantId) {
+	private FavoritePageTargetsResponse createFavoritePageTargetsResponse(Long memberId) {
 		long myFavoriteCount = memberFavoriteRestaurantRepository.countByMemberIdAndDeletedAtIsNull(memberId);
+		List<FavoriteSubgroupTargetRow> subgroupTargets = subgroupMemberRepository.findFavoriteSubgroupTargets(
+			memberId,
+			SubgroupStatus.ACTIVE,
+			GroupStatus.ACTIVE);
+		List<Long> subgroupIds = subgroupTargets.stream().map(FavoriteSubgroupTargetRow::subgroupId).toList();
 
-		FavoriteState myFavoriteState = FavoriteState.NOT_FAVORITED;
-		if (restaurantId != null && memberFavoriteRestaurantRepository
+		Map<Long, Long> subgroupCounts = subgroupIds.isEmpty()
+			? Map.of()
+			: subgroupFavoriteRestaurantRepository.countBySubgroupIds(subgroupIds)
+				.stream()
+				.collect(Collectors.toMap(FavoriteCountBySubgroupDto::subgroupId,
+					FavoriteCountBySubgroupDto::favoriteCount));
+
+		return favoriteAssembler.toFavoritePageTargetsResponse(
+			myFavoriteCount,
+			subgroupTargets,
+			subgroupCounts);
+	}
+
+	private FavoriteTargetsResponse createRestaurantFavoriteTargetsResponse(Long memberId, Long restaurantId) {
+		long myFavoriteCount = memberFavoriteRestaurantRepository.countByMemberIdAndDeletedAtIsNull(memberId);
+		FavoriteState myFavoriteState = memberFavoriteRestaurantRepository
 			.findByMemberIdAndRestaurantIdAndDeletedAtIsNull(memberId, restaurantId)
-			.isPresent()) {
-			myFavoriteState = FavoriteState.FAVORITED;
-		}
+			.isPresent() ? FavoriteState.FAVORITED : FavoriteState.NOT_FAVORITED;
 
 		List<FavoriteSubgroupTargetRow> subgroupTargets = subgroupMemberRepository.findFavoriteSubgroupTargets(
 			memberId,
@@ -232,10 +250,9 @@ public class FavoriteService {
 				.collect(Collectors.toMap(FavoriteCountBySubgroupDto::subgroupId,
 					FavoriteCountBySubgroupDto::favoriteCount));
 
-		Set<Long> favoritedSubgroupIds = restaurantId == null ? Set.of()
-			: subgroupIds.isEmpty() ? Set.of()
-				: Set.copyOf(subgroupFavoriteRestaurantRepository.findFavoritedSubgroupIds(memberId, subgroupIds,
-					restaurantId));
+		Set<Long> favoritedSubgroupIds = subgroupIds.isEmpty() ? Set.of()
+			: Set.copyOf(subgroupFavoriteRestaurantRepository.findFavoritedSubgroupIds(memberId, subgroupIds,
+				restaurantId));
 
 		return favoriteAssembler.toFavoriteTargetsResponse(
 			myFavoriteCount,
@@ -243,7 +260,7 @@ public class FavoriteService {
 			subgroupTargets,
 			subgroupCounts,
 			favoritedSubgroupIds,
-			restaurantId != null);
+			true);
 	}
 
 	private MemberFavoriteRestaurant restoreMemberFavoriteIfDeleted(MemberFavoriteRestaurant existing) {

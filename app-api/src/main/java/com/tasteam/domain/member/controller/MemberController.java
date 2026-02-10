@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.domain.favorite.dto.request.FavoriteCreateRequest;
 import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
+import com.tasteam.domain.favorite.dto.response.FavoritePageTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
 import com.tasteam.domain.favorite.dto.response.FavoriteTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.SubgroupFavoriteRestaurantItem;
@@ -130,7 +131,7 @@ public class MemberController implements MemberControllerDocs {
 
 	@PreAuthorize("hasRole('USER')")
 	@GetMapping("/favorite-targets")
-	public SuccessResponse<FavoriteTargetsResponse> getFavoriteTargets(
+	public SuccessResponse<FavoritePageTargetsResponse> getFavoriteTargets(
 		@CurrentUser
 		Long memberId) {
 		return SuccessResponse.success(favoriteService.getFavoriteTargets(memberId));
