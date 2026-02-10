@@ -27,7 +27,7 @@ import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
-import com.tasteam.domain.subgroup.service.SubgroupService;
+import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
@@ -41,7 +41,7 @@ import lombok.RequiredArgsConstructor;
 public class MemberController implements MemberControllerDocs {
 
 	private final MemberService memberService;
-	private final SubgroupService subgroupService;
+	private final SubgroupFacade subgroupFacade;
 	private final ReviewService reviewService;
 	private final FavoriteService favoriteService;
 
@@ -78,7 +78,7 @@ public class MemberController implements MemberControllerDocs {
 		String cursor,
 		@RequestParam(required = false)
 		Integer size) {
-		return SuccessResponse.success(subgroupService.getMySubgroups(groupId, memberId, keyword, cursor, size));
+		return SuccessResponse.success(subgroupFacade.getMySubgroups(groupId, memberId, keyword, cursor, size));
 	}
 
 	@PatchMapping("/profile")

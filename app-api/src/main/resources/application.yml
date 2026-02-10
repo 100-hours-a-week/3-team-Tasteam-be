@@ -74,6 +74,10 @@ tasteam:
   domain:
     service: ${SERVICE_DOMAIN:https://tasteam.kr}
     api: ${API_DOMAIN:https://api.tasteam.kr}
+  search:
+    query:
+      strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:TWO_STEP}
+      candidate-limit: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:200}
   storage:
     type: ${STORAGE_TYPE:dummy}
     region: ${STORAGE_REGION:}
@@ -100,6 +104,11 @@ tasteam:
     comparison:
       cron: ${TASTEAM_AI_COMPARISON_CRON:0 0 3 * * *}
       zone: ${TASTEAM_AI_COMPARISON_ZONE:Asia/Seoul}
+  image:
+    optimization:
+      enabled: ${IMAGE_OPTIMIZATION_ENABLED:false}
+      cron: ${IMAGE_OPTIMIZATION_CRON:0 0 3 * * ?}
+      batch-size: ${IMAGE_OPTIMIZATION_BATCH_SIZE:100}
   aop:
     logging:
       enabled: ${TASTEAM_AOP_LOGGING_ENABLED:true}

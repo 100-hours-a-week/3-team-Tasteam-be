@@ -18,7 +18,7 @@ public interface ImageRepository extends JpaRepository<Image, Long> {
 
 	List<Image> findAllByFileUuidIn(List<UUID> fileUuids);
 
-	List<Image> findAllByStatusAndDeletedAtIsNotNull(ImageStatus status);
+	List<Image> findAllByStatusAndDeletedAtBefore(ImageStatus status, Instant cutoff);
 
 	List<Image> findAllByStatusAndDeletedAtIsNullAndCreatedAtBefore(ImageStatus status, Instant cutoff);
 }

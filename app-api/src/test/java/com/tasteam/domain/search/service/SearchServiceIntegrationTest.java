@@ -62,7 +62,7 @@ class SearchServiceIntegrationTest {
 
 			SearchResponse response = searchService.search(
 				member.getId(),
-				new SearchRequest("맛집", null, 10));
+				new SearchRequest("맛집", null, null, null, null, 10));
 
 			assertThat(response.groups()).hasSize(1);
 			assertThat(response.restaurants().items()).hasSize(1);
@@ -76,7 +76,7 @@ class SearchServiceIntegrationTest {
 		void searchInvalidCursorReturnsEmpty() {
 			SearchResponse response = searchService.search(
 				null,
-				new SearchRequest("맛집", "invalid-cursor", 10));
+				new SearchRequest("맛집", null, null, null, "invalid-cursor", 10));
 
 			assertThat(response.groups()).isEmpty();
 			assertThat(response.restaurants().items()).isEmpty();

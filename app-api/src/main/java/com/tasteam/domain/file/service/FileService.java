@@ -179,6 +179,53 @@ public class FileService {
 					Collectors.toList())));
 	}
 
+	@Transactional
+	public void replaceDomainImage(DomainType domainType, Long domainId, String fileUuid) {
+		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() == ImageStatus.DELETED) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		if (image.getStatus() != ImageStatus.PENDING
+			&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(domainType, domainId, image).isEmpty()) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
+		domainImageRepository.save(DomainImage.create(domainType, domainId, image, 0));
+
+		if (image.getStatus() == ImageStatus.PENDING) {
+			image.activate();
+			imageRepository.save(image);
+		}
+	}
+
+	@Transactional
+	public void clearDomainImages(DomainType domainType, Long domainId) {
+		domainImageRepository.deleteAllByDomainTypeAndDomainId(domainType, domainId);
+	}
+
+	@Transactional(readOnly = true)
+	public String getPrimaryDomainImageUrl(DomainType domainType, Long domainId) {
+		return getPrimaryDomainImageUrlMap(domainType, List.of(domainId)).get(domainId);
+	}
+
+	@Transactional(readOnly = true)
+	public Map<Long, String> getPrimaryDomainImageUrlMap(DomainType domainType, List<Long> domainIds) {
+		if (domainIds == null || domainIds.isEmpty()) {
+			return Map.of();
+		}
+
+		Map<Long, List<DomainImageItem>> images = getDomainImageUrls(domainType, domainIds);
+		return images.entrySet().stream()
+			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
+			.collect(Collectors.toMap(
+				Map.Entry::getKey,
+				entry -> entry.getValue().getFirst().url()));
+	}
+
 	@Transactional(readOnly = true)
 	public ImageSummaryResponse getImageSummary(ImageSummaryRequest request) {
 		List<UUID> uuids = request.fileUuids().stream()
@@ -200,11 +247,32 @@ public class FileService {
 		return new ImageSummaryResponse(items);
 	}
 
+	@Transactional(readOnly = true)
+	public List<Image> findCleanupPendingImages() {
+		Instant deletionCutoff = Instant.now().minus(cleanupProperties.ttlDuration());
+
+		List<Image> pendingExpired = imageRepository.findAllByStatusAndDeletedAtIsNullAndCreatedAtBefore(
+			ImageStatus.PENDING,
+			deletionCutoff);
+
+		List<Image> markedAndExpired = imageRepository.findAllByStatusAndDeletedAtBefore(
+			ImageStatus.PENDING,
+			deletionCutoff);
+
+		List<Image> result = new java.util.ArrayList<>(pendingExpired);
+		result.addAll(markedAndExpired);
+		return result;
+	}
+
 	@Transactional
 	public int cleanupPendingDeletedImages() {
-		markExpiredImages();
+		Instant deletionCutoff = Instant.now().minus(cleanupProperties.ttlDuration());
 
-		List<Image> targets = imageRepository.findAllByStatusAndDeletedAtIsNotNull(ImageStatus.PENDING);
+		markExpiredPendingImages(deletionCutoff);
+
+		List<Image> targets = imageRepository.findAllByStatusAndDeletedAtBefore(
+			ImageStatus.PENDING,
+			deletionCutoff);
 		int cleaned = 0;
 
 		for (Image image : targets) {
@@ -216,8 +284,7 @@ public class FileService {
 		return cleaned;
 	}
 
-	private void markExpiredImages() {
-		Instant cutoff = Instant.now().minus(cleanupProperties.ttlDuration());
+	private void markExpiredPendingImages(Instant cutoff) {
 		List<Image> expired = imageRepository.findAllByStatusAndDeletedAtIsNullAndCreatedAtBefore(
 			ImageStatus.PENDING,
 			cutoff);

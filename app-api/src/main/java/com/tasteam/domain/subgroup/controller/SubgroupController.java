@@ -20,7 +20,7 @@ import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.controller.docs.SubgroupControllerDocs;
 import com.tasteam.domain.subgroup.dto.SubgroupDetailResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupMemberListItem;
-import com.tasteam.domain.subgroup.service.SubgroupService;
+import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
@@ -34,7 +34,7 @@ import lombok.RequiredArgsConstructor;
 public class SubgroupController implements SubgroupControllerDocs {
 
 	private final ReviewService reviewService;
-	private final SubgroupService subgroupService;
+	private final SubgroupFacade subgroupFacade;
 
 	@ResponseStatus(HttpStatus.OK)
 	@GetMapping("/{subgroupId}/reviews")
@@ -55,7 +55,7 @@ public class SubgroupController implements SubgroupControllerDocs {
 		String cursor,
 		@RequestParam(required = false)
 		Integer size) {
-		return SuccessResponse.success(subgroupService.getSubgroupMembers(subgroupId, cursor, size));
+		return SuccessResponse.success(subgroupFacade.getSubgroupMembers(subgroupId, cursor, size));
 	}
 
 	@GetMapping("/{subgroupId}")
@@ -64,7 +64,7 @@ public class SubgroupController implements SubgroupControllerDocs {
 		Long subgroupId,
 		@CurrentUser
 		Long memberId) {
-		return SuccessResponse.success(subgroupService.getSubgroup(subgroupId, memberId));
+		return SuccessResponse.success(subgroupFacade.getSubgroup(subgroupId, memberId));
 	}
 
 	@DeleteMapping("/{subgroupId}/members/me")
@@ -74,7 +74,7 @@ public class SubgroupController implements SubgroupControllerDocs {
 		Long subgroupId,
 		@CurrentUser
 		Long memberId) {
-		subgroupService.withdrawSubgroup(subgroupId, memberId);
+		subgroupFacade.withdrawSubgroup(subgroupId, memberId);
 		return ResponseEntity.noContent().build();
 	}
 }

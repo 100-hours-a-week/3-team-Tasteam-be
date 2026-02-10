@@ -49,15 +49,13 @@ import com.tasteam.global.exception.code.ReviewErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
 import com.tasteam.global.utils.CursorPageBuilder;
+import com.tasteam.global.utils.PaginationParamUtils;
 
 import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
 public class ReviewService {
-
-	private static final int DEFAULT_PAGE_SIZE = 10;
-	private static final int MAX_PAGE_SIZE = 100;
 
 	private final RestaurantRepository restaurantRepository;
 	private final GroupRepository groupRepository;
@@ -189,7 +187,7 @@ public class ReviewService {
 			throw new BusinessException(RestaurantErrorCode.RESTAURANT_NOT_FOUND);
 		}
 
-		int resolvedSize = resolveSize(request.size());
+		int resolvedSize = PaginationParamUtils.resolveSize(request.size());
 		CursorPageBuilder<ReviewCursor> pageBuilder = buildCursorPageBuilderOrThrow(request.cursor());
 
 		// 리뷰 목록
@@ -208,7 +206,7 @@ public class ReviewService {
 		groupRepository.findByIdAndDeletedAtIsNull(groupId)
 			.orElseThrow(() -> new BusinessException(GroupErrorCode.GROUP_NOT_FOUND));
 
-		int resolvedSize = resolveSize(request.size());
+		int resolvedSize = PaginationParamUtils.resolveSize(request.size());
 		CursorPageBuilder<ReviewCursor> pageBuilder = buildCursorPageBuilderOrThrow(request.cursor());
 
 		List<ReviewQueryDto> reviewList = reviewQueryRepository.findGroupReviews(
@@ -227,7 +225,7 @@ public class ReviewService {
 			throw new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND);
 		}
 
-		int resolvedSize = resolveSize(request.size());
+		int resolvedSize = PaginationParamUtils.resolveSize(request.size());
 		CursorPageBuilder<ReviewCursor> pageBuilder = buildCursorPageBuilderOrThrow(request.cursor());
 
 		List<ReviewQueryDto> reviewList = reviewQueryRepository.findSubgroupReviews(
@@ -245,7 +243,7 @@ public class ReviewService {
 		memberRepository.findByIdAndDeletedAtIsNull(memberId)
 			.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
-		int resolvedSize = resolveSize(request.size());
+		int resolvedSize = PaginationParamUtils.resolveSize(request.size());
 		CursorPageBuilder<ReviewCursor> pageBuilder = buildCursorPageBuilderOrThrow(request.cursor());
 
 		List<ReviewMemberQueryDto> reviewList = reviewQueryRepository.findMemberReviews(
@@ -258,16 +256,6 @@ public class ReviewService {
 		}
 
 		return buildReviewSummaryPage(pageBuilder, reviewList, resolvedSize);
-	}
-
-	private int resolveSize(Integer size) {
-		if (size == null) {
-			return DEFAULT_PAGE_SIZE;
-		}
-		if (size < 1 || size > MAX_PAGE_SIZE) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-		}
-		return size;
 	}
 
 	private CursorPageBuilder<ReviewCursor> buildCursorPageBuilderOrThrow(String rawCursor) {
