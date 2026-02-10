@@ -68,18 +68,8 @@ public class GroupFacade {
 	public GroupGetResponse getGroup(Long groupId) {
 		Group group = getActiveGroup(groupId);
 		String logoImageUrl = groupImageService.getPrimaryLogoImageUrl(group.getId());
-		return new GroupGetResponse(
-			new GroupGetResponse.GroupData(
-				group.getId(),
-				group.getName(),
-				logoImageUrl,
-				group.getAddress(),
-				group.getDetailAddress(),
-				group.getEmailDomain(),
-				groupMemberRepository.countByGroupIdAndDeletedAtIsNull(group.getId()),
-				group.getStatus().name(),
-				group.getCreatedAt(),
-				group.getUpdatedAt()));
+		long memberCount = groupMemberRepository.countByGroupIdAndDeletedAtIsNull(group.getId());
+		return GroupGetResponse.from(group, logoImageUrl, memberCount);
 	}
 
 	@Transactional
