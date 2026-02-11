@@ -66,9 +66,17 @@ public class NotificationPreferenceService {
 
 	@Transactional
 	public void registerPushTarget(Long memberId, PushNotificationTargetRegisterRequest request) {
-		pushTargetRepository.findByFcmToken(request.fcmToken())
-			.ifPresent(existing -> pushTargetRepository.delete(existing));
+		String deviceId = request.deviceId();
+		String fcmToken = request.fcmToken();
 
-		pushTargetRepository.save(PushNotificationTarget.create(memberId, request.fcmToken()));
+		pushTargetRepository.findByFcmToken(fcmToken)
+			.filter(existing -> !memberId.equals(existing.getMemberId())
+				|| (existing.getDeviceId() != null && !existing.getDeviceId().equals(deviceId)))
+			.ifPresent(pushTargetRepository::delete);
+
+		pushTargetRepository.findByMemberIdAndDeviceId(memberId, deviceId)
+			.ifPresentOrElse(
+				existing -> existing.changeFcmToken(fcmToken),
+				() -> pushTargetRepository.save(PushNotificationTarget.create(memberId, deviceId, fcmToken)));
 	}
 }
