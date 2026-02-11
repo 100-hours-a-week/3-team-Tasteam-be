@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -25,8 +26,14 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
+import com.tasteam.domain.favorite.dto.response.FavoritePageTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
+import com.tasteam.domain.favorite.dto.response.RestaurantFavoriteTargetItem;
+import com.tasteam.domain.favorite.dto.response.RestaurantFavoriteTargetsResponse;
 import com.tasteam.domain.favorite.service.FavoriteService;
+import com.tasteam.domain.favorite.type.FavoriteState;
+import com.tasteam.domain.favorite.type.FavoriteTargetType;
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberMeResponse;
@@ -278,6 +285,74 @@ class MemberControllerTest {
 			mockMvc.perform(delete("/api/v1/members/me"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true));
+		}
+	}
+
+	@Nested
+	@DisplayName("내 찜 추가/삭제")
+	class MyFavoriteCommands {
+
+		@Test
+		@DisplayName("내 찜 등록에 성공하면 생성 응답을 반환한다")
+		void 내_찜_등록_성공() throws Exception {
+			Instant now = Instant.now();
+			given(favoriteService.createMyFavorite(anyLong(), anyLong()))
+				.willReturn(new FavoriteCreateResponse(10L, 101L, now));
+
+			mockMvc.perform(post("/api/v1/members/me/favorites/restaurants")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"restaurantId":101}
+					"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.id").value(10))
+				.andExpect(jsonPath("$.data.restaurantId").value(101));
+		}
+
+		@Test
+		@DisplayName("내 찜 삭제에 성공하면 성공 응답을 반환한다")
+		void 내_찜_삭제_성공() throws Exception {
+			willDoNothing().given(favoriteService).deleteMyFavorite(anyLong(), anyLong());
+
+			mockMvc.perform(delete("/api/v1/members/me/favorites/restaurants/{restaurantId}", 101L))
+				.andExpect(status().isNoContent());
+		}
+	}
+
+	@Nested
+	@DisplayName("찜 타겟 조회")
+	class FavoriteTargets {
+
+		@Test
+		@DisplayName("찜 타겟 목록을 조회하면 내 찜과 소모임 타겟을 반환한다")
+		void 찜_타겟_조회_성공() throws Exception {
+			FavoritePageTargetsResponse response = new FavoritePageTargetsResponse(
+				new FavoritePageTargetsResponse.MyFavoriteTarget(3L),
+				List.of(new FavoritePageTargetsResponse.SubgroupFavoriteTarget(22L, "점심팟", 5L)));
+			given(favoriteService.getFavoriteTargets(anyLong())).willReturn(response);
+
+			mockMvc.perform(get("/api/v1/members/me/favorite-targets"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.myFavorite.favoriteCount").value(3))
+				.andExpect(jsonPath("$.data.subgroupFavorites[0].subgroupId").value(22));
+		}
+
+		@Test
+		@DisplayName("음식점 맥락 찜 타겟을 조회하면 상태 정보를 반환한다")
+		void 음식점_맥락_찜_타겟_조회_성공() throws Exception {
+			RestaurantFavoriteTargetsResponse response = new RestaurantFavoriteTargetsResponse(List.of(
+				new RestaurantFavoriteTargetItem(FavoriteTargetType.ME, null, "내 찜", FavoriteState.FAVORITED),
+				new RestaurantFavoriteTargetItem(FavoriteTargetType.SUBGROUP, 22L, "점심팟",
+					FavoriteState.NOT_FAVORITED)));
+			given(favoriteService.getFavoriteTargets(anyLong(), anyLong())).willReturn(response);
+
+			mockMvc.perform(get("/api/v1/members/me/restaurants/{restaurantId}/favorite-targets", 101L))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.targets[0].favoriteState").value("FAVORITED"))
+				.andExpect(jsonPath("$.data.targets[1].favoriteState").value("NOT_FAVORITED"));
 		}
 	}
 }

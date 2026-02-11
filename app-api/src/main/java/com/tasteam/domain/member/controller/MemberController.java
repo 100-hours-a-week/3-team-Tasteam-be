@@ -2,6 +2,7 @@ package com.tasteam.domain.member.controller;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -9,12 +10,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.favorite.dto.request.FavoriteCreateRequest;
+import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
+import com.tasteam.domain.favorite.dto.response.FavoritePageTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
+import com.tasteam.domain.favorite.dto.response.RestaurantFavoriteTargetsResponse;
+import com.tasteam.domain.favorite.dto.response.SubgroupFavoriteRestaurantItem;
 import com.tasteam.domain.favorite.service.FavoriteService;
 import com.tasteam.domain.member.controller.docs.MemberControllerDocs;
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
@@ -99,6 +106,84 @@ public class MemberController implements MemberControllerDocs {
 		@ModelAttribute
 		RestaurantReviewListRequest request) {
 		return SuccessResponse.success(favoriteService.getMyFavoriteRestaurants(memberId, request.cursor()));
+	}
+
+	@PreAuthorize("hasRole('USER')")
+	@PostMapping("/favorites/restaurants")
+	public SuccessResponse<FavoriteCreateResponse> createMyFavoriteRestaurant(
+		@CurrentUser
+		Long memberId,
+		@RequestBody @Validated
+		FavoriteCreateRequest request) {
+		return SuccessResponse.success(favoriteService.createMyFavorite(memberId, request.restaurantId()));
+	}
+
+	@PreAuthorize("hasRole('USER')")
+	@DeleteMapping("/favorites/restaurants/{restaurantId}")
+	public ResponseEntity<Void> deleteMyFavoriteRestaurant(
+		@CurrentUser
+		Long memberId,
+		@PathVariable @Positive
+		Long restaurantId) {
+		favoriteService.deleteMyFavorite(memberId, restaurantId);
+		return ResponseEntity.noContent().build();
+	}
+
+	@PreAuthorize("hasRole('USER')")
+	@GetMapping("/favorite-targets")
+	public SuccessResponse<FavoritePageTargetsResponse> getFavoriteTargets(
+		@CurrentUser
+		Long memberId) {
+		return SuccessResponse.success(favoriteService.getFavoriteTargets(memberId));
+	}
+
+	@PreAuthorize("hasRole('USER')")
+	@GetMapping("/restaurants/{restaurantId}/favorite-targets")
+	public SuccessResponse<RestaurantFavoriteTargetsResponse> getRestaurantFavoriteTargets(
+		@CurrentUser
+		Long memberId,
+		@PathVariable @Positive
+		Long restaurantId) {
+		return SuccessResponse.success(favoriteService.getFavoriteTargets(memberId, restaurantId));
+	}
+
+	@PreAuthorize("hasRole('USER')")
+	@GetMapping("/subgroups/{subgroupId}/favorites/restaurants")
+	public SuccessResponse<CursorPageResponse<SubgroupFavoriteRestaurantItem>> getSubgroupFavoriteRestaurants(
+		@CurrentUser
+		Long memberId,
+		@PathVariable @Positive
+		Long subgroupId,
+		@ModelAttribute
+		RestaurantReviewListRequest request) {
+		return SuccessResponse.success(favoriteService.getSubgroupFavoriteRestaurants(memberId, subgroupId,
+			request.cursor()));
+	}
+
+	@PreAuthorize("hasRole('USER')")
+	@PostMapping("/subgroups/{subgroupId}/favorites/restaurants")
+	public SuccessResponse<FavoriteCreateResponse> createSubgroupFavoriteRestaurant(
+		@CurrentUser
+		Long memberId,
+		@PathVariable @Positive
+		Long subgroupId,
+		@RequestBody @Validated
+		FavoriteCreateRequest request) {
+		return SuccessResponse.success(favoriteService.createSubgroupFavorite(memberId, subgroupId,
+			request.restaurantId()));
+	}
+
+	@PreAuthorize("hasRole('USER')")
+	@DeleteMapping("/subgroups/{subgroupId}/favorites/restaurants/{restaurantId}")
+	public ResponseEntity<Void> deleteSubgroupFavoriteRestaurant(
+		@CurrentUser
+		Long memberId,
+		@PathVariable @Positive
+		Long subgroupId,
+		@PathVariable @Positive
+		Long restaurantId) {
+		favoriteService.deleteSubgroupFavorite(memberId, subgroupId, restaurantId);
+		return ResponseEntity.noContent().build();
 	}
 
 	@PreAuthorize("hasRole('USER')")
