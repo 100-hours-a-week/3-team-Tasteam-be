@@ -24,6 +24,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Getter
@@ -35,6 +36,7 @@ import lombok.NoArgsConstructor;
 	@Index(name = "idx_promotion_display_channel_priority", columnList = "display_channel, display_priority")
 })
 @Check(constraints = "display_start_at <= display_end_at")
+@ToString(exclude = "promotion")
 public class PromotionDisplay extends BaseTimeEntity {
 
 	@Id
