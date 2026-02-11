@@ -29,6 +29,8 @@ import com.tasteam.domain.main.dto.response.MainPageResponse.Banners;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Section;
 import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryRow;
+import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
+import com.tasteam.domain.promotion.service.PromotionService;
 import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
 import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
 import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
@@ -51,6 +53,7 @@ public class MainService {
 	private final GroupMemberRepository groupMemberRepository;
 	private final GroupRepository groupRepository;
 	private final FileService fileService;
+	private final PromotionService promotionService;
 
 	@Transactional(readOnly = true)
 	public MainPageResponse getMain(Long memberId, MainPageRequest request) {
@@ -79,7 +82,9 @@ public class MainService {
 			new Section("AI_RECOMMEND", "AI 추천",
 				toSectionItems(aiRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant)));
 
-		return new MainPageResponse(new Banners(false, List.of()), sections);
+		SplashPromotionResponse splashPromotion = promotionService.getSplashPromotion().orElse(null);
+
+		return new MainPageResponse(new Banners(false, List.of()), sections, splashPromotion);
 	}
 
 	@Transactional(readOnly = true)
