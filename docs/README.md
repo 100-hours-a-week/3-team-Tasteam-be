@@ -23,6 +23,9 @@
   - `docs/spec/erd/`: ERD 파일 저장
   - `docs/spec/api/`: API 명세서 저장
   - `docs/spec/tech/`: 도메인별 테크 스펙 문서 저장
+    - `docs/spec/tech/main/README.md`: 메인/홈/AI 추천 화면 API의 설계 기준 문서입니다.
+    - `docs/spec/tech/event/README.md`: 이벤트/공지 조회 API와 데이터 모델 설계 문서입니다.
+    - `docs/spec/tech/bootstrap/README.md`: 로컬/개발 초기 데이터 부트스트랩 설계 문서입니다.
     - `docs/spec/tech/flyway/README.md`: Flyway 사용 방법과 운영/배포 절차를 정리한 문서입니다.
 
 ## 확장 포인트

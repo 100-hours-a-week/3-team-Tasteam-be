@@ -1052,4 +1052,113 @@
 | v1.0 | 2026.01.06 | devon(우승화) - Backend | 문서 초안 작성 |
 | v1.1 | 2026.01.06 | devon(우승화) - Backend | 리뷰 및 리뷰 키워드 N:M 관계로 수정 |
 | v1.2 | 2026.01.08 | Backend Team | 수정된 ERD에 맞춰서 동기화 |
+| v1.3 | 2026.02.11 | Backend Team | 이벤트 본체/디스플레이/미디어 분리 모델 추가 |
 
+
+---
+
+## notice
+
+- 테이블명 : notice
+- 테이블 설명 : 공지사항 게시 정보를 저장
+- 책임 : 공지사항 목록/상세 제공
+- 생명주기 : 생성 → 수정 → (소프트 삭제)
+- 삭제 정책 : 소프트 삭제 (deleted_at)
+- 주요 조회 패턴 : created_at desc 목록, id 기반 상세
+- 제약조건 : title 빈 문자열 불가
+- 인덱스 : INDEX(created_at DESC)
+
+### [테이블 정의]
+
+| 컬럼명 | 데이터 타입 | NULL 허용 | Key (PK/FK/-) | UNIQUE | 기본값 / IDENTITY | ENUM / 제약 / 비고 |
+| --- | --- | --- | --- | --- | --- | --- |
+| id | BIGINT | N | PK | Y | IDENTITY |  |
+| title | VARCHAR(200) | N | - | N |  | 빈 문자열 불가 |
+| content | TEXT | N | - | N |  |  |
+| created_at | TIMESTAMP | N | - | N | CURRENT_TIMESTAMP |  |
+| updated_at | TIMESTAMP | N | - | N | CURRENT_TIMESTAMP |  |
+| deleted_at | TIMESTAMP | Y | - | N |  |  |
+
+---
+
+## event
+
+- 테이블명 : event
+- 테이블 설명 : 이벤트 본체(실제 이벤트 기간/본문/발행 상태)를 저장
+- 책임 : 이벤트 자체 수명주기 관리 (디스플레이 제어는 event_display로 분리)
+- 생명주기 : 생성(DRAFT) → 발행(PUBLISHED) → 보관(ARCHIVED) → (소프트 삭제)
+- 삭제 정책 : 소프트 삭제 (deleted_at)
+- 주요 조회 패턴 : event_start_at/end_at 기반 상태 필터, id 기반 상세
+- 제약조건 : title 빈 문자열 불가, event_start_at <= event_end_at
+- 인덱스 : INDEX(publish_status, event_start_at, event_end_at)
+
+### [테이블 정의]
+
+| 컬럼명 | 데이터 타입 | NULL 허용 | Key (PK/FK/-) | UNIQUE | 기본값 / IDENTITY | ENUM / 제약 / 비고 |
+| --- | --- | --- | --- | --- | --- | --- |
+| id | BIGINT | N | PK | Y | IDENTITY |  |
+| title | VARCHAR(200) | N | - | N |  | 빈 문자열 불가 |
+| content | TEXT | N | - | N |  |  |
+| landing_url | VARCHAR(500) | Y | - | N |  | 이벤트 랜딩 URL |
+| event_start_at | TIMESTAMP | N | - | N |  | 실제 이벤트 시작 시각 |
+| event_end_at | TIMESTAMP | N | - | N |  | 실제 이벤트 종료 시각 |
+| publish_status | VARCHAR(20) | N | - | N |  | ENUM('DRAFT','PUBLISHED','ARCHIVED') |
+| created_at | TIMESTAMP | N | - | N | CURRENT_TIMESTAMP |  |
+| updated_at | TIMESTAMP | N | - | N | CURRENT_TIMESTAMP |  |
+| deleted_at | TIMESTAMP | Y | - | N |  |  |
+
+---
+
+## event_display
+
+- 테이블명 : event_display
+- 테이블 설명 : 이벤트 노출 제어(노출 여부/노출 기간/채널/우선순위)를 저장
+- 책임 : 이벤트 디스플레이 정책 관리
+- 생명주기 : 생성 → 수정 → 만료 → (소프트 삭제)
+- 삭제 정책 : 소프트 삭제 (deleted_at)
+- 주요 조회 패턴 : display_enabled + display 기간 조회, 채널/우선순위 정렬 조회
+- 제약조건 : display_start_at <= display_end_at, event_id 1:1 정책(활성 레코드 1건)
+- 인덱스 : INDEX(display_enabled, display_start_at, display_end_at), INDEX(display_channel, display_priority)
+
+### [테이블 정의]
+
+| 컬럼명 | 데이터 타입 | NULL 허용 | Key (PK/FK/-) | UNIQUE | 기본값 / IDENTITY | ENUM / 제약 / 비고 |
+| --- | --- | --- | --- | --- | --- | --- |
+| id | BIGINT | N | PK | Y | IDENTITY |  |
+| event_id | BIGINT | N | FK | Y |  | event.id 참조 (활성 정책 1건) |
+| display_enabled | BOOLEAN | N | - | N | true | 노출 토글 |
+| display_start_at | TIMESTAMP | N | - | N |  | 노출 시작 시각 |
+| display_end_at | TIMESTAMP | N | - | N |  | 노출 종료 시각 |
+| display_channel | VARCHAR(20) | N | - | N | 'BOTH' | ENUM('MAIN_BANNER','EVENT_LIST','BOTH') |
+| display_priority | INT | N | - | N | 9999 | 낮을수록 상위 노출 |
+| created_at | TIMESTAMP | N | - | N | CURRENT_TIMESTAMP |  |
+| updated_at | TIMESTAMP | N | - | N | CURRENT_TIMESTAMP |  |
+| deleted_at | TIMESTAMP | Y | - | N |  |  |
+
+---
+
+## event_asset
+
+- 테이블명 : event_asset
+- 테이블 설명 : 이벤트 노출/상세에 사용하는 이미지 리소스를 저장
+- 책임 : 배너 이미지와 상세 이미지를 타입 기반으로 관리
+- 생명주기 : 생성 → 수정 → 순서 변경 → (소프트 삭제)
+- 삭제 정책 : 소프트 삭제 (deleted_at)
+- 주요 조회 패턴 : event_id + asset_type 조회, sort_order 정렬 조회
+- 제약조건 : 동일 이벤트의 BANNER 대표 이미지는 1개만 허용(is_primary=true)
+- 인덱스 : INDEX(event_id, asset_type, sort_order)
+
+### [테이블 정의]
+
+| 컬럼명 | 데이터 타입 | NULL 허용 | Key (PK/FK/-) | UNIQUE | 기본값 / IDENTITY | ENUM / 제약 / 비고 |
+| --- | --- | --- | --- | --- | --- | --- |
+| id | BIGINT | N | PK | Y | IDENTITY |  |
+| event_id | BIGINT | N | FK | N |  | event.id 참조 |
+| asset_type | VARCHAR(30) | N | - | N |  | ENUM('BANNER','DETAIL') |
+| image_url | VARCHAR(500) | N | - | N |  | 이미지 URL |
+| alt_text | VARCHAR(200) | Y | - | N |  | 접근성 텍스트 |
+| sort_order | INT | N | - | N | 0 | 상세 이미지 순서 |
+| is_primary | BOOLEAN | N | - | N | false | 대표 이미지 여부 |
+| created_at | TIMESTAMP | N | - | N | CURRENT_TIMESTAMP |  |
+| updated_at | TIMESTAMP | N | - | N | CURRENT_TIMESTAMP |  |
+| deleted_at | TIMESTAMP | Y | - | N |  |  |
