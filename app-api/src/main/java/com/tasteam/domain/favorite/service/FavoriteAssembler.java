@@ -33,12 +33,16 @@ public class FavoriteAssembler {
 
 	public List<FavoriteRestaurantItem> toFavoriteRestaurantItems(
 		List<FavoriteRestaurantQueryDto> items,
-		Map<Long, String> thumbnails) {
+		Map<Long, String> thumbnails,
+		Map<Long, String> categories,
+		Map<Long, String> addresses) {
 		return items.stream()
 			.map(dto -> new FavoriteRestaurantItem(
 				dto.restaurantId(),
 				dto.restaurantName(),
 				thumbnails.get(dto.restaurantId()),
+				categories.getOrDefault(dto.restaurantId(), ""),
+				addresses.getOrDefault(dto.restaurantId(), ""),
 				dto.createdAt()))
 			.toList();
 	}
@@ -46,12 +50,16 @@ public class FavoriteAssembler {
 	public List<SubgroupFavoriteRestaurantItem> toSubgroupFavoriteRestaurantItems(
 		Long subgroupId,
 		List<SubgroupFavoriteRestaurantQueryDto> items,
-		Map<Long, String> thumbnails) {
+		Map<Long, String> thumbnails,
+		Map<Long, String> categories,
+		Map<Long, String> addresses) {
 		return items.stream()
 			.map(dto -> new SubgroupFavoriteRestaurantItem(
 				dto.restaurantId(),
 				dto.restaurantName(),
 				thumbnails.get(dto.restaurantId()),
+				categories.getOrDefault(dto.restaurantId(), ""),
+				addresses.getOrDefault(dto.restaurantId(), ""),
 				subgroupId,
 				dto.createdAt()))
 			.toList();
