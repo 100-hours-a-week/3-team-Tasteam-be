@@ -31,7 +31,10 @@ import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
+import com.tasteam.domain.restaurant.entity.Restaurant;
+import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
+import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 import com.tasteam.domain.subgroup.repository.SubgroupMemberRepository;
 import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.domain.subgroup.type.SubgroupStatus;
@@ -58,6 +61,7 @@ public class FavoriteService {
 	private final SubgroupMemberRepository subgroupMemberRepository;
 	private final SubgroupRepository subgroupRepository;
 	private final RestaurantRepository restaurantRepository;
+	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
 	private final FileService fileService;
 	private final CursorCodec cursorCodec;
 	private final FavoriteAssembler favoriteAssembler;
@@ -88,7 +92,9 @@ public class FavoriteService {
 
 		List<FavoriteRestaurantItem> items = favoriteAssembler.toFavoriteRestaurantItems(
 			page.items(),
-			findThumbnails(restaurantIds));
+			findThumbnails(restaurantIds),
+			findCategories(restaurantIds),
+			findAddresses(restaurantIds));
 
 		return new CursorPageResponse<>(
 			items,
@@ -127,7 +133,9 @@ public class FavoriteService {
 		List<SubgroupFavoriteRestaurantItem> items = favoriteAssembler.toSubgroupFavoriteRestaurantItems(
 			subgroupId,
 			page.items(),
-			findThumbnails(restaurantIds));
+			findThumbnails(restaurantIds),
+			findCategories(restaurantIds),
+			findAddresses(restaurantIds));
 
 		return new CursorPageResponse<>(
 			items,
@@ -281,6 +289,33 @@ public class FavoriteService {
 			.collect(java.util.stream.Collectors.toMap(
 				Map.Entry::getKey,
 				entry -> entry.getValue().getFirst().url()));
+	}
+
+	private Map<Long, String> findCategories(List<Long> restaurantIds) {
+		if (restaurantIds.isEmpty()) {
+			return Map.of();
+		}
+		List<RestaurantCategoryProjection> categories = restaurantFoodCategoryRepository
+			.findCategoriesByRestaurantIds(restaurantIds);
+		return categories.stream()
+			.collect(Collectors.groupingBy(
+				RestaurantCategoryProjection::getRestaurantId,
+				Collectors.mapping(
+					RestaurantCategoryProjection::getCategoryName,
+					Collectors.collectingAndThen(
+						Collectors.toList(),
+						list -> String.join(", ", list)))));
+	}
+
+	private Map<Long, String> findAddresses(List<Long> restaurantIds) {
+		if (restaurantIds.isEmpty()) {
+			return Map.of();
+		}
+		return restaurantRepository.findAllById(restaurantIds).stream()
+			.filter(r -> r.getDeletedAt() == null)
+			.collect(Collectors.toMap(
+				Restaurant::getId,
+				Restaurant::getFullAddress));
 	}
 
 	private void requireAuthenticated(Long memberId) {

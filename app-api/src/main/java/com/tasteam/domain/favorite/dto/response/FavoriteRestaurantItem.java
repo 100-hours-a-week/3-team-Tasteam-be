@@ -6,5 +6,7 @@ public record FavoriteRestaurantItem(
 	long restaurantId,
 	String name,
 	String thumbnailUrl,
+	String category,
+	String address,
 	Instant createdAt) {
 }

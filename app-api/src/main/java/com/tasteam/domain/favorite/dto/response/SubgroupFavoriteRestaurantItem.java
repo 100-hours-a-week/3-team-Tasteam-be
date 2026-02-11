@@ -6,6 +6,8 @@ public record SubgroupFavoriteRestaurantItem(
 	Long restaurantId,
 	String name,
 	String thumbnailUrl,
+	String category,
+	String address,
 	Long subgroupId,
 	Instant favoritedAt) {
 }
