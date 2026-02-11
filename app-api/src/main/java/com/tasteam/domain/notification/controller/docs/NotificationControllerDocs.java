@@ -22,6 +22,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Positive;
 
 @Tag(name = "Notification", description = "알림 API")
 public interface NotificationControllerDocs {
@@ -34,7 +37,7 @@ public interface NotificationControllerDocs {
 		Long memberId,
 		@Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
 		int page,
-		@Parameter(description = "페이지 크기 (최대 100)", example = "10")
+		@Parameter(description = "페이지 크기 (최대 100)", example = "10") @Max(100)
 		int size);
 
 	@Operation(summary = "개별 알림 읽음 처리", description = "특정 알림을 읽음 처리합니다. 이미 읽은 알림도 204를 반환합니다.")
@@ -43,7 +46,7 @@ public interface NotificationControllerDocs {
 	ResponseEntity<Void> markAsRead(
 		@CurrentUser
 		Long memberId,
-		@Parameter(description = "알림 ID", example = "1")
+		@Parameter(description = "알림 ID", example = "1") @Positive
 		Long id);
 
 	@Operation(summary = "전체 알림 읽음 처리", description = "현재 로그인 사용자의 모든 미읽음 알림을 읽음 처리합니다.")
@@ -71,6 +74,7 @@ public interface NotificationControllerDocs {
 	ResponseEntity<Void> updatePreferences(
 		@CurrentUser
 		Long memberId,
+		@Valid
 		NotificationPreferenceUpdateRequest request);
 
 	@Operation(summary = "FCM 토큰 등록", description = "푸시 알림 수신을 위한 FCM 토큰을 등록합니다. 이미 등록된 토큰은 새 사용자로 재등록됩니다.")
@@ -80,5 +84,6 @@ public interface NotificationControllerDocs {
 	ResponseEntity<Void> registerPushTarget(
 		@CurrentUser
 		Long memberId,
+		@Valid
 		PushNotificationTargetRegisterRequest request);
 }

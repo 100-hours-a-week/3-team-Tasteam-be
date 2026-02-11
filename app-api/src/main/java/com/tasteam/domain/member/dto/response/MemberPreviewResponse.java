@@ -4,18 +4,15 @@ import java.util.Collections;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.tasteam.global.dto.api.PaginationResponse;
+import com.tasteam.global.dto.pagination.OffsetPagination;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record MemberPreviewResponse<T>(
 	List<T> data,
-	PaginationResponse page) {
+	OffsetPagination pagination) {
 	public static <T> MemberPreviewResponse<T> empty() {
 		return new MemberPreviewResponse<>(
 			Collections.emptyList(),
-			PaginationResponse.builder()
-				.size(0)
-				.hasNext(false)
-				.build());
+			new OffsetPagination(0, 0, 0, 0));
 	}
 }
