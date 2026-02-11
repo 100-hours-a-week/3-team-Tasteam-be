@@ -84,6 +84,10 @@ public final class ApiEndpoints {
 	public static final String SUBGROUPS_DETAIL = SUBGROUPS + DETAIL;
 	public static final String SUBGROUPS_REVIEWS = SUBGROUPS_DETAIL + "/reviews";
 
+	// Chat
+	public static final String CHAT_ROOMS = API_V1 + "/chat-rooms";
+	public static final String CHAT_ROOMS_ALL = CHAT_ROOMS + ALL;
+
 	// Search
 	public static final String SEARCH = API_V1 + "/search";
 
