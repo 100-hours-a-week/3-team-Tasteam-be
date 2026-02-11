@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로모션 관리 - Tasteam Admin</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Tasteam Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/admin/pages/dashboard.html">대시보드</a></li>
+                <li><a href="/admin/pages/restaurants.html">음식점 관리</a></li>
+                <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
+                <li><a href="/admin/pages/promotions.html" class="active">프로모션 관리</a></li>
+                <li><a href="/admin/pages/jobs.html">배치 작업</a></li>
+                <li><a href="#" id="logoutBtn">로그아웃</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <div class="content-header">
+                <h1>프로모션 관리</h1>
+                <button class="btn btn-primary" onclick="location.href='/admin/pages/promotion-create.html'">프로모션 등록</button>
+            </div>
+
+            <div class="filter-bar">
+                <select id="filterPromotionStatus">
+                    <option value="">전체 프로모션 상태</option>
+                    <option value="UPCOMING">예정</option>
+                    <option value="ONGOING">진행중</option>
+                    <option value="ENDED">종료</option>
+                </select>
+                <select id="filterPublishStatus">
+                    <option value="">전체 발행 상태</option>
+                    <option value="DRAFT">초안</option>
+                    <option value="PUBLISHED">발행</option>
+                    <option value="ARCHIVED">보관</option>
+                </select>
+                <select id="filterDisplayStatus">
+                    <option value="">전체 노출 상태</option>
+                    <option value="HIDDEN">숨김</option>
+                    <option value="SCHEDULED">예약</option>
+                    <option value="DISPLAYING">노출중</option>
+                    <option value="DISPLAY_ENDED">노출종료</option>
+                </select>
+                <button class="btn btn-secondary" onclick="applyFilters()">필터 적용</button>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>제목</th>
+                            <th>프로모션 상태</th>
+                            <th>노출 상태</th>
+                            <th>발행 상태</th>
+                            <th>시작일</th>
+                            <th>종료일</th>
+                            <th>채널</th>
+                            <th>작업</th>
+                        </tr>
+                    </thead>
+                    <tbody id="promotionList">
+                        <tr>
+                            <td colspan="9" class="loading">로딩 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="pagination"></div>
+        </main>
+    </div>
+    <script src="/admin/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/promotions.js"></script>
+</body>
+</html>

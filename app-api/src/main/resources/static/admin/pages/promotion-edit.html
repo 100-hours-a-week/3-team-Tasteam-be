@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로모션 편집 - Tasteam Admin</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Tasteam Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/admin/pages/dashboard.html">대시보드</a></li>
+                <li><a href="/admin/pages/restaurants.html">음식점 관리</a></li>
+                <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
+                <li><a href="/admin/pages/promotions.html" class="active">프로모션 관리</a></li>
+                <li><a href="/admin/pages/jobs.html">배치 작업</a></li>
+                <li><a href="#" id="logoutBtn">로그아웃</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <div class="content-header">
+                <h1>프로모션 편집</h1>
+                <button class="btn btn-secondary" onclick="location.href='/admin/pages/promotions.html'">목록으로</button>
+            </div>
+
+            <form id="promotionForm" class="form-container">
+                <section class="form-section">
+                    <h2>기본 정보</h2>
+                    <div class="form-group">
+                        <label for="title">제목 *</label>
+                        <input type="text" id="title" name="title" required maxlength="200">
+                    </div>
+                    <div class="form-group">
+                        <label for="content">내용 *</label>
+                        <textarea id="content" name="content" required rows="5"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="landingUrl">랜딩 URL</label>
+                        <input type="url" id="landingUrl" name="landingUrl" maxlength="500">
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h2>프로모션 기간</h2>
+                    <div class="form-group">
+                        <label for="promotionStartAt">시작일시 *</label>
+                        <input type="datetime-local" id="promotionStartAt" name="promotionStartAt" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="promotionEndAt">종료일시 *</label>
+                        <input type="datetime-local" id="promotionEndAt" name="promotionEndAt" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="publishStatus">발행 상태 *</label>
+                        <select id="publishStatus" name="publishStatus" required>
+                            <option value="DRAFT">초안</option>
+                            <option value="PUBLISHED">발행</option>
+                            <option value="ARCHIVED">보관</option>
+                        </select>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h2>노출 설정</h2>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="displayEnabled" name="displayEnabled" checked>
+                            노출 활성화
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="displayStartAt">노출 시작일시 *</label>
+                        <input type="datetime-local" id="displayStartAt" name="displayStartAt" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="displayEndAt">노출 종료일시 *</label>
+                        <input type="datetime-local" id="displayEndAt" name="displayEndAt" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="displayChannel">노출 채널 *</label>
+                        <select id="displayChannel" name="displayChannel" required>
+                            <option value="MAIN_BANNER">메인 배너</option>
+                            <option value="PROMOTION_LIST">프로모션 목록</option>
+                            <option value="BOTH">둘 다</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="displayPriority">우선순위 *</label>
+                        <input type="number" id="displayPriority" name="displayPriority" required min="1" value="1">
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h2>배너 이미지</h2>
+                    <div class="form-group">
+                        <label>현재 배너 이미지</label>
+                        <div id="currentBannerPreview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="bannerImageFile">새 이미지 업로드 (변경 시)</label>
+                        <input type="file" id="bannerImageFile" accept="image/*" onchange="handleBannerImageUpload(event)">
+                    </div>
+                    <div class="form-group">
+                        <label for="bannerImageUrl">또는 URL 직접 입력</label>
+                        <input type="url" id="bannerImageUrl" name="bannerImageUrl" maxlength="500">
+                    </div>
+                    <div class="form-group">
+                        <label for="bannerImageAltText">대체 텍스트</label>
+                        <input type="text" id="bannerImageAltText" name="bannerImageAltText" maxlength="200">
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h2>상세 이미지</h2>
+                    <div class="form-group">
+                        <label>현재 상세 이미지</label>
+                        <div id="currentDetailImages"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="detailImagesFile">새 이미지 추가 (여러 개 선택 가능)</label>
+                        <input type="file" id="detailImagesFile" accept="image/*" multiple onchange="handleDetailImagesUpload(event)">
+                    </div>
+                    <div id="detailImagesList" class="detail-images-list"></div>
+                </section>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">수정</button>
+                    <button type="button" class="btn btn-secondary" onclick="location.href='/admin/pages/promotions.html'">취소</button>
+                </div>
+            </form>
+        </main>
+    </div>
+    <script src="/admin/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/promotion-edit.js"></script>
+</body>
+</html>

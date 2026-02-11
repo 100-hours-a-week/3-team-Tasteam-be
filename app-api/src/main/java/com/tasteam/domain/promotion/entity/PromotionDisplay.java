@@ -99,4 +99,28 @@ public class PromotionDisplay extends BaseTimeEntity {
 	public void delete(Instant deletedAt) {
 		this.deletedAt = deletedAt;
 	}
+
+	public void changeDisplaySettings(
+		Boolean displayEnabled,
+		Instant displayStartAt,
+		Instant displayEndAt,
+		DisplayChannel displayChannel,
+		Integer displayPriority) {
+
+		if (displayEnabled != null) {
+			this.displayEnabled = displayEnabled;
+		}
+		if (displayStartAt != null) {
+			this.displayStartAt = displayStartAt;
+		}
+		if (displayEndAt != null) {
+			this.displayEndAt = displayEndAt;
+		}
+		if (displayChannel != null) {
+			this.displayChannel = displayChannel;
+		}
+		if (displayPriority != null) {
+			this.displayPriority = displayPriority;
+		}
+	}
 }

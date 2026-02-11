@@ -104,6 +104,11 @@ tasteam:
         enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:false}
   webhook:
     enabled: false
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    project-id: ${FIREBASE_PROJECT_ID:}
+    service-account-base64: ${FIREBASE_SERVICE_ACCOUNT_BASE64:}
+    service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
 
 
 management:
