@@ -43,6 +43,7 @@ public final class ApiEndpointSecurityPolicy {
 
 			// 메인
 			permit(GET, ApiEndpoints.MAIN),
+			permit(GET, ApiEndpoints.MAIN_ALL),
 
 			// 프로모션 조회
 			permit(GET, ApiEndpoints.PROMOTIONS),

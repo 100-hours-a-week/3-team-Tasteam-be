@@ -17,6 +17,9 @@ public record PromotionSummaryResponse(
 	@Schema(description = "이벤트 요약", example = "첫 리뷰 작성 시 특별 쿠폰을 드립니다")
 	String summary,
 
+	@Schema(description = "랜딩 URL", example = "https://example.com/event/1")
+	String landingUrl,
+
 	@Schema(description = "배너 이미지 URL", example = "https://example.com/banner.jpg")
 	String bannerImageUrl,
 
@@ -42,6 +45,7 @@ public record PromotionSummaryResponse(
 			dto.promotionId(),
 			dto.title(),
 			dto.content(),
+			dto.landingUrl(),
 			dto.bannerImageUrl(),
 			dto.promotionStartAt(),
 			dto.promotionEndAt(),

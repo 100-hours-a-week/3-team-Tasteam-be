@@ -82,9 +82,29 @@ public class MainService {
 			new Section("AI_RECOMMEND", "AI 추천",
 				toSectionItems(aiRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant)));
 
+		Banners banners = fetchBanners();
 		SplashPromotionResponse splashPromotion = promotionService.getSplashPromotion().orElse(null);
 
-		return new MainPageResponse(new Banners(false, List.of()), sections, splashPromotion);
+		return new MainPageResponse(banners, sections, splashPromotion);
+	}
+
+	private Banners fetchBanners() {
+		var bannerPromotions = promotionService.getBannerPromotions(
+			org.springframework.data.domain.PageRequest.of(0, 10));
+
+		if (bannerPromotions.items().isEmpty()) {
+			return new Banners(false, List.of());
+		}
+
+		List<MainPageResponse.BannerItem> bannerItems = bannerPromotions.items().stream()
+			.map(promotion -> new MainPageResponse.BannerItem(
+				promotion.id(),
+				promotion.bannerImageUrl(),
+				promotion.landingUrl(),
+				null))
+			.toList();
+
+		return new Banners(true, bannerItems);
 	}
 
 	@Transactional(readOnly = true)

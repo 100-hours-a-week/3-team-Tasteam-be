@@ -17,4 +17,6 @@ public interface PromotionQueryRepository {
 	Optional<PromotionDetailDto> findDisplayingPromotionById(Long promotionId);
 
 	Optional<SplashPromotionDto> findSplashPromotion();
+
+	Page<PromotionSummaryDto> findBannerPromotions(Pageable pageable);
 }

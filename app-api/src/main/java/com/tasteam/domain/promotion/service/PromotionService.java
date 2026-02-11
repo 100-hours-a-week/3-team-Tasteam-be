@@ -56,4 +56,19 @@ public class PromotionService {
 			.findSplashPromotion()
 			.map(SplashPromotionResponse::fromDto);
 	}
+
+	@Transactional(readOnly = true)
+	public OffsetPageResponse<PromotionSummaryResponse> getBannerPromotions(Pageable pageable) {
+		Page<PromotionSummaryResponse> result = promotionRepository
+			.findBannerPromotions(pageable)
+			.map(PromotionSummaryResponse::fromDto);
+
+		return new OffsetPageResponse<>(
+			result.getContent(),
+			new com.tasteam.global.dto.pagination.OffsetPagination(
+				result.getNumber(),
+				result.getSize(),
+				result.getTotalPages(),
+				(int)result.getTotalElements()));
+	}
 }

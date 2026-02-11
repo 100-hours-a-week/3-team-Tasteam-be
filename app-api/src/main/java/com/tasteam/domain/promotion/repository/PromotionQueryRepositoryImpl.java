@@ -191,4 +191,52 @@ public class PromotionQueryRepositoryImpl extends QueryDslSupport implements Pro
 	private BooleanExpression splashChannelCondition() {
 		return promotionDisplay.displayChannel.in(DisplayChannel.MAIN_BANNER, DisplayChannel.BOTH);
 	}
+
+	private BooleanExpression bannerChannelCondition() {
+		return promotionDisplay.displayChannel.in(DisplayChannel.MAIN_BANNER, DisplayChannel.BOTH);
+	}
+
+	@Override
+	public Page<PromotionSummaryDto> findBannerPromotions(Pageable pageable) {
+		Instant now = Instant.now();
+
+		JPAQuery<PromotionSummaryDto> contentQuery = getQueryFactory()
+			.select(new QPromotionSummaryDto(
+				promotion.id,
+				promotion.title,
+				promotion.content,
+				promotion.landingUrl,
+				promotion.promotionStartAt,
+				promotion.promotionEndAt,
+				promotion.publishStatus,
+				promotionDisplay.displayEnabled,
+				promotionDisplay.displayStartAt,
+				promotionDisplay.displayEndAt,
+				promotionDisplay.displayChannel,
+				promotionAsset.imageUrl))
+			.from(promotion)
+			.join(promotionDisplay).on(promotionDisplay.promotion.eq(promotion))
+			.leftJoin(promotionAsset).on(
+				promotionAsset.promotion.eq(promotion)
+					.and(promotionAsset.assetType.eq(AssetType.BANNER))
+					.and(promotionAsset.isPrimary.isTrue())
+					.and(promotionAsset.deletedAt.isNull()))
+			.where(
+				displayConditions(now),
+				bannerChannelCondition())
+			.orderBy(
+				promotionDisplay.displayPriority.asc(),
+				promotionDisplay.displayStartAt.desc(),
+				promotion.id.desc());
+
+		JPAQuery<Long> countQuery = getQueryFactory()
+			.select(promotion.count())
+			.from(promotion)
+			.join(promotionDisplay).on(promotionDisplay.promotion.eq(promotion))
+			.where(
+				displayConditions(now),
+				bannerChannelCondition());
+
+		return applyPagination(pageable, contentQuery, countQuery);
+	}
 }

@@ -39,6 +39,7 @@ class PromotionControllerTest {
 			1L,
 			"신년 특가",
 			"새해 맞이 할인",
+			"https://example.com/promotion",
 			"https://example.com/banner.jpg",
 			Instant.parse("2026-01-01T00:00:00Z"),
 			Instant.parse("2026-01-31T23:59:59Z"),

@@ -64,6 +64,7 @@ public final class ApiEndpoints {
 
 	// Main
 	public static final String MAIN = API_V1 + "/main";
+	public static final String MAIN_ALL = MAIN + ALL;
 
 	// Promotion
 	public static final String PROMOTIONS = API_V1 + "/promotions";
