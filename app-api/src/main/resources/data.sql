@@ -466,6 +466,35 @@ INSERT INTO refresh_token (
   (8209, 1104, '3333333333333333333333333333333333333333333333333333333333333333', '4444444444444444444444444444444444444444444444444444444444444444', now() + interval '30 days', NULL, NULL, now()),
   (8210, 1105, '5555555555555555555555555555555555555555555555555555555555555555', '6666666666666666666666666666666666666666666666666666666666666666', now() + interval '30 days', NULL, NULL, now());
 
+-- Announcements (sample)
+INSERT INTO announcement (
+  id, title, content, deleted_at, created_at, updated_at
+) VALUES
+  (20001, '서비스 점검 안내', '2월 셋째 주 새벽 2시~3시 사이에 점검이 예정되어 있습니다. 이용에 참고해주세요.', NULL, now(), now()),
+  (20002, '신규 프로모션 런칭', '테이스팀 앱에서 진행되는 신규 프로모션을 확인해보세요.', NULL, now(), now());
+
+-- Promotions (sample)
+INSERT INTO promotion (
+  id, title, content, landing_url, promotion_start_at, promotion_end_at, publish_status, deleted_at, created_at, updated_at
+) VALUES
+  (12001, '봄 한정 스페셜 쿠폰', '메뉴 2개 이상 주문 시 15% 할인 쿠폰을 드립니다.', 'https://tasteam.kr/spring-special', now() - interval '1 day', now() + interval '30 days', 'PUBLISHED', NULL, now(), now()),
+  (12002, '신규 가입 웰컴 이벤트', '신규 가입 후 첫 리뷰 작성 시 아메리카노 쿠폰을 드립니다.', 'https://tasteam.kr/welcome', now() + interval '1 day', now() + interval '45 days', 'PUBLISHED', NULL, now(), now());
+
+INSERT INTO promotion_display (
+  id, promotion_id, display_enabled, display_start_at, display_end_at, display_channel, display_priority, deleted_at, created_at, updated_at
+) VALUES
+  (13001, 12001, true, now() - interval '1 day', now() + interval '30 days', 'BOTH', 1, NULL, now(), now()),
+  (13002, 12002, true, now(), now() + interval '45 days', 'PROMOTION_LIST', 2, NULL, now(), now());
+
+INSERT INTO promotion_asset (
+  id, promotion_id, asset_type, image_url, alt_text, sort_order, is_primary, deleted_at, created_at, updated_at
+) VALUES
+  (14001, 12001, 'BANNER', 'https://picsum.photos/seed/promo12001-banner/1600/800', '봄 한정 스페셜 배너', 0, true, NULL, now(), now()),
+  (14002, 12001, 'DETAIL', 'https://picsum.photos/seed/promo12001-detail1/1200/800', '봄 한정 메뉴 이미지 1', 1, false, NULL, now(), now()),
+  (14003, 12001, 'DETAIL', 'https://picsum.photos/seed/promo12001-detail2/1200/800', '봄 한정 메뉴 이미지 2', 2, false, NULL, now(), now()),
+  (14004, 12002, 'BANNER', 'https://picsum.photos/seed/promo12002-banner/1600/800', '웰컴 이벤트 배너', 0, true, NULL, now(), now()),
+  (14005, 12002, 'DETAIL', 'https://picsum.photos/seed/promo12002-detail1/1200/800', '웰컴 이벤트 안내 1', 1, false, NULL, now(), now());
+
 -- AI analysis (sample for 10 restaurants)
 INSERT INTO ai_restaurant_comparison (
   id, restaurant_id, category_lift, comparison_display,
