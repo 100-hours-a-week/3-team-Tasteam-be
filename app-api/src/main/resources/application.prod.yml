@@ -100,6 +100,8 @@ tasteam:
         enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:false}
       service-performance:
         enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:false}
+      ai-analysis-performance:
+        enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:false}
   webhook:
     enabled: false
 
