@@ -15,4 +15,6 @@ public interface PromotionAssetRepository extends JpaRepository<PromotionAsset, 
 
 	Optional<PromotionAsset> findByPromotionIdAndAssetTypeAndIsPrimaryTrueAndDeletedAtIsNull(Long promotionId,
 		AssetType assetType);
+
+	List<PromotionAsset> findByPromotionIdAndDeletedAtIsNull(Long promotionId);
 }

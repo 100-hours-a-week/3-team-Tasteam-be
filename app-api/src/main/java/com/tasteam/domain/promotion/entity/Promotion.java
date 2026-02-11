@@ -79,4 +79,29 @@ public class Promotion extends BaseTimeEntity {
 	public void delete(Instant deletedAt) {
 		this.deletedAt = deletedAt;
 	}
+
+	public void changeBasicInfo(String title, String content, String landingUrl) {
+		if (title != null) {
+			this.title = title;
+		}
+		if (content != null) {
+			this.content = content;
+		}
+		if (landingUrl != null) {
+			this.landingUrl = landingUrl;
+		}
+	}
+
+	public void changeSchedule(Instant promotionStartAt, Instant promotionEndAt) {
+		if (promotionStartAt != null) {
+			this.promotionStartAt = promotionStartAt;
+		}
+		if (promotionEndAt != null) {
+			this.promotionEndAt = promotionEndAt;
+		}
+	}
+
+	public void changePublishStatus(PublishStatus publishStatus) {
+		this.publishStatus = publishStatus;
+	}
 }
