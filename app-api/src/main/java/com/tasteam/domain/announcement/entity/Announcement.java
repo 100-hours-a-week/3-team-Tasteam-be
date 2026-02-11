@@ -44,6 +44,15 @@ public class Announcement extends BaseTimeEntity {
 			.build();
 	}
 
+	public void update(String title, String content) {
+		if (title != null) {
+			this.title = title;
+		}
+		if (content != null) {
+			this.content = content;
+		}
+	}
+
 	public void delete(Instant deletedAt) {
 		this.deletedAt = deletedAt;
 	}
