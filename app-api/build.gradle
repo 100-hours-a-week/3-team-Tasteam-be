@@ -51,13 +51,13 @@ dependencies {
      * Cache
      * ================================================== */
     implementation "org.springframework.boot:spring-boot-starter-cache:3.5.9"
-    // implementation "org.springframework.boot:spring-boot-starter-data-redis:3.5.9"
+    implementation "org.springframework.boot:spring-boot-starter-data-redis:3.5.9"
     implementation "com.github.ben-manes.caffeine:caffeine:3.2.3"
 
     /* ==================================================
      * WebSocket / Messaging
      * ================================================== */
-    // implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation "org.springframework.boot:spring-boot-starter-websocket"
 
     /* ==================================================
      * Push Notification

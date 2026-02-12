@@ -60,3 +60,4 @@ subprojects {
 }
 
 apply from: "${rootDir}/gradle/flyway/flywayCreate.gradle"
+

@@ -21,6 +21,10 @@ import com.tasteam.domain.chat.repository.ChatMessageRepository;
 import com.tasteam.domain.chat.repository.ChatRoomMemberRepository;
 import com.tasteam.domain.chat.repository.ChatRoomRepository;
 import com.tasteam.domain.chat.type.ChatMessageType;
+import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.service.FileService;
+import com.tasteam.domain.member.entity.Member;
+import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.ChatErrorCode;
 import com.tasteam.global.exception.code.CommonErrorCode;
@@ -40,6 +44,8 @@ public class ChatService {
 	private final ChatRoomMemberRepository chatRoomMemberRepository;
 	private final ChatMessageRepository chatMessageRepository;
 	private final CursorCodec cursorCodec;
+	private final MemberRepository memberRepository;
+	private final FileService fileService;
 
 	@Transactional(readOnly = true)
 	public ChatMessageListResponse getMessages(Long chatRoomId, Long memberId, String cursor, Integer size) {
@@ -98,12 +104,19 @@ public class ChatService {
 			.deletedAt(null)
 			.build());
 
-		return new ChatMessageSendResponse(
+		Member member = memberRepository.findById(memberId)
+			.orElseThrow();
+
+		ChatMessageItemResponse item = new ChatMessageItemResponse(
 			message.getId(),
-			message.getType(),
+			message.getMemberId(),
+			member.getNickname(),
+			fileService.getPrimaryDomainImageUrl(DomainType.MEMBER, memberId),
 			message.getContent(),
-			null,
+			message.getType(),
 			message.getCreatedAt());
+
+		return new ChatMessageSendResponse(item);
 	}
 
 	@Transactional
