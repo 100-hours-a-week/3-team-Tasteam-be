@@ -39,6 +39,13 @@ spring:
     password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
     baseline-on-migrate: true
 
+  flyway:
+    enabled: true
+    url: ${FLYWAY_URL:${DB_URL}}
+    user: ${FLYWAY_USER:${DB_USERNAME}}
+    password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
+    baseline-on-migrate: true
+
   security:
     cors:
       allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
