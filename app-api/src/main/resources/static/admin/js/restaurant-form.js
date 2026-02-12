@@ -191,14 +191,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewContainer = document.getElementById('restaurantImagePreview');
     let selectedFiles = [];
 
-    imageInput.addEventListener('change', () => {
-        selectedFiles = Array.from(imageInput.files || []).slice(0, 5);
+    imageInput.addEventListener('change', async () => {
+        const files = Array.from(imageInput.files || []).slice(0, 5);
         if (imageInput.files.length > 5) {
             alert('이미지는 최대 5장까지 업로드할 수 있습니다.');
             imageInput.value = '';
             selectedFiles = [];
+            return;
         }
-        renderImagePreviews(selectedFiles, previewContainer);
+
+        if (files.length === 0) {
+            selectedFiles = [];
+            return;
+        }
+
+        try {
+            const { optimized, errors } = await ImageOptimizer.optimizeImages(files, 'restaurant');
+
+            if (errors.length > 0) {
+                console.error('이미지 최적화 실패:', errors);
+                alert(`일부 이미지 최적화 실패:\n${errors.map(e => `- ${e.file}: ${e.error}`).join('\n')}`);
+            }
+
+            selectedFiles = optimized;
+            renderImagePreviews(selectedFiles, previewContainer);
+        } catch (error) {
+            console.error('이미지 최적화 오류:', error);
+            alert('이미지 최적화 중 오류가 발생했습니다: ' + error.message);
+            selectedFiles = [];
+        }
+    });
+
+    const addCategoryBtn = document.getElementById('addFoodCategoryBtn');
+    const newCategoryInput = document.getElementById('newFoodCategoryName');
+
+    addCategoryBtn.addEventListener('click', async () => {
+        const name = newCategoryInput.value.trim();
+        if (!name) {
+            alert('카테고리명을 입력해주세요.');
+            return;
+        }
+
+        try {
+            const selectedIds = getSelectedCategoryIds();
+            await createFoodCategory({ name });
+            newCategoryInput.value = '';
+            await loadFoodCategories(selectedIds);
+        } catch (error) {
+            alert('카테고리 추가에 실패했습니다: ' + error.message);
+        }
     });
 
     const addCategoryBtn = document.getElementById('addFoodCategoryBtn');

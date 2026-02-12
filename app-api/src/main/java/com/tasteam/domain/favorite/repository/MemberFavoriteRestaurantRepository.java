@@ -12,4 +12,8 @@ public interface MemberFavoriteRestaurantRepository extends JpaRepository<Member
 
 	Optional<MemberFavoriteRestaurant> findByMemberIdAndRestaurantIdAndDeletedAtIsNull(Long memberId,
 		Long restaurantId);
+
+	long countByMemberIdAndDeletedAtIsNull(Long memberId);
+
+	long countByMemberIdAndRestaurantIdAndDeletedAtIsNull(Long memberId, Long restaurantId);
 }

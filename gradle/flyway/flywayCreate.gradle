@@ -1,0 +1,21 @@
+tasks.register('flywayCreate') {
+    doLast {
+        def description = project.findProperty('desc')
+        if (!description) {
+            throw new GradleException("Missing -Pdesc=... (e.g. -Pdesc=add_restaurant_table)")
+        }
+
+        def timestamp = new Date().format("yyyyMMddHHmmss")
+        def migrationDir = file("${rootDir}/app-api/src/main/resources/db/migration")
+        migrationDir.mkdirs()
+
+        def file = new File(
+                migrationDir,
+                "V${timestamp}__${description}.sql"
+        )
+
+        file.text = "-- Migration: ${description}\n"
+
+        println "✅ Created migration: ${file}"
+    }
+}

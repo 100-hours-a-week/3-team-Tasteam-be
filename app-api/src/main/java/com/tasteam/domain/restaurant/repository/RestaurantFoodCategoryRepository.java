@@ -12,6 +12,8 @@ public interface RestaurantFoodCategoryRepository extends JpaRepository<Restaura
 
 	List<RestaurantFoodCategory> findByRestaurantId(Long restaurantId);
 
+	long countByRestaurantId(Long restaurantId);
+
 	@Query("""
 			select
 				rfc.restaurant.id as restaurantId,
@@ -22,4 +24,6 @@ public interface RestaurantFoodCategoryRepository extends JpaRepository<Restaura
 		""")
 	List<RestaurantCategoryProjection> findCategoriesByRestaurantIds(
 		List<Long> restaurantIds);
+
+	void deleteByRestaurantId(Long restaurantId);
 }

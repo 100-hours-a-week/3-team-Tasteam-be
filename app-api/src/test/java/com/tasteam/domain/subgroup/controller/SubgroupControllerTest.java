@@ -25,7 +25,7 @@ import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.dto.SubgroupDetailResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupMemberListItem;
-import com.tasteam.domain.subgroup.service.SubgroupService;
+import com.tasteam.domain.subgroup.service.SubgroupFacade;
 
 @ControllerWebMvcTest(SubgroupController.class)
 class SubgroupControllerTest {
@@ -37,7 +37,7 @@ class SubgroupControllerTest {
 	private ReviewService reviewService;
 
 	@MockitoBean
-	private SubgroupService subgroupService;
+	private SubgroupFacade subgroupFacade;
 
 	@Nested
 	@DisplayName("서브그룹 리뷰 목록 조회")
@@ -48,11 +48,11 @@ class SubgroupControllerTest {
 		void 서브그룹_리뷰_목록_조회_성공() throws Exception {
 			// given
 			CursorPageResponse<ReviewResponse> response = new CursorPageResponse<>(
-				List.of(new ReviewResponse(1L,
+				List.of(new ReviewResponse(1L, 2L, 3L, "테스트그룹", "테스트하위그룹",
 					new ReviewResponse.AuthorResponse("테스트유저"),
 					"맛있어요", true, List.of("친절"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
-					Instant.now())),
+					Instant.now(), 10L, "테스트음식점", null, null, null, "서울시 강남구 테스트로 123")),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(reviewService.getSubgroupReviews(eq(1L), any())).willReturn(response);
@@ -81,7 +81,7 @@ class SubgroupControllerTest {
 					"https://example.com/profile.jpg", Instant.now())),
 				new CursorPageResponse.Pagination(null, false, 20));
 
-			given(subgroupService.getSubgroupMembers(eq(1L), any(), any())).willReturn(response);
+			given(subgroupFacade.getSubgroupMembers(eq(1L), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/api/v1/subgroups/{subgroupId}/members", 1L)
@@ -107,7 +107,7 @@ class SubgroupControllerTest {
 					1L, 10L, "서브그룹1", "설명", 5,
 					"https://example.com/img.jpg", Instant.now()));
 
-			given(subgroupService.getSubgroup(eq(10L), any())).willReturn(response);
+			given(subgroupFacade.getSubgroup(eq(10L), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/api/v1/subgroups/{subgroupId}", 10L))
@@ -127,7 +127,7 @@ class SubgroupControllerTest {
 		@DisplayName("서브그룹에서 탈퇴하면 204를 반환한다")
 		void 서브그룹_탈퇴_성공() throws Exception {
 			// given
-			willDoNothing().given(subgroupService).withdrawSubgroup(eq(10L), any());
+			willDoNothing().given(subgroupFacade).withdrawSubgroup(eq(10L), any());
 
 			// when & then
 			mockMvc.perform(delete("/api/v1/subgroups/{subgroupId}/members/me", 10L))

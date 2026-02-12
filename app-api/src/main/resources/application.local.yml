@@ -9,6 +9,8 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/tasteam}
     username: ${DB_USERNAME:tasteam}
     password: ${DB_PASSWORD:tasteam}
+    hikari:
+      connection-timeout: 10000
 
   data:
     redis:
@@ -17,13 +19,14 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: create-drop
     defer-datasource-initialization: true
 
     properties:
       hibernate:
         format_sql: true
         show_sql: true
+        generate_statistics: true
 
   flyway:
     enabled: false
@@ -57,5 +60,14 @@ naver:
     api-key: ${NAVER_MAPS_API_KEY:dummy}
 
 tasteam:
+  ai:
+    analysis:
+      comparison-min-reviews: ${TASTEAM_AI_ANALYSIS_COMPARISON_MIN_REVIEWS:10}
+      comparison-batch-size: ${TASTEAM_AI_ANALYSIS_COMPARISON_BATCH_SIZE:10}
   webhook:
     enabled: false
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    project-id: ${FIREBASE_PROJECT_ID:}
+    service-account-base64: ${FIREBASE_SERVICE_ACCOUNT_BASE64:}
+    service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}

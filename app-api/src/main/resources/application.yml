@@ -63,6 +63,10 @@ springdoc:
     path: /api/v1/swagger-ui.html
 
 ## ====== 커스텀 설정 ======
+ai:
+  base-url: ${AI_BASE_URL:http://localhost:8001}
+  response-timeout: ${AI_RESPONSE_TIMEOUT:10s}
+
 tasteam:
   admin:
     username: ${ADMIN_USERNAME:}
@@ -70,6 +74,10 @@ tasteam:
   domain:
     service: ${SERVICE_DOMAIN:https://tasteam.kr}
     api: ${API_DOMAIN:https://api.tasteam.kr}
+  search:
+    query:
+      strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:TWO_STEP}
+      candidate-limit: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:200}
   storage:
     type: ${STORAGE_TYPE:dummy}
     region: ${STORAGE_REGION:}
@@ -88,6 +96,19 @@ tasteam:
       min-size-bytes: ${FILE_UPLOAD_MIN_SIZE_BYTES:1}
       max-size-bytes: ${FILE_UPLOAD_MAX_SIZE_BYTES:10485760}
       allowed-content-types: ${FILE_UPLOAD_ALLOWED_CONTENT_TYPES:image/jpeg,image/jpg,image/png,image/webp}
+  ai:
+    analysis:
+      summary-batch-size: ${TASTEAM_AI_ANALYSIS_SUMMARY_BATCH_SIZE:10}
+      comparison-min-reviews: ${TASTEAM_AI_ANALYSIS_COMPARISON_MIN_REVIEWS:10}
+      comparison-batch-size: ${TASTEAM_AI_ANALYSIS_COMPARISON_BATCH_SIZE:10}
+    comparison:
+      cron: ${TASTEAM_AI_COMPARISON_CRON:0 0 3 * * *}
+      zone: ${TASTEAM_AI_COMPARISON_ZONE:Asia/Seoul}
+  image:
+    optimization:
+      enabled: ${IMAGE_OPTIMIZATION_ENABLED:false}
+      cron: ${IMAGE_OPTIMIZATION_CRON:0 0 3 * * ?}
+      batch-size: ${IMAGE_OPTIMIZATION_BATCH_SIZE:100}
   aop:
     logging:
       enabled: ${TASTEAM_AOP_LOGGING_ENABLED:true}
@@ -99,6 +120,8 @@ tasteam:
         enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:true}
       service-performance:
         enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:true}
+      ai-analysis-performance:
+        enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:true}
     webhook:
       enabled: ${TASTEAM_AOP_WEBHOOK_ENABLED:true}
   webhook:

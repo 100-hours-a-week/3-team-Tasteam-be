@@ -4,7 +4,7 @@
 | 문서 목적 | DB 스키마/데이터 변경을 Flyway로 일관되게 관리하기 위한 사용 방법과 운영 기준을 명확히 한다 |
 | 작성 및 관리 | Tasteam BE |
 | 최초 작성일 | 2026.02.03 |
-| 최종 수정일 | 2026.02.03 |
+| 최종 수정일 | 2026.02.10 |
 | 문서 버전 | v1.0 |
 
 <br>
@@ -43,11 +43,10 @@ Flyway는 DB 스키마/데이터 변경을 **버전 관리**하고, 배포 시�
 - 데이터 초기화가 필요하면 별도의 seed SQL 또는 테스트 데이터 로더 사용.
 
 ### 3-3. 로컬(Local)
-- 기본 설정은 `spring.flyway.enabled=false` (현재 로컬 프로필 기준).
-- **실제 운영과 동일한 스키마 검증이 필요할 때**:
-  - `spring.flyway.enabled=true`로 변경
-  - `spring.jpa.hibernate.ddl-auto=validate` 권장
-  - `spring.sql.init.mode=always` 유지 여부는 팀 합의(로컬 seed 필요 여부)에 따라 선택
+- 기본 설정은 `spring.flyway.enabled=true` (현재 로컬 프로필 기준).
+- `spring.jpa.hibernate.ddl-auto=validate`로 유지해 스키마 생성/변경은 Flyway만 담당한다.
+- `spring.sql.init.mode=never`로 설정해 `data.sql` 자동 주입과 Flyway의 초기화 순서 충돌을 방지한다.
+- 로컬 seed 데이터가 필요하면 SQL을 수동 실행하거나 별도 로더를 사용한다.
 
 ### 3-4. 테스트(Test)
 - 기본 설정은 `spring.flyway.enabled=false` (현재 테스트 프로필 기준).
@@ -66,8 +65,6 @@ Flyway는 DB 스키마/데이터 변경을 **버전 관리**하고, 배포 시�
 
 ```bash
 SPRING_PROFILES_ACTIVE=local \
-SPRING_FLYWAY_ENABLED=true \
-SPRING_JPA_HIBERNATE_DDL_AUTO=validate \
 ./gradlew :app-api:bootRun
 ```
 
@@ -166,6 +163,7 @@ app-api/
 ### Q2. 로컬에서 스키마를 초기화해야 하는데?
 - 로컬에서는 `ddl-auto=create`를 임시로 사용할 수 있으나, 운영과 차이가 생길 수 있다.
 - **스키마 일관성 검증이 필요하면 Flyway 활성화** 후 `ddl-auto=validate` 사용.
+- 로컬 기본값은 Flyway + validate + `sql.init.mode=never` 이므로, seed가 필요하면 `data.sql`을 수동 실행한다.
 
 ---
 

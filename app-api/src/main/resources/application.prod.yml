@@ -18,15 +18,10 @@ spring:
     hikari:
       maximum-pool-size: 50
       minimum-idle: 10
-      connection-timeout: 30000
+      connection-timeout: 10000
       idle-timeout: 600000
       max-lifetime: 1800000
       leak-detection-threshold: 60000
-
-  flyway:
-    url: ${FLYWAY_URL:${DB_URL}}
-    user: ${FLYWAY_USER:${DB_USERNAME}}
-    password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
 
   data:
     redis:
@@ -35,7 +30,10 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
+
+  flyway:
+    enabled: false
 
   security:
     cors:
@@ -105,15 +103,22 @@ tasteam:
         enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:false}
       service-performance:
         enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:false}
+      ai-analysis-performance:
+        enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:false}
   webhook:
     enabled: false
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    project-id: ${FIREBASE_PROJECT_ID:}
+    service-account-base64: ${FIREBASE_SERVICE_ACCOUNT_BASE64:}
+    service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
 
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       probes:

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.tasteam.domain.favorite.dto.FavoriteSubgroupTargetRow;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.member.dto.response.MemberSubgroupDetailSummaryRow;
 import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryRow;
@@ -108,4 +109,28 @@ public interface SubgroupMemberRepository extends JpaRepository<SubgroupMember, 
 		@Param("cursor")
 		Long cursor,
 		org.springframework.data.domain.Pageable pageable);
+
+	@Query("""
+		select new com.tasteam.domain.favorite.dto.FavoriteSubgroupTargetRow(
+			s.id,
+			s.name
+		)
+		from SubgroupMember sm
+		join Subgroup s on s.id = sm.subgroupId
+		join s.group g
+		where sm.member.id = :memberId
+			and sm.deletedAt is null
+			and s.deletedAt is null
+			and s.status = :activeSubgroupStatus
+			and g.deletedAt is null
+			and g.status = :activeGroupStatus
+		order by s.name desc, s.id desc
+		""")
+	List<FavoriteSubgroupTargetRow> findFavoriteSubgroupTargets(
+		@Param("memberId")
+		Long memberId,
+		@Param("activeSubgroupStatus")
+		SubgroupStatus activeSubgroupStatus,
+		@Param("activeGroupStatus")
+		GroupStatus activeGroupStatus);
 }

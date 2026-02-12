@@ -1,5 +1,7 @@
 package com.tasteam.domain.restaurant.entity;
 
+import java.time.Instant;
+
 import org.hibernate.annotations.Comment;
 
 import com.tasteam.domain.common.BaseCreatedAtEntity;
@@ -25,7 +27,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "ai_restaurant_recommendation")
-@Comment("AI 분석을 통해 생성된 음식점 추천 결과를 배치 단위로 누적 저장하는 테이블")
+@Comment("Vector 검색 추천 결과를 TTL 기반으로 저장하는 캐시 테이블")
 public class AiRestaurantRecommendation extends BaseCreatedAtEntity {
 
 	@Id
@@ -41,10 +43,24 @@ public class AiRestaurantRecommendation extends BaseCreatedAtEntity {
 	@Comment("빈 문자열 불가")
 	private String reason;
 
-	public static AiRestaurantRecommendation create(Restaurant restaurant, String reason) {
+	@Column(name = "cache_key", nullable = false, length = 120)
+	@Comment("추천 캐시 식별자 (예: memberId + query)")
+	private String cacheKey;
+
+	@Column(name = "expires_at", nullable = false)
+	@Comment("캐시 만료 시각 (기본 생성시각 + 1일)")
+	private Instant expiresAt;
+
+	public static AiRestaurantRecommendation create(
+		Restaurant restaurant,
+		String reason,
+		String cacheKey,
+		Instant expiresAt) {
 		return AiRestaurantRecommendation.builder()
 			.restaurant(restaurant)
 			.reason(reason)
+			.cacheKey(cacheKey)
+			.expiresAt(expiresAt)
 			.build();
 	}
 }

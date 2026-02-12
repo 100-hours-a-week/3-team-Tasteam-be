@@ -31,7 +31,7 @@ import com.tasteam.domain.group.dto.GroupGetResponse;
 import com.tasteam.domain.group.dto.GroupMemberListItem;
 import com.tasteam.domain.group.dto.GroupMemberListResponse;
 import com.tasteam.domain.group.dto.GroupPasswordAuthenticationResponse;
-import com.tasteam.domain.group.service.GroupService;
+import com.tasteam.domain.group.service.GroupFacade;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
@@ -43,7 +43,7 @@ import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupJoinResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
-import com.tasteam.domain.subgroup.service.SubgroupService;
+import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.fixture.GroupRequestFixture;
 import com.tasteam.fixture.RestaurantRequestFixture;
@@ -58,7 +58,7 @@ class GroupControllerTest {
 	private ObjectMapper objectMapper;
 
 	@MockitoBean
-	private GroupService groupService;
+	private GroupFacade groupFacade;
 
 	@MockitoBean
 	private RestaurantService restaurantService;
@@ -67,7 +67,7 @@ class GroupControllerTest {
 	private ReviewService reviewService;
 
 	@MockitoBean
-	private SubgroupService subgroupService;
+	private SubgroupFacade subgroupFacade;
 
 	@Nested
 	@DisplayName("그룹 생성")
@@ -78,7 +78,7 @@ class GroupControllerTest {
 		void 그룹_생성_성공() throws Exception {
 			// given
 			GroupCreateResponse response = new GroupCreateResponse(1L, "ACTIVE", Instant.now());
-			given(groupService.createGroup(any())).willReturn(response);
+			given(groupFacade.createGroup(any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(post("/api/v1/groups")
@@ -105,7 +105,7 @@ class GroupControllerTest {
 					"서울시 강남구", null, "test.com", 3L, "ACTIVE",
 					Instant.now(), Instant.now()));
 
-			given(groupService.getGroup(1L)).willReturn(response);
+			given(groupFacade.getGroup(1L)).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/api/v1/groups/{groupId}", 1L))
@@ -125,7 +125,7 @@ class GroupControllerTest {
 		@DisplayName("그룹 정보를 수정하면 성공 응답을 반환한다")
 		void 그룹_수정_성공() throws Exception {
 			// given
-			willDoNothing().given(groupService).updateGroup(eq(1L), any());
+			willDoNothing().given(groupFacade).updateGroup(eq(1L), any());
 
 			// when & then
 			mockMvc.perform(patch("/api/v1/groups/{groupId}", 1L)
@@ -144,7 +144,7 @@ class GroupControllerTest {
 		@DisplayName("그룹을 삭제하면 성공 응답을 반환한다")
 		void 그룹_삭제_성공() throws Exception {
 			// given
-			willDoNothing().given(groupService).deleteGroup(1L);
+			willDoNothing().given(groupFacade).deleteGroup(1L);
 
 			// when & then
 			mockMvc.perform(delete("/api/v1/groups/{groupId}", 1L))
@@ -161,7 +161,7 @@ class GroupControllerTest {
 		@DisplayName("그룹에서 탈퇴하면 성공 응답을 반환한다")
 		void 그룹_탈퇴_성공() throws Exception {
 			// given
-			willDoNothing().given(groupService).withdrawGroup(eq(1L), any());
+			willDoNothing().given(groupFacade).withdrawGroup(eq(1L), any());
 
 			// when & then
 			mockMvc.perform(delete("/api/v1/groups/{groupId}/members/me", 1L))
@@ -189,7 +189,7 @@ class GroupControllerTest {
 				List.of(item),
 				new CursorPageResponse.Pagination(null, false, 1));
 
-			given(subgroupService.getGroupSubgroups(eq(1L), any(), any(), any())).willReturn(response);
+			given(subgroupFacade.getGroupSubgroups(eq(1L), any(), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/api/v1/groups/{groupId}/subgroups", 1L)
@@ -212,7 +212,7 @@ class GroupControllerTest {
 			SubgroupCreateResponse response = new SubgroupCreateResponse(
 				new SubgroupCreateResponse.SubgroupCreateData(10L, Instant.now()));
 
-			given(subgroupService.createSubgroup(eq(1L), any(), any())).willReturn(response);
+			given(subgroupFacade.createSubgroup(eq(1L), any(), any())).willReturn(response);
 
 			SubgroupCreateRequest request = new SubgroupCreateRequest(
 				"서브그룹1", "설명", null, SubgroupJoinType.OPEN, null);
@@ -238,7 +238,7 @@ class GroupControllerTest {
 			SubgroupJoinResponse response = new SubgroupJoinResponse(
 				new SubgroupJoinResponse.JoinData(10L, Instant.now()));
 
-			given(subgroupService.joinSubgroup(eq(1L), eq(10L), any(), any())).willReturn(response);
+			given(subgroupFacade.joinSubgroup(eq(1L), eq(10L), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(post("/api/v1/groups/{groupId}/subgroups/{subgroupId}/members", 1L, 10L)
@@ -258,7 +258,7 @@ class GroupControllerTest {
 		@DisplayName("서브그룹 정보를 수정하면 성공 응답을 반환한다")
 		void 서브그룹_수정_성공() throws Exception {
 			// given
-			willDoNothing().given(subgroupService).updateSubgroup(eq(1L), eq(10L), any(), any());
+			willDoNothing().given(subgroupFacade).updateSubgroup(eq(1L), eq(10L), any(), any());
 
 			SubgroupUpdateRequest request = new SubgroupUpdateRequest(null, null, null);
 
@@ -282,7 +282,7 @@ class GroupControllerTest {
 			GroupEmailVerificationResponse response = new GroupEmailVerificationResponse(
 				1L, Instant.now(), Instant.now().plusSeconds(600));
 
-			given(groupService.sendGroupEmailVerification(eq(1L), any())).willReturn(response);
+			given(groupFacade.sendGroupEmailVerification(eq(1L), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(post("/api/v1/groups/{groupId}/email-verifications", 1L)
@@ -304,7 +304,7 @@ class GroupControllerTest {
 			// given
 			GroupEmailAuthenticationResponse response = new GroupEmailAuthenticationResponse(true, Instant.now());
 
-			given(groupService.authenticateGroupByEmail(eq(1L), any(), any())).willReturn(response);
+			given(groupFacade.authenticateGroupByEmail(eq(1L), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(post("/api/v1/groups/{groupId}/email-authentications", 1L)
@@ -326,7 +326,7 @@ class GroupControllerTest {
 			// given
 			GroupPasswordAuthenticationResponse response = new GroupPasswordAuthenticationResponse(true, Instant.now());
 
-			given(groupService.authenticateGroupByPassword(eq(1L), any(), any())).willReturn(response);
+			given(groupFacade.authenticateGroupByPassword(eq(1L), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(post("/api/v1/groups/{groupId}/password-authentications", 1L)
@@ -350,7 +350,7 @@ class GroupControllerTest {
 				List.of(new GroupMemberListItem(1L, 100L, "테스트유저", "https://example.com/profile.jpg", Instant.now())),
 				new GroupMemberListResponse.PageInfo(null, 20, false));
 
-			given(groupService.getGroupMembers(eq(1L), any(), any())).willReturn(response);
+			given(groupFacade.getGroupMembers(eq(1L), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/api/v1/groups/{groupId}/members", 1L)
@@ -371,7 +371,7 @@ class GroupControllerTest {
 		@DisplayName("그룹 멤버를 강퇴하면 성공 응답을 반환한다")
 		void 그룹_멤버_강퇴_성공() throws Exception {
 			// given
-			willDoNothing().given(groupService).deleteGroupMember(1L, 100L);
+			willDoNothing().given(groupFacade).deleteGroupMember(1L, 100L);
 
 			// when & then
 			mockMvc.perform(delete("/api/v1/groups/{groupId}/members/{userId}", 1L, 100L))
@@ -389,11 +389,11 @@ class GroupControllerTest {
 		void 그룹_리뷰_목록_조회_성공() throws Exception {
 			// given
 			CursorPageResponse<ReviewResponse> response = new CursorPageResponse<>(
-				List.of(new ReviewResponse(1L,
+				List.of(new ReviewResponse(1L, 2L, 3L, "테스트그룹", "테스트하위그룹",
 					new ReviewResponse.AuthorResponse("테스트유저"),
 					"맛있어요", true, List.of("친절"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
-					Instant.now())),
+					Instant.now(), null, null, null, null, null, null)),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(reviewService.getGroupReviews(eq(1L), any())).willReturn(response);

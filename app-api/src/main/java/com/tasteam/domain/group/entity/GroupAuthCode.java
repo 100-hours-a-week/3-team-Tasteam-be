@@ -32,7 +32,7 @@ public class GroupAuthCode extends BaseCreatedAtEntity {
 	@Column(name = "group_id", nullable = false)
 	private Long groupId;
 
-	@Column(name = "code", nullable = false, length = 20)
+	@Column(name = "code", nullable = false, length = 255)
 	private String code;
 
 	@Column(name = "email", length = 255)
@@ -46,5 +46,17 @@ public class GroupAuthCode extends BaseCreatedAtEntity {
 
 	public void verify(Instant verifiedAt) {
 		this.verifiedAt = verifiedAt;
+	}
+
+	public void expire(Instant expiresAt) {
+		this.expiresAt = expiresAt;
+	}
+
+	public static GroupAuthCode create(Long groupId, String code, Instant expiresAt) {
+		return GroupAuthCode.builder()
+			.groupId(groupId)
+			.code(code)
+			.expiresAt(expiresAt)
+			.build();
 	}
 }

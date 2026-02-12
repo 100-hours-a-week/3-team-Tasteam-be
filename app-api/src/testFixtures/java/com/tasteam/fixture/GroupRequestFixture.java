@@ -46,6 +46,58 @@ public final class GroupRequestFixture {
 			DEFAULT_CODE);
 	}
 
+	public static GroupCreateRequest createEmailGroupRequest(String name, String emailDomain) {
+		return new GroupCreateRequest(
+			name,
+			null,
+			GroupType.OFFICIAL,
+			DEFAULT_ADDRESS,
+			null,
+			new GroupCreateRequest.Location(37.5, 127.0),
+			GroupJoinType.EMAIL,
+			emailDomain,
+			null);
+	}
+
+	public static GroupCreateRequest createEmailGroupRequestWithLogo(String name, String logoUuid, String emailDomain) {
+		return new GroupCreateRequest(
+			name,
+			logoUuid,
+			GroupType.OFFICIAL,
+			DEFAULT_ADDRESS,
+			null,
+			new GroupCreateRequest.Location(37.5, 127.0),
+			GroupJoinType.EMAIL,
+			emailDomain,
+			null);
+	}
+
+	public static GroupCreateRequest createPasswordGroupRequestWithLogo(String name, String logoUuid, String password) {
+		return new GroupCreateRequest(
+			name,
+			logoUuid,
+			GroupType.UNOFFICIAL,
+			DEFAULT_ADDRESS,
+			null,
+			new GroupCreateRequest.Location(37.5, 127.0),
+			GroupJoinType.PASSWORD,
+			null,
+			password);
+	}
+
+	public static GroupCreateRequest createPasswordGroupRequest(String name, String password) {
+		return new GroupCreateRequest(
+			name,
+			null,
+			GroupType.UNOFFICIAL,
+			DEFAULT_ADDRESS,
+			null,
+			new GroupCreateRequest.Location(37.5, 127.0),
+			GroupJoinType.PASSWORD,
+			null,
+			password);
+	}
+
 	public static GroupUpdateRequest createUpdateRequest() {
 		return new GroupUpdateRequest(
 			JsonNodeFactory.instance.textNode("수정된그룹"),

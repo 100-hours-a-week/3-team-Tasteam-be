@@ -2,8 +2,6 @@ package com.tasteam.domain.restaurant.service;
 
 import static java.util.stream.Collectors.groupingBy;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -18,14 +16,9 @@ import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.tasteam.domain.file.dto.response.DomainImageItem;
-import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.entity.Image;
-import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
-import com.tasteam.domain.file.repository.ImageRepository;
-import com.tasteam.domain.file.service.FileService;
+import com.tasteam.domain.file.service.DomainImageLinker;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.dto.GroupRestaurantSearchCondition;
@@ -40,12 +33,9 @@ import com.tasteam.domain.restaurant.dto.response.BusinessHourWeekItem;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
-import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse.RecommendStatResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
 import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
-import com.tasteam.domain.restaurant.entity.AiRestaurantFeature;
-import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
 import com.tasteam.domain.restaurant.entity.FoodCategory;
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.entity.RestaurantAddress;
@@ -54,8 +44,6 @@ import com.tasteam.domain.restaurant.entity.RestaurantWeeklySchedule;
 import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
 import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
 import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
-import com.tasteam.domain.restaurant.repository.AiRestaurantFeatureRepository;
-import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
 import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantAddressRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
@@ -65,9 +53,7 @@ import com.tasteam.domain.restaurant.repository.RestaurantWeeklyScheduleReposito
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 import com.tasteam.domain.restaurant.validator.GroupRestaurantSearchConditionValidator;
 import com.tasteam.domain.restaurant.validator.RestaurantFoodCategoryValidator;
-import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.global.exception.business.BusinessException;
-import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.utils.CursorCodec;
@@ -84,10 +70,6 @@ public class RestaurantService {
 	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
 	private final DomainImageRepository domainImageRepository;
 	private final FoodCategoryRepository foodCategoryRepository;
-	private final AiRestaurantFeatureRepository aiRestaurantFeatureRepository;
-	private final AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
-	private final ReviewRepository reviewRepository;
-	private final ImageRepository imageRepository;
 	private final GroupRepository groupRepository;
 	private final RestaurantEventPublisher eventPublisher;
 	private final CursorCodec cursorCodec;
@@ -96,71 +78,21 @@ public class RestaurantService {
 	private final GeometryFactory geometryFactory;
 	private final NaverGeocodingClient naverGeocodingClient;
 	private final RestaurantScheduleService restaurantScheduleService;
+	private final RestaurantReadService restaurantReadService;
+	private final RestaurantImageService restaurantImageService;
+	private final RestaurantAiSummaryService restaurantAiSummaryService;
+	private final RestaurantDetailAssembler restaurantDetailAssembler;
 	private final RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
-	private final FileService fileService;
+	private final DomainImageLinker domainImageLinker;
 
 	@Transactional(readOnly = true)
 	public RestaurantDetailResponse getRestaurantDetail(long restaurantId) {
-
-		// 음식점
-		Restaurant restaurant = restaurantRepository.findByIdAndDeletedAtIsNull(restaurantId)
-			.orElseThrow(() -> new BusinessException(RestaurantErrorCode.RESTAURANT_NOT_FOUND));
-
-		// 음식 카테고리
-		List<String> foodCategories = restaurantFoodCategoryRepository.findByRestaurantId(restaurantId)
-			.stream()
-			.map(RestaurantFoodCategory::getFoodCategory)
-			.map(FoodCategory::getName)
-			.toList();
-
+		var readResult = restaurantReadService.readRestaurantDetail(restaurantId);
 		List<BusinessHourWeekItem> businessHoursWeek = restaurantScheduleService.getBusinessHoursWeek(restaurantId);
+		var aiSummaryResult = restaurantAiSummaryService.getRestaurantAiSummary(restaurantId);
+		var primaryImage = restaurantImageService.getPrimaryImage(restaurantId).orElse(null);
 
-		// 음식점 대표 이미지 (최대 1장)
-		Map<Long, List<DomainImageItem>> restaurantImages = fileService.getDomainImageUrls(
-			DomainType.RESTAURANT,
-			List.of(restaurantId));
-		RestaurantImageDto image = convertFirstImage(restaurantImages.get(restaurantId));
-
-		// AI 요약
-		Optional<AiRestaurantReviewAnalysis> aiAnalysis = aiRestaurantReviewAnalysisRepository
-			.findByRestaurantId(restaurantId);
-		String aiSummary = aiAnalysis.map(AiRestaurantReviewAnalysis::getSummary).orElse(null);
-
-		// AI Feature
-		String aiFeature = aiRestaurantFeatureRepository.findByRestaurantId(restaurantId)
-			.map(AiRestaurantFeature::getContent)
-			.orElse(null);
-
-		// 추천 통계
-		long recommendCount = reviewRepository.countByRestaurantIdAndIsRecommendedTrueAndDeletedAtIsNull(restaurantId);
-		long notRecommendedCount = reviewRepository
-			.countByRestaurantIdAndIsRecommendedFalseAndDeletedAtIsNull(restaurantId);
-		Long positiveRatio = aiAnalysis
-			.map(AiRestaurantReviewAnalysis::getPositiveReviewRatio)
-			.map(ratio -> ratio.multiply(BigDecimal.valueOf(100))
-				.setScale(0, RoundingMode.HALF_UP)
-				.longValueExact())
-			.orElse(null);
-
-		RecommendStatResponse recommendStatResponse = new RecommendStatResponse(
-			recommendCount,
-			notRecommendedCount,
-			positiveRatio);
-
-		return new RestaurantDetailResponse(
-			restaurant.getId(),
-			restaurant.getName(),
-			restaurant.getFullAddress(),
-			restaurant.getPhoneNumber(),
-			foodCategories,
-			businessHoursWeek,
-			image,
-			null,
-			recommendStatResponse,
-			aiSummary,
-			aiFeature,
-			restaurant.getCreatedAt(),
-			restaurant.getUpdatedAt());
+		return restaurantDetailAssembler.assemble(readResult, businessHoursWeek, aiSummaryResult, primaryImage);
 	}
 
 	@Transactional(readOnly = true)
@@ -193,7 +125,9 @@ public class RestaurantService {
 			.toList();
 
 		// 음식점 대표 이미지 (최대 3장)
-		Map<Long, List<RestaurantImageDto>> restaurantThumbnails = loadRestaurantThumbnails(restaurantIds);
+		Map<Long, List<RestaurantImageDto>> restaurantThumbnails = restaurantImageService.getRestaurantThumbnails(
+			restaurantIds,
+			3);
 
 		// 음식점 음식 카테고리
 		Map<Long, List<String>> restaurantCategories = restaurantFoodCategoryRepository
@@ -206,12 +140,7 @@ public class RestaurantService {
 					Collectors.toList())));
 
 		// 음식점 AI 리뷰 요약
-		Map<Long, String> reviewSummaries = aiRestaurantReviewAnalysisRepository
-			.findByRestaurantIdIn(restaurantIds)
-			.stream()
-			.collect(Collectors.toMap(
-				AiRestaurantReviewAnalysis::getRestaurantId,
-				AiRestaurantReviewAnalysis::getSummary));
+		Map<Long, String> reviewSummaries = restaurantAiSummaryService.getReviewSummariesWithFallback(restaurantIds);
 
 		// 음식점 정보 조립
 		List<RestaurantListItem> items = result.items().stream()
@@ -222,7 +151,7 @@ public class RestaurantService {
 				r.distanceMeter(),
 				restaurantCategories.getOrDefault(r.id(), List.of()),
 				restaurantThumbnails.get(r.id()),
-				reviewSummaries.getOrDefault(r.id(), "리뷰가 더 모이면 AI 요약이 제공됩니다.")))
+				reviewSummaries.get(r.id())))
 			.toList();
 
 		// 그룹 음식점 목록 조회 결과 조립
@@ -258,7 +187,9 @@ public class RestaurantService {
 			.toList();
 
 		// 음식점 대표 이미지 (최대 3장)
-		Map<Long, List<RestaurantImageDto>> restaurantThumbnails = loadRestaurantThumbnails(restaurantIds);
+		Map<Long, List<RestaurantImageDto>> restaurantThumbnails = restaurantImageService.getRestaurantThumbnails(
+			restaurantIds,
+			3);
 
 		// 음식점 음식 카테고리
 		Map<Long, List<String>> restaurantCategories = restaurantFoodCategoryRepository
@@ -271,12 +202,7 @@ public class RestaurantService {
 					Collectors.toList())));
 
 		// 음식점 AI 리뷰 요약
-		Map<Long, String> reviewSummaries = aiRestaurantReviewAnalysisRepository
-			.findByRestaurantIdIn(restaurantIds)
-			.stream()
-			.collect(Collectors.toMap(
-				AiRestaurantReviewAnalysis::getRestaurantId,
-				AiRestaurantReviewAnalysis::getSummary));
+		Map<Long, String> reviewSummaries = restaurantAiSummaryService.getReviewSummariesWithFallback(restaurantIds);
 
 		// 음식점 정보 조립
 		List<RestaurantListItem> items = result.items().stream()
@@ -287,7 +213,7 @@ public class RestaurantService {
 				r.distanceMeter(),
 				restaurantCategories.getOrDefault(r.id(), List.of()),
 				restaurantThumbnails.get(r.id()),
-				reviewSummaries.getOrDefault(r.id(), "리뷰가 더 모이면 AI 요약이 제공됩니다.")))
+				reviewSummaries.get(r.id())))
 			.toList();
 
 		// 음식점 목록 조회 결과 조립
@@ -467,51 +393,7 @@ public class RestaurantService {
 	}
 
 	private void saveImagesIfPresent(Restaurant restaurant, List<UUID> imageIds) {
-		if (imageIds == null || imageIds.isEmpty()) {
-			return;
-		}
-
-		for (int index = 0; index < imageIds.size(); index++) {
-			UUID fileUuid = imageIds.get(index);
-			int sortOrder = index;
-			Image image = imageRepository.findByFileUuid(fileUuid)
-				.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-			if (image.getStatus() != ImageStatus.PENDING) {
-				throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-			}
-			image.activate();
-			DomainImage domainImage = DomainImage.create(DomainType.RESTAURANT, restaurant.getId(), image, sortOrder);
-			domainImageRepository.save(domainImage);
-		}
-	}
-
-	private Map<Long, List<RestaurantImageDto>> loadRestaurantThumbnails(List<Long> restaurantIds) {
-		Map<Long, List<DomainImageItem>> domainImages = fileService.getDomainImageUrls(
-			DomainType.RESTAURANT,
-			restaurantIds);
-
-		return domainImages.entrySet().stream()
-			.collect(Collectors.toMap(
-				Map.Entry::getKey,
-				entry -> convertAndLimit(entry.getValue(), 3)));
-	}
-
-	private RestaurantImageDto convertFirstImage(List<DomainImageItem> images) {
-		if (images == null || images.isEmpty()) {
-			return null;
-		}
-		DomainImageItem first = images.getFirst();
-		return new RestaurantImageDto(first.imageId(), first.url());
-	}
-
-	private List<RestaurantImageDto> convertAndLimit(List<DomainImageItem> images, int limit) {
-		if (images == null || images.isEmpty()) {
-			return List.of();
-		}
-		List<DomainImageItem> limited = images.size() > limit ? images.subList(0, limit) : images;
-		return limited.stream()
-			.map(image -> new RestaurantImageDto(image.imageId(), image.url()))
-			.toList();
+		domainImageLinker.linkImages(DomainType.RESTAURANT, restaurant.getId(), imageIds);
 	}
 
 	private void saveWeeklySchedulesIfPresent(Restaurant restaurant, List<WeeklyScheduleRequest> schedules) {
@@ -546,18 +428,13 @@ public class RestaurantService {
 			radiusMeter = RestaurantSearchPolicy.DEFAULT_RADIUS_METER;
 		}
 
-		// 음식 카테고리 이름 정규화 (비어있으면 전체 카테고리로 대체)
+		// 음식 카테고리 이름 정규화
 		Set<String> foodCategories = q.categories() == null
 			? Set.of()
 			: q.categories().stream()
 				.map(String::trim)
 				.filter(s -> !s.isEmpty())
 				.collect(Collectors.toUnmodifiableSet());
-		if (foodCategories.isEmpty()) {
-			foodCategories = foodCategoryRepository.findAll().stream()
-				.map(FoodCategory::getName)
-				.collect(Collectors.toUnmodifiableSet());
-		}
 
 		// 페이지 크기 기본값
 		Integer pageSize = q.size();

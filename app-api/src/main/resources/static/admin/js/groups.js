@@ -178,16 +178,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const logoInput = document.getElementById('groupLogoImage');
     const logoPreview = document.getElementById('groupLogoPreview');
-    logoInput.addEventListener('change', () => {
+    logoInput.addEventListener('change', async () => {
         const files = Array.from(logoInput.files || []);
-        logoFile = files.length > 0 ? files[0] : null;
+        const file = files.length > 0 ? files[0] : null;
         logoPreview.innerHTML = '';
-        if (logoFile) {
+
+        if (!file) {
+            logoFile = null;
+            return;
+        }
+
+        try {
+            logoFile = await ImageOptimizer.optimizeGroupLogo(file);
             const img = document.createElement('img');
             img.className = 'image-preview';
             img.alt = logoFile.name;
             img.src = URL.createObjectURL(logoFile);
             logoPreview.appendChild(img);
+        } catch (error) {
+            console.error('로고 이미지 최적화 오류:', error);
+            alert('로고 이미지 최적화 중 오류가 발생했습니다: ' + error.message);
+            logoFile = null;
         }
     });
 

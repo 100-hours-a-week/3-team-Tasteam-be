@@ -10,6 +10,7 @@ dependencies {
      * Core / Web
      * ================================================== */
     implementation "org.springframework.boot:spring-boot-starter-web:3.5.9"
+    implementation "org.springframework.boot:spring-boot-starter-webflux:3.5.9"
     implementation "org.springframework.boot:spring-boot-starter-validation:3.5.9"
 
     /* ==================================================
@@ -28,7 +29,6 @@ dependencies {
      * ================================================== */
     // JPA (PostgreSQL)
     implementation "org.springframework.boot:spring-boot-starter-data-jpa:3.5.9"
-    implementation "org.hibernate.orm:hibernate-spatial"
     runtimeOnly  "org.postgresql:postgresql:42.7.8"
     implementation "org.hibernate.orm:hibernate-spatial"
 
@@ -79,6 +79,12 @@ dependencies {
     implementation "com.amazonaws:aws-java-sdk-s3:1.12.538"
 
     /* ==================================================
+     * Image Processing
+     * ================================================== */
+    implementation "net.coobird:thumbnailator:0.4.20"
+    implementation "org.sejda.imageio:webp-imageio:0.1.6"
+
+    /* ==================================================
      * Developer Productivity
      * ================================================== */
     compileOnly "org.projectlombok:lombok:1.18.42"
@@ -116,10 +122,46 @@ dependencies {
     spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.13.0'
 }
 
+// ====== 테스트 설정 분리 ====== //
+
+def calculateTestForks() {
+    // 통합 테스트 컨텍스트가 동일 DB/Testcontainers를 공유하므로 병렬 실행을 1로 제한
+    return 1
+}
+
 tasks.withType(Test).configureEach {
-    useJUnitPlatform()
     systemProperty "spring.profiles.active", "test"
+    maxParallelForks = calculateTestForks()
+}
+
+tasks.named('test') {
+    useJUnitPlatform {
+        excludeTags 'perf'
+    }
     finalizedBy tasks.jacocoTestReport
+}
+
+tasks.register('unitTest', Test) {
+    useJUnitPlatform {
+        includeTags 'unit'
+    }
+    outputs.upToDateWhen { false }
+}
+
+tasks.register('integrationTest', Test) {
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+    outputs.upToDateWhen { false }
+}
+
+tasks.register('performanceTest', Test) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'perf'
+    }
+    outputs.upToDateWhen { false }
 }
 
 tasks.jacocoTestReport {
@@ -153,6 +195,58 @@ spotbugsMain {
         }
         xml {
             required = false
+        }
+    }
+}
+
+// ====== JaCoCo 설정 보강 ====== //
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+def jacocoMinimumCoverage = 0.50
+
+def configureJacocoClassDirs(task) {
+    afterEvaluate {
+        task.classDirectories.setFrom(files(task.classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/Q*.class',
+                '**/infra/**',
+                '**/swagger/**',
+                '**/entity/id/**',
+                '**/*Application.class',
+                '**/*Config*.class',
+                '**/common/aop/**',
+                '**/dto/**',
+                '**/*Dto*.class',
+                '**/exception/**',
+                '**/Client**'
+            ])
+        }))
+    }
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+    configureJacocoClassDirs(it)
+
+    executionData.setFrom(fileTree(buildDir).include("/jacoco/*.exec").exclude("/jacoco/performanceTest.exec"))
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn test
+    configureJacocoClassDirs(it)
+    violationRules {
+        rule {
+            limit {
+                minimum = jacocoMinimumCoverage
+            }
         }
     }
 }

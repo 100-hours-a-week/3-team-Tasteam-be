@@ -179,3 +179,27 @@ async function createGroup(data) {
         body: JSON.stringify(data)
     });
 }
+
+const api = {
+    get: async (url) => {
+        const result = await apiRequest(url, { method: 'GET' });
+        return result.data || result;
+    },
+    post: async (url, data) => {
+        const result = await apiRequest(url, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+        return result.data || result;
+    },
+    patch: async (url, data) => {
+        const result = await apiRequest(url, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+        return result.data || result;
+    },
+    delete: async (url) => {
+        return await apiRequest(url, { method: 'DELETE' });
+    }
+};

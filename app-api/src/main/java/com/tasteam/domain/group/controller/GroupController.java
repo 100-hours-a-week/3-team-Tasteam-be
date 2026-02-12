@@ -17,7 +17,7 @@ import com.tasteam.domain.group.dto.GroupMemberListResponse;
 import com.tasteam.domain.group.dto.GroupPasswordAuthenticationRequest;
 import com.tasteam.domain.group.dto.GroupPasswordAuthenticationResponse;
 import com.tasteam.domain.group.dto.GroupUpdateRequest;
-import com.tasteam.domain.group.service.GroupService;
+import com.tasteam.domain.group.service.GroupFacade;
 import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
 import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
@@ -31,7 +31,7 @@ import com.tasteam.domain.subgroup.dto.SubgroupJoinRequest;
 import com.tasteam.domain.subgroup.dto.SubgroupJoinResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
-import com.tasteam.domain.subgroup.service.SubgroupService;
+import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
@@ -44,23 +44,23 @@ import lombok.RequiredArgsConstructor;
 @Validated
 public class GroupController implements GroupControllerDocs {
 
-	private final GroupService groupService;
+	private final GroupFacade groupFacade;
 	private final RestaurantService restaurantService;
 	private final ReviewService reviewService;
-	private final SubgroupService subgroupService;
+	private final SubgroupFacade subgroupFacade;
 
 	@PostMapping
 	@PreAuthorize("hasRole('USER')")
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<GroupCreateResponse> createGroup(@RequestBody @Validated
 	GroupCreateRequest request) {
-		return SuccessResponse.success(groupService.createGroup(request));
+		return SuccessResponse.success(groupFacade.createGroup(request));
 	}
 
 	@GetMapping("/{groupId}")
 	public SuccessResponse<GroupGetResponse> getGroup(@PathVariable @Positive
 	Long groupId) {
-		return SuccessResponse.success(groupService.getGroup(groupId));
+		return SuccessResponse.success(groupFacade.getGroup(groupId));
 	}
 
 	@PatchMapping("/{groupId}")
@@ -70,7 +70,7 @@ public class GroupController implements GroupControllerDocs {
 		Long groupId,
 		@RequestBody @Validated
 		GroupUpdateRequest request) {
-		groupService.updateGroup(groupId, request);
+		groupFacade.updateGroup(groupId, request);
 		return SuccessResponse.success(null);
 	}
 
@@ -78,7 +78,7 @@ public class GroupController implements GroupControllerDocs {
 	@PreAuthorize("hasRole('USER')")
 	public SuccessResponse<Void> deleteGroup(@PathVariable @Positive
 	Long groupId) {
-		groupService.deleteGroup(groupId);
+		groupFacade.deleteGroup(groupId);
 		return SuccessResponse.success(null);
 	}
 
@@ -89,7 +89,7 @@ public class GroupController implements GroupControllerDocs {
 		Long groupId,
 		@CurrentUser
 		Long memberId) {
-		groupService.withdrawGroup(groupId, memberId);
+		groupFacade.withdrawGroup(groupId, memberId);
 		return SuccessResponse.success(null);
 	}
 
@@ -100,7 +100,7 @@ public class GroupController implements GroupControllerDocs {
 		Long groupId,
 		@RequestBody @Validated
 		GroupEmailVerificationRequest request) {
-		return SuccessResponse.success(groupService.sendGroupEmailVerification(groupId, request.email()));
+		return SuccessResponse.success(groupFacade.sendGroupEmailVerification(groupId, request.email()));
 	}
 
 	@PostMapping("/{groupId}/email-authentications")
@@ -114,7 +114,7 @@ public class GroupController implements GroupControllerDocs {
 		@RequestBody @Validated
 		GroupEmailAuthenticationRequest request) {
 		return SuccessResponse.success(
-			groupService.authenticateGroupByEmail(groupId, memberId, request.code()));
+			groupFacade.authenticateGroupByEmail(groupId, memberId, request.code()));
 	}
 
 	@PostMapping("/{groupId}/password-authentications")
@@ -128,7 +128,7 @@ public class GroupController implements GroupControllerDocs {
 		@RequestBody @Validated
 		GroupPasswordAuthenticationRequest request) {
 		return SuccessResponse.success(
-			groupService.authenticateGroupByPassword(groupId, memberId, request.code()));
+			groupFacade.authenticateGroupByPassword(groupId, memberId, request.code()));
 	}
 
 	@GetMapping("/{groupId}/members")
@@ -139,7 +139,7 @@ public class GroupController implements GroupControllerDocs {
 		String cursor,
 		@RequestParam(required = false)
 		Integer size) {
-		return SuccessResponse.success(groupService.getGroupMembers(groupId, cursor, size));
+		return SuccessResponse.success(groupFacade.getGroupMembers(groupId, cursor, size));
 	}
 
 	@DeleteMapping("/{groupId}/members/{userId}")
@@ -149,7 +149,7 @@ public class GroupController implements GroupControllerDocs {
 		Long groupId,
 		@PathVariable @Positive
 		Long userId) {
-		groupService.deleteGroupMember(groupId, userId);
+		groupFacade.deleteGroupMember(groupId, userId);
 		return SuccessResponse.success(null);
 	}
 
@@ -163,7 +163,7 @@ public class GroupController implements GroupControllerDocs {
 		String cursor,
 		@RequestParam(required = false)
 		Integer size) {
-		return SuccessResponse.success(subgroupService.getGroupSubgroups(groupId, memberId, cursor, size));
+		return SuccessResponse.success(subgroupFacade.getGroupSubgroups(groupId, memberId, cursor, size));
 	}
 
 	@GetMapping("/{groupId}/subgroups/search")
@@ -176,7 +176,7 @@ public class GroupController implements GroupControllerDocs {
 		String cursor,
 		@RequestParam(required = false)
 		Integer size) {
-		return SuccessResponse.success(subgroupService.searchGroupSubgroups(groupId, keyword, cursor, size));
+		return SuccessResponse.success(subgroupFacade.searchGroupSubgroups(groupId, keyword, cursor, size));
 	}
 
 	@PostMapping("/{groupId}/subgroups")
@@ -189,7 +189,7 @@ public class GroupController implements GroupControllerDocs {
 		Long memberId,
 		@RequestBody @Validated
 		SubgroupCreateRequest request) {
-		return SuccessResponse.success(subgroupService.createSubgroup(groupId, memberId, request));
+		return SuccessResponse.success(subgroupFacade.createSubgroup(groupId, memberId, request));
 	}
 
 	@PostMapping("/{groupId}/subgroups/{subgroupId}/members")
@@ -203,7 +203,7 @@ public class GroupController implements GroupControllerDocs {
 		Long memberId,
 		@RequestBody(required = false)
 		SubgroupJoinRequest request) {
-		return SuccessResponse.success(subgroupService.joinSubgroup(groupId, subgroupId, memberId, request));
+		return SuccessResponse.success(subgroupFacade.joinSubgroup(groupId, subgroupId, memberId, request));
 	}
 
 	@PatchMapping("/{groupId}/subgroups/{subgroupId}")
@@ -217,7 +217,7 @@ public class GroupController implements GroupControllerDocs {
 		Long memberId,
 		@RequestBody @Validated
 		SubgroupUpdateRequest request) {
-		subgroupService.updateSubgroup(groupId, subgroupId, memberId, request);
+		subgroupFacade.updateSubgroup(groupId, subgroupId, memberId, request);
 		return SuccessResponse.success(null);
 	}
 

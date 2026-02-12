@@ -1,6 +1,7 @@
 package com.tasteam.domain.review.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,7 +30,6 @@ import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
-import com.tasteam.domain.review.dto.request.ReviewCreateRequest;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.domain.review.dto.response.ReviewDetailResponse;
 import com.tasteam.domain.review.entity.Keyword;
@@ -38,7 +38,11 @@ import com.tasteam.domain.review.entity.Review;
 import com.tasteam.domain.review.repository.KeywordRepository;
 import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.fixture.GroupFixture;
+import com.tasteam.fixture.ImageFixture;
 import com.tasteam.fixture.MemberFixture;
+import com.tasteam.fixture.ReviewRequestFixture;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.ReviewErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
@@ -88,13 +92,7 @@ class ReviewServiceIntegrationTest {
 		@Test
 		@DisplayName("이미지 없이 리뷰를 생성한다")
 		void createReviewWithoutImages() {
-			ReviewCreateRequest request = new ReviewCreateRequest(
-				group.getId(),
-				null,
-				"맛있는 음식점입니다",
-				true,
-				List.of(keyword.getId()),
-				null);
+			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(keyword.getId()));
 
 			ReviewCreateResponse response = reviewService.createReview(
 				member.getId(),
@@ -109,16 +107,10 @@ class ReviewServiceIntegrationTest {
 		@DisplayName("이미지와 함께 리뷰를 생성하면 이미지가 ACTIVE 상태로 변경된다")
 		void createReviewWithImages() {
 			UUID fileUuid = UUID.randomUUID();
-			imageRepository.save(
-				Image.create(FilePurpose.REVIEW_IMAGE, "review.png", 1024L, "image/png",
-					"reviews/review.png", fileUuid));
+			imageRepository
+				.save(ImageFixture.create(FilePurpose.REVIEW_IMAGE, "reviews/review.png", fileUuid, "review.png"));
 
-			ReviewCreateRequest request = new ReviewCreateRequest(
-				group.getId(),
-				null,
-				"사진과 함께 리뷰합니다",
-				true,
-				List.of(keyword.getId()),
+			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(keyword.getId()),
 				List.of(fileUuid));
 
 			ReviewCreateResponse response = reviewService.createReview(
@@ -135,6 +127,17 @@ class ReviewServiceIntegrationTest {
 				DomainType.REVIEW, List.of(response.id()));
 			assertThat(domainImages).hasSize(1);
 		}
+
+		@Test
+		@DisplayName("존재하지 않는 키워드를 포함하면 리뷰 생성에 실패한다")
+		void createReview_withMissingKeyword_fails() {
+			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(999999L));
+
+			assertThatThrownBy(() -> reviewService.createReview(member.getId(), restaurant.getId(), request))
+				.isInstanceOf(BusinessException.class)
+				.extracting(ex -> ((BusinessException)ex).getErrorCode())
+				.isEqualTo(ReviewErrorCode.KEYWORD_NOT_FOUND.name());
+		}
 	}
 
 	@Nested
@@ -145,17 +148,11 @@ class ReviewServiceIntegrationTest {
 		@DisplayName("리뷰 상세를 조회하면 키워드와 이미지가 포함된다")
 		void getReviewDetailWithKeywordsAndImages() {
 			UUID fileUuid = UUID.randomUUID();
-			imageRepository.save(
-				Image.create(FilePurpose.REVIEW_IMAGE, "review.png", 1024L, "image/png",
-					"reviews/review.png", fileUuid));
+			imageRepository
+				.save(ImageFixture.create(FilePurpose.REVIEW_IMAGE, "reviews/review.png", fileUuid, "review.png"));
 
-			ReviewCreateRequest request = new ReviewCreateRequest(
-				group.getId(),
-				null,
-				"상세 조회 테스트",
-				true,
-				List.of(keyword.getId()),
-				List.of(fileUuid));
+			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(keyword.getId()),
+				"상세 조회 테스트", true, List.of(fileUuid));
 
 			ReviewCreateResponse created = reviewService.createReview(
 				member.getId(),
@@ -178,13 +175,7 @@ class ReviewServiceIntegrationTest {
 		@Test
 		@DisplayName("리뷰를 삭제하면 soft delete 처리된다")
 		void deleteReview() {
-			ReviewCreateRequest request = new ReviewCreateRequest(
-				group.getId(),
-				null,
-				"삭제될 리뷰",
-				true,
-				List.of(keyword.getId()),
-				null);
+			var request = ReviewRequestFixture.createRequest(group.getId(), List.of(keyword.getId()));
 
 			ReviewCreateResponse created = reviewService.createReview(
 				member.getId(),

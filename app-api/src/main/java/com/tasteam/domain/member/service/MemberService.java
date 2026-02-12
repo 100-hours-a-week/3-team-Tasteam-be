@@ -4,18 +4,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.tasteam.domain.file.dto.response.DomainImageItem;
-import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.entity.Image;
-import com.tasteam.domain.file.entity.ImageStatus;
-import com.tasteam.domain.file.repository.DomainImageRepository;
-import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.type.GroupStatus;
@@ -34,8 +27,6 @@ import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.subgroup.repository.SubgroupMemberRepository;
 import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
-import com.tasteam.global.exception.code.CommonErrorCode;
-import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 
 import lombok.RequiredArgsConstructor;
@@ -49,8 +40,6 @@ public class MemberService {
 	private final MemberRepository memberRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final SubgroupMemberRepository subgroupMemberRepository;
-	private final ImageRepository imageRepository;
-	private final DomainImageRepository domainImageRepository;
 	private final FileService fileService;
 
 	@Transactional(readOnly = true)
@@ -154,26 +143,7 @@ public class MemberService {
 		}
 
 		if (request.profileImageFileUuid() != null) {
-			Image image = imageRepository.findByFileUuid(parseUuid(request.profileImageFileUuid()))
-				.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-
-			if (image.getStatus() == ImageStatus.DELETED) {
-				throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-			}
-
-			if (image.getStatus() != ImageStatus.PENDING
-				&& domainImageRepository.findByDomainTypeAndDomainIdAndImage(DomainType.MEMBER, memberId, image)
-					.isEmpty()) {
-				throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-			}
-
-			domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.MEMBER, memberId);
-			domainImageRepository.save(DomainImage.create(DomainType.MEMBER, memberId, image, 0));
-
-			if (image.getStatus() == ImageStatus.PENDING) {
-				image.activate();
-				imageRepository.save(image);
-			}
+			fileService.replaceDomainImage(DomainType.MEMBER, memberId, request.profileImageFileUuid());
 		}
 	}
 
@@ -194,35 +164,14 @@ public class MemberService {
 		}
 	}
 
-	private UUID parseUuid(String fileUuid) {
-		try {
-			return UUID.fromString(fileUuid);
-		} catch (IllegalArgumentException ex) {
-			throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "fileUuid 형식이 올바르지 않습니다");
-		}
-	}
-
 	private String resolveProfileImageUrl(Member member) {
-		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(
-			DomainType.MEMBER,
-			List.of(member.getId()));
-
-		List<DomainImageItem> memberImages = images.get(member.getId());
-		if (memberImages == null || memberImages.isEmpty()) {
-			return null;
-		}
-		return memberImages.getFirst().url();
+		return fileService.getPrimaryDomainImageUrl(DomainType.MEMBER, member.getId());
 	}
 
 	private Map<Long, String> resolveDomainImageUrlMap(DomainType domainType, List<Long> domainIds) {
 		if (domainIds.isEmpty()) {
 			return Map.of();
 		}
-		Map<Long, List<DomainImageItem>> images = fileService.getDomainImageUrls(domainType, domainIds);
-		return images.entrySet().stream()
-			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
-			.collect(java.util.stream.Collectors.toMap(
-				Map.Entry::getKey,
-				entry -> entry.getValue().getFirst().url()));
+		return fileService.getPrimaryDomainImageUrlMap(domainType, domainIds);
 	}
 }

@@ -20,10 +20,10 @@ public interface MemberSearchHistoryRepository extends JpaRepository<MemberSearc
 
 	@Modifying
 	@Query(value = """
-		INSERT INTO member_serach_history (member_id, keyword, count, created_at, updated_at, deleted_at)
+		INSERT INTO member_search_history (member_id, keyword, count, created_at, updated_at, deleted_at)
 		VALUES (:memberId, :keyword, 1, NOW(), NOW(), NULL)
-		ON CONFLICT (member_id, keyword)
-		DO UPDATE SET count = member_serach_history.count + 1, updated_at = NOW()
+		ON CONFLICT (member_id, keyword) WHERE deleted_at IS NULL
+		DO UPDATE SET count = member_search_history.count + 1, updated_at = NOW()
 		""", nativeQuery = true)
 	void upsertSearchHistory(@Param("memberId")
 	Long memberId, @Param("keyword")

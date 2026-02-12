@@ -22,10 +22,8 @@ import com.tasteam.domain.admin.dto.response.AdminRestaurantDetailResponse;
 import com.tasteam.domain.admin.dto.response.AdminRestaurantListItem;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.entity.Image;
-import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
-import com.tasteam.domain.file.repository.ImageRepository;
+import com.tasteam.domain.file.service.DomainImageLinker;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
@@ -45,7 +43,6 @@ import com.tasteam.domain.restaurant.repository.RestaurantWeeklyScheduleReposito
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 import com.tasteam.domain.restaurant.validator.RestaurantFoodCategoryValidator;
 import com.tasteam.global.exception.business.BusinessException;
-import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.infra.storage.StorageClient;
 import com.tasteam.infra.storage.StorageProperties;
@@ -63,13 +60,13 @@ public class AdminRestaurantService {
 	private final FoodCategoryRepository foodCategoryRepository;
 	private final RestaurantFoodCategoryValidator restaurantFoodCategoryValidator;
 	private final DomainImageRepository domainImageRepository;
-	private final ImageRepository imageRepository;
 	private final GeometryFactory geometryFactory;
 	private final NaverGeocodingClient naverGeocodingClient;
 	private final RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
 	private final RestaurantEventPublisher eventPublisher;
 	private final StorageProperties storageProperties;
 	private final StorageClient storageClient;
+	private final DomainImageLinker domainImageLinker;
 
 	@Transactional(readOnly = true)
 	public Page<AdminRestaurantListItem> getRestaurants(
@@ -203,7 +200,7 @@ public class AdminRestaurantService {
 			Set<Long> foodCategoryIdSet = request.foodCategoryIds().stream()
 				.collect(Collectors.toUnmodifiableSet());
 
-			restaurantFoodCategoryRepository.deleteById(restaurantId);
+			restaurantFoodCategoryRepository.deleteByRestaurantId(restaurantId);
 
 			List<FoodCategory> categories = foodCategoryRepository.findAllById(foodCategoryIdSet);
 			List<RestaurantFoodCategory> mappings = categories.stream()
@@ -233,22 +230,7 @@ public class AdminRestaurantService {
 	}
 
 	private void saveImagesIfPresent(Restaurant restaurant, List<UUID> imageIds) {
-		if (imageIds == null || imageIds.isEmpty()) {
-			return;
-		}
-
-		for (int index = 0; index < imageIds.size(); index++) {
-			UUID fileUuid = imageIds.get(index);
-			int sortOrder = index;
-			Image image = imageRepository.findByFileUuid(fileUuid)
-				.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
-			if (image.getStatus() != ImageStatus.PENDING) {
-				throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
-			}
-			image.activate();
-			DomainImage domainImage = DomainImage.create(DomainType.RESTAURANT, restaurant.getId(), image, sortOrder);
-			domainImageRepository.save(domainImage);
-		}
+		domainImageLinker.linkImages(DomainType.RESTAURANT, restaurant.getId(), imageIds);
 	}
 
 	private void saveWeeklySchedulesIfPresent(Restaurant restaurant, List<WeeklyScheduleRequest> schedules) {

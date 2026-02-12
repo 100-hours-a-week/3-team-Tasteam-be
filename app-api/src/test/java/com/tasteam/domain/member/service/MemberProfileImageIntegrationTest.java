@@ -1,6 +1,7 @@
 package com.tasteam.domain.member.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.UUID;
@@ -14,17 +15,21 @@ import com.tasteam.config.annotation.ServiceIntegrationTest;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.FilePurpose;
-import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
+import com.tasteam.fixture.ImageFixture;
 import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.MemberRequestFixture;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.FileErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
 class MemberProfileImageIntegrationTest {
+
+	private static final String MISSING_FILE_UUID = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff";
 
 	@Autowired
 	private MemberService memberService;
@@ -44,8 +49,7 @@ class MemberProfileImageIntegrationTest {
 		Member member = memberRepository.save(MemberFixture.create());
 		UUID fileUuid = UUID.randomUUID();
 		imageRepository.save(
-			Image.create(FilePurpose.PROFILE_IMAGE, "profile.png", 1024L, "image/png",
-				"members/" + member.getId() + "/profile.png", fileUuid));
+			ImageFixture.create(FilePurpose.PROFILE_IMAGE, "members/" + member.getId() + "/profile.png", fileUuid));
 
 		var request = MemberRequestFixture.profileUpdateRequest(null, null, null, fileUuid.toString());
 
@@ -64,8 +68,7 @@ class MemberProfileImageIntegrationTest {
 		Member member = memberRepository.save(MemberFixture.create());
 		UUID fileUuid = UUID.randomUUID();
 		imageRepository.save(
-			Image.create(FilePurpose.PROFILE_IMAGE, "profile.png", 1024L, "image/png",
-				"members/" + member.getId() + "/profile.png", fileUuid));
+			ImageFixture.create(FilePurpose.PROFILE_IMAGE, "members/" + member.getId() + "/profile.png", fileUuid));
 
 		var request = MemberRequestFixture.profileUpdateRequest(null, null, null, fileUuid.toString());
 
@@ -75,5 +78,17 @@ class MemberProfileImageIntegrationTest {
 
 		assertThat(response.member().profileImageUrl()).isNotNull();
 		assertThat(response.member().profileImageUrl()).contains("profile.png");
+	}
+
+	@Test
+	@DisplayName("프로필 이미지 업데이트 시 존재하지 않는 파일이면 실패한다")
+	void updateProfileImage_withMissingFile_fails() {
+		Member member = memberRepository.save(MemberFixture.create());
+		var request = MemberRequestFixture.profileUpdateRequest(null, null, null, MISSING_FILE_UUID);
+
+		assertThatThrownBy(() -> memberService.updateMyProfile(member.getId(), request))
+			.isInstanceOf(BusinessException.class)
+			.extracting(ex -> ((BusinessException)ex).getErrorCode())
+			.isEqualTo(FileErrorCode.FILE_NOT_FOUND.name());
 	}
 }

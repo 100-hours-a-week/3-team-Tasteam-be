@@ -6,11 +6,44 @@ plugins {
 
 allprojects {
     group = 'com.tasteam'
-    version = '0.0.1-SNAPSHOT'
+    version = getVersionFromGit()
     description = 'Demo project for Spring Boot'
 
     repositories {
         mavenCentral()
+    }
+}
+
+def getVersionFromGit() {
+    def isCI = System.getenv('CI') == 'true'
+    def currentBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
+    def isMainBranch = currentBranch == 'main'
+
+    try {
+        def allTags = 'git tag --points-at HEAD'.execute().text.trim().split('\n')
+        def semanticTag = allTags.find { it.matches(/^v?\d+\.\d+\.\d+$/) }
+
+        if (!semanticTag) {
+            semanticTag = 'git describe --tags --abbrev=0'.execute().text.trim()
+        }
+
+        def commitCount = 'git rev-list --count HEAD'.execute().text.trim()
+        def hash = 'git rev-parse --short HEAD'.execute().text.trim()
+
+        if (semanticTag && !semanticTag.isEmpty() && semanticTag.matches(/^v?\d+\.\d+\.\d+$/)) {
+            return "${semanticTag}.${commitCount}-${hash}"
+        }
+
+        if (isCI && isMainBranch) {
+            throw new GradleException("main 브랜치의 CI/CD 환경에서는 시맨틱 버저닝 Git 태그(v1.0.0)가 필수입니다. 현재 태그: ${allTags.join(', ') ?: '없음'}")
+        }
+
+        return "0.0.1.${commitCount}-${hash}"
+    } catch (Exception e) {
+        if (isCI && isMainBranch) {
+            throw new GradleException("main 브랜치의 CI/CD 환경에서 Git 버전 정보를 가져올 수 없습니다: ${e.message}")
+        }
+        return '0.0.1-SNAPSHOT'
     }
 }
 
@@ -58,3 +91,5 @@ subprojects {
         }
     }
 }
+
+apply from: "${rootDir}/gradle/flyway/flywayCreate.gradle"

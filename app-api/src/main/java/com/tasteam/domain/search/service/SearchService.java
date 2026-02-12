@@ -19,6 +19,7 @@ import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.search.dto.SearchCursor;
+import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 import com.tasteam.domain.search.dto.request.SearchRequest;
 import com.tasteam.domain.search.dto.response.RecentSearchItem;
 import com.tasteam.domain.search.dto.response.SearchGroupSummary;
@@ -34,6 +35,7 @@ import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.SearchErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.global.utils.CursorPageBuilder;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +47,7 @@ public class SearchService {
 
 	private static final int DEFAULT_PAGE_SIZE = 10;
 	private static final int THUMBNAIL_LIMIT = 3;
+	private static final double DEFAULT_RADIUS_KM = 3.0;
 
 	private final GroupQueryRepository groupQueryRepository;
 	private final GroupMemberRepository groupMemberRepository;
@@ -59,13 +62,15 @@ public class SearchService {
 	public SearchResponse search(Long memberId, SearchRequest request) {
 		String keyword = request.keyword().trim();
 		int pageSize = request.size() == null ? DEFAULT_PAGE_SIZE : request.size();
-		SearchCursor cursor = cursorCodec.decodeOrNull(request.cursor(), SearchCursor.class);
-		if (request.cursor() != null && !request.cursor().isBlank() && cursor == null) {
+		CursorPageBuilder<SearchCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, request.cursor(),
+			SearchCursor.class);
+		if (pageBuilder.isInvalid()) {
 			return SearchResponse.emptyResponse();
 		}
 
 		List<SearchGroupSummary> groups = searchGroups(keyword, pageSize);
-		CursorPageResponse<SearchRestaurantItem> restaurants = searchRestaurants(keyword, cursor, pageSize);
+		CursorPageResponse<SearchRestaurantItem> restaurants = searchRestaurants(keyword, pageBuilder, pageSize,
+			request.latitude(), request.longitude(), request.radiusKm());
 
 		if (!groups.isEmpty() || !restaurants.items().isEmpty()) {
 			try {
@@ -113,30 +118,43 @@ public class SearchService {
 	}
 
 	private CursorPageResponse<SearchRestaurantItem> searchRestaurants(
-		String keyword,
-		SearchCursor cursor,
-		int pageSize) {
-		List<Restaurant> result = searchQueryRepository.searchRestaurantsByKeyword(
-			keyword,
-			cursor,
-			pageSize + 1);
-
-		boolean hasNext = result.size() > pageSize;
-		List<Restaurant> pageContent = hasNext ? result.subList(0, pageSize) : result;
-
-		String nextCursor = null;
-		if (hasNext && !pageContent.isEmpty()) {
-			Restaurant last = pageContent.getLast();
-			nextCursor = cursorCodec.encode(new SearchCursor(last.getUpdatedAt(), last.getId()));
+		String keyword, CursorPageBuilder<SearchCursor> pageBuilder, int pageSize, Double latitude,
+		Double longitude, Double radiusKm) {
+		Double radiusMeters = null;
+		if (latitude != null && longitude != null) {
+			double effectiveRadiusKm = radiusKm == null ? DEFAULT_RADIUS_KM : radiusKm;
+			radiusMeters = effectiveRadiusKm * 1000.0;
 		}
 
-		List<Long> restaurantIds = pageContent.stream()
+		List<SearchRestaurantCursorRow> result = searchQueryRepository.searchRestaurantsByKeyword(
+			keyword,
+			pageBuilder.cursor(),
+			CursorPageBuilder.fetchSize(pageSize),
+			latitude,
+			longitude,
+			radiusMeters);
+
+		CursorPageBuilder.Page<SearchRestaurantCursorRow> page = pageBuilder.build(
+			result,
+			pageSize,
+			last -> new SearchCursor(
+				last.nameExact(),
+				last.nameSimilarity(),
+				last.distanceMeters(),
+				last.categoryMatch(),
+				last.addressMatch(),
+				last.restaurant().getUpdatedAt(),
+				last.restaurant().getId()));
+
+		List<Long> restaurantIds = page.items().stream()
+			.map(SearchRestaurantCursorRow::restaurant)
 			.map(Restaurant::getId)
 			.toList();
 
 		Map<Long, List<RestaurantImageDto>> thumbnails = findRestaurantThumbnails(restaurantIds);
 
-		List<SearchRestaurantItem> items = pageContent.stream()
+		List<SearchRestaurantItem> items = page.items().stream()
+			.map(SearchRestaurantCursorRow::restaurant)
 			.map(restaurant -> new SearchRestaurantItem(
 				restaurant.getId(),
 				restaurant.getName(),
@@ -147,9 +165,9 @@ public class SearchService {
 		return new CursorPageResponse<>(
 			items,
 			new CursorPageResponse.Pagination(
-				nextCursor,
-				hasNext,
-				pageSize));
+				page.nextCursor(),
+				page.hasNext(),
+				page.size()));
 	}
 
 	private List<SearchGroupSummary> searchGroups(String keyword, int pageSize) {

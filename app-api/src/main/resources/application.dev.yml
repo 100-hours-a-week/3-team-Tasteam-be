@@ -1,5 +1,8 @@
 server:
   shutdown: graceful
+  tomcat:
+    mbeanregistry:
+      enabled: true
 
 spring:
   config:
@@ -15,11 +18,13 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-
-  flyway:
-    url: ${FLYWAY_URL:${DB_URL}}
-    user: ${FLYWAY_USER:${DB_USERNAME}}
-    password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 20000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
 
   data:
     redis:
@@ -29,10 +34,20 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+    properties:
+      hibernate:
+        generate_statistics: true
 
   sql:
     init:
       mode: never
+
+  flyway:
+    enabled: false
+    url: ${FLYWAY_URL:${DB_URL}}
+    user: ${FLYWAY_USER:${DB_USERNAME}}
+    password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
+    baseline-on-migrate: true
 
   security:
     cookie:
@@ -84,7 +99,7 @@ tasteam:
     access-mode: ${STORAGE_ACCESS_MODE:presigned}
     presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:300}
   webhook:
-    enabled: true
+    enabled: false
     provider: discord
     discord:
       url: ${DISCORD_WEBHOOK_URL:}
@@ -94,3 +109,8 @@ tasteam:
     filters:
       min-http-status: 400
       exclude-error-codes:
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    project-id: ${FIREBASE_PROJECT_ID:}
+    service-account-base64: ${FIREBASE_SERVICE_ACCOUNT_BASE64:}
+    service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
