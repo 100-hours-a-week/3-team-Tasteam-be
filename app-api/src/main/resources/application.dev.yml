@@ -26,13 +26,6 @@ spring:
       max-lifetime: 1800000
       leak-detection-threshold: 60000
 
-  flyway:
-    enabled: true
-    url: ${FLYWAY_URL:${DB_URL}}
-    user: ${FLYWAY_USER:${DB_USERNAME}}
-    password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
-    baseline-on-migrate: true
-
   data:
     redis:
       host: ${REDIS_HOST}
@@ -48,6 +41,13 @@ spring:
   sql:
     init:
       mode: never
+
+  flyway:
+    enabled: true
+    url: ${FLYWAY_URL:${DB_URL}}
+    user: ${FLYWAY_USER:${DB_USERNAME}}
+    password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
+    baseline-on-migrate: true
 
   security:
     cookie:
@@ -109,4 +109,8 @@ tasteam:
     filters:
       min-http-status: 400
       exclude-error-codes:
-
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    project-id: ${FIREBASE_PROJECT_ID:}
+    service-account-base64: ${FIREBASE_SERVICE_ACCOUNT_BASE64:}
+    service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}

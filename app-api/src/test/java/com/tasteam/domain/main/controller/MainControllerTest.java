@@ -42,7 +42,8 @@ class MainControllerTest {
 				new Section("SPONSORED", "Sponsored", List.of()),
 				new Section("HOT", "이번주 Hot", List.of(item)),
 				new Section("NEW", "신규 개장", List.of(item)),
-				new Section("AI_RECOMMEND", "AI 추천", List.of(item))));
+				new Section("AI_RECOMMEND", "AI 추천", List.of(item))),
+			null);
 	}
 
 	private HomePageResponse createHomeResponse() {

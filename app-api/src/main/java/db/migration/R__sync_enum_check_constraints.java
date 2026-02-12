@@ -34,6 +34,9 @@ public class R__sync_enum_check_constraints extends BaseJavaMigration {
 	}
 
 	private void rebuildDomainTypeConstraint(Connection connection) throws SQLException {
+		if (!tableExists(connection, "domain_image")) {
+			return;
+		}
 		String allowed = joinEnumNames(DomainType.values());
 		String sql = "ALTER TABLE domain_image "
 			+ "DROP CONSTRAINT IF EXISTS chk_domain_image_domain_type; "
@@ -44,6 +47,9 @@ public class R__sync_enum_check_constraints extends BaseJavaMigration {
 	}
 
 	private void rebuildFilePurposeConstraint(Connection connection) throws SQLException {
+		if (!tableExists(connection, "image")) {
+			return;
+		}
 		String allowed = joinEnumNames(FilePurpose.values());
 		String sql = "ALTER TABLE image "
 			+ "DROP CONSTRAINT IF EXISTS chk_image_purpose; "
@@ -64,5 +70,13 @@ public class R__sync_enum_check_constraints extends BaseJavaMigration {
 			.map(Enum::name)
 			.map(name -> "'" + name + "'")
 			.collect(Collectors.joining(", "));
+	}
+
+	private boolean tableExists(Connection connection, String tableName) throws SQLException {
+		String sql = "SELECT to_regclass('public." + tableName + "') IS NOT NULL";
+		try (Statement statement = connection.createStatement();
+			var resultSet = statement.executeQuery(sql)) {
+			return resultSet.next() && resultSet.getBoolean(1);
+		}
 	}
 }

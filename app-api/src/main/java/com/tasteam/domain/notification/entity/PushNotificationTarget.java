@@ -22,9 +22,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "push_notification_target", uniqueConstraints = {
-	@UniqueConstraint(name = "uq_fcm_token", columnNames = {"fcm_token"})
+	@UniqueConstraint(name = "uq_fcm_token", columnNames = {"fcm_token"}),
+	@UniqueConstraint(name = "uq_member_device", columnNames = {"member_id", "device_id"})
 }, indexes = {
-	@Index(name = "idx_push_target_member", columnList = "member_id, created_at")
+	@Index(name = "idx_push_target_member", columnList = "member_id, created_at"),
+	@Index(name = "idx_push_target_member_device", columnList = "member_id, device_id")
 })
 public class PushNotificationTarget extends BaseCreatedAtEntity {
 
@@ -35,13 +37,21 @@ public class PushNotificationTarget extends BaseCreatedAtEntity {
 	@Column(name = "member_id", nullable = false)
 	private Long memberId;
 
+	@Column(name = "device_id", length = 64)
+	private String deviceId;
+
 	@Column(name = "fcm_token", nullable = false, length = 255)
 	private String fcmToken;
 
-	public static PushNotificationTarget create(Long memberId, String fcmToken) {
+	public static PushNotificationTarget create(Long memberId, String deviceId, String fcmToken) {
 		return PushNotificationTarget.builder()
 			.memberId(memberId)
+			.deviceId(deviceId)
 			.fcmToken(fcmToken)
 			.build();
+	}
+
+	public void changeFcmToken(String fcmToken) {
+		this.fcmToken = fcmToken;
 	}
 }

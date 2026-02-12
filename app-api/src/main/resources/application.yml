@@ -120,8 +120,15 @@ tasteam:
         enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:true}
       service-performance:
         enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:true}
+      ai-analysis-performance:
+        enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:true}
     webhook:
       enabled: ${TASTEAM_AOP_WEBHOOK_ENABLED:true}
+  local-cache:
+    caffeine:
+      maximum-size: ${LOCAL_CACHE_CAFFEINE_MAXIMUM_SIZE:1000}
+      expire-after-write: ${LOCAL_CACHE_CAFFEINE_EXPIRE_AFTER_WRITE:10m}
+      record-stats: ${LOCAL_CACHE_CAFFEINE_RECORD_STATS:true}
   webhook:
     enabled: ${WEBHOOK_ENABLED:false}
     provider: ${WEBHOOK_PROVIDER:discord}

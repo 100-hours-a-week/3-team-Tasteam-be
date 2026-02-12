@@ -24,6 +24,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       # 1. GitHub CLI를 이용해 run_number에 해당하는 실제 run-id를 찾습니다.
       - name: Find Run ID

@@ -78,6 +78,7 @@
 원칙:
 - 이벤트 상태와 디스플레이 상태는 서로 독립이다.
 - Public 목록/상세 노출은 `displayStatus=DISPLAYING` 조건을 따른다.
+- 메인 스플래시 광고(`splashEvent`)는 `display_channel=MAIN_BANNER` 또는 `BOTH`만 대상으로 한다.
 
 ## **[3-3] 데이터 모델 (분리 설계)**
 
@@ -181,6 +182,19 @@
 ### `GET /api/v1/notices`, `GET /api/v1/notices/{id}`
 
 - 기존 계약 유지
+
+### `GET /api/v1/main` 내 `splashEvent`
+
+- 목적: 메인 진입 시 스플래시 팝업용 이벤트 1건 제공
+- 선정 규칙
+  - `event.publish_status = PUBLISHED`
+  - `event_display.display_enabled = true`
+  - `now between display_start_at and display_end_at`
+  - `display_channel in (MAIN_BANNER, BOTH)`
+  - `event_asset`에서 `asset_type = BANNER` 대표 1건 사용
+  - 정렬 우선순위: `display_priority asc`, `display_start_at desc`, `event.id desc`
+- 응답 필드(권장)
+  - `id`, `title`, `content`, `thumbnailImageUrl`, `startAt`, `endAt`
 
 ## **[3-6] Admin API 계약 (후속 구현 권장)**
 

@@ -19,8 +19,8 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
-    defer-datasource-initialization: false
+      ddl-auto: create-drop
+    defer-datasource-initialization: true
 
     properties:
       hibernate:
@@ -29,7 +29,7 @@ spring:
         generate_statistics: true
 
   flyway:
-    enabled: true
+    enabled: false
     url: ${FLYWAY_URL:${DB_URL:jdbc:postgresql://localhost:5432/tasteam}}
     user: ${FLYWAY_USER:${DB_USERNAME:tasteam}}
     password: ${FLYWAY_PASSWORD:${DB_PASSWORD:tasteam}}
@@ -39,7 +39,7 @@ spring:
 
   sql:
     init:
-      mode: never
+      mode: always
 
   security:
     jwt:
@@ -66,3 +66,8 @@ tasteam:
       comparison-batch-size: ${TASTEAM_AI_ANALYSIS_COMPARISON_BATCH_SIZE:10}
   webhook:
     enabled: false
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    project-id: ${FIREBASE_PROJECT_ID:}
+    service-account-base64: ${FIREBASE_SERVICE_ACCOUNT_BASE64:}
+    service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}

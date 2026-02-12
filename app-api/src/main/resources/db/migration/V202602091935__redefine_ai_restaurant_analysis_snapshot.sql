@@ -22,8 +22,25 @@ BEGIN
                 RENAME COLUMN positive_review_ratio TO positive_ratio;
         END IF;
 
-        ALTER TABLE ai_restaurant_review_analysis
-            ALTER COLUMN positive_ratio TYPE NUMERIC(5, 4) USING positive_ratio::NUMERIC(5, 4);
+        IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = 'ai_restaurant_review_analysis'
+              AND column_name = 'positive_ratio'
+        ) THEN
+            ALTER TABLE ai_restaurant_review_analysis
+                ADD COLUMN positive_ratio NUMERIC(5, 4) NOT NULL DEFAULT 0;
+        END IF;
+
+        IF EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = 'ai_restaurant_review_analysis'
+              AND column_name = 'positive_ratio'
+        ) THEN
+            ALTER TABLE ai_restaurant_review_analysis
+                ALTER COLUMN positive_ratio TYPE NUMERIC(5, 4) USING positive_ratio::NUMERIC(5, 4);
+        END IF;
 
         ALTER TABLE ai_restaurant_review_analysis
             ADD COLUMN IF NOT EXISTS category_summaries JSONB NOT NULL DEFAULT '{}'::jsonb,

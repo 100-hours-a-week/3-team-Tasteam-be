@@ -23,11 +23,6 @@ spring:
       max-lifetime: 1800000
       leak-detection-threshold: 60000
 
-  flyway:
-    url: ${FLYWAY_URL:${DB_URL}}
-    user: ${FLYWAY_USER:${DB_USERNAME}}
-    password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
-
   data:
     redis:
       host: ${REDIS_HOST}
@@ -36,6 +31,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+
+  flyway:
+    enabled: true
+    url: ${FLYWAY_URL:${DB_URL}}
+    user: ${FLYWAY_USER:${DB_USERNAME}}
+    password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
+    baseline-on-migrate: true
 
   security:
     cors:
@@ -105,8 +107,15 @@ tasteam:
         enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:false}
       service-performance:
         enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:false}
+      ai-analysis-performance:
+        enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:false}
   webhook:
     enabled: false
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    project-id: ${FIREBASE_PROJECT_ID:}
+    service-account-base64: ${FIREBASE_SERVICE_ACCOUNT_BASE64:}
+    service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
 
 
 management:

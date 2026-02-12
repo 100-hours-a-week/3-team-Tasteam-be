@@ -11,6 +11,8 @@ public interface PushNotificationTargetRepository extends JpaRepository<PushNoti
 
 	Optional<PushNotificationTarget> findByFcmToken(String fcmToken);
 
+	Optional<PushNotificationTarget> findByMemberIdAndDeviceId(Long memberId, String deviceId);
+
 	List<PushNotificationTarget> findAllByMemberId(Long memberId);
 
 	void deleteByFcmToken(String fcmToken);

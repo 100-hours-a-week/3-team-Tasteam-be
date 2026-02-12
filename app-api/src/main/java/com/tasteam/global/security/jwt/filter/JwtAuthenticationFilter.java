@@ -32,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	private final JwtTokenProvider jwtTokenProvider;
 
-	/** 
+	/**
 	 * 요청에서 JWT를 추출하고 유효성을 검사한 후, 인증 정보를 SecurityContext에 설정합니다.
 	 */
 	@Override

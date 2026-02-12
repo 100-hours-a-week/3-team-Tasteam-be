@@ -21,18 +21,18 @@ services:
       timeout: 5s
       retries: 5
 
-  # redis:
-  #   image: redis:7
-  #   container_name: tasteam-redis
-  #   ports:
-  #     - "${REDIS_PORT}:6379"
-  #   volumes:
-  #     - redis_data:/data
-  #   healthcheck:
-  #     test: ["CMD", "redis-cli", "ping"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  redis:
+    image: redis:7
+    container_name: tasteam-redis
+    ports:
+      - "${REDIS_PORT:6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
@@ -55,4 +55,4 @@ services:
 
 volumes:
   postgres_data:
-  # redis_data:
+  redis_data:
