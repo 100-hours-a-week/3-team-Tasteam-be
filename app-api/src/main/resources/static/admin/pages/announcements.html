@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>음식점 관리 - Tasteam Admin</title>
+    <title>공지사항 관리 - Tasteam Admin</title>
     <link rel="stylesheet" href="/admin/css/admin.css">
 </head>
 <body>
@@ -14,24 +14,18 @@
             </div>
             <ul class="nav-menu">
                 <li><a href="/admin/pages/dashboard.html">대시보드</a></li>
-                <li><a href="/admin/pages/restaurants.html" class="active">음식점 관리</a></li>
+                <li><a href="/admin/pages/restaurants.html">음식점 관리</a></li>
                 <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
                 <li><a href="/admin/pages/promotions.html">프로모션 관리</a></li>
-                <li><a href="/admin/pages/announcements.html">공지사항 관리</a></li>
+                <li><a href="/admin/pages/announcements.html" class="active">공지사항 관리</a></li>
                 <li><a href="/admin/pages/jobs.html">배치 작업</a></li>
                 <li><a href="#" id="logoutBtn">로그아웃</a></li>
             </ul>
         </nav>
         <main class="content">
             <div class="content-header">
-                <h1>음식점 관리</h1>
-                <button class="btn btn-primary" onclick="location.href='/admin/pages/restaurant-create.html'">음식점 등록</button>
-            </div>
-
-            <div class="search-bar">
-                <input type="text" id="searchName" placeholder="음식점 이름 검색">
-                <input type="text" id="searchAddress" placeholder="주소 검색">
-                <button class="btn btn-secondary" onclick="searchRestaurants()">검색</button>
+                <h1>공지사항 관리</h1>
+                <button class="btn btn-primary" onclick="location.href='/admin/pages/announcement-create.html'">공지사항 등록</button>
             </div>
 
             <div class="table-container">
@@ -39,17 +33,15 @@
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>음식점명</th>
-                            <th>주소</th>
-                            <th>음식 카테고리</th>
+                            <th>제목</th>
                             <th>등록일</th>
-                            <th>상태</th>
+                            <th>수정일</th>
                             <th>작업</th>
                         </tr>
                     </thead>
-                    <tbody id="restaurantList">
+                    <tbody id="announcementList">
                         <tr>
-                            <td colspan="7" class="loading">로딩 중...</td>
+                            <td colspan="5" class="loading">로딩 중...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -60,6 +52,6 @@
     </div>
     <script src="/admin/js/auth.js"></script>
     <script src="/admin/js/api.js"></script>
-    <script src="/admin/js/restaurants.js"></script>
+    <script src="/admin/js/announcements.js"></script>
 </body>
 </html>
