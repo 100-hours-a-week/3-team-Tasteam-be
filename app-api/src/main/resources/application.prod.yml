@@ -30,7 +30,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validation
+      ddl-auto: validate
 
   flyway:
     enabled: true
