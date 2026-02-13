@@ -189,7 +189,7 @@ public interface GroupControllerDocs {
 	@Operation(summary = "그룹 리뷰 음식점 목록 조회", description = "그룹 리뷰가 존재하는 음식점 목록을 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_REVIEW_RESTAURANTS")
-	CursorPageResponse<RestaurantListItem> getGroupReviewRestaurants(
+	SuccessResponse<CursorPageResponse<RestaurantListItem>> getGroupReviewRestaurants(
 		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@Validated @ParameterObject

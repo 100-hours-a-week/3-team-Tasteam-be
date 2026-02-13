@@ -133,6 +133,12 @@ public class ReviewService {
 		if (!groupRepository.existsByIdAndDeletedAtIsNull(request.groupId())) {
 			throw new BusinessException(GroupErrorCode.GROUP_NOT_FOUND);
 		}
+		// 서브그룹 리뷰인 경우, 해당 서브그룹이 요청한 그룹에 소속되는지 검증 (group_id 정상 저장 보장)
+		if (request.subgroupId() != null
+			&& subgroupRepository.findByIdAndGroup_IdAndStatusAndDeletedAtIsNull(
+				request.subgroupId(), request.groupId(), SubgroupStatus.ACTIVE).isEmpty()) {
+			throw new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND);
+		}
 
 		List<Keyword> keywords = keywordRepository.findAllById(request.keywordIds());
 		if (keywords.size() != request.keywordIds().size()) {

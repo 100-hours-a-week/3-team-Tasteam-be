@@ -109,6 +109,11 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 				rs.getDouble("distance_meter")));
 	}
 
+	/**
+	 * 그룹 ID로 리뷰된 음식점 조회. 해당 그룹에서 작성된 리뷰(group_id만 일치)와
+	 * 해당 그룹의 모든 서브그룹에서 작성된 리뷰(group_id 동일, subgroup_id not null)를 모두 포함한다.
+	 * review 테이블에 서브그룹 리뷰도 부모 group_id를 저장하므로 group_id 조건만으로 충분하다.
+	 */
 	@Override
 	public List<RestaurantDistanceQueryDto> findRestaurantsWithDistance(
 		Long groupId,
@@ -122,10 +127,10 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 
 		String sql = """
 			WITH ranked AS (
-			  SELECT
+			  SELECT DISTINCT ON (r.id)
 				r.id,
 				r.name,
-				r.full_address,
+				r.full_address AS address,
 				ST_Distance(
 				  r.location::geography,
 				  ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
@@ -144,6 +149,7 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 				  WHERE rv.restaurant_id = r.id
 					AND rv.group_id = :groupId
 				)
+			  ORDER BY r.id
 			)
 			SELECT *
 			FROM ranked

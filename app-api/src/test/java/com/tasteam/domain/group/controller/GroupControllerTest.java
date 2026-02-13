@@ -438,9 +438,9 @@ class GroupControllerTest {
 				.param("radius", String.valueOf(RestaurantRequestFixture.DEFAULT_RADIUS))
 				.param("size", String.valueOf(RestaurantRequestFixture.DEFAULT_SIZE)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.items[0].id").value(1))
-				.andExpect(jsonPath("$.items[0].name").value("맛집식당"))
-				.andExpect(jsonPath("$.pagination.hasNext").value(false));
+				.andExpect(jsonPath("$.data.items[0].id").value(1))
+				.andExpect(jsonPath("$.data.items[0].name").value("맛집식당"))
+				.andExpect(jsonPath("$.data.pagination.hasNext").value(false));
 		}
 	}
 }
