@@ -95,6 +95,7 @@ public final class ApiEndpointSecurityPolicy {
 			ApiEndpoints.FILES_ALL,
 			ApiEndpoints.GROUPS_ALL,
 			ApiEndpoints.SUBGROUPS_ALL,
+			ApiEndpoints.CHAT_ROOMS_ALL,
 			ApiEndpoints.MEMBERS_ALL
 		};
 	}
