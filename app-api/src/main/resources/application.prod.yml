@@ -38,6 +38,7 @@ spring:
     user: ${FLYWAY_USER:${DB_USERNAME}}
     password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
     baseline-on-migrate: true
+    out-of-order: true
 
   security:
     cors:
