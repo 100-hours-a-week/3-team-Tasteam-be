@@ -148,6 +148,7 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 				  FROM review rv
 				  WHERE rv.restaurant_id = r.id
 					AND rv.group_id = :groupId
+					AND rv.deleted_at IS NULL
 				)
 			  ORDER BY r.id
 			)
