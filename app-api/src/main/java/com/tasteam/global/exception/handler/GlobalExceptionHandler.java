@@ -93,6 +93,7 @@ public class GlobalExceptionHandler {
 	 */
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ErrorResponse<?>> handleException(Exception e) {
+		log.error("Unhandled exception", e);
 		ErrorResponse<Void> response = ErrorResponse.of("서버 내부 오류가 발생했습니다");
 		return ResponseEntity.internalServerError().body(response);
 	}

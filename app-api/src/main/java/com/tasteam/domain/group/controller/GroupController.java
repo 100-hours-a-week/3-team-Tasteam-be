@@ -233,11 +233,11 @@ public class GroupController implements GroupControllerDocs {
 
 	@ResponseStatus(HttpStatus.OK)
 	@GetMapping("/{groupId}/reviews/restaurants")
-	public CursorPageResponse<RestaurantListItem> getGroupReviewRestaurants(
+	public SuccessResponse<CursorPageResponse<RestaurantListItem>> getGroupReviewRestaurants(
 		@PathVariable @Positive
 		Long groupId,
 		@ModelAttribute @Validated
 		NearbyRestaurantQueryParams queryParams) {
-		return restaurantService.getGroupRestaurants(groupId, queryParams);
+		return SuccessResponse.success(restaurantService.getGroupRestaurants(groupId, queryParams));
 	}
 }
