@@ -20,6 +20,7 @@ import com.tasteam.domain.chat.entity.ChatRoomMember;
 import com.tasteam.domain.chat.repository.ChatMessageRepository;
 import com.tasteam.domain.chat.repository.ChatRoomMemberRepository;
 import com.tasteam.domain.chat.repository.ChatRoomRepository;
+import com.tasteam.domain.chat.stream.ChatStreamPublisher;
 import com.tasteam.domain.chat.type.ChatMessageType;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
@@ -46,6 +47,7 @@ public class ChatService {
 	private final CursorCodec cursorCodec;
 	private final MemberRepository memberRepository;
 	private final FileService fileService;
+	private final ChatStreamPublisher chatStreamPublisher;
 
 	@Transactional(readOnly = true)
 	public ChatMessageListResponse getMessages(Long chatRoomId, Long memberId, String cursor, Integer size) {
@@ -115,6 +117,8 @@ public class ChatService {
 			message.getContent(),
 			message.getType(),
 			message.getCreatedAt());
+
+		chatStreamPublisher.publish(chatRoomId, item);
 
 		return new ChatMessageSendResponse(item);
 	}

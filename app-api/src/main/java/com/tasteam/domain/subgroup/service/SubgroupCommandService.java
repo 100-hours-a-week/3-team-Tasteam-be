@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.tasteam.domain.chat.entity.ChatRoom;
+import com.tasteam.domain.chat.entity.ChatRoomMember;
+import com.tasteam.domain.chat.repository.ChatRoomMemberRepository;
+import com.tasteam.domain.chat.repository.ChatRoomRepository;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
@@ -49,6 +53,8 @@ public class SubgroupCommandService {
 	private final SubgroupMemberRepository subgroupMemberRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final FileService fileService;
+	private final ChatRoomRepository chatRoomRepository;
+	private final ChatRoomMemberRepository chatRoomMemberRepository;
 
 	@Transactional
 	public SubgroupCreateResponse createSubgroup(Long groupId, Long memberId, SubgroupCreateRequest request) {
@@ -89,9 +95,19 @@ public class SubgroupCommandService {
 			applySubgroupImage(subgroup, request.getProfileImageFileUuid());
 		}
 
+		ChatRoom chatRoom = chatRoomRepository.save(ChatRoom.builder()
+			.subgroupId(subgroup.getId())
+			.deletedAt(null)
+			.build());
+
 		Member member = memberRepository.findByIdAndDeletedAtIsNull(memberId)
 			.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 		subgroupMemberRepository.save(SubgroupMember.create(subgroup.getId(), member));
+		chatRoomMemberRepository.save(ChatRoomMember.builder()
+			.chatRoomId(chatRoom.getId())
+			.memberId(memberId)
+			.deletedAt(null)
+			.build());
 
 		return SubgroupCreateResponse.from(subgroup);
 	}
@@ -129,6 +145,20 @@ public class SubgroupCommandService {
 			throw new BusinessException(SubgroupErrorCode.SUBGROUP_ALREADY_JOINED);
 		}
 
+		ChatRoom chatRoom = getOrCreateChatRoom(subgroupId);
+		ChatRoomMember chatRoomMember = chatRoomMemberRepository
+			.findByChatRoomIdAndMemberId(chatRoom.getId(), memberId)
+			.orElse(null);
+		if (chatRoomMember == null) {
+			chatRoomMemberRepository.save(ChatRoomMember.builder()
+				.chatRoomId(chatRoom.getId())
+				.memberId(memberId)
+				.deletedAt(null)
+				.build());
+		} else if (chatRoomMember.getDeletedAt() != null) {
+			chatRoomMember.restore();
+		}
+
 		return new SubgroupJoinResponse(
 			new SubgroupJoinResponse.JoinData(
 				subgroupId,
@@ -149,6 +179,14 @@ public class SubgroupCommandService {
 		}
 		subgroupMember.softDelete(Instant.now());
 		subgroup.decreaseMemberCount();
+
+		chatRoomRepository.findBySubgroupIdAndDeletedAtIsNull(subgroupId)
+			.flatMap(room -> chatRoomMemberRepository.findByChatRoomIdAndMemberId(room.getId(), memberId))
+			.ifPresent(member -> {
+				if (member.getDeletedAt() == null) {
+					member.softDelete(Instant.now());
+				}
+			});
 	}
 
 	@Transactional
@@ -249,5 +287,13 @@ public class SubgroupCommandService {
 				subgroup.getId(),
 				ex);
 		}
+	}
+
+	private ChatRoom getOrCreateChatRoom(Long subgroupId) {
+		return chatRoomRepository.findBySubgroupIdAndDeletedAtIsNull(subgroupId)
+			.orElseGet(() -> chatRoomRepository.save(ChatRoom.builder()
+				.subgroupId(subgroupId)
+				.deletedAt(null)
+				.build()));
 	}
 }
