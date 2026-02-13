@@ -15,6 +15,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
@@ -35,7 +36,8 @@ import lombok.NoArgsConstructor;
 public class SubgroupMember extends BaseCreatedAtEntity {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "subgroup_member_seq_gen")
+	@SequenceGenerator(name = "subgroup_member_seq_gen", sequenceName = "subgroup_member_id_seq", allocationSize = 1)
 	@Column(name = "id")
 	private Long id;
 
