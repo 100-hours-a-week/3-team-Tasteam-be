@@ -37,7 +37,7 @@ public class SubgroupMember extends BaseCreatedAtEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "subgroup_member_seq_gen")
-	@SequenceGenerator(name = "subgroup_member_seq_gen", sequenceName = "subgroup_member_id_seq", allocationSize = 1)
+	@SequenceGenerator(name = "subgroup_member_seq_gen", sequenceName = "subgroup_member_seq", allocationSize = 50)
 	@Column(name = "id")
 	private Long id;
 

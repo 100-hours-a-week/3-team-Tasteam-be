@@ -32,7 +32,7 @@ public class Member extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "member_seq_gen")
-	@SequenceGenerator(name = "member_seq_gen", sequenceName = "member_id_seq", allocationSize = 1)
+	@SequenceGenerator(name = "member_seq_gen", sequenceName = "member_seq", allocationSize = 50)
 	private Long id;
 
 	@Column(name = "email", unique = true, length = 255)
