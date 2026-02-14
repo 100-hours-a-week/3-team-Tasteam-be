@@ -47,7 +47,7 @@ public class MessageQueueConfig {
 	private StringRedisTemplate requireRedisTemplate(@Nullable
 	StringRedisTemplate stringRedisTemplate) {
 		if (stringRedisTemplate == null) {
-			throw new IllegalStateException("redis-stream provider requires StringRedisTemplate bean");
+			throw new IllegalStateException("redis-stream provider는 StringRedisTemplate 빈이 필요합니다");
 		}
 		return stringRedisTemplate;
 	}
@@ -56,7 +56,7 @@ public class MessageQueueConfig {
 		@Nullable
 		StreamMessageListenerContainer<String, MapRecord<String, String, String>> messageQueueStreamListenerContainer) {
 		if (messageQueueStreamListenerContainer == null) {
-			throw new IllegalStateException("redis-stream provider requires StreamMessageListenerContainer bean");
+			throw new IllegalStateException("redis-stream provider는 StreamMessageListenerContainer 빈이 필요합니다");
 		}
 		return messageQueueStreamListenerContainer;
 	}

@@ -28,6 +28,6 @@ class MessageQueueProviderTypeTest {
 		// when & then
 		assertThatThrownBy(() -> MessageQueueProviderType.from("rabbitmq"))
 			.isInstanceOf(IllegalArgumentException.class)
-			.hasMessageContaining("지원하지 않는 message queue provider");
+			.hasMessageContaining("지원하지 않는 메시지큐 provider");
 	}
 }

@@ -27,7 +27,7 @@ public enum MessageQueueProviderType {
 			case "none" -> NONE;
 			case "redis-stream", "redisstream", "redis" -> REDIS_STREAM;
 			case "kafka" -> KAFKA;
-			default -> throw new IllegalArgumentException("지원하지 않는 message queue provider: " + raw);
+			default -> throw new IllegalArgumentException("지원하지 않는 메시지큐 provider: " + raw);
 		};
 	}
 }
