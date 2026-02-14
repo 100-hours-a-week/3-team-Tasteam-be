@@ -143,6 +143,13 @@ tasteam:
     filters:
       min-http-status: ${WEBHOOK_MIN_HTTP_STATUS:500}
       exclude-error-codes: ${WEBHOOK_EXCLUDE_ERROR_CODES:}
+  message-queue:
+    enabled: ${MQ_ENABLED:false}
+    provider: ${MQ_PROVIDER:none}
+    topic-prefix: ${MQ_TOPIC_PREFIX:tasteam}
+    default-consumer-group: ${MQ_DEFAULT_CONSUMER_GROUP:tasteam-api}
+    poll-timeout-millis: ${MQ_POLL_TIMEOUT_MILLIS:1000}
+    max-retries: ${MQ_MAX_RETRIES:3}
 
 
 ## ====== 운영 & 관리 ======
