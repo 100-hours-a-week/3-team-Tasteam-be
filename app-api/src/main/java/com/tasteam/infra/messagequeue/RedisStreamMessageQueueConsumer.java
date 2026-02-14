@@ -61,7 +61,7 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 			stringRedisTemplate.opsForStream().acknowledge(record.getStream(), subscription.consumerGroup(),
 				record.getId());
 		} catch (Exception ex) {
-			log.warn("Failed to handle message queue record. stream={}, id={}", record.getStream(), record.getId(), ex);
+			log.warn("메시지큐 레코드 처리에 실패했습니다. stream={}, id={}", record.getStream(), record.getId(), ex);
 		}
 	}
 
@@ -86,7 +86,12 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 		if (value == null || value.isBlank()) {
 			return Instant.now();
 		}
-		return Instant.ofEpochMilli(Long.parseLong(value));
+		try {
+			return Instant.ofEpochMilli(Long.parseLong(value));
+		} catch (NumberFormatException ex) {
+			log.warn("메시지큐 레코드의 occurredAt 값이 올바르지 않습니다. value={}", value);
+			return Instant.now();
+		}
 	}
 
 	private String streamKey(String topic) {
