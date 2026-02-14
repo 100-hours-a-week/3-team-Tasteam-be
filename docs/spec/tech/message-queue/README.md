@@ -174,3 +174,26 @@ flowchart LR
 - provider 설정 변경이 빈 선택 결과와 일치하는가
 - 테스트가 계약/설정 분기를 검증하는가
 
+---
+
+# **[7] 구현 현황 (Implementation Status)**
+
+## **[7-1] Phase 1 완료 범위**
+
+- 메시지큐 추상 계약(Producer/Consumer/Message/Subscription) 반영 완료
+- Redis Stream provider 분기 및 Producer/Consumer 1차 구현 완료
+- MQ 전용 Stream listener container 설정 추가
+- 인터페이스 계약 Javadoc 반영
+- MQ 모듈 테스트(설정/producer/consumer) 추가
+
+## **[7-2] 검증**
+
+- `./gradlew :app-api:test --tests 'com.tasteam.infra.messagequeue.*'` 통과
+- 컨텍스트 로딩 회귀 검증:
+  - `./gradlew :app-api:test --tests com.tasteam.ApiApplicationTests --tests com.tasteam.config.JpaAuditingConflictTest` 통과
+
+## **[7-3] 다음 단계**
+
+- 애플리케이션 도메인 이벤트 발행 지점 연동
+- 실제 구독 라이프사이클/핸들러 운영 정책 고도화
+- Kafka provider 구현 단계 진행
