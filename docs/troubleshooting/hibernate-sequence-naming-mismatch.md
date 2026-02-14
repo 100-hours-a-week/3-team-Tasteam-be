@@ -118,3 +118,103 @@ CREATE TABLE chat_message_file (
 2. Flyway 마이그레이션과 JPA 엔티티 간 시퀀스 명명 규칙 일치 필요
 3. `ddl-auto: validate` 환경에서는 DB 스키마와 엔티티 정의가 정확히 일치해야 함
 4. Local(`create-drop`)에서 성공해도 Dev/Prod(`validate`)에서 실패할 수 있음
+
+## 부록: DB 계정 권한 분리 전략
+
+### 문제 상황
+
+```
+Application 계정 (A): DML만 가능 (SELECT, INSERT, UPDATE, DELETE)
+Flyway 계정 (B): DDL + DML 모두 가능 (CREATE, ALTER, DROP + DML)
+```
+
+- `ddl-auto: validate`는 DDL을 실행하지 않고 스키마만 검증
+- Hibernate가 시퀀스 존재 여부를 검증할 때, 시퀀스가 DB에 없으면 실패
+- Application 계정에 DDL 권한이 없어도 검증 자체는 가능하지만, 시퀀스가 존재해야 함
+
+### 현업 권한 분리 전략
+
+#### 전략 1: 단일 계정 (소규모/스타트업)
+
+```
+Application = Flyway = 동일 계정 (DDL + DML 모두 가능)
+```
+
+단순하지만 보안상 권장되지 않음.
+
+#### 전략 2: 분리 계정 (권장)
+
+```
+Flyway 계정: DDL 권한 (스키마 마이그레이션 전용)
+Application 계정: DML 권한만 (런타임 전용)
+```
+
+**핵심**: Flyway가 모든 스키마 객체(테이블, 시퀀스, 인덱스)를 생성해야 함.
+
+```sql
+-- Flyway 마이그레이션에서
+CREATE SEQUENCE chat_message_file_id_seq;
+CREATE TABLE chat_message_file (...);
+
+-- Application 계정에 권한 부여
+GRANT USAGE ON SEQUENCE chat_message_file_id_seq TO app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON chat_message_file TO app_user;
+```
+
+#### 전략 3: 역할(Role) 기반
+
+```sql
+-- 역할 생성
+CREATE ROLE app_readonly;
+CREATE ROLE app_readwrite;
+CREATE ROLE app_admin;
+
+-- 권한 부여
+GRANT SELECT ON ALL TABLES TO app_readonly;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES TO app_readwrite;
+GRANT ALL PRIVILEGES TO app_admin;
+
+-- 계정에 역할 부여
+GRANT app_readwrite TO spring_app;
+GRANT app_admin TO flyway_user;
+```
+
+### 권장 설정
+
+```yaml
+# application.yml
+spring:
+  datasource:
+    username: app_user  # DML만 가능
+
+  flyway:
+    user: flyway_admin  # DDL 가능 (별도 credentials)
+    password: ${FLYWAY_PASSWORD}
+```
+
+```sql
+-- 초기 설정 (DBA가 실행)
+CREATE USER app_user WITH PASSWORD '...';
+CREATE USER flyway_admin WITH PASSWORD '...';
+
+-- Flyway에게 스키마 생성 권한
+GRANT CREATE ON DATABASE mydb TO flyway_admin;
+
+-- Application에게 사용 권한 (Flyway 마이그레이션 후)
+GRANT USAGE ON SCHEMA public TO app_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO app_user;
+
+-- 향후 생성될 객체에도 자동 적용
+ALTER DEFAULT PRIVILEGES FOR ROLE flyway_admin
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
+ALTER DEFAULT PRIVILEGES FOR ROLE flyway_admin
+  GRANT USAGE ON SEQUENCES TO app_user;
+```
+
+### 핵심 포인트
+
+1. **Flyway가 모든 DDL 담당**: 테이블, 시퀀스, 인덱스 등 모든 스키마 객체 생성
+2. **Application은 DML만**: 런타임에 DDL 실행 불필요 (`ddl-auto: validate` 또는 `none`)
+3. **DEFAULT PRIVILEGES 활용**: 새로 생성되는 객체에 자동으로 권한 부여
+4. **시퀀스 USAGE 권한 필수**: `nextval()` 호출을 위해 Application 계정에 시퀀스 사용 권한 필요
