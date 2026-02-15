@@ -56,12 +56,22 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 		MapRecord<String, String, String> record,
 		MessageQueueSubscription subscription,
 		MessageQueueMessageHandler handler) {
+		MessageQueueMessage message = toMessage(record.getValue());
+		long startedAtNanos = System.nanoTime();
 		try {
-			handler.handle(toMessage(record.getValue()));
+			log.info("메시지큐 수신 처리 시작. stream={}, topic={}, messageId={}, consumerGroup={}, consumerName={}",
+				record.getStream(), message.topic(), message.messageId(), subscription.consumerGroup(),
+				subscription.consumerName());
+			handler.handle(message);
 			stringRedisTemplate.opsForStream().acknowledge(record.getStream(), subscription.consumerGroup(),
 				record.getId());
+			log.info("메시지큐 수신 처리 성공. stream={}, topic={}, messageId={}, consumerGroup={}, processingMillis={}",
+				record.getStream(), message.topic(), message.messageId(), subscription.consumerGroup(),
+				toMillis(startedAtNanos));
 		} catch (Exception ex) {
-			log.warn("메시지큐 레코드 처리에 실패했습니다. stream={}, id={}", record.getStream(), record.getId(), ex);
+			log.warn("메시지큐 수신 처리 실패. stream={}, topic={}, messageId={}, consumerGroup={}, processingMillis={}",
+				record.getStream(), message.topic(), message.messageId(), subscription.consumerGroup(),
+				toMillis(startedAtNanos), ex);
 		}
 	}
 
@@ -118,5 +128,9 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 			}
 			return null;
 		});
+	}
+
+	private long toMillis(long startedAtNanos) {
+		return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos);
 	}
 }

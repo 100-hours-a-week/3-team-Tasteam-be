@@ -8,6 +8,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.lang.Nullable;
 
+import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
+
 @Configuration
 @EnableConfigurationProperties(MessageQueueProperties.class)
 public class MessageQueueConfig {
@@ -15,26 +17,29 @@ public class MessageQueueConfig {
 	@Bean
 	public MessageQueueProducer messageQueueProducer(
 		MessageQueueProperties properties,
+		MessageQueueTraceService traceService,
 		@Nullable
 		StringRedisTemplate stringRedisTemplate) {
 		MessageQueueProviderType providerType = properties.providerType();
-		return switch (providerType) {
+		MessageQueueProducer delegate = switch (providerType) {
 			case NONE -> new NoOpMessageQueueProducer();
 			case REDIS_STREAM ->
 				new RedisStreamMessageQueueProducer(requireRedisTemplate(stringRedisTemplate), properties);
 			case KAFKA -> new UnsupportedMessageQueueProducer(providerType);
 		};
+		return new TracingMessageQueueProducer(delegate, providerType, traceService);
 	}
 
 	@Bean
 	public MessageQueueConsumer messageQueueConsumer(
 		MessageQueueProperties properties,
+		MessageQueueTraceService traceService,
 		@Nullable
 		StringRedisTemplate stringRedisTemplate,
 		@Nullable
 		StreamMessageListenerContainer<String, MapRecord<String, String, String>> messageQueueStreamListenerContainer) {
 		MessageQueueProviderType providerType = properties.providerType();
-		return switch (providerType) {
+		MessageQueueConsumer delegate = switch (providerType) {
 			case NONE -> new NoOpMessageQueueConsumer();
 			case REDIS_STREAM -> new RedisStreamMessageQueueConsumer(
 				requireRedisTemplate(stringRedisTemplate),
@@ -42,6 +47,7 @@ public class MessageQueueConfig {
 				properties);
 			case KAFKA -> new UnsupportedMessageQueueConsumer(providerType);
 		};
+		return new TracingMessageQueueConsumer(delegate, providerType, traceService);
 	}
 
 	private StringRedisTemplate requireRedisTemplate(@Nullable

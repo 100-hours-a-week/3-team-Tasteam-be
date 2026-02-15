@@ -198,14 +198,69 @@ flowchart LR
 - 실행 경로 정합성:
   - MQ 활성화 시 기존 `ReviewCreatedAiAnalysisEventListener` 직접 경로 비활성화
   - MQ 비활성화 시 기존 직접 경로 유지
-## **[7-3] 검증**
+
+## **[7-3] Phase 3 진행 범위 (#337, #338, #339)**
+
+- 도메인 이벤트 발행 지점 연동:
+  - `GroupMemberJoinedEvent` 수신 시 MQ 토픽(`domain.group.member-joined`)으로 발행
+- MQ consumer 핸들러 등록/수신 처리:
+  - 애플리케이션 시작 시 Notification 구독 등록
+  - 수신 payload 역직렬화 후 `NotificationService`로 위임
+- 실행 경로 정합성:
+  - MQ 활성화 시 기존 `NotificationEventListener` 직접 경로 비활성화
+  - MQ 비활성화 시 기존 직접 경로 유지
+## **[7-4] 검증**
 
 - `./gradlew :app-api:test --tests 'com.tasteam.infra.messagequeue.*'` 통과
 - 컨텍스트 로딩 회귀 검증:
   - `./gradlew :app-api:test --tests com.tasteam.ApiApplicationTests --tests com.tasteam.config.JpaAuditingConflictTest` 통과
 
-## **[7-4] 다음 단계**
+## **[7-5] 다음 단계**
 
 - Group/Restaurant 도메인 이벤트 MQ 연동 확장
 - 실제 구독 라이프사이클/재시도/DLQ 정책 고도화
 - Kafka provider 구현 단계 진행
+
+---
+
+# **[8] 운영 추적 (Observability)**
+
+## **[8-1] 발행/소비 추적 로그**
+
+- 발행 시 `messageId` 기준 로그를 남긴다.
+  - `메시지큐 발행 완료. stream, topic, messageId, key`
+- 소비 시 시작/성공/실패 로그를 남긴다.
+  - `메시지큐 수신 처리 시작. stream, topic, messageId, consumerGroup`
+  - `메시지큐 수신 처리 성공. ... processingMillis`
+  - `메시지큐 수신 처리 실패. ... processingMillis`
+
+## **[8-2] 추적 이력 저장소**
+
+- 테이블: `message_queue_trace_log`
+- 저장 항목:
+  - `message_id`, `topic`, `provider`, `stage(PUBLISH/CONSUME_SUCCESS/CONSUME_FAIL)`
+  - `consumer_group`, `processing_millis`, `error_message`, `created_at`
+- 목적:
+  - 이벤트 생성/처리 여부를 로그가 아닌 데이터로 조회 가능
+  - 운영 중 장애/누락 구간 식별
+
+## **[8-3] 운영 조회 API**
+
+- 경로: `GET /api/v1/admin/mq-traces`
+- 권한: `ADMIN`
+- 쿼리 파라미터:
+  - `messageId`(optional): 특정 메시지 이력 조회
+  - `limit`(optional, default `50`, max `200`)
+
+## **[8-4] 메트릭**
+
+- Counter
+  - `mq.publish.count` (`topic`, `provider`, `result`)
+  - `mq.consume.count` (`topic`, `provider`, `result`)
+- Timer
+  - `mq.consume.latency` (`topic`, `provider`)
+
+## **[8-5] 관심사 분리**
+
+- 비즈니스 클래스(`*Publisher`, `*ConsumerRegistrar`)는 도메인 로직만 담당한다.
+- 관측/추적은 `TracingMessageQueueProducer`, `TracingMessageQueueConsumer` 데코레이터에서 공통 처리한다.
