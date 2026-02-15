@@ -198,13 +198,24 @@ flowchart LR
 - 실행 경로 정합성:
   - MQ 활성화 시 기존 `ReviewCreatedAiAnalysisEventListener` 직접 경로 비활성화
   - MQ 비활성화 시 기존 직접 경로 유지
-## **[7-3] 검증**
+
+## **[7-3] Phase 3 진행 범위 (#337, #338, #339)**
+
+- 도메인 이벤트 발행 지점 연동:
+  - `GroupMemberJoinedEvent` 수신 시 MQ 토픽(`domain.group.member-joined`)으로 발행
+- MQ consumer 핸들러 등록/수신 처리:
+  - 애플리케이션 시작 시 Notification 구독 등록
+  - 수신 payload 역직렬화 후 `NotificationService`로 위임
+- 실행 경로 정합성:
+  - MQ 활성화 시 기존 `NotificationEventListener` 직접 경로 비활성화
+  - MQ 비활성화 시 기존 직접 경로 유지
+## **[7-4] 검증**
 
 - `./gradlew :app-api:test --tests 'com.tasteam.infra.messagequeue.*'` 통과
 - 컨텍스트 로딩 회귀 검증:
   - `./gradlew :app-api:test --tests com.tasteam.ApiApplicationTests --tests com.tasteam.config.JpaAuditingConflictTest` 통과
 
-## **[7-4] 다음 단계**
+## **[7-5] 다음 단계**
 
 - Group/Restaurant 도메인 이벤트 MQ 연동 확장
 - 실제 구독 라이프사이클/재시도/DLQ 정책 고도화
