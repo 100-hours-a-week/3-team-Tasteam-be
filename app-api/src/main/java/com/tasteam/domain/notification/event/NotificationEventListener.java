@@ -1,5 +1,6 @@
 package com.tasteam.domain.notification.event;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "false", matchIfMissing = true)
 public class NotificationEventListener {
 
 	private final NotificationService notificationService;
