@@ -9,7 +9,9 @@ import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 public class RedisStreamMessageQueueProducer implements MessageQueueProducer {
 
@@ -28,6 +30,8 @@ public class RedisStreamMessageQueueProducer implements MessageQueueProducer {
 		stringRedisTemplate.opsForStream().add(
 			record,
 			XAddOptions.maxlen(MAX_STREAM_LENGTH).approximateTrimming(true));
+		log.info("메시지큐 발행 완료. stream={}, topic={}, messageId={}, key={}",
+			streamKey, message.topic(), message.messageId(), message.key());
 	}
 
 	private String streamKey(String topic) {

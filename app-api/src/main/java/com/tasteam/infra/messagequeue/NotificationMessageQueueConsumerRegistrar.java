@@ -67,4 +67,5 @@ public class NotificationMessageQueueConsumerRegistrar {
 			throw new IllegalArgumentException("GroupMemberJoined 메시지 역직렬화에 실패했습니다. payload=" + payloadAsString, ex);
 		}
 	}
+
 }

@@ -61,4 +61,5 @@ public class ReviewCreatedMessageQueueConsumerRegistrar {
 			throw new IllegalArgumentException("ReviewCreated 메시지 역직렬화에 실패했습니다. payload=" + payloadAsString, ex);
 		}
 	}
+
 }
