@@ -1,0 +1,8 @@
+package com.tasteam.infra.messagequeue;
+
+public final class MessageQueueTopics {
+
+	public static final String REVIEW_CREATED = "domain.review.created";
+
+	private MessageQueueTopics() {}
+}

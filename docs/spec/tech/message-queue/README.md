@@ -26,7 +26,9 @@
 - `MessageQueueProducer`, `MessageQueueConsumer` 인터페이스와 메시지/구독 계약이 준비되어 있다.
 - `tasteam.message-queue.provider` 값에 따라 Bean 선택이 동작한다.
 - `none`은 NoOp 구현으로 안전하게 동작한다.
-- `redis-stream`, `kafka`는 현재 `Unsupported*` 구현으로 명시적 예외를 반환한다.
+- `redis-stream`은 Producer/Consumer 구현이 반영되어 발행/구독이 가능하다.
+- `kafka`는 현재 `Unsupported*` 구현으로 명시적 예외를 반환한다.
+- `ReviewCreatedEvent`는 도메인 이벤트 -> MQ 발행 -> MQ 소비 핸들러 처리 흐름으로 연결되어 있다.
 
 ---
 
@@ -50,8 +52,8 @@ flowchart LR
 
     E["MessageQueueConfig"] --> F["Provider Selection"]
     F -->|"none"| G["NoOpMessageQueueProducer/Consumer"]
-    F -->|"redis-stream"| H["UnsupportedMessageQueueProducer/Consumer (TODO)"]
-    F -->|"kafka"| I["UnsupportedMessageQueueProducer/Consumer (TODO)"]
+    F -->|"redis-stream"| H["RedisStreamMessageQueueProducer/Consumer"]
+    F -->|"kafka"| I["UnsupportedMessageQueueProducer/Consumer"]
 
     B --> E
     D --> E
@@ -186,14 +188,24 @@ flowchart LR
 - 인터페이스 계약 Javadoc 반영
 - MQ 모듈 테스트(설정/producer/consumer) 추가
 
-## **[7-2] 검증**
+## **[7-2] Phase 2 진행 범위 (#330)**
+
+- 도메인 이벤트 발행 지점 연동:
+  - `ReviewCreatedEvent` 수신 시 MQ 토픽(`domain.review.created`)으로 발행
+- MQ consumer 핸들러 등록/수신 처리:
+  - 애플리케이션 시작 시 `ReviewCreated` 구독 등록
+  - 수신 payload 역직렬화 후 `RestaurantReviewAnalysisService`로 위임
+- 실행 경로 정합성:
+  - MQ 활성화 시 기존 `ReviewCreatedAiAnalysisEventListener` 직접 경로 비활성화
+  - MQ 비활성화 시 기존 직접 경로 유지
+## **[7-3] 검증**
 
 - `./gradlew :app-api:test --tests 'com.tasteam.infra.messagequeue.*'` 통과
 - 컨텍스트 로딩 회귀 검증:
   - `./gradlew :app-api:test --tests com.tasteam.ApiApplicationTests --tests com.tasteam.config.JpaAuditingConflictTest` 통과
 
-## **[7-3] 다음 단계**
+## **[7-4] 다음 단계**
 
-- 애플리케이션 도메인 이벤트 발행 지점 연동
-- 실제 구독 라이프사이클/핸들러 운영 정책 고도화
+- Group/Restaurant 도메인 이벤트 MQ 연동 확장
+- 실제 구독 라이프사이클/재시도/DLQ 정책 고도화
 - Kafka provider 구현 단계 진행
