@@ -11,6 +11,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 
 import com.tasteam.config.annotation.UnitTest;
+import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
 @UnitTest
 @DisplayName("메시지큐 설정 기반 빈 선택")
@@ -24,12 +25,13 @@ class MessageQueueConfigTest {
 		// given
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("none");
+		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
 
 		// when
-		MessageQueueProducer producer = config.messageQueueProducer(properties, null);
+		MessageQueueProducer producer = config.messageQueueProducer(properties, traceService, null);
 
 		// then
-		assertThat(producer).isInstanceOf(NoOpMessageQueueProducer.class);
+		assertThat(producer).isInstanceOf(TracingMessageQueueProducer.class);
 	}
 
 	@Test
@@ -38,13 +40,14 @@ class MessageQueueConfigTest {
 		// given
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("redis-stream");
+		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
 		StringRedisTemplate stringRedisTemplate = mock(StringRedisTemplate.class);
 
 		// when
-		MessageQueueProducer producer = config.messageQueueProducer(properties, stringRedisTemplate);
+		MessageQueueProducer producer = config.messageQueueProducer(properties, traceService, stringRedisTemplate);
 
 		// then
-		assertThat(producer).isInstanceOf(RedisStreamMessageQueueProducer.class);
+		assertThat(producer).isInstanceOf(TracingMessageQueueProducer.class);
 	}
 
 	@Test
@@ -53,9 +56,10 @@ class MessageQueueConfigTest {
 		// given
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("redis-stream");
+		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
 
 		// when & then
-		assertThatThrownBy(() -> config.messageQueueProducer(properties, null))
+		assertThatThrownBy(() -> config.messageQueueProducer(properties, traceService, null))
 			.isInstanceOf(IllegalStateException.class)
 			.hasMessageContaining("StringRedisTemplate");
 	}
@@ -66,12 +70,13 @@ class MessageQueueConfigTest {
 		// given
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("none");
+		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
 
 		// when
-		MessageQueueConsumer consumer = config.messageQueueConsumer(properties, null, null);
+		MessageQueueConsumer consumer = config.messageQueueConsumer(properties, traceService, null, null);
 
 		// then
-		assertThat(consumer).isInstanceOf(NoOpMessageQueueConsumer.class);
+		assertThat(consumer).isInstanceOf(TracingMessageQueueConsumer.class);
 	}
 
 	@Test
@@ -80,15 +85,17 @@ class MessageQueueConfigTest {
 		// given
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("redis-stream");
+		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
 		StringRedisTemplate stringRedisTemplate = mock(StringRedisTemplate.class);
 		@SuppressWarnings("unchecked") StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer = mock(
 			StreamMessageListenerContainer.class);
 
 		// when
-		MessageQueueConsumer consumer = config.messageQueueConsumer(properties, stringRedisTemplate, listenerContainer);
+		MessageQueueConsumer consumer = config.messageQueueConsumer(properties, traceService, stringRedisTemplate,
+			listenerContainer);
 
 		// then
-		assertThat(consumer).isInstanceOf(RedisStreamMessageQueueConsumer.class);
+		assertThat(consumer).isInstanceOf(TracingMessageQueueConsumer.class);
 	}
 
 	@Test
@@ -97,10 +104,11 @@ class MessageQueueConfigTest {
 		// given
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("redis-stream");
+		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
 		StringRedisTemplate stringRedisTemplate = mock(StringRedisTemplate.class);
 
 		// when & then
-		assertThatThrownBy(() -> config.messageQueueConsumer(properties, stringRedisTemplate, null))
+		assertThatThrownBy(() -> config.messageQueueConsumer(properties, traceService, stringRedisTemplate, null))
 			.isInstanceOf(IllegalStateException.class)
 			.hasMessageContaining("StreamMessageListenerContainer");
 	}
