@@ -27,6 +27,7 @@
     - `docs/spec/tech/event/README.md`: 이벤트/공지 조회 API와 데이터 모델 설계 문서입니다.
     - `docs/spec/tech/bootstrap/README.md`: 로컬/개발 초기 데이터 부트스트랩 설계 문서입니다.
     - `docs/spec/tech/flyway/README.md`: Flyway 사용 방법과 운영/배포 절차를 정리한 문서입니다.
+    - `docs/spec/tech/user-activity/README.md`: 사용자 행동 이벤트 내부 수집 파이프라인(MQ/저장소/PostHog 확장) 설계 문서입니다.
 
 ## 확장 포인트
 
