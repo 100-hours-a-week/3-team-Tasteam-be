@@ -2,6 +2,7 @@ package com.tasteam.domain.analytics.resilience;
 
 import java.util.List;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
 public class UserActivityReplayService {
 
 	private final UserActivitySourceOutboxService outboxService;

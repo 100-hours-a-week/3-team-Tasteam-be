@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "tasteam.analytics.replay", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
 public class UserActivityReplayScheduler {
 
 	private final UserActivityReplayService userActivityReplayService;

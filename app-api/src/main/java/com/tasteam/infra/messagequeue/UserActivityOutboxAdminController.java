@@ -1,5 +1,6 @@
 package com.tasteam.infra.messagequeue;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/user-activity/outbox")
 @PreAuthorize("hasRole('ADMIN')")
+@ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
 public class UserActivityOutboxAdminController {
 
 	private static final int MAX_LIMIT = 500;
