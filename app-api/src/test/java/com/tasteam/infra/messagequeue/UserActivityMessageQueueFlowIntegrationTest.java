@@ -25,6 +25,7 @@ import com.tasteam.domain.analytics.application.ActivityEventMapperRegistry;
 import com.tasteam.domain.analytics.application.ActivityEventOrchestrator;
 import com.tasteam.domain.analytics.application.mapper.ReviewCreatedActivityEventMapper;
 import com.tasteam.domain.analytics.persistence.UserActivityEventStoreService;
+import com.tasteam.domain.analytics.resilience.UserActivitySourceOutboxService;
 import com.tasteam.domain.review.event.ReviewCreatedEvent;
 
 import jakarta.annotation.Resource;
@@ -126,8 +127,23 @@ class UserActivityMessageQueueFlowIntegrationTest {
 		UserActivityMessageQueuePublisher userActivityMessageQueuePublisher(
 			MessageQueueProducer messageQueueProducer,
 			MessageQueueProperties messageQueueProperties,
-			ObjectMapper objectMapper) {
-			return new UserActivityMessageQueuePublisher(messageQueueProducer, messageQueueProperties, objectMapper);
+			ObjectMapper objectMapper,
+			UserActivitySourceOutboxService outboxService) {
+			return new UserActivityMessageQueuePublisher(
+				messageQueueProducer,
+				messageQueueProperties,
+				objectMapper,
+				outboxService);
+		}
+
+		@Bean
+		UserActivitySourceOutboxService userActivitySourceOutboxService() {
+			return Mockito.mock(UserActivitySourceOutboxService.class);
+		}
+
+		@Bean
+		UserActivitySourceOutboxSink userActivitySourceOutboxSink(UserActivitySourceOutboxService outboxService) {
+			return new UserActivitySourceOutboxSink(outboxService);
 		}
 
 		@Bean
