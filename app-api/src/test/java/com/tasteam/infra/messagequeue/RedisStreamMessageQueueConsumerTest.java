@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -190,5 +191,49 @@ class RedisStreamMessageQueueConsumerTest {
 		assertThat(captured.get()).isNotNull();
 		assertThat(captured.get().occurredAt()).isNotNull();
 		verify(streamOperations).acknowledge(eq("tasteam:order.created"), eq("group-1"), eq(RecordId.of("1-1")));
+	}
+
+	@Test
+	@DisplayName("핸들러 처리 실패 시 ack를 수행하지 않아 재처리 가능 상태를 유지한다")
+	void subscribe_onMessage_whenHandlerFails_doesNotAck() {
+		// given
+		StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+		when(redisTemplate.execute(org.mockito.ArgumentMatchers.<RedisCallback<Void>>any())).thenReturn(null);
+
+		@SuppressWarnings("unchecked") StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer = mock(
+			StreamMessageListenerContainer.class);
+		Subscription subscriptionHandle = mock(Subscription.class);
+		when(listenerContainer.receive(any(Consumer.class), any(StreamOffset.class), any(StreamListener.class)))
+			.thenReturn(subscriptionHandle);
+
+		MessageQueueProperties properties = new MessageQueueProperties();
+		properties.setTopicPrefix("tasteam");
+		RedisStreamMessageQueueConsumer consumer = new RedisStreamMessageQueueConsumer(
+			redisTemplate,
+			listenerContainer,
+			properties);
+		MessageQueueSubscription subscription = new MessageQueueSubscription("order.created", "group-1", "consumer-1");
+		consumer.subscribe(subscription, message -> {
+			throw new IllegalStateException("처리 실패");
+		});
+
+		@SuppressWarnings("unchecked") org.mockito.ArgumentCaptor<StreamListener<String, MapRecord<String, String, String>>> listenerCaptor = org.mockito.ArgumentCaptor
+			.forClass((Class)StreamListener.class);
+		verify(listenerContainer).receive(any(Consumer.class), any(StreamOffset.class), listenerCaptor.capture());
+
+		MapRecord<String, String, String> record = mock(MapRecord.class);
+		when(record.getStream()).thenReturn("tasteam:order.created");
+		when(record.getValue()).thenReturn(Map.of(
+			"messageId", "msg-3",
+			"topic", "order.created",
+			"key", "order-3",
+			"occurredAt", String.valueOf(Instant.parse("2026-02-14T00:00:00Z").toEpochMilli()),
+			"payload", Base64.getEncoder().encodeToString("payload".getBytes(StandardCharsets.UTF_8))));
+
+		// when
+		listenerCaptor.getValue().onMessage(record);
+
+		// then
+		verify(redisTemplate, never()).opsForStream();
 	}
 }
