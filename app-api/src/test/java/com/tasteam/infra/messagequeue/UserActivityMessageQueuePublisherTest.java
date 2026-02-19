@@ -15,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.analytics.api.ActivityEvent;
+import com.tasteam.domain.analytics.resilience.UserActivitySourceOutboxService;
 
 @UnitTest
 @DisplayName("사용자 이벤트 MQ publisher")
@@ -28,10 +29,12 @@ class UserActivityMessageQueuePublisherTest {
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setEnabled(true);
 		properties.setProvider(MessageQueueProviderType.REDIS_STREAM.value());
+		UserActivitySourceOutboxService outboxService = mock(UserActivitySourceOutboxService.class);
 		UserActivityMessageQueuePublisher publisher = new UserActivityMessageQueuePublisher(
 			producer,
 			properties,
-			JsonMapper.builder().findAndAddModules().build());
+			JsonMapper.builder().findAndAddModules().build(),
+			outboxService);
 
 		ActivityEvent event = new ActivityEvent(
 			"evt-1",
@@ -62,6 +65,7 @@ class UserActivityMessageQueuePublisherTest {
 		assertThat(payload.eventId()).isEqualTo("evt-1");
 		assertThat(payload.eventName()).isEqualTo("group.joined");
 		assertThat(((Number)payload.properties().get("groupId")).longValue()).isEqualTo(10L);
+		verify(outboxService).markPublished("evt-1");
 	}
 
 	@Test
@@ -72,10 +76,12 @@ class UserActivityMessageQueuePublisherTest {
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setEnabled(true);
 		properties.setProvider(MessageQueueProviderType.NONE.value());
+		UserActivitySourceOutboxService outboxService = mock(UserActivitySourceOutboxService.class);
 		UserActivityMessageQueuePublisher publisher = new UserActivityMessageQueuePublisher(
 			producer,
 			properties,
-			JsonMapper.builder().findAndAddModules().build());
+			JsonMapper.builder().findAndAddModules().build(),
+			outboxService);
 		ActivityEvent event = new ActivityEvent(
 			"evt-1",
 			"review.created",
@@ -90,5 +96,41 @@ class UserActivityMessageQueuePublisherTest {
 
 		// then
 		verifyNoInteractions(producer);
+		verifyNoInteractions(outboxService);
+	}
+
+	@Test
+	@DisplayName("발행 중 예외가 발생하면 outbox 실패 상태를 기록한다")
+	void sink_marksOutboxFailedWhenPublishThrows() {
+		// given
+		MessageQueueProducer producer = mock(MessageQueueProducer.class);
+		org.mockito.Mockito.doThrow(new IllegalStateException("mq publish fail"))
+			.when(producer)
+			.publish(org.mockito.ArgumentMatchers.any(MessageQueueMessage.class));
+
+		MessageQueueProperties properties = new MessageQueueProperties();
+		properties.setEnabled(true);
+		properties.setProvider(MessageQueueProviderType.REDIS_STREAM.value());
+		UserActivitySourceOutboxService outboxService = mock(UserActivitySourceOutboxService.class);
+		UserActivityMessageQueuePublisher publisher = new UserActivityMessageQueuePublisher(
+			producer,
+			properties,
+			JsonMapper.builder().findAndAddModules().build(),
+			outboxService);
+
+		ActivityEvent event = new ActivityEvent(
+			"evt-2",
+			"review.created",
+			"v1",
+			Instant.parse("2026-02-18T00:00:00Z"),
+			10L,
+			null,
+			Map.of("restaurantId", 1L));
+
+		// when & then
+		org.assertj.core.api.Assertions.assertThatThrownBy(() -> publisher.sink(event))
+			.isInstanceOf(IllegalStateException.class)
+			.hasMessageContaining("mq publish fail");
+		verify(outboxService).markFailed(org.mockito.ArgumentMatchers.eq("evt-2"), org.mockito.ArgumentMatchers.any());
 	}
 }
