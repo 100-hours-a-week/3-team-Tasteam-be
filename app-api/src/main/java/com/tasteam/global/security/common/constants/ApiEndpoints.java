@@ -100,6 +100,9 @@ public final class ApiEndpoints {
 	// Search
 	public static final String SEARCH = API_V1 + "/search";
 
+	// Analytics
+	public static final String ANALYTICS_EVENTS = API_V1 + "/analytics/events";
+
 	// File
 	public static final String FILES = API_V1 + "/files";
 	public static final String FILES_ALL = FILES + ALL;
