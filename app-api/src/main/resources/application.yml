@@ -151,6 +151,13 @@ tasteam:
     poll-timeout-millis: ${MQ_POLL_TIMEOUT_MILLIS:1000}
     max-retries: ${MQ_MAX_RETRIES:3}
   analytics:
+    ingest:
+      enabled: ${ANALYTICS_INGEST_ENABLED:true}
+      max-batch-size: ${ANALYTICS_INGEST_MAX_BATCH_SIZE:50}
+      allowlist: ${ANALYTICS_INGEST_ALLOWLIST:ui.restaurant.viewed,ui.restaurant.clicked,ui.review.write_started,ui.review.submitted}
+      rate-limit:
+        max-requests: ${ANALYTICS_INGEST_RATE_LIMIT_MAX_REQUESTS:120}
+        window: ${ANALYTICS_INGEST_RATE_LIMIT_WINDOW:PT1M}
     dispatch:
       enabled: ${ANALYTICS_DISPATCH_ENABLED:true}
       batch-size: ${ANALYTICS_DISPATCH_BATCH_SIZE:100}

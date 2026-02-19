@@ -67,6 +67,9 @@ public final class ApiEndpointSecurityPolicy {
 			// 검색 (토큰 유무 무관)
 			permit(POST, ApiEndpoints.SEARCH),
 
+			// Analytics Ingest (토큰 유무 무관)
+			permit(POST, ApiEndpoints.ANALYTICS_EVENTS),
+
 			// Swagger
 			permit(GET, ApiEndpoints.SWAGGER_UI),
 			permit(GET, ApiEndpoints.SWAGGER_UI_INDEX),
