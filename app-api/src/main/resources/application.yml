@@ -150,6 +150,23 @@ tasteam:
     default-consumer-group: ${MQ_DEFAULT_CONSUMER_GROUP:tasteam-api}
     poll-timeout-millis: ${MQ_POLL_TIMEOUT_MILLIS:1000}
     max-retries: ${MQ_MAX_RETRIES:3}
+  analytics:
+    dispatch:
+      enabled: ${ANALYTICS_DISPATCH_ENABLED:true}
+      batch-size: ${ANALYTICS_DISPATCH_BATCH_SIZE:100}
+      fixed-delay: ${ANALYTICS_DISPATCH_FIXED_DELAY:PT1M}
+      retry:
+        base-delay: ${ANALYTICS_DISPATCH_RETRY_BASE_DELAY:PT10S}
+        max-delay: ${ANALYTICS_DISPATCH_RETRY_MAX_DELAY:PT10M}
+      circuit:
+        failure-threshold: ${ANALYTICS_DISPATCH_CIRCUIT_FAILURE_THRESHOLD:5}
+        open-duration: ${ANALYTICS_DISPATCH_CIRCUIT_OPEN_DURATION:PT1M}
+    posthog:
+      enabled: ${ANALYTICS_POSTHOG_ENABLED:false}
+      host: ${ANALYTICS_POSTHOG_HOST:https://app.posthog.com}
+      api-key: ${ANALYTICS_POSTHOG_API_KEY:}
+      connect-timeout: ${ANALYTICS_POSTHOG_CONNECT_TIMEOUT:2s}
+      read-timeout: ${ANALYTICS_POSTHOG_READ_TIMEOUT:3s}
 
 
 ## ====== 운영 & 관리 ======
