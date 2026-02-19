@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ public class ClientActivityIngestRateLimiter {
 	private final Clock clock;
 	private final Cache<String, WindowCounter> counterByKey;
 
+	@Autowired
 	public ClientActivityIngestRateLimiter(AnalyticsIngestProperties properties) {
 		this(
 			properties.getRateLimit().validatedMaxRequests(),
