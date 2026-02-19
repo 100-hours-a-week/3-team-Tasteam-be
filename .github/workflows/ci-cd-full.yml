@@ -168,16 +168,20 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
 
-      # 배포용 빌드 (JAR 생성, 테스트는 PR에서 이미 완료)
+      # 배포용 빌드 (실행 가능한 Boot JAR만 생성)
       - name: Build JAR for deployment
-        run: ./gradlew build -x test
+        run: ./gradlew :app-api:bootJar -x test
 
-      # JAR 파일 업로드 (deploy job에서 사용, plain JAR 제외)
+      # JAR 파일 업로드 (deploy job에서 사용)
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-jar-${{ github.ref_name }}-${{ github.run_number }}
-          path: app-api/build/libs/*[!plain].jar
+          path: |
+            app-api/build/libs/*.jar
+            !app-api/build/libs/*-plain.jar
+            !app-api/build/libs/*-test-fixtures.jar
+          if-no-files-found: error
           retention-days: 7
 
       # 빌드 실패 알림
