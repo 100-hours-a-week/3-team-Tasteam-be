@@ -439,7 +439,7 @@ class SubgroupFacadeIntegrationTest {
 		@DisplayName("회원 목록을 반환한다")
 		void getSubgroupMembers_returnsMemberList() {
 			CursorPageResponse<SubgroupMemberListItem> response = subgroupFacade.getSubgroupMembers(
-				subgroup.getId(), null, 10);
+				subgroup.getId(), member1.getId(), null, 10);
 
 			assertThat(response.items()).hasSizeGreaterThanOrEqualTo(1);
 		}
@@ -448,7 +448,7 @@ class SubgroupFacadeIntegrationTest {
 		@DisplayName("탈퇴한 회원은 목록에서 제외된다")
 		void getSubgroupMembers_excludesWithdrawn() {
 			CursorPageResponse<SubgroupMemberListItem> response = subgroupFacade.getSubgroupMembers(
-				subgroup.getId(), null, 10);
+				subgroup.getId(), member1.getId(), null, 10);
 
 			assertThat(response.items()).hasSize(1);
 			assertThat(response.items().get(0).memberId()).isEqualTo(member1.getId());

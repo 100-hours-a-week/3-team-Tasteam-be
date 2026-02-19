@@ -18,6 +18,7 @@ import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.controller.docs.SubgroupControllerDocs;
+import com.tasteam.domain.subgroup.dto.SubgroupChatRoomResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupDetailResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupMemberListItem;
 import com.tasteam.domain.subgroup.service.SubgroupFacade;
@@ -48,14 +49,17 @@ public class SubgroupController implements SubgroupControllerDocs {
 
 	@ResponseStatus(HttpStatus.OK)
 	@GetMapping("/{subgroupId}/members")
+	@PreAuthorize("hasRole('USER')")
 	public SuccessResponse<CursorPageResponse<SubgroupMemberListItem>> getSubgroupMembers(
 		@PathVariable @Positive
 		Long subgroupId,
 		@RequestParam(required = false)
 		String cursor,
 		@RequestParam(required = false)
-		Integer size) {
-		return SuccessResponse.success(subgroupFacade.getSubgroupMembers(subgroupId, cursor, size));
+		Integer size,
+		@CurrentUser
+		Long memberId) {
+		return SuccessResponse.success(subgroupFacade.getSubgroupMembers(subgroupId, memberId, cursor, size));
 	}
 
 	@GetMapping("/{subgroupId}")
@@ -65,6 +69,16 @@ public class SubgroupController implements SubgroupControllerDocs {
 		@CurrentUser
 		Long memberId) {
 		return SuccessResponse.success(subgroupFacade.getSubgroup(subgroupId, memberId));
+	}
+
+	@GetMapping("/{subgroupId}/chat-room")
+	@PreAuthorize("hasRole('USER')")
+	public SuccessResponse<SubgroupChatRoomResponse> getChatRoom(
+		@PathVariable @Positive
+		Long subgroupId,
+		@CurrentUser
+		Long memberId) {
+		return SuccessResponse.success(subgroupFacade.getChatRoom(subgroupId, memberId));
 	}
 
 	@DeleteMapping("/{subgroupId}/members/me")

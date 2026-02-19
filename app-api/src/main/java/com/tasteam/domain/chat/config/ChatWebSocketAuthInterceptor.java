@@ -13,6 +13,9 @@ import org.springframework.stereotype.Component;
 import com.tasteam.domain.chat.repository.ChatRoomMemberRepository;
 import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 public class ChatWebSocketAuthInterceptor implements ChannelInterceptor {
 
@@ -35,7 +38,11 @@ public class ChatWebSocketAuthInterceptor implements ChannelInterceptor {
 				? authHeader.substring(7)
 				: null;
 
+			log.info("WS CONNECT received. hasAuthHeader={}, sessionId={}",
+				authHeader != null, accessor.getSessionId());
+
 			if (token == null || jwtTokenProvider.isTokenExpired(token) || !jwtTokenProvider.isAccessToken(token)) {
+				log.warn("WS CONNECT rejected. reason=invalid_token, sessionId={}", accessor.getSessionId());
 				throw new IllegalArgumentException("Invalid token");
 			}
 
@@ -48,22 +55,37 @@ public class ChatWebSocketAuthInterceptor implements ChannelInterceptor {
 
 			accessor.setUser(() -> String.valueOf(memberId));
 
+			log.info("WS CONNECT authenticated. memberId={}, sessionId={}, headerUser={}",
+				memberId,
+				accessor.getSessionId(),
+				accessor.getUser() != null ? accessor.getUser().getName() : null);
+
 		}
 		if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
 			Long memberId = resolveMemberId(accessor);
 			String destination = accessor.getDestination();
+			log.info("WS SUBSCRIBE received. memberId={}, destination={}, sessionId={}",
+				memberId, destination, accessor.getSessionId());
 			if (memberId == null || destination == null) {
+				log.warn("WS SUBSCRIBE rejected. reason=missing_member_or_destination, sessionId={}",
+					accessor.getSessionId());
 				throw new IllegalArgumentException("Invalid subscription");
 			}
 			Long chatRoomId = parseChatRoomId(destination);
 			if (chatRoomId == null) {
+				log.warn("WS SUBSCRIBE rejected. reason=invalid_destination, destination={}, sessionId={}",
+					destination, accessor.getSessionId());
 				throw new IllegalArgumentException("Invalid subscription");
 			}
 			boolean hasMembership = chatRoomMemberRepository
 				.existsByChatRoomIdAndMemberIdAndDeletedAtIsNull(chatRoomId, memberId);
 			if (!hasMembership) {
+				log.warn("WS SUBSCRIBE rejected. reason=no_permission, memberId={}, chatRoomId={}, sessionId={}",
+					memberId, chatRoomId, accessor.getSessionId());
 				throw new IllegalArgumentException("No permission");
 			}
+			log.info("WS SUBSCRIBE authorized. memberId={}, chatRoomId={}, sessionId={}",
+				memberId, chatRoomId, accessor.getSessionId());
 		}
 		return message;
 	}

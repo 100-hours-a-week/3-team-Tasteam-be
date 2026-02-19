@@ -84,7 +84,10 @@ public final class ApiEndpointSecurityPolicy {
 			permit(POST, ApiEndpoints.ADMIN_AUTH_LOGIN),
 
 			// Test
-			permit(GET, ApiEndpoints.TEST));
+			permit(GET, ApiEndpoints.TEST),
+
+			// WebSocket
+			permit(GET, ApiEndpoints.WEBSOCKET));
 	}
 
 	/**
