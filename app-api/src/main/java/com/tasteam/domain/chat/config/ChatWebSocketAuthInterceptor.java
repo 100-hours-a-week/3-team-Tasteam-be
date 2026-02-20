@@ -8,6 +8,7 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
 import com.tasteam.domain.chat.repository.ChatRoomMemberRepository;
@@ -61,6 +62,16 @@ public class ChatWebSocketAuthInterceptor implements ChannelInterceptor {
 				accessor.getUser() != null ? accessor.getUser().getName() : null);
 
 		}
+		if (StompCommand.SEND.equals(accessor.getCommand())) {
+			log.info("WS SEND pre-hydrate. sessionId={}, headerUser={}, sessionAttrsKeys={}",
+				accessor.getSessionId(),
+				accessor.getUser() != null ? accessor.getUser().getName() : null,
+				accessor.getSessionAttributes() != null ? accessor.getSessionAttributes().keySet() : null);
+			ensureUserFromSession(accessor);
+			log.info("WS SEND post-hydrate. sessionId={}, headerUser={}",
+				accessor.getSessionId(),
+				accessor.getUser() != null ? accessor.getUser().getName() : null);
+		}
 		if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
 			Long memberId = resolveMemberId(accessor);
 			String destination = accessor.getDestination();
@@ -87,7 +98,28 @@ public class ChatWebSocketAuthInterceptor implements ChannelInterceptor {
 			log.info("WS SUBSCRIBE authorized. memberId={}, chatRoomId={}, sessionId={}",
 				memberId, chatRoomId, accessor.getSessionId());
 		}
-		return message;
+		return MessageBuilder.createMessage(
+			message.getPayload(),
+			accessor.getMessageHeaders());
+	}
+
+	private void ensureUserFromSession(StompHeaderAccessor accessor) {
+		if (accessor.getUser() != null) {
+			return;
+		}
+		Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+		if (sessionAttributes == null) {
+			log.warn("WS SEND missing session attributes. sessionId={}", accessor.getSessionId());
+			return;
+		}
+		Object memberId = sessionAttributes.get("memberId");
+		if (memberId == null) {
+			log.warn("WS SEND missing memberId in session. sessionId={}", accessor.getSessionId());
+			return;
+		}
+		accessor.setUser(() -> String.valueOf(memberId));
+		log.info("WS SEND user restored from session. memberId={}, sessionId={}",
+			memberId, accessor.getSessionId());
 	}
 
 	private Long resolveMemberId(StompHeaderAccessor accessor) {
