@@ -36,6 +36,7 @@ import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.SearchErrorCode;
 import com.tasteam.global.utils.CursorCodec;
 import com.tasteam.global.utils.CursorPageBuilder;
+import com.tasteam.global.validation.KeywordSecurityPolicy;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,6 +62,7 @@ public class SearchService {
 	@Transactional(readOnly = true)
 	public SearchResponse search(Long memberId, SearchRequest request) {
 		String keyword = request.keyword().trim();
+		validateSearchKeyword(keyword);
 		int pageSize = request.size() == null ? DEFAULT_PAGE_SIZE : request.size();
 		CursorPageBuilder<SearchCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, request.cursor(),
 			SearchCursor.class);
@@ -235,6 +237,12 @@ public class SearchService {
 			return null;
 		}
 		return images.getFirst().url();
+	}
+
+	private void validateSearchKeyword(String keyword) {
+		if (!KeywordSecurityPolicy.isSafeKeyword(keyword)) {
+			throw new BusinessException(SearchErrorCode.INVALID_SEARCH_KEYWORD);
+		}
 	}
 
 }

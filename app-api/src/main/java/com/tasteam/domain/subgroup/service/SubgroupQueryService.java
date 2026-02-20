@@ -27,10 +27,12 @@ import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
+import com.tasteam.global.exception.code.SearchErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
 import com.tasteam.global.utils.CursorPageBuilder;
 import com.tasteam.global.utils.PaginationParamUtils;
+import com.tasteam.global.validation.KeywordSecurityPolicy;
 
 import lombok.RequiredArgsConstructor;
 
@@ -242,7 +244,13 @@ public class SubgroupQueryService {
 			return null;
 		}
 		String trimmed = keyword.trim();
-		return trimmed.isBlank() ? null : trimmed;
+		if (trimmed.isBlank()) {
+			return null;
+		}
+		if (!KeywordSecurityPolicy.isSafeKeyword(trimmed)) {
+			throw new BusinessException(SearchErrorCode.INVALID_SEARCH_KEYWORD);
+		}
+		return trimmed;
 	}
 
 	private List<SubgroupListItem> applyResolvedImageUrls(List<SubgroupListItem> items) {
