@@ -110,6 +110,9 @@ public final class ApiEndpoints {
 	// Test
 	public static final String TEST = API_V1 + "/test" + ALL;
 
+	// WebSocket
+	public static final String WEBSOCKET = "/ws" + ALL;
+
 	// Admin
 	public static final String ADMIN = API_V1 + "/admin";
 	public static final String ADMIN_ALL = ADMIN + ALL;

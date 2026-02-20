@@ -46,9 +46,9 @@ public class SubgroupService {
 	}
 
 	@Transactional(readOnly = true)
-	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, String cursor,
+	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, Long memberId, String cursor,
 		Integer size) {
-		return subgroupFacade.getSubgroupMembers(subgroupId, cursor, size);
+		return subgroupFacade.getSubgroupMembers(subgroupId, memberId, cursor, size);
 	}
 
 	@Transactional

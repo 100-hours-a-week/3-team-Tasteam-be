@@ -7,12 +7,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.chat.repository.ChatRoomRepository;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
+import com.tasteam.domain.subgroup.dto.SubgroupChatRoomResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupDetailResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
@@ -25,6 +27,7 @@ import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.ChatErrorCode;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
@@ -44,6 +47,7 @@ public class SubgroupQueryService {
 	private final GroupMemberRepository groupMemberRepository;
 	private final SubgroupRepository subgroupRepository;
 	private final SubgroupMemberRepository subgroupMemberRepository;
+	private final ChatRoomRepository chatRoomRepository;
 	private final CursorCodec cursorCodec;
 	private final FileService fileService;
 
@@ -165,11 +169,27 @@ public class SubgroupQueryService {
 	}
 
 	@Transactional(readOnly = true)
-	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, String cursor,
+	public SubgroupChatRoomResponse getChatRoom(Long subgroupId, Long memberId) {
+		validateAuthenticated(memberId);
+		subgroupRepository.findByIdAndDeletedAtIsNull(subgroupId)
+			.orElseThrow(() -> new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND));
+		subgroupMemberRepository.findBySubgroupIdAndMember_IdAndDeletedAtIsNull(subgroupId, memberId)
+			.orElseThrow(() -> new BusinessException(CommonErrorCode.NO_PERMISSION));
+		Long chatRoomId = chatRoomRepository.findBySubgroupIdAndDeletedAtIsNull(subgroupId)
+			.orElseThrow(() -> new BusinessException(ChatErrorCode.CHAT_ROOM_NOT_FOUND))
+			.getId();
+		return new SubgroupChatRoomResponse(chatRoomId);
+	}
+
+	@Transactional(readOnly = true)
+	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, Long memberId, String cursor,
 		Integer size) {
+		validateAuthenticated(memberId);
 		if (!subgroupRepository.existsByIdAndStatus(subgroupId, SubgroupStatus.ACTIVE)) {
 			throw new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND);
 		}
+		subgroupMemberRepository.findBySubgroupIdAndMember_IdAndDeletedAtIsNull(subgroupId, memberId)
+			.orElseThrow(() -> new BusinessException(CommonErrorCode.NO_PERMISSION));
 
 		int resolvedSize = PaginationParamUtils.resolveSize(size);
 		Long cursorId = PaginationParamUtils.parseLongCursor(cursor);
