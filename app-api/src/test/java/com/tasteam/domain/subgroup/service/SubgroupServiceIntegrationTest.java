@@ -50,6 +50,7 @@ import com.tasteam.fixture.SubgroupFixture;
 import com.tasteam.fixture.SubgroupMemberFixture;
 import com.tasteam.fixture.SubgroupRequestFixture;
 import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.SearchErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
@@ -383,6 +384,26 @@ class SubgroupFacadeIntegrationTest {
 
 			assertThat(response.items()).hasSize(1);
 			assertThat(response.items().get(0).getName()).isEqualTo("B하위그룹");
+		}
+
+		@Test
+		@DisplayName("getMySubgroups는 공격 문자열 키워드를 차단한다")
+		void getMySubgroups_withUnsafeKeyword_throwsBusinessException() {
+			assertThatThrownBy(() -> subgroupFacade.getMySubgroups(
+				group.getId(), member1.getId(), "<script>alert('hacked')</script>", null, 10))
+				.isInstanceOf(BusinessException.class)
+				.extracting(ex -> ((BusinessException)ex).getErrorCode())
+				.isEqualTo(SearchErrorCode.INVALID_SEARCH_KEYWORD.name());
+		}
+
+		@Test
+		@DisplayName("searchGroupSubgroups는 공격 문자열 키워드를 차단한다")
+		void searchGroupSubgroups_withUnsafeKeyword_throwsBusinessException() {
+			assertThatThrownBy(() -> subgroupFacade.searchGroupSubgroups(
+				group.getId(), "' or 1=1 --", null, 10))
+				.isInstanceOf(BusinessException.class)
+				.extracting(ex -> ((BusinessException)ex).getErrorCode())
+				.isEqualTo(SearchErrorCode.INVALID_SEARCH_KEYWORD.name());
 		}
 	}
 
