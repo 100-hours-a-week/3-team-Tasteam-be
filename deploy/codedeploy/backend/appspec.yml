@@ -1,0 +1,29 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /opt/tasteam/revision
+
+permissions:
+  - object: /opt/tasteam/revision
+    pattern: "**"
+    owner: root
+    group: root
+    mode: 755
+
+hooks:
+  ApplicationStop:
+    - location: stop.sh
+      timeout: 120
+      runas: root
+
+  AfterInstall:
+    - location: deploy.sh
+      timeout: 1200
+      runas: root
+
+  ValidateService:
+    - location: health.sh
+      timeout: 180
+      runas: root
