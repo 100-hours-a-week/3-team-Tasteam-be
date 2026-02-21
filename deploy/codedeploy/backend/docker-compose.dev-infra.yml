@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgis/postgis:17-3.4
+    container_name: tasteam-dev-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DEV_DB_NAME:-tasteam}
+      POSTGRES_USER: ${DB_USERNAME:-marcus}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-akrrnrtn}
+      TZ: Asia/Seoul
+    ports:
+      - "${DEV_DB_PORT:-5432}:5432"
+    volumes:
+      - /opt/tasteam/dev-infra/postgres-data:/var/lib/postgresql/data
+      - /opt/tasteam/dev-infra/postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-marcus}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: tasteam-dev-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - /opt/tasteam/dev-infra/redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
