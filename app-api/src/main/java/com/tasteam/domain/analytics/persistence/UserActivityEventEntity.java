@@ -1,6 +1,10 @@
 package com.tasteam.domain.analytics.persistence;
 
 import java.time.Instant;
+import java.util.Map;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -63,9 +67,10 @@ public class UserActivityEventEntity {
 	@Column(name = "locale", length = 20)
 	private String locale;
 
-	@Column(name = "properties", nullable = false, columnDefinition = "JSONB DEFAULT '{}'::jsonb")
-	private String properties;
+	@JdbcTypeCode(SqlTypes.JSON)
+	@Column(name = "properties", nullable = false, columnDefinition = "jsonb")
+	private Map<String, Object> properties;
 
-	@Column(name = "created_at", nullable = false, columnDefinition = "TIMESTAMPTZ DEFAULT NOW()")
+	@Column(name = "created_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
 	private Instant createdAt;
 }
