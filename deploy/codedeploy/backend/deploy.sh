@@ -13,6 +13,8 @@ CONTAINER_PORT="${CONTAINER_PORT:-8080}"
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:${CONTAINER_PORT}/actuator/health}"
 BACKEND_SERVICE_NAME="${BACKEND_SERVICE_NAME:-backend}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-tasteam-be}"
+HEALTH_RETRIES="${HEALTH_RETRIES:-45}"
+HEALTH_INTERVAL_SECONDS="${HEALTH_INTERVAL_SECONDS:-2}"
 
 ECR_REGISTRY="${ECR_REGISTRY:-}"
 ECR_REPO_BACKEND="${ECR_REPO_BACKEND:-}"
@@ -88,6 +90,33 @@ fetch_ssm_env() {
 read_env_value() {
   local key="$1"
   sed -n "s/^${key}=//p" "${BACKEND_ENV_FILE}" | head -n 1
+}
+
+upsert_env_value() {
+  local key="$1"
+  local value="$2"
+  local tmp_file
+
+  tmp_file="$(mktemp)"
+  if [ -f "${BACKEND_ENV_FILE}" ]; then
+    grep -Ev "^${key}=" "${BACKEND_ENV_FILE}" > "${tmp_file}" || true
+  fi
+  printf '%s=%s\n' "${key}" "${value}" >> "${tmp_file}"
+  mv "${tmp_file}" "${BACKEND_ENV_FILE}"
+  chmod 600 "${BACKEND_ENV_FILE}"
+}
+
+validate_required_backend_env() {
+  local required_keys key value
+  required_keys=(DB_URL DB_USERNAME DB_PASSWORD REDIS_HOST REDIS_PORT)
+
+  for key in "${required_keys[@]}"; do
+    value="$(read_env_value "${key}")"
+    if [ -z "${value}" ] || [ "${value}" = "PLACEHOLDER" ]; then
+      log "missing or invalid ${key} in ${BACKEND_ENV_FILE}"
+      exit 1
+    fi
+  done
 }
 
 validate_backend_env() {
@@ -218,6 +247,8 @@ deploy_backend() {
 
   log "fetch backend env from /${ENV_NAME}/tasteam/backend"
   fetch_ssm_env "/${ENV_NAME}/tasteam/backend" "${BACKEND_ENV_FILE}"
+  upsert_env_value "SPRING_PROFILES_ACTIVE" "${ENV_NAME}"
+  validate_required_backend_env
   validate_backend_env
   start_dev_infra
 
@@ -244,15 +275,22 @@ health_check() {
   require_cmd curl
 
   local i
-  for i in $(seq 1 30); do
+  for i in $(seq 1 "${HEALTH_RETRIES}"); do
     if curl -fsS "${HEALTH_URL}" >/dev/null; then
       log "health check passed"
       return 0
     fi
-    sleep 2
+    sleep "${HEALTH_INTERVAL_SECONDS}"
   done
 
   log "health check failed: ${HEALTH_URL}"
+  log "container status: ${CONTAINER_NAME}"
+  docker ps -a --filter "name=${CONTAINER_NAME}" || true
+  docker logs --tail 200 "${CONTAINER_NAME}" || true
+  if [ "${ENV_NAME}" = "dev" ]; then
+    docker logs --tail 100 "${DEV_INFRA_DB_CONTAINER}" || true
+    docker logs --tail 100 "${DEV_INFRA_REDIS_CONTAINER}" || true
+  fi
   return 1
 }
 
