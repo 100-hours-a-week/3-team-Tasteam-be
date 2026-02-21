@@ -3,6 +3,7 @@ package com.tasteam.infra.ai.dto;
 import java.time.Instant;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record AiSentimentRequest(
@@ -14,7 +15,7 @@ public record AiSentimentRequest(
 		@JsonProperty("restaurant_id")
 		long restaurantId,
 		String content,
-		@JsonProperty("created_at")
+		@JsonIgnore
 		Instant createdAt) {
 	}
 }

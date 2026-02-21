@@ -6,10 +6,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record AiSummaryBatchRequest(
 	List<AiSummaryBatchItem> restaurants,
-	Integer limit) {
+	Integer limit,
+	@JsonProperty("min_score")
+	Double minScore) {
 	public record AiSummaryBatchItem(
 		@JsonProperty("restaurant_id")
-		long restaurantId,
-		Integer limit) {
+		long restaurantId) {
 	}
 }

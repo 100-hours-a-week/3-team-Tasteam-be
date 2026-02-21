@@ -166,7 +166,7 @@ public class RestaurantReviewAnalysisService {
 		stateService.markAnalyzingForComparison(restaurantId);
 		try {
 			AiStrengthsResponse response = aiClient.extractStrengths(
-				new AiStrengthsRequest(restaurantId, null, null, null, null, null, null));
+				new AiStrengthsRequest(restaurantId, 10));
 			Map<String, BigDecimal> categoryLift = toBigDecimalMap(response.categoryLift());
 			if (categoryLift.isEmpty()) {
 				categoryLift = toBigDecimalMapFromStrengths(response.strengths());

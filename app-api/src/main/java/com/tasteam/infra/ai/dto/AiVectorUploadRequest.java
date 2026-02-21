@@ -11,9 +11,7 @@ public record AiVectorUploadRequest(
 		Integer id,
 		@JsonProperty("restaurant_id")
 		long restaurantId,
-		String content,
-		@JsonProperty("created_at")
-		String createdAt) {
+		String content) {
 	}
 
 	public record RestaurantPayload(
