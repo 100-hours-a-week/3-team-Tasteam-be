@@ -2,6 +2,7 @@ package com.tasteam.domain.analytics.dispatch;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -89,7 +90,7 @@ public class UserActivityDispatchOutboxJdbcRepository {
 			SELECT_DISPATCH_CANDIDATES_SQL,
 			new MapSqlParameterSource()
 				.addValue("dispatchTarget", dispatchTarget.name())
-				.addValue("now", now == null ? Instant.now() : now)
+				.addValue("now", now == null ? Instant.now() : now, Types.TIMESTAMP_WITH_TIMEZONE)
 				.addValue("limit", validatedLimit),
 			outboxEntryRowMapper());
 	}
