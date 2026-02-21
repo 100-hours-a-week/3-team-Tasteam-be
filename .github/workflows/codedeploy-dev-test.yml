@@ -40,18 +40,20 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push backend image
-        env:
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_BACKEND }}
-        run: |
-          set -euo pipefail
-          IMAGE_SHA="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_SHA}"
-          IMAGE_LATEST="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG_LATEST}"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-          docker build -f app-api/Dockerfile -t "${IMAGE_SHA}" -t "${IMAGE_LATEST}" .
-          docker push "${IMAGE_SHA}"
-          docker push "${IMAGE_LATEST}"
+      - name: Build and push backend image (with GHA cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: app-api/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ env.IMAGE_TAG_SHA }}
+            ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ env.IMAGE_TAG_LATEST }}
+          cache-from: type=gha,scope=backend-codedeploy-dev
+          cache-to: type=gha,mode=max,scope=backend-codedeploy-dev
 
       - name: Package CodeDeploy artifact
         run: |
