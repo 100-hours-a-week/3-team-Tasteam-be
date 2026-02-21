@@ -105,7 +105,16 @@ public class ClientActivityIngestService {
 		if (properties == null || properties.isEmpty()) {
 			return Map.of("source", "CLIENT");
 		}
-		java.util.LinkedHashMap<String, Object> normalized = new java.util.LinkedHashMap<>(properties);
+		java.util.LinkedHashMap<String, Object> normalized = new java.util.LinkedHashMap<>();
+		for (Map.Entry<String, Object> entry : properties.entrySet()) {
+			if (!StringUtils.hasText(entry.getKey())) {
+				continue;
+			}
+			if (entry.getValue() == null) {
+				continue;
+			}
+			normalized.put(entry.getKey(), entry.getValue());
+		}
 		normalized.put("source", "CLIENT");
 		return Map.copyOf(normalized);
 	}
