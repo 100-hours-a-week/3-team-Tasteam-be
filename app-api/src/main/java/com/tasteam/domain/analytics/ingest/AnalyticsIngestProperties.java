@@ -19,10 +19,18 @@ public class AnalyticsIngestProperties {
 	private boolean enabled = true;
 	private int maxBatchSize = 50;
 	private List<String> allowlist = List.of(
-		"ui.restaurant.viewed",
+		"ui.page.viewed",
+		"ui.page.dwelled",
 		"ui.restaurant.clicked",
+		"ui.restaurant.viewed",
 		"ui.review.write_started",
-		"ui.review.submitted");
+		"ui.review.submitted",
+		"ui.search.executed",
+		"ui.group.clicked",
+		"ui.favorite.sheet_opened",
+		"ui.favorite.updated",
+		"ui.event.clicked",
+		"ui.tab.changed");
 	private RateLimit rateLimit = new RateLimit();
 
 	public int validatedMaxBatchSize() {
