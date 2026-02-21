@@ -80,6 +80,8 @@ jobs:
             traffic.sh \
             switch.sh \
             rollback.sh \
+            docker-compose.backend.yml \
+            docker-compose.dev-infra.yml \
             .env.deploy \
             RUNBOOK.md
 
