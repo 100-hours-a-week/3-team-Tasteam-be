@@ -1,5 +1,6 @@
 package com.tasteam.domain.analytics.persistence;
 
+import java.sql.Timestamp;
 import java.util.Map;
 import java.util.Objects;
 
@@ -43,7 +44,7 @@ public class UserActivityEventJdbcRepository {
 			.addValue("eventId", event.eventId())
 			.addValue("eventName", event.eventName())
 			.addValue("eventVersion", event.eventVersion())
-			.addValue("occurredAt", event.occurredAt())
+			.addValue("occurredAt", Timestamp.from(event.occurredAt()))
 			.addValue("memberId", event.memberId())
 			.addValue("anonymousId", event.anonymousId())
 			.addValue("sessionId", null)

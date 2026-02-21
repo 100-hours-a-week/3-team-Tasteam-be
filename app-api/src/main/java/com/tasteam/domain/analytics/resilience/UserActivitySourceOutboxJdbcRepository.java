@@ -2,6 +2,7 @@ package com.tasteam.domain.analytics.resilience;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +83,7 @@ public class UserActivitySourceOutboxJdbcRepository {
 			.addValue("eventId", event.eventId())
 			.addValue("eventName", event.eventName())
 			.addValue("eventVersion", event.eventVersion())
-			.addValue("occurredAt", event.occurredAt())
+			.addValue("occurredAt", event.occurredAt(), Types.TIMESTAMP_WITH_TIMEZONE)
 			.addValue("memberId", event.memberId())
 			.addValue("payload", serializePayload(event));
 		return jdbcTemplate.update(INSERT_PENDING_SQL, params) > 0;
@@ -103,7 +104,7 @@ public class UserActivitySourceOutboxJdbcRepository {
 		return jdbcTemplate.query(
 			SELECT_REPLAY_CANDIDATES_SQL,
 			new MapSqlParameterSource()
-				.addValue("now", now == null ? Instant.now() : now)
+				.addValue("now", now == null ? Instant.now() : now, Types.TIMESTAMP_WITH_TIMEZONE)
 				.addValue("limit", validatedLimit),
 			outboxEntryRowMapper());
 	}

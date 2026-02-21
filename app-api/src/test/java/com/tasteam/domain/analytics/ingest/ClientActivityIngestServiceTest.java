@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -130,6 +131,41 @@ class ClientActivityIngestServiceTest {
 			.extracting(ex -> ((BusinessException)ex).getErrorCode())
 			.isEqualTo(AnalyticsErrorCode.ANALYTICS_INGEST_RATE_LIMIT_EXCEEDED.name());
 		verifyNoInteractions(storeService);
+	}
+
+	@Test
+	@DisplayName("properties에 null 값이 포함되어도 null-safe 정규화 후 저장한다")
+	void ingest_normalizesNullPropertyEntries() {
+		// given
+		AnalyticsIngestProperties properties = defaultProperties();
+		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
+		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
+		when(rateLimiter.tryAcquire("anonymous:anon-1")).thenReturn(true);
+		ClientActivityIngestService service = new ClientActivityIngestService(properties, rateLimiter, storeService);
+
+		Map<String, Object> rawProperties = new LinkedHashMap<>();
+		rawProperties.put("restaurantId", 1L);
+		rawProperties.put("subgroupId", null);
+		rawProperties.put("", "blank-key");
+		ClientActivityEventItemRequest item = new ClientActivityEventItemRequest(
+			"evt-1",
+			"ui.restaurant.viewed",
+			null,
+			Instant.parse("2026-02-19T00:00:00Z"),
+			rawProperties);
+
+		// when
+		int accepted = service.ingest(null, "anon-1", List.of(item));
+
+		// then
+		assertThat(accepted).isEqualTo(1);
+		ArgumentCaptor<ActivityEvent> captor = ArgumentCaptor.forClass(ActivityEvent.class);
+		verify(storeService).store(captor.capture());
+		Map<String, Object> storedProperties = captor.getValue().properties();
+		assertThat(storedProperties).containsEntry("restaurantId", 1L);
+		assertThat(storedProperties).containsEntry("source", "CLIENT");
+		assertThat(storedProperties).doesNotContainKey("subgroupId");
+		assertThat(storedProperties).doesNotContainKey("");
 	}
 
 	private AnalyticsIngestProperties defaultProperties() {
