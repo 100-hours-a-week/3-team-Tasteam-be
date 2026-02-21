@@ -5,7 +5,7 @@ set -euo pipefail
 # Modes: stop | deploy | health
 
 MODE="${1:-deploy}"
-ENV_NAME="${ENV_NAME:-prod}"                # dev|stg|prod
+ENV_NAME="${ENV_NAME:-}"                    # dev|stg|prod (required)
 AWS_REGION="${AWS_REGION:-ap-northeast-2}"
 APP_DIR="${APP_DIR:-/opt/tasteam}"
 CONTAINER_NAME="${CONTAINER_NAME:-tasteam-be}"
@@ -17,6 +17,8 @@ ECR_REPO_BACKEND="${ECR_REPO_BACKEND:-}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 
 BACKEND_ENV_FILE="${BACKEND_ENV_FILE:-${APP_DIR}/backend.env}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+DEPLOY_ENV_FILE="${DEPLOY_ENV_FILE:-${SCRIPT_DIR}/.env.deploy}"
 
 export AWS_PAGER=""
 
@@ -29,6 +31,16 @@ require_cmd() {
     log "missing command: $1"
     exit 1
   }
+}
+
+load_deploy_env_file() {
+  if [ -f "${DEPLOY_ENV_FILE}" ]; then
+    log "load deploy env file: ${DEPLOY_ENV_FILE}"
+    set -a
+    # shellcheck disable=SC1090
+    . "${DEPLOY_ENV_FILE}"
+    set +a
+  fi
 }
 
 fetch_ssm_env() {
@@ -60,6 +72,11 @@ fetch_ssm_env() {
 
   rm -f "${tmp_file}"
   chmod 600 "${out_file}"
+
+  if [ ! -s "${out_file}" ]; then
+    log "no SSM parameters found for path: ${path}"
+    exit 1
+  fi
 }
 
 stop_container() {
@@ -70,11 +87,19 @@ stop_container() {
 deploy_backend() {
   require_cmd aws
   require_cmd docker
+  load_deploy_env_file
+
+  if [ -z "${ENV_NAME}" ]; then
+    log "ENV_NAME is required (dev|stg|prod)"
+    exit 1
+  fi
 
   if [ -z "${ECR_REGISTRY}" ] || [ -z "${ECR_REPO_BACKEND}" ]; then
     log "ECR_REGISTRY/ECR_REPO_BACKEND is required"
     exit 1
   fi
+
+  log "deploy config: env=${ENV_NAME}, region=${AWS_REGION}, image=${ECR_REGISTRY}/${ECR_REPO_BACKEND}:${IMAGE_TAG}"
 
   mkdir -p "${APP_DIR}"
 

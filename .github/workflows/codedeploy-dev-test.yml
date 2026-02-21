@@ -56,9 +56,21 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend-codedeploy-dev
 
       - name: Package CodeDeploy artifact
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          ECR_REPO_BACKEND: ${{ secrets.ECR_REPOSITORY_BACKEND }}
         run: |
           set -euo pipefail
           cd "${DEPLOY_DIR}"
+          [ -n "${ECR_REGISTRY}" ] && [ -n "${ECR_REPO_BACKEND}" ] || { echo "ECR_REGISTRY/ECR_REPO_BACKEND secret is required"; exit 1; }
+          cat > .env.deploy <<EOF
+          ENV_NAME=dev
+          AWS_REGION=${AWS_REGION}
+          ECR_REGISTRY=${ECR_REGISTRY}
+          ECR_REPO_BACKEND=${ECR_REPO_BACKEND}
+          IMAGE_TAG=${IMAGE_TAG_SHA}
+          EOF
+
           chmod +x deploy.sh stop.sh health.sh traffic.sh switch.sh rollback.sh
           zip -r "${GITHUB_WORKSPACE}/${ARTIFACT_FILE}" \
             appspec.yml \
@@ -68,6 +80,7 @@ jobs:
             traffic.sh \
             switch.sh \
             rollback.sh \
+            .env.deploy \
             RUNBOOK.md
 
       - name: Upload artifact to S3
