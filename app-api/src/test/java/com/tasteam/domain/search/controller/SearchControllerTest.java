@@ -125,6 +125,16 @@ class SearchControllerTest {
 		}
 
 		@Test
+		@DisplayName("키워드에 XSS 공격 문자열이 포함되면 400 에러를 반환한다")
+		void 키워드_XSS_문자열_포함시_400_에러() throws Exception {
+			// when & then
+			mockMvc.perform(post("/api/v1/search")
+				.param("keyword", "<script>alert('hacked')</script>")
+				.param("size", String.valueOf(SearchRequestFixture.DEFAULT_SIZE)))
+				.andExpect(status().isBadRequest());
+		}
+
+		@Test
 		@DisplayName("size가 100을 초과하면 400 에러를 반환한다")
 		void size_범위_초과시_400_에러() throws Exception {
 			// when & then
