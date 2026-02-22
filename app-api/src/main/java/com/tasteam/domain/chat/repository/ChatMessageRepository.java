@@ -17,7 +17,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 			m.id,
 			m.memberId,
 			member.nickname,
-			member.profileImageUrl,
 			m.content,
 			m.type,
 			m.createdAt
