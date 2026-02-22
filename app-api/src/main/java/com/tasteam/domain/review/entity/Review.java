@@ -60,6 +60,10 @@ public class Review extends BaseTimeEntity {
 	@Column(name = "deleted_at")
 	private Instant deletedAt;
 
+	@Column(name = "vector_synced_at")
+	@Comment("해당 리뷰 벡터 업로드 완료 시각")
+	private Instant vectorSyncedAt;
+
 	public static Review create(
 		Restaurant restaurant,
 		Member member,
@@ -75,10 +79,18 @@ public class Review extends BaseTimeEntity {
 			.content(content)
 			.isRecommended(isRecommended)
 			.deletedAt(null)
+			.vectorSyncedAt(null)
 			.build();
 	}
 
 	public void softDelete(Instant deletedAt) {
 		this.deletedAt = deletedAt;
+	}
+
+	/**
+	 * 벡터 업로드 성공 시 호출. 해당 리뷰의 vector_synced_at을 갱신한다.
+	 */
+	public void markVectorSynced(Instant syncedAt) {
+		this.vectorSyncedAt = syncedAt;
 	}
 }
