@@ -27,6 +27,7 @@ BACKEND_COMPOSE_FILE="${BACKEND_COMPOSE_FILE:-${SCRIPT_DIR}/docker-compose.backe
 DEV_INFRA_COMPOSE_FILE="${DEV_INFRA_COMPOSE_FILE:-${SCRIPT_DIR}/docker-compose.dev-infra.yml}"
 DEV_INFRA_DB_CONTAINER="${DEV_INFRA_DB_CONTAINER:-tasteam-dev-db}"
 DEV_INFRA_REDIS_CONTAINER="${DEV_INFRA_REDIS_CONTAINER:-tasteam-dev-redis}"
+DEV_INFRA_COMPOSE_PROJECT_NAME="${DEV_INFRA_COMPOSE_PROJECT_NAME:-tasteam-dev-infra}"
 
 export AWS_PAGER=""
 
@@ -210,7 +211,15 @@ start_dev_infra() {
   fi
 
   log "start dev local infra (db/redis): ${DEV_INFRA_COMPOSE_FILE}"
-  compose_up --env-file "${BACKEND_ENV_FILE}" -f "${DEV_INFRA_COMPOSE_FILE}" up -d db redis
+  # Dev EC2 often has manually-started containers with the same fixed names.
+  # Remove named containers first so CodeDeploy can recreate them consistently.
+  docker rm -f "${DEV_INFRA_DB_CONTAINER}" "${DEV_INFRA_REDIS_CONTAINER}" >/dev/null 2>&1 || true
+
+  compose_up \
+    --project-name "${DEV_INFRA_COMPOSE_PROJECT_NAME}" \
+    --env-file "${BACKEND_ENV_FILE}" \
+    -f "${DEV_INFRA_COMPOSE_FILE}" \
+    up -d db redis
 
   wait_container_healthy "${DEV_INFRA_DB_CONTAINER}" 60 2
   wait_container_healthy "${DEV_INFRA_REDIS_CONTAINER}" 30 2

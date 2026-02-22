@@ -5,8 +5,8 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DEV_DB_NAME:-tasteam}
-      POSTGRES_USER: ${DB_USERNAME:-marcus}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-akrrnrtn}
+      POSTGRES_USER: "${DB_USERNAME:?DB_USERNAME is required}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD is required}"
       TZ: Asia/Seoul
     ports:
       - "${DEV_DB_PORT:-5432}:5432"
@@ -14,7 +14,7 @@ services:
       - /opt/tasteam/dev-infra/postgres-data:/var/lib/postgresql/data
       - /opt/tasteam/dev-infra/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-marcus} -d ${DEV_DB_NAME:-tasteam}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:?DB_USERNAME is required} -d ${DEV_DB_NAME:-tasteam}"]
       interval: 10s
       timeout: 5s
       retries: 10
