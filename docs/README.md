@@ -19,6 +19,7 @@
 - `docs/policy/`: 운영/빌드/의존성 등 정책 문서를 모아둔 공간입니다.
   - `dependency-versions.md`: 의존성 버전 선택 이유 문서입니다.
   - `logging-policy.md`: 로그 저장/압축 정책 문서입니다.
+  - `cicd-strategy.md`: v2 CI/CD 전략 문서입니다. 두 배포 파이프라인(JAR 기반 / CodeDeploy 기반)과 보조 워크플로우를 정리합니다.
 - `docs/spec/`: 설계 산출물(ERD, API 명세)을 모아둔 공간입니다.
   - `docs/spec/erd/`: ERD 파일 저장
   - `docs/spec/api/`: API 명세서 저장
