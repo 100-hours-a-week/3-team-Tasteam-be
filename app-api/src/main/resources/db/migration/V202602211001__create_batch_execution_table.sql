@@ -1,6 +1,6 @@
 -- Migration: create_batch_execution_table
 -- Task 2: BatchExecution 테이블 생성 (배치 런 메타데이터)
--- batch_type: VECTOR_DAILY, ANALYSIS_DAILY, COMPARISON_WEEKLY
+-- batch_type: VECTOR_UPLOAD_DAILY, REVIEW_ANALYSIS_DAILY, RESTAURANT_COMPARISON_WEEKLY
 -- status: RUNNING, COMPLETED, FAILED
 
 CREATE TABLE IF NOT EXISTS batch_execution (
