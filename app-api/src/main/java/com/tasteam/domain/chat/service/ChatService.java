@@ -2,6 +2,8 @@ package com.tasteam.domain.chat.service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -72,12 +74,19 @@ public class ChatService {
 			resolvedSize,
 			last -> new ChatMessageCursor(last.id()));
 
+		List<Long> memberIds = page.items().stream()
+			.map(ChatMessageQueryDto::memberId)
+			.filter(Objects::nonNull)
+			.distinct()
+			.toList();
+		Map<Long, String> imageUrlByMemberId = fileService.getPrimaryDomainImageUrlMap(DomainType.MEMBER, memberIds);
+
 		List<ChatMessageItemResponse> items = page.items().stream()
 			.map(item -> new ChatMessageItemResponse(
 				item.id(),
 				item.memberId(),
 				item.memberNickname(),
-				item.memberProfileImageUrl(),
+				imageUrlByMemberId.get(item.memberId()),
 				item.content(),
 				item.messageType(),
 				item.createdAt()))
