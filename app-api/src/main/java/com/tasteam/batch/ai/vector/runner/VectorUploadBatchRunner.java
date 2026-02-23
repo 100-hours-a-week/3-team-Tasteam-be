@@ -52,7 +52,7 @@ public class VectorUploadBatchRunner {
 	/**
 	 * RUNNING인 벡터 업로드 실행이 있으면 종료 조건 확인 후 finish. 타임아웃 시 강제 종료.
 	 */
-	@Scheduled(fixedDelayString = "${tasteam.batch.vector-upload.finish-check-interval:PT5M}")
+	@Scheduled(fixedDelayString = "${tasteam.batch.vector-upload.finish-check-interval:PT1M}")
 	public void tryFinishRunningExecution() {
 		batchExecutionRepository.findByBatchTypeAndStatus(BATCH_TYPE, BatchExecutionStatus.RUNNING)
 			.ifPresent(execution -> finishService.tryFinish(execution.getId(), Instant.now()));

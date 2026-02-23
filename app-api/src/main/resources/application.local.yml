@@ -51,6 +51,7 @@ logging:
     org.hibernate.tool.schema: debug
     org.springframework.security: DEBUG
     org.springdoc: ERROR
+    com.tasteam.batch.ai: DEBUG
 
 naver:
   maps:

@@ -10,12 +10,14 @@ public record AiSummaryBatchRequest(
 	@JsonProperty("min_score")
 	Double minScore) {
 
+	private static final int DEFAULT_LIMIT = 10;
+
 	/**
-	 * 레스토랑 1건만 담은 배치 요청. limit, min_score는 null(API 기본값 사용).
+	 * 레스토랑 1건만 담은 배치 요청. limit은 API 필수, summary-batch-size(기본 10)와 동일.
 	 */
 	public static AiSummaryBatchRequest singleRestaurant(long restaurantId) {
 		return new AiSummaryBatchRequest(
-			List.of(new AiSummaryBatchItem(restaurantId)), null, null);
+			List.of(new AiSummaryBatchItem(restaurantId)), DEFAULT_LIMIT, null);
 	}
 
 	public record AiSummaryBatchItem(

@@ -21,6 +21,13 @@ public interface AiJobRepository extends JpaRepository<AiJob, Long> {
 	List<AiJob> findByBatchExecutionId(Long batchExecutionId);
 
 	/**
+	 * 해당 배치 실행에 속한 Job 개수.
+	 */
+	@Query("SELECT COUNT(j) FROM AiJob j WHERE j.batchExecution.id = :batchExecutionId")
+	long countByBatchExecutionId(@Param("batchExecutionId")
+	long batchExecutionId);
+
+	/**
 	 * 해당 배치 실행의 status별 Job 개수. DB에서 집계해 엔티티 로딩 없이 조회.
 	 *
 	 * @return status별 개수 (해당 status가 0건이면 행 없음)
@@ -53,6 +60,25 @@ public interface AiJobRepository extends JpaRepository<AiJob, Long> {
 		AiJobStatus pendingStatus,
 		@Param("runningStatus")
 		AiJobStatus runningStatus);
+
+	/**
+	 * 해당 batch_type에서 미종료 실행(finished_at IS NULL)에 속한 PENDING·RUNNING Job을 전부 FAILED로 변경.
+	 * 사전 작업에서 이전 배치 정리 시 호출.
+	 *
+	 * @return 업데이트된 행 수
+	 */
+	@Modifying(clearAutomatically = true)
+	@Query("UPDATE AiJob j SET j.status = :failedStatus WHERE j.batchExecution.batchType = :batchType "
+		+ "AND j.batchExecution.finishedAt IS NULL AND (j.status = :pending OR j.status = :running)")
+	int markPendingAndRunningAsFailedByBatchTypeForUnclosedExecutions(
+		@Param("batchType")
+		BatchType batchType,
+		@Param("pending")
+		AiJobStatus pending,
+		@Param("running")
+		AiJobStatus running,
+		@Param("failedStatus")
+		AiJobStatus failedStatus);
 
 	/**
 	 * 해당 batch_type에서 RUNNING인 Job을 전부 FAILED로 변경

@@ -16,7 +16,7 @@ public class VectorUploadBatchConfig {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 		executor.setCorePoolSize(properties.getWorkerPoolSize());
 		executor.setMaxPoolSize(properties.getWorkerPoolSize());
-		executor.setQueueCapacity(0);
+		executor.setQueueCapacity(1000);
 		executor.setThreadNamePrefix("vector-upload-");
 		executor.initialize();
 		return executor;

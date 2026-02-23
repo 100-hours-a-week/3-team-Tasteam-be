@@ -145,6 +145,13 @@ public class AiClient {
 					yield AiServerException.from(r, requestId);
 				}
 				case ResourceAccessException r -> {
+					boolean isConnectionRefused = r.getMessage() != null
+						&& r.getMessage().toLowerCase().contains("connection refused");
+					if (isConnectionRefused) {
+						log.error("AI {} connection refused. requestId={}, message={}", action, requestId,
+							r.getMessage());
+						yield AiServerException.unavailable(requestId, r.getMessage());
+					}
 					log.error("AI {} timeout. requestId={}, message={}", action, requestId, r.getMessage());
 					yield AiServerException.timeout(requestId);
 				}

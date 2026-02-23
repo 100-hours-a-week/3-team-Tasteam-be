@@ -70,7 +70,10 @@ public class VectorUploadBatchFinishService {
 			return true;
 		}
 
-		finishAndLog(execution, batchExecutionId, now, counts, counts.failed(), BatchExecutionStatus.COMPLETED);
+		BatchExecutionStatus finalStatus = counts.failed() > 0 || counts.stale() > 0
+			? BatchExecutionStatus.FAILED
+			: BatchExecutionStatus.COMPLETED;
+		finishAndLog(execution, batchExecutionId, now, counts, counts.failed(), finalStatus);
 		return true;
 	}
 

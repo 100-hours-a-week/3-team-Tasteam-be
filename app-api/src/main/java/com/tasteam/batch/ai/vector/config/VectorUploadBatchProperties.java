@@ -30,5 +30,5 @@ public class VectorUploadBatchProperties {
 	/**
 	 * RUNNING 실행에 대한 종료 조건 확인 주기.
 	 */
-	private Duration finishCheckInterval = Duration.ofMinutes(5);
+	private Duration finishCheckInterval = Duration.ofMinutes(1);
 }

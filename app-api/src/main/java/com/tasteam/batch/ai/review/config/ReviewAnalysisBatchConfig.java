@@ -16,7 +16,7 @@ public class ReviewAnalysisBatchConfig {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 		executor.setCorePoolSize(properties.getWorkerPoolSize());
 		executor.setMaxPoolSize(properties.getWorkerPoolSize());
-		executor.setQueueCapacity(0);
+		executor.setQueueCapacity(1000); // 0이면 워커 수 초과 시 RejectedExecutionException → 나머지 PENDING 유지
 		executor.setThreadNamePrefix("review-analysis-");
 		executor.initialize();
 		return executor;

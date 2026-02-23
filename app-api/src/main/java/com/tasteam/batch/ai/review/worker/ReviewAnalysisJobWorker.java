@@ -90,14 +90,28 @@ public class ReviewAnalysisJobWorker {
 			return;
 		}
 		AiSentimentAnalysisResponse first = response.results().get(0);
+		long restaurantId = job.getRestaurantId();
 		long vectorEpoch = job.getBaseEpoch();
 		Instant analyzedAt = Instant.now();
-		RestaurantReviewSentiment entity = RestaurantReviewSentiment.create(
-			job.getRestaurantId(), vectorEpoch, null,
-			first.positiveCount(), first.negativeCount(), first.neutralCount(),
-			first.positiveRatio(), first.negativeRatio(), first.neutralRatio(),
-			analyzedAt);
 		transactionTemplate.executeWithoutResult(__ -> {
+			RestaurantReviewSentiment entity = sentimentRepository
+				.findByRestaurantIdAndVectorEpoch(restaurantId, vectorEpoch)
+				.orElse(null);
+			if (entity != null) {
+				entity.setPositiveCount(first.positiveCount());
+				entity.setNegativeCount(first.negativeCount());
+				entity.setNeutralCount(first.neutralCount());
+				entity.setPositivePercent((short)first.positiveRatio());
+				entity.setNegativePercent((short)first.negativeRatio());
+				entity.setNeutralPercent((short)first.neutralRatio());
+				entity.setAnalyzedAt(analyzedAt);
+			} else {
+				entity = RestaurantReviewSentiment.create(
+					restaurantId, vectorEpoch, null,
+					first.positiveCount(), first.negativeCount(), first.neutralCount(),
+					first.positiveRatio(), first.negativeRatio(), first.neutralRatio(),
+					analyzedAt);
+			}
 			sentimentRepository.save(entity);
 			job.markCompleted();
 			aiJobRepository.save(job);

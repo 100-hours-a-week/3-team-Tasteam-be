@@ -5,6 +5,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.tasteam.batch.ai.service.AiJobBroker;
 import com.tasteam.domain.batch.entity.AiJob;
@@ -64,10 +66,17 @@ public class VectorUploadJobProducer {
 			return;
 		}
 		aiJobRepository.saveAll(jobs);
-		for (AiJob job : jobs) {
-			vectorUploadJobBroker.publish(job.getId());
-		}
-		log.info("Vector upload jobs created and dispatched: batchExecutionId={}, count={}",
-			execution.getId(), jobs.size());
+		List<Long> jobIds = jobs.stream().map(AiJob::getId).toList();
+		// Job 커밋 완료 후 publish해야 broker의 claim이 row를 조회할 수 있음
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				for (Long jobId : jobIds) {
+					vectorUploadJobBroker.publish(jobId);
+				}
+				log.info("Vector upload jobs created and dispatched: batchExecutionId={}, count={}",
+					execution.getId(), jobIds.size());
+			}
+		});
 	}
 }

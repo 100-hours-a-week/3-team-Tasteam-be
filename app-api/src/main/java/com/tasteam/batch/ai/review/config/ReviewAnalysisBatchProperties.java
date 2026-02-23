@@ -30,5 +30,5 @@ public class ReviewAnalysisBatchProperties {
 	/**
 	 * 종료 조건 확인 주기. 기본 5분.
 	 */
-	private Duration finishCheckInterval = Duration.ofMinutes(5);
+	private Duration finishCheckInterval = Duration.ofMinutes(1);
 }

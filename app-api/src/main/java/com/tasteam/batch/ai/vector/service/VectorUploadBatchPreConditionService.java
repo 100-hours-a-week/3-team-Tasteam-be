@@ -32,10 +32,11 @@ public class VectorUploadBatchPreConditionService {
 	public PreConditionResult runPreCondition() {
 		Instant now = Instant.now();
 
-		int unclosedJobCount = aiJobRepository.markRunningAsFailedByBatchType(
-			BATCH_TYPE, AiJobStatus.RUNNING, AiJobStatus.FAILED);
+		int unclosedJobCount = aiJobRepository.markPendingAndRunningAsFailedByBatchTypeForUnclosedExecutions(
+			BATCH_TYPE, AiJobStatus.PENDING, AiJobStatus.RUNNING, AiJobStatus.FAILED);
 		if (unclosedJobCount > 0) {
-			log.info("Vector upload pre-condition: marked {} unclosed RUNNING job(s) as FAILED", unclosedJobCount);
+			log.info("Vector upload pre-condition: marked {} unclosed PENDING/RUNNING job(s) as FAILED",
+				unclosedJobCount);
 		}
 
 		int unclosedExecutionCount = batchExecutionRepository.markUnclosedAsFailed(

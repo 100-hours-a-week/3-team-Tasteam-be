@@ -96,4 +96,11 @@ public class BatchExecution extends BaseTimeEntity {
 		this.finishedAt = at;
 		this.status = BatchExecutionStatus.FAILED;
 	}
+
+	/**
+	 * 실제 작업이 시작된 시각으로 갱신. 리뷰 배치처럼 Job이 나중에 생성되는 경우, 첫 Job 생성 시 호출.
+	 */
+	public void recordWorkStarted(Instant at) {
+		this.startedAt = at;
+	}
 }

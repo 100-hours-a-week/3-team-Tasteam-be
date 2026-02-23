@@ -15,6 +15,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Getter
@@ -39,24 +40,31 @@ public class RestaurantReviewSentiment {
 	@Column(name = "model_version", length = 50)
 	private String modelVersion;
 
+	@Setter
 	@Column(name = "positive_count", nullable = false)
 	private int positiveCount;
 
+	@Setter
 	@Column(name = "negative_count", nullable = false)
 	private int negativeCount;
 
+	@Setter
 	@Column(name = "neutral_count", nullable = false)
 	private int neutralCount;
 
+	@Setter
 	@Column(name = "positive_percent", nullable = false)
-	private Integer positivePercent;
+	private Short positivePercent;
 
+	@Setter
 	@Column(name = "negative_percent", nullable = false)
-	private Integer negativePercent;
+	private Short negativePercent;
 
+	@Setter
 	@Column(name = "neutral_percent", nullable = false)
-	private Integer neutralPercent;
+	private Short neutralPercent;
 
+	@Setter
 	@Column(name = "analyzed_at", nullable = false)
 	private Instant analyzedAt;
 
@@ -76,9 +84,9 @@ public class RestaurantReviewSentiment {
 			.positiveCount(positiveCount)
 			.negativeCount(negativeCount)
 			.neutralCount(neutralCount)
-			.positivePercent(positivePercent)
-			.negativePercent(negativePercent)
-			.neutralPercent(neutralPercent)
+			.positivePercent((short)positivePercent)
+			.negativePercent((short)negativePercent)
+			.neutralPercent((short)neutralPercent)
 			.analyzedAt(analyzedAt)
 			.build();
 	}

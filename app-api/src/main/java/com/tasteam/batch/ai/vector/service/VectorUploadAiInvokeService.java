@@ -1,5 +1,6 @@
 package com.tasteam.batch.ai.vector.service;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -40,7 +41,8 @@ public class VectorUploadAiInvokeService {
 			.map(r -> new AiVectorUploadRequest.ReviewPayload(
 				r.getId(),
 				restaurantId,
-				r.getContent() != null ? r.getContent() : ""))
+				r.getContent() != null ? r.getContent() : "",
+				r.getCreatedAt() != null ? r.getCreatedAt() : Instant.now()))
 			.toList();
 		List<AiVectorUploadRequest.RestaurantPayload> restaurants = List.of(
 			new AiVectorUploadRequest.RestaurantPayload(
