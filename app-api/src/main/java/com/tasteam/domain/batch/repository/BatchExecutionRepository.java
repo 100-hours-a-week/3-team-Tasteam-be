@@ -6,6 +6,9 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.tasteam.domain.batch.entity.BatchExecution;
 import com.tasteam.domain.batch.entity.BatchExecutionStatus;
@@ -23,4 +26,24 @@ public interface BatchExecutionRepository extends JpaRepository<BatchExecution, 
 	 */
 	List<BatchExecution> findByBatchTypeAndStartedAtBetweenOrderByStartedAtDesc(
 		BatchType batchType, Instant from, Instant to, Pageable pageable);
+
+	/**
+	 * 해당 batch_type에서 finished_at이 없는(미종료) 배치 목록
+	 */
+	List<BatchExecution> findByBatchTypeAndFinishedAtIsNull(BatchType batchType);
+
+	/**
+	 * 해당 batch_type에서 미종료(finished_at IS NULL)인 실행을 전부 FAILED로 일괄 갱신.
+	 *
+	 * @return 업데이트된 행 수
+	 */
+	@Modifying(clearAutomatically = true)
+	@Query("UPDATE BatchExecution e SET e.status = :failedStatus, e.finishedAt = :finishedAt WHERE e.batchType = :batchType AND e.finishedAt IS NULL")
+	int markUnclosedAsFailed(
+		@Param("batchType")
+		BatchType batchType,
+		@Param("failedStatus")
+		BatchExecutionStatus failedStatus,
+		@Param("finishedAt")
+		Instant finishedAt);
 }

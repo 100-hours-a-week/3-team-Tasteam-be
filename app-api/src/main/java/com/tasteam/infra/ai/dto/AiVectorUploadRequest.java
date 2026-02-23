@@ -8,14 +8,14 @@ public record AiVectorUploadRequest(
 	List<ReviewPayload> reviews,
 	List<RestaurantPayload> restaurants) {
 	public record ReviewPayload(
-		Integer id,
+		long id,
 		@JsonProperty("restaurant_id")
 		long restaurantId,
 		String content) {
 	}
 
 	public record RestaurantPayload(
-		Integer id,
+		long id,
 		String name) {
 	}
 }

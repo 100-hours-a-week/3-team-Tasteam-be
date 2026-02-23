@@ -109,6 +109,12 @@ tasteam:
       enabled: ${IMAGE_OPTIMIZATION_ENABLED:false}
       cron: ${IMAGE_OPTIMIZATION_CRON:0 0 3 * * ?}
       batch-size: ${IMAGE_OPTIMIZATION_BATCH_SIZE:100}
+  batch:
+    vector-upload:
+      worker-pool-size: ${TASTEAM_BATCH_VECTOR_UPLOAD_WORKER_POOL_SIZE:4}
+    review-analysis:
+      worker-pool-size: ${TASTEAM_BATCH_REVIEW_ANALYSIS_WORKER_POOL_SIZE:4}
+      finish-timeout: ${TASTEAM_BATCH_REVIEW_ANALYSIS_FINISH_TIMEOUT:60m}
   aop:
     logging:
       enabled: ${TASTEAM_AOP_LOGGING_ENABLED:true}

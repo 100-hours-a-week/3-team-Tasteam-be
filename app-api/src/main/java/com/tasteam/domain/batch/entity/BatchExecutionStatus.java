@@ -6,5 +6,7 @@ package com.tasteam.domain.batch.entity;
 public enum BatchExecutionStatus {
 	RUNNING,
 	COMPLETED,
-	FAILED
+	FAILED,
+	/** finishTimeout 경과로 PENDING/RUNNING을 강제 FAILED 처리 후 종료한 경우 */
+	TIMEOUT
 }

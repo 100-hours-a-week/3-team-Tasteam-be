@@ -1,6 +1,5 @@
 package com.tasteam.domain.restaurant.entity;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 
 import org.hibernate.annotations.Comment;
@@ -49,25 +48,26 @@ public class RestaurantReviewSentiment {
 	@Column(name = "neutral_count", nullable = false)
 	private int neutralCount;
 
-	@Column(name = "positive_ratio", nullable = false, precision = 5, scale = 4)
-	private BigDecimal positiveRatio;
+	@Column(name = "positive_percent", nullable = false)
+	private Integer positivePercent;
 
-	@Column(name = "negative_ratio", nullable = false, precision = 5, scale = 4)
-	private BigDecimal negativeRatio;
+	@Column(name = "negative_percent", nullable = false)
+	private Integer negativePercent;
 
-	@Column(name = "neutral_ratio", nullable = false, precision = 5, scale = 4)
-	private BigDecimal neutralRatio;
+	@Column(name = "neutral_percent", nullable = false)
+	private Integer neutralPercent;
 
 	@Column(name = "analyzed_at", nullable = false)
 	private Instant analyzedAt;
 
 	/**
 	 * 감정 분석 Job 완료 시 저장용. 배치(11번)에서 호출.
+	 * percent는 0–100.
 	 */
 	public static RestaurantReviewSentiment create(
 		Long restaurantId, long vectorEpoch, String modelVersion,
 		int positiveCount, int negativeCount, int neutralCount,
-		BigDecimal positiveRatio, BigDecimal negativeRatio, BigDecimal neutralRatio,
+		int positivePercent, int negativePercent, int neutralPercent,
 		Instant analyzedAt) {
 		return RestaurantReviewSentiment.builder()
 			.restaurantId(restaurantId)
@@ -76,9 +76,9 @@ public class RestaurantReviewSentiment {
 			.positiveCount(positiveCount)
 			.negativeCount(negativeCount)
 			.neutralCount(neutralCount)
-			.positiveRatio(positiveRatio)
-			.negativeRatio(negativeRatio)
-			.neutralRatio(neutralRatio)
+			.positivePercent(positivePercent)
+			.negativePercent(negativePercent)
+			.neutralPercent(neutralPercent)
 			.analyzedAt(analyzedAt)
 			.build();
 	}
