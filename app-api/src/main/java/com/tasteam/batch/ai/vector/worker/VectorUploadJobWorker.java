@@ -70,12 +70,12 @@ public class VectorUploadJobWorker {
 		VectorUploadInvokeResult result = aiInvokeService.invoke(data);
 
 		switch (result) {
-			case VectorUploadInvokeResult.Success success -> onSuccess(job, data, success);
+			case VectorUploadInvokeResult.Success success -> onSuccess(job, data);
 			case VectorUploadInvokeResult.Failure failure -> onFailure(job, failure);
 		}
 	}
 
-	private void onSuccess(AiJob job, RestaurantWithReviews data, VectorUploadInvokeResult.Success success) {
+	private void onSuccess(AiJob job, RestaurantWithReviews data) {
 		boolean synced = epochSyncService.syncEpochAfterUpload(job, data, Instant.now());
 		if (synced) {
 			reviewAnalysisJobProducer.createJobsAfterVectorUpload(
