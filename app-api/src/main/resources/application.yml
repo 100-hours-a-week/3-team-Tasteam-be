@@ -189,3 +189,7 @@ management:
     health:
       probes:
         enabled: true
+
+logging:
+  level:
+    org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: OFF

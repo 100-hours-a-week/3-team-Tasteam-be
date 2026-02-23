@@ -29,3 +29,7 @@ tasteam:
       enabled: true
       transactional-query-logging:
         enabled: true
+
+logging:
+  level:
+    org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: INFO
