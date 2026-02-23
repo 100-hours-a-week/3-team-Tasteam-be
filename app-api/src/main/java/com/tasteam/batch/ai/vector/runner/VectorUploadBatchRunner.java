@@ -7,8 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.tasteam.batch.ai.vector.service.VectorUploadBatchFinishService;
 import com.tasteam.batch.ai.vector.service.VectorUploadBatchPreConditionService;
-import com.tasteam.batch.ai.vector.service.VectorUploadJobCreateService;
-import com.tasteam.batch.ai.vector.worker.VectorUploadBatchWorker;
+import com.tasteam.batch.ai.vector.service.VectorUploadJobProducer;
 import com.tasteam.domain.batch.entity.BatchExecution;
 import com.tasteam.domain.batch.entity.BatchExecutionStatus;
 import com.tasteam.domain.batch.entity.BatchType;
@@ -19,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 벡터 업로드 배치 진입점 및 종료 폴링.
- * startRun() → 사전 작업 → 실행 생성 → Job 생성·디스패치 → 미전달 PENDING 보정.
+ * startRun() → 사전 작업 → 실행 생성 → Job 생성·디스패치.
  * 종료: 주기적으로 RUNNING 실행에 대해 tryFinish (타임아웃 시 강제 종료).
  */
 @Slf4j
@@ -31,12 +30,11 @@ public class VectorUploadBatchRunner {
 
 	private final VectorUploadBatchPreConditionService preConditionService;
 	private final BatchExecutionRepository batchExecutionRepository;
-	private final VectorUploadJobCreateService jobCreateService;
-	private final VectorUploadBatchWorker worker;
+	private final VectorUploadJobProducer jobProducer;
 	private final VectorUploadBatchFinishService finishService;
 
 	/**
-	 * 배치 런 시작. 사전 작업 → 새 RUNNING 실행 생성 → Job 생성·디스패치 → 미전달 PENDING 보정.
+	 * 배치 런 시작. 사전 작업 → 새 RUNNING 실행 생성 → Job 생성·디스패치.
 	 * 스케줄 또는 수동에서 호출.
 	 *
 	 * @return 생성된 실행
@@ -46,8 +44,7 @@ public class VectorUploadBatchRunner {
 		Instant now = Instant.now();
 		BatchExecution execution = BatchExecution.start(BATCH_TYPE, now);
 		execution = batchExecutionRepository.save(execution);
-		jobCreateService.createAndDispatchJobs(execution);
-		worker.processPendingJobs(execution.getId());
+		jobProducer.createAndDispatchJobs(execution);
 		log.info("Vector upload batch run started: batchExecutionId={}", execution.getId());
 		return execution;
 	}

@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.tasteam.batch.ai.service.AiJobDispatcher;
+import com.tasteam.batch.ai.service.AiJobBroker;
 import com.tasteam.domain.batch.entity.AiJob;
 import com.tasteam.domain.batch.entity.AiJobType;
 import com.tasteam.domain.batch.entity.BatchExecution;
@@ -19,25 +19,25 @@ import com.tasteam.domain.batch.repository.BatchExecutionRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 벡터 업로드 성공 시 해당 레스토랑에 대한 리뷰 분석 Job(감정·요약) 2건 생성 후 디스패처로 전달.
+ * 벡터 업로드 성공 시 해당 레스토랑에 대한 리뷰 분석 Job(감정·요약) 2건 생성 후 브로커로 전달.
  */
 @Slf4j
 @Service
-public class ReviewAnalysisJobCreateService {
+public class ReviewAnalysisJobProducer {
 
 	private static final BatchType BATCH_TYPE = BatchType.REVIEW_ANALYSIS_DAILY;
 
 	private final BatchExecutionRepository batchExecutionRepository;
 	private final AiJobRepository aiJobRepository;
-	private final AiJobDispatcher aiJobDispatcher;
+	private final AiJobBroker reviewAnalysisJobBroker;
 
-	public ReviewAnalysisJobCreateService(BatchExecutionRepository batchExecutionRepository,
+	public ReviewAnalysisJobProducer(BatchExecutionRepository batchExecutionRepository,
 		AiJobRepository aiJobRepository,
-		@Qualifier("reviewAnalysisJobDispatcher")
-		AiJobDispatcher aiJobDispatcher) {
+		@Qualifier("syncReviewAnalysisJobBroker")
+		AiJobBroker reviewAnalysisJobBroker) {
 		this.batchExecutionRepository = batchExecutionRepository;
 		this.aiJobRepository = aiJobRepository;
-		this.aiJobDispatcher = aiJobDispatcher;
+		this.reviewAnalysisJobBroker = reviewAnalysisJobBroker;
 	}
 
 	/**
@@ -63,7 +63,7 @@ public class ReviewAnalysisJobCreateService {
 			AiJob.create(execution, AiJobType.REVIEW_SUMMARY, restaurantId, baseEpoch));
 		aiJobRepository.saveAll(jobs);
 		for (AiJob job : jobs) {
-			aiJobDispatcher.dispatch(job.getId());
+			reviewAnalysisJobBroker.publish(job.getId());
 		}
 		log.info("Review analysis jobs created and dispatched: restaurantId={}, batchExecutionId={}, baseEpoch={}",
 			restaurantId, execution.getId(), baseEpoch);

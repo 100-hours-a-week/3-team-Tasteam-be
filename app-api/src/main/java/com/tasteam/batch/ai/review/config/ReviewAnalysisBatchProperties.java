@@ -28,7 +28,7 @@ public class ReviewAnalysisBatchProperties {
 	private Duration finishTimeout = Duration.ofMinutes(60);
 
 	/**
-	 * 종료 조건 확인 주기 (RUNNING 실행에 대해 tryFinish 호출). 기본 5분.
+	 * 종료 조건 확인 주기. 기본 5분.
 	 */
 	private Duration finishCheckInterval = Duration.ofMinutes(5);
 }

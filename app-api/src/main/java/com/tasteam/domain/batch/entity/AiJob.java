@@ -68,7 +68,7 @@ public class AiJob extends BaseCreatedAtEntity {
 	}
 
 	/**
-	 * Worker가 Job 선점 시 호출. PENDING → RUNNING.
+	 * Job 선점 시 호출. PENDING → RUNNING.
 	 */
 	public void markRunning() {
 		this.status = AiJobStatus.RUNNING;

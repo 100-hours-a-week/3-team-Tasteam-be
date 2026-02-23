@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.tasteam.batch.ai.service.AiJobDispatcher;
+import com.tasteam.batch.ai.service.AiJobBroker;
 import com.tasteam.domain.batch.entity.AiJob;
 import com.tasteam.domain.batch.entity.AiJobType;
 import com.tasteam.domain.batch.entity.BatchExecution;
@@ -18,30 +18,30 @@ import com.tasteam.domain.review.repository.ReviewRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 벡터 업로드 배치 1사이클: 대상 레스토랑 조회 → Job N건 생성·저장 → 각 jobId 디스패치.
+ * 벡터 업로드 배치 1사이클: 대상 레스토랑 조회 → Job N건 생성·저장 → 각 jobId 브로커에 발행.
  */
 @Slf4j
 @Service
-public class VectorUploadJobCreateService {
+public class VectorUploadJobProducer {
 
 	private final RestaurantRepository restaurantRepository;
 	private final ReviewRepository reviewRepository;
 	private final AiJobRepository aiJobRepository;
-	private final AiJobDispatcher vectorUploadJobDispatcher;
+	private final AiJobBroker vectorUploadJobBroker;
 
-	public VectorUploadJobCreateService(RestaurantRepository restaurantRepository,
+	public VectorUploadJobProducer(RestaurantRepository restaurantRepository,
 		ReviewRepository reviewRepository,
 		AiJobRepository aiJobRepository,
-		@Qualifier("vectorUploadJobDispatcher")
-		AiJobDispatcher vectorUploadJobDispatcher) {
+		@Qualifier("syncVectorUploadJobBroker")
+		AiJobBroker vectorUploadJobBroker) {
 		this.restaurantRepository = restaurantRepository;
 		this.reviewRepository = reviewRepository;
 		this.aiJobRepository = aiJobRepository;
-		this.vectorUploadJobDispatcher = vectorUploadJobDispatcher;
+		this.vectorUploadJobBroker = vectorUploadJobBroker;
 	}
 
 	/**
-	 * 리뷰가 1건 이상 있는 비삭제 레스토랑을 대상으로 벡터 업로드 Job을 생성하고 디스패치한다.
+	 * 리뷰가 1건 이상 있는 비삭제 레스토랑을 대상으로 벡터 업로드 Job을 생성하고 브로커에 발행한다.
 	 *
 	 * @param execution 방금 저장한 VECTOR_UPLOAD_DAILY RUNNING 실행
 	 */
@@ -65,7 +65,7 @@ public class VectorUploadJobCreateService {
 		}
 		aiJobRepository.saveAll(jobs);
 		for (AiJob job : jobs) {
-			vectorUploadJobDispatcher.dispatch(job.getId());
+			vectorUploadJobBroker.publish(job.getId());
 		}
 		log.info("Vector upload jobs created and dispatched: batchExecutionId={}, count={}",
 			execution.getId(), jobs.size());

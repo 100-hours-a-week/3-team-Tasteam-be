@@ -14,7 +14,7 @@ import com.tasteam.domain.review.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 3-3: 선점한 Job의 restaurantId로 Restaurant·Review 조회 (벡터 업로드 페이로드·vector_synced_at 갱신 대상).
+ * 선점한 Job의 restaurantId로 Restaurant·Review 조회.
  */
 @Service
 @RequiredArgsConstructor

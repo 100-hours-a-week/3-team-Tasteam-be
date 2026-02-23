@@ -1,13 +1,17 @@
-package com.tasteam.batch.ai.vector.service;
+package com.tasteam.batch.ai.vector.worker;
 
 import java.time.Instant;
 import java.util.Optional;
 
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.tasteam.batch.ai.review.service.ReviewAnalysisJobCreateService;
+import com.tasteam.batch.ai.review.service.ReviewAnalysisJobProducer;
+import com.tasteam.batch.ai.vector.service.VectorUploadAiInvokeService;
+import com.tasteam.batch.ai.vector.service.VectorUploadDataLoadService;
 import com.tasteam.batch.ai.vector.service.VectorUploadDataLoadService.RestaurantWithReviews;
+import com.tasteam.batch.ai.vector.service.VectorUploadEpochSyncService;
+import com.tasteam.batch.ai.vector.service.VectorUploadInvokeResult;
 import com.tasteam.domain.batch.entity.AiJob;
 import com.tasteam.domain.batch.entity.AiJobStatus;
 import com.tasteam.domain.batch.repository.AiJobRepository;
@@ -17,17 +21,16 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 선점된 한 건의 벡터 업로드 Job 실행: 데이터 조회 → AI 호출 → 성공/실패 분기.
- * 트랜잭션은 onSuccess/onFailure의 DB 저장에만 적용 (AI 호출 대기 중에는 미적용).
  */
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
-public class VectorUploadJobExecuteService {
+public class VectorUploadJobWorker {
 
 	private final VectorUploadDataLoadService dataLoadService;
 	private final VectorUploadAiInvokeService aiInvokeService;
 	private final VectorUploadEpochSyncService epochSyncService;
-	private final ReviewAnalysisJobCreateService reviewAnalysisJobCreateService;
+	private final ReviewAnalysisJobProducer reviewAnalysisJobProducer;
 	private final AiJobRepository aiJobRepository;
 	private final TransactionTemplate transactionTemplate;
 
@@ -75,7 +78,7 @@ public class VectorUploadJobExecuteService {
 	private void onSuccess(AiJob job, RestaurantWithReviews data, VectorUploadInvokeResult.Success success) {
 		boolean synced = epochSyncService.syncEpochAfterUpload(job, data, Instant.now());
 		if (synced) {
-			reviewAnalysisJobCreateService.createJobsAfterVectorUpload(
+			reviewAnalysisJobProducer.createJobsAfterVectorUpload(
 				job.getRestaurantId(), job.getBaseEpoch() + 1);
 
 			transactionTemplate.executeWithoutResult(__ -> {

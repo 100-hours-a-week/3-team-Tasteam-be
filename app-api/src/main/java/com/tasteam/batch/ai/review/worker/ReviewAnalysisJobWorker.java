@@ -1,4 +1,4 @@
-package com.tasteam.batch.ai.review.service;
+package com.tasteam.batch.ai.review.worker;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.tasteam.domain.batch.entity.AiJob;
@@ -30,12 +30,11 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 선점된 리뷰 분석 Job 1건 실행 (감정 또는 요약).
- * B-2-5~B-2-7: 결과 저장·COMPLETED/FAILED 처리.
  */
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
-public class ReviewAnalysisJobExecuteService {
+public class ReviewAnalysisJobWorker {
 
 	private final AiJobRepository aiJobRepository;
 	private final AiClient aiClient;

@@ -30,12 +30,12 @@ public interface AiJobRepository extends JpaRepository<AiJob, Long> {
 	Long batchExecutionId);
 
 	/**
-	 * 해당 배치에서 PENDING인 Job 목록. Worker가 가져갈 때 사용. 생성 시간 순.
+	 * 해당 배치에서 PENDING인 Job 목록. 생성 시간 순.
 	 */
 	List<AiJob> findByBatchExecutionIdAndStatusOrderByCreatedAtAsc(Long batchExecutionId, AiJobStatus status);
 
 	/**
-	 * 동일 restaurant_id + job_type 에서 RUNNING 존재 여부. 동시성 제어(14번) 시 사용.
+	 * 동일 restaurant_id + job_type 에서 RUNNING 존재 여부.
 	 */
 	boolean existsByRestaurantIdAndJobTypeAndStatus(Long restaurantId, AiJobType jobType, AiJobStatus status);
 
