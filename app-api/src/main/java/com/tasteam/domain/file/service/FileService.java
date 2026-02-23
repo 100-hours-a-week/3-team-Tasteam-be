@@ -152,7 +152,9 @@ public class FileService {
 		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
 			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
-		if (image.getStatus() != ImageStatus.ACTIVE) {
+		boolean isCommonAssetPending = image.getPurpose() == FilePurpose.COMMON_ASSET
+			&& image.getStatus() == ImageStatus.PENDING;
+		if (image.getStatus() != ImageStatus.ACTIVE && !isCommonAssetPending) {
 			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
 		}
 
