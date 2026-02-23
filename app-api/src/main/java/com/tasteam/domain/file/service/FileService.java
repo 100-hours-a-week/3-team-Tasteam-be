@@ -161,6 +161,21 @@ public class FileService {
 			buildPublicUrl(image.getStorageKey()));
 	}
 
+	@Transactional
+	public void activateImage(String fileUuid) {
+		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() == ImageStatus.DELETED) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		if (image.getStatus() == ImageStatus.PENDING) {
+			image.activate();
+			imageRepository.save(image);
+		}
+	}
+
 	@Transactional(readOnly = true)
 	public Map<Long, List<DomainImageItem>> getDomainImageUrls(DomainType domainType, List<Long> domainIds) {
 		if (domainIds == null || domainIds.isEmpty()) {
@@ -355,6 +370,7 @@ public class FileService {
 			case MENU_IMAGE -> "uploads/menu/image";
 			case PROFILE_IMAGE -> "uploads/profile/image";
 			case GROUP_IMAGE -> "uploads/group/image";
+			case CHAT_IMAGE -> "uploads/chat/image";
 			case COMMON_ASSET -> "uploads/common/asset";
 		};
 	}
