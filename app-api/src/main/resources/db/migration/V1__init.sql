@@ -1,49 +1,49 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 
-create sequence chat_message_file_id_seq;
-create sequence chat_message_id_seq;
-create sequence chat_room_id_seq;
-create sequence chat_room_member_id_seq;
+create sequence if not exists chat_message_file_id_seq;
+create sequence if not exists chat_message_id_seq;
+create sequence if not exists chat_room_id_seq;
+create sequence if not exists chat_room_member_id_seq;
 
-create sequence domain_image_seq increment by 50;
-create sequence group_auth_code_seq increment by 50;
-create sequence group_member_seq increment by 50;
-create sequence group_seq increment by 50;
-create sequence image_seq increment by 50;
-create sequence member_oauth_account_seq increment by 50;
-create sequence member_seq increment by 50;
-create sequence refresh_token_seq increment by 50;
-create sequence subgroup_member_seq increment by 50;
-create sequence subgroup_seq increment by 50;
+create sequence if not exists domain_image_seq increment by 50;
+create sequence if not exists group_auth_code_seq increment by 50;
+create sequence if not exists group_member_seq increment by 50;
+create sequence if not exists group_seq increment by 50;
+create sequence if not exists image_seq increment by 50;
+create sequence if not exists member_oauth_account_seq increment by 50;
+create sequence if not exists member_seq increment by 50;
+create sequence if not exists refresh_token_seq increment by 50;
+create sequence if not exists subgroup_member_seq increment by 50;
+create sequence if not exists subgroup_seq increment by 50;
 
-create sequence ai_restaurant_comparison_id_seq;
-create sequence ai_restaurant_recommendation_id_seq;
-create sequence ai_restaurant_review_analysis_id_seq;
+create sequence if not exists ai_restaurant_comparison_id_seq;
+create sequence if not exists ai_restaurant_recommendation_id_seq;
+create sequence if not exists ai_restaurant_review_analysis_id_seq;
 
-create sequence announcement_id_seq;
-create sequence food_category_id_seq;
-create sequence image_optimization_job_id_seq;
-create sequence keyword_id_seq;
-create sequence member_favorite_restaurant_id_seq;
-create sequence member_notification_preference_id_seq;
-create sequence member_search_history_id_seq;
-create sequence menu_id_seq;
-create sequence menu_category_id_seq;
-create sequence message_queue_trace_log_id_seq;
-create sequence notification_id_seq;
-create sequence promotion_id_seq;
-create sequence promotion_asset_id_seq;
-create sequence promotion_display_id_seq;
-create sequence push_notification_target_id_seq;
-create sequence restaurant_address_id_seq;
-create sequence restaurant_food_category_id_seq;
-create sequence restaurant_schedule_override_id_seq;
-create sequence restaurant_weekly_schedule_id_seq;
-create sequence review_id_seq;
-create sequence review_keyword_id_seq;
-create sequence subgroup_favorite_restaurant_id_seq;
+create sequence if not exists announcement_id_seq;
+create sequence if not exists food_category_id_seq;
+create sequence if not exists image_optimization_job_id_seq;
+create sequence if not exists keyword_id_seq;
+create sequence if not exists member_favorite_restaurant_id_seq;
+create sequence if not exists member_notification_preference_id_seq;
+create sequence if not exists member_search_history_id_seq;
+create sequence if not exists menu_id_seq;
+create sequence if not exists menu_category_id_seq;
+create sequence if not exists message_queue_trace_log_id_seq;
+create sequence if not exists notification_id_seq;
+create sequence if not exists promotion_id_seq;
+create sequence if not exists promotion_asset_id_seq;
+create sequence if not exists promotion_display_id_seq;
+create sequence if not exists push_notification_target_id_seq;
+create sequence if not exists restaurant_address_id_seq;
+create sequence if not exists restaurant_food_category_id_seq;
+create sequence if not exists restaurant_schedule_override_id_seq;
+create sequence if not exists restaurant_weekly_schedule_id_seq;
+create sequence if not exists review_id_seq;
+create sequence if not exists review_keyword_id_seq;
+create sequence if not exists subgroup_favorite_restaurant_id_seq;
 
-create table ai_restaurant_comparison
+create table if not exists ai_restaurant_comparison
 (
     total_candidates   integer                     not null,
     validated_count    integer                     not null,
@@ -73,7 +73,7 @@ comment on column ai_restaurant_comparison.comparison_display is '비교 문장 
 alter table ai_restaurant_comparison
     owner to tasteam;
 
-create table ai_restaurant_review_analysis
+create table if not exists ai_restaurant_review_analysis
 (
     negative_ratio     numeric(5, 4)               not null,
     positive_ratio     numeric(5, 4)               not null,
@@ -105,7 +105,7 @@ comment on column ai_restaurant_review_analysis.category_summaries is '카테고
 alter table ai_restaurant_review_analysis
     owner to tasteam;
 
-create table announcement
+create table if not exists announcement
 (
     created_at timestamp(6) with time zone not null,
     deleted_at timestamp(6) with time zone,
@@ -119,7 +119,7 @@ create table announcement
 alter table announcement
     owner to tasteam;
 
-create table food_category
+create table if not exists food_category
 (
     id   bigint generated by default as identity
         primary key,
@@ -135,7 +135,7 @@ alter table food_category
 
 alter sequence group_seq owner to tasteam;
 
-create table "group"
+create table if not exists "group"
 (
     created_at     timestamp(6) with time zone not null,
     deleted_at     timestamp(6) with time zone,
@@ -166,7 +166,7 @@ alter table "group"
 
 alter sequence group_auth_code_seq owner to tasteam;
 
-create table group_auth_code
+create table if not exists group_auth_code
 (
     created_at  timestamp(6) with time zone not null,
     expires_at  timestamp(6) with time zone,
@@ -181,7 +181,7 @@ create table group_auth_code
 alter table group_auth_code
     owner to tasteam;
 
-create table image
+create table if not exists image
 (
     created_at  timestamp(6) with time zone not null,
     deleted_at  timestamp(6) with time zone,
@@ -208,7 +208,7 @@ create table image
 alter table image
     owner to tasteam;
 
-create table domain_image
+create table if not exists domain_image
 (
     sort_order  integer,
     created_at  timestamp(6) with time zone not null,
@@ -229,7 +229,7 @@ create table domain_image
 alter table domain_image
     owner to tasteam;
 
-create table image_optimization_job
+create table if not exists image_optimization_job
 (
     optimized_height integer,
     optimized_width  integer,
@@ -255,7 +255,7 @@ create table image_optimization_job
 alter table image_optimization_job
     owner to tasteam;
 
-create table keyword
+create table if not exists keyword
 (
     id   bigint generated by default as identity
         primary key,
@@ -273,7 +273,7 @@ comment on table keyword is '리뷰에 사용되는 키워드 사전';
 alter table keyword
     owner to tasteam;
 
-create table member
+create table if not exists member
 (
     agreed_privacy_at timestamp(6) with time zone,
     agreed_terms_at   timestamp(6) with time zone,
@@ -302,7 +302,7 @@ alter table member
 
 alter sequence group_member_seq owner to tasteam;
 
-create table group_member
+create table if not exists group_member
 (
     created_at timestamp(6) with time zone not null,
     deleted_at timestamp(6) with time zone,
@@ -321,7 +321,7 @@ comment on table group_member is '특정 그룹에 가입한 회원들의 가입
 alter table group_member
     owner to tasteam;
 
-create table member_favorite_restaurant
+create table if not exists member_favorite_restaurant
 (
     created_at    timestamp(6) with time zone not null,
     deleted_at    timestamp(6) with time zone,
@@ -335,7 +335,7 @@ create table member_favorite_restaurant
 alter table member_favorite_restaurant
     owner to tasteam;
 
-create table member_notification_preference
+create table if not exists member_notification_preference
 (
     is_enabled        boolean                     not null,
     created_at        timestamp(6) with time zone not null,
@@ -358,7 +358,7 @@ create table member_notification_preference
 alter table member_notification_preference
     owner to tasteam;
 
-create table member_oauth_account
+create table if not exists member_oauth_account
 (
     created_at          timestamp(6) with time zone not null,
     id                  bigint                      not null
@@ -376,7 +376,7 @@ create table member_oauth_account
 alter table member_oauth_account
     owner to tasteam;
 
-create table member_search_history
+create table if not exists member_search_history
 (
     count      bigint                      not null,
     created_at timestamp(6) with time zone not null,
@@ -393,7 +393,7 @@ comment on table member_search_history is '회원 검색어 기록';
 alter table member_search_history
     owner to tasteam;
 
-create table message_queue_trace_log
+create table if not exists message_queue_trace_log
 (
     created_at        timestamp(6) with time zone not null,
     id                bigint generated by default as identity
@@ -414,13 +414,13 @@ create table message_queue_trace_log
 alter table message_queue_trace_log
     owner to tasteam;
 
-create index idx_mq_trace_message_id
+create index if not exists idx_mq_trace_message_id
     on message_queue_trace_log (message_id asc, id desc);
 
-create index idx_mq_trace_topic_stage
+create index if not exists idx_mq_trace_topic_stage
     on message_queue_trace_log (topic asc, stage asc, id desc);
 
-create table notification
+create table if not exists notification
 (
     created_at        timestamp(6) with time zone not null,
     id                bigint generated by default as identity
@@ -439,13 +439,13 @@ create table notification
 alter table notification
     owner to tasteam;
 
-create index idx_notification_member_id
+create index if not exists idx_notification_member_id
     on notification (member_id asc, id desc);
 
-create index idx_notification_member_unread
+create index if not exists idx_notification_member_unread
     on notification (member_id, read_at, id);
 
-create table promotion
+create table if not exists promotion
 (
     created_at         timestamp(6) with time zone not null,
     deleted_at         timestamp(6) with time zone,
@@ -468,7 +468,7 @@ create table promotion
 alter table promotion
     owner to tasteam;
 
-create table promotion_asset
+create table if not exists promotion_asset
 (
     is_primary   boolean                     not null,
     sort_order   integer                     not null,
@@ -491,10 +491,10 @@ create table promotion_asset
 alter table promotion_asset
     owner to tasteam;
 
-create index idx_promotion_asset_type_order
+create index if not exists idx_promotion_asset_type_order
     on promotion_asset (promotion_id, asset_type, sort_order);
 
-create table promotion_display
+create table if not exists promotion_display
 (
     display_enabled  boolean                     not null,
     display_priority integer                     not null,
@@ -521,13 +521,13 @@ create table promotion_display
 alter table promotion_display
     owner to tasteam;
 
-create index idx_promotion_display_window
+create index if not exists idx_promotion_display_window
     on promotion_display (display_enabled, display_start_at, display_end_at);
 
-create index idx_promotion_display_channel_priority
+create index if not exists idx_promotion_display_channel_priority
     on promotion_display (display_channel, display_priority);
 
-create table push_notification_target
+create table if not exists push_notification_target
 (
     created_at timestamp(6) with time zone not null,
     id         bigint generated by default as identity
@@ -544,13 +544,13 @@ create table push_notification_target
 alter table push_notification_target
     owner to tasteam;
 
-create index idx_push_target_member
+create index if not exists idx_push_target_member
     on push_notification_target (member_id, created_at);
 
-create index idx_push_target_member_device
+create index if not exists idx_push_target_member_device
     on push_notification_target (member_id, device_id);
 
-create table refresh_token
+create table if not exists refresh_token
 (
     created_at      timestamp(6) with time zone not null,
     expires_at      timestamp(6) with time zone not null,
@@ -567,16 +567,16 @@ create table refresh_token
 alter table refresh_token
     owner to tasteam;
 
-create index idx_refresh_token_member_id
+create index if not exists idx_refresh_token_member_id
     on refresh_token (member_id);
 
-create index idx_refresh_token_family_id
+create index if not exists idx_refresh_token_family_id
     on refresh_token (token_family_id);
 
-create index idx_refresh_token_expires_at
+create index if not exists idx_refresh_token_expires_at
     on refresh_token (expires_at);
 
-create table restaurant
+create table if not exists restaurant
 (
     created_at   timestamp(6) with time zone not null,
     deleted_at   timestamp(6) with time zone,
@@ -600,7 +600,7 @@ comment on column restaurant.location is 'WGS84';
 alter table restaurant
     owner to tasteam;
 
-create table ai_restaurant_recommendation
+create table if not exists ai_restaurant_recommendation
 (
     created_at    timestamp(6) with time zone not null,
     expires_at    timestamp(6) with time zone not null,
@@ -624,7 +624,7 @@ comment on column ai_restaurant_recommendation.reason is '빈 문자열 불가';
 alter table ai_restaurant_recommendation
     owner to tasteam;
 
-create table menu_category
+create table if not exists menu_category
 (
     display_order integer                     not null,
     created_at    timestamp(6) with time zone not null,
@@ -646,7 +646,7 @@ comment on column menu_category.name is '카테고리 이름 (예: 메인, 음�
 alter table menu_category
     owner to tasteam;
 
-create table menu
+create table if not exists menu
 (
     display_order  integer                     not null,
     is_recommended boolean                     not null,
@@ -680,13 +680,13 @@ comment on column menu.image_url is '메뉴 이미지 URL';
 alter table menu
     owner to tasteam;
 
-create index idx_menu_category_order
+create index if not exists idx_menu_category_order
     on menu (category_id, display_order);
 
-create index idx_menu_category_restaurant_order
+create index if not exists idx_menu_category_restaurant_order
     on menu_category (restaurant_id, display_order);
 
-create table restaurant_address
+create table if not exists restaurant_address
 (
     created_at    timestamp(6) with time zone not null,
     id            bigint generated by default as identity
@@ -715,7 +715,7 @@ comment on column restaurant_address.sigungu is '시/군/구';
 alter table restaurant_address
     owner to tasteam;
 
-create table restaurant_food_category
+create table if not exists restaurant_food_category
 (
     food_category_id bigint not null
         constraint fk6e8lbtb2tptceeysa33epwc4d
@@ -733,7 +733,7 @@ comment on table restaurant_food_category is '음식점과 음식 카테고리 �
 alter table restaurant_food_category
     owner to tasteam;
 
-create table restaurant_schedule_override
+create table if not exists restaurant_schedule_override
 (
     close_time    time(6),
     date          date                        not null,
@@ -766,7 +766,7 @@ comment on column restaurant_schedule_override.reason is '예외 사유';
 alter table restaurant_schedule_override
     owner to tasteam;
 
-create table restaurant_weekly_schedule
+create table if not exists restaurant_weekly_schedule
 (
     close_time     time(6),
     day_of_week    integer                     not null,
@@ -800,10 +800,10 @@ comment on column restaurant_weekly_schedule.open_time is '오픈 시간 (HH:mm)
 alter table restaurant_weekly_schedule
     owner to tasteam;
 
-create index idx_restaurant_weekly_schedule_lookup
+create index if not exists idx_restaurant_weekly_schedule_lookup
     on restaurant_weekly_schedule (restaurant_id, day_of_week, effective_from, effective_to);
 
-create table review
+create table if not exists review
 (
     is_recommended boolean                     not null,
     created_at     timestamp(6) with time zone not null,
@@ -827,7 +827,7 @@ comment on table review is '그룹/하위 그룹 단위로 작성되는 음식�
 alter table review
     owner to tasteam;
 
-create table review_keyword
+create table if not exists review_keyword
 (
     id         bigint generated by default as identity
         primary key,
@@ -846,7 +846,7 @@ comment on table review_keyword is '리뷰-키워드 매핑';
 alter table review_keyword
     owner to tasteam;
 
-create table subgroup
+create table if not exists subgroup
 (
     member_count      integer                     not null,
     created_at        timestamp(6) with time zone not null,
@@ -873,7 +873,7 @@ create table subgroup
 alter table subgroup
     owner to tasteam;
 
-create table subgroup_favorite_restaurant
+create table if not exists subgroup_favorite_restaurant
 (
     created_at    timestamp(6) with time zone not null,
     deleted_at    timestamp(6) with time zone,
@@ -887,7 +887,7 @@ create table subgroup_favorite_restaurant
 alter table subgroup_favorite_restaurant
     owner to tasteam;
 
-create table subgroup_member
+create table if not exists subgroup_member
 (
     created_at  timestamp(6) with time zone not null,
     deleted_at  timestamp(6) with time zone,
