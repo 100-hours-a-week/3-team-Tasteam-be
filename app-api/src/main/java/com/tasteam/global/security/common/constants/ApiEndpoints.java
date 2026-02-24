@@ -110,6 +110,9 @@ public final class ApiEndpoints {
 	// Test
 	public static final String TEST = API_V1 + "/test" + ALL;
 
+	// Geocode
+	public static final String GEOCODE_REVERSE = API_V1 + "/geocode/reverse";
+
 	// WebSocket
 	public static final String WEBSOCKET = "/ws" + ALL;
 
