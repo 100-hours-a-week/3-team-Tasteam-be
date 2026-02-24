@@ -42,6 +42,14 @@ public class Restaurant extends BaseTimeEntity {
 	@Comment("소프트 삭제")
 	private Instant deletedAt;
 
+	@Column(name = "vector_epoch", nullable = false)
+	@Comment("벡터 업로드 버전; 업로드 성공 시마다 1 증가")
+	private Long vectorEpoch;
+
+	@Column(name = "vector_synced_at")
+	@Comment("마지막 벡터 업로드 완료 시각")
+	private Instant vectorSyncedAt;
+
 	public static Restaurant create(String name, String fullAddress, Point location, String phoneNumber) {
 		return Restaurant.builder()
 			.name(name)
@@ -49,6 +57,8 @@ public class Restaurant extends BaseTimeEntity {
 			.location(location)
 			.phoneNumber(phoneNumber)
 			.deletedAt(null)
+			.vectorEpoch(0L)
+			.vectorSyncedAt(null)
 			.build();
 	}
 
@@ -58,5 +68,13 @@ public class Restaurant extends BaseTimeEntity {
 
 	public void softDelete(Instant deletedAt) {
 		this.deletedAt = deletedAt;
+	}
+
+	/**
+	 * 벡터 업로드 성공 시 호출. vector_epoch를 1 증가시키고 vector_synced_at을 갱신한다.
+	 */
+	public void incrementVectorEpoch(Instant syncedAt) {
+		this.vectorEpoch = this.vectorEpoch == null ? 1L : this.vectorEpoch + 1;
+		this.vectorSyncedAt = syncedAt;
 	}
 }

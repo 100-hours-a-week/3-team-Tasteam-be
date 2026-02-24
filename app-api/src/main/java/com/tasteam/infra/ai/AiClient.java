@@ -3,7 +3,6 @@ package com.tasteam.infra.ai;
 import java.util.UUID;
 import java.util.function.Function;
 
-import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
@@ -21,16 +20,10 @@ import com.tasteam.infra.ai.dto.AiSummaryBatchResponse;
 import com.tasteam.infra.ai.dto.AiSummaryDisplayResponse;
 import com.tasteam.infra.ai.dto.AiSummaryRequest;
 import com.tasteam.infra.ai.dto.AiSummaryResponse;
-import com.tasteam.infra.ai.dto.AiVectorDeleteBatchRequest;
-import com.tasteam.infra.ai.dto.AiVectorDeleteBatchResponse;
-import com.tasteam.infra.ai.dto.AiVectorDeleteRequest;
-import com.tasteam.infra.ai.dto.AiVectorDeleteResponse;
 import com.tasteam.infra.ai.dto.AiVectorSearchRequest;
 import com.tasteam.infra.ai.dto.AiVectorSearchResponse;
 import com.tasteam.infra.ai.dto.AiVectorUploadRequest;
 import com.tasteam.infra.ai.dto.AiVectorUploadResponse;
-import com.tasteam.infra.ai.dto.AiVectorUpsertRequest;
-import com.tasteam.infra.ai.dto.AiVectorUpsertResponse;
 import com.tasteam.infra.ai.exception.AiServerException;
 
 import lombok.RequiredArgsConstructor;
@@ -58,7 +51,7 @@ public class AiClient {
 
 	public AiStrengthsResponse extractStrengths(AiStrengthsRequest request) {
 		return execute("extract strengths", requestId -> aiRestClient.post()
-			.uri("/api/v1/llm/comparison")
+			.uri("/api/v1/llm/extract/strengths")
 			.header(REQUEST_ID_HEADER, requestId)
 			.body(request)
 			.retrieve()
@@ -139,33 +132,6 @@ public class AiClient {
 			.body(AiVectorUploadResponse.class));
 	}
 
-	public AiVectorUpsertResponse upsertVectorReviews(AiVectorUpsertRequest request) {
-		return execute("vector upsert reviews", requestId -> aiRestClient.post()
-			.uri("/api/v1/vector/reviews/upsert")
-			.header(REQUEST_ID_HEADER, requestId)
-			.body(request)
-			.retrieve()
-			.body(AiVectorUpsertResponse.class));
-	}
-
-	public AiVectorDeleteResponse deleteVectorReview(AiVectorDeleteRequest request) {
-		return execute("vector delete review", requestId -> aiRestClient.method(HttpMethod.DELETE)
-			.uri("/api/v1/vector/reviews/delete")
-			.header(REQUEST_ID_HEADER, requestId)
-			.body(request)
-			.retrieve()
-			.body(AiVectorDeleteResponse.class));
-	}
-
-	public AiVectorDeleteBatchResponse deleteVectorReviews(AiVectorDeleteBatchRequest request) {
-		return execute("vector delete review batch", requestId -> aiRestClient.method(HttpMethod.DELETE)
-			.uri("/api/v1/vector/reviews/delete/batch")
-			.header(REQUEST_ID_HEADER, requestId)
-			.body(request)
-			.retrieve()
-			.body(AiVectorDeleteBatchResponse.class));
-	}
-
 	private <T> T execute(String action, Function<String, T> call) {
 		String requestId = UUID.randomUUID().toString();
 		try {
@@ -179,6 +145,13 @@ public class AiClient {
 					yield AiServerException.from(r, requestId);
 				}
 				case ResourceAccessException r -> {
+					boolean isConnectionRefused = r.getMessage() != null
+						&& r.getMessage().toLowerCase().contains("connection refused");
+					if (isConnectionRefused) {
+						log.error("AI {} connection refused. requestId={}, message={}", action, requestId,
+							r.getMessage());
+						yield AiServerException.unavailable(requestId, r.getMessage());
+					}
 					log.error("AI {} timeout. requestId={}, message={}", action, requestId, r.getMessage());
 					yield AiServerException.timeout(requestId);
 				}
