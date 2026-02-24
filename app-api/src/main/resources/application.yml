@@ -199,6 +199,13 @@ management:
     health:
       probes:
         enabled: true
+  tracing:
+    enabled: ${TRACING_ENABLED:false}
+    sampling:
+      probability: 0.1
+  otlp:
+    tracing:
+      endpoint: ${OTEL_ENDPOINT:http://localhost:4318/v1/traces}
 
 sentry:
   dsn: ${SENTRY_DSN:}
