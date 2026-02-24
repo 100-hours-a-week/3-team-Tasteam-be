@@ -40,7 +40,8 @@ public record ChatStreamPayload(
 	}
 
 	public static ChatStreamPayload fromMap(Map<String, String> map) {
-		String fileTypeValue = map.get("fileType");
+		String fileTypeValue = normalizeOptional(map.get("fileType"));
+		String fileUrlValue = normalizeOptional(map.get("fileUrl"));
 		return new ChatStreamPayload(
 			parseLong(map.get("chatRoomId")),
 			parseLong(map.get("messageId")),
@@ -50,7 +51,7 @@ public record ChatStreamPayload(
 			map.get("content"),
 			ChatMessageType.valueOf(map.get("messageType")),
 			fileTypeValue == null ? null : ChatMessageFileType.valueOf(fileTypeValue),
-			map.get("fileUrl"),
+			fileUrlValue,
 			Instant.parse(map.get("createdAt")));
 	}
 
@@ -63,8 +64,12 @@ public record ChatStreamPayload(
 		map.put("memberProfileImageUrl", memberProfileImageUrl);
 		map.put("content", content);
 		map.put("messageType", messageType.name());
-		map.put("fileType", fileType == null ? null : fileType.name());
-		map.put("fileUrl", fileUrl);
+		if (fileType != null) {
+			map.put("fileType", fileType.name());
+		}
+		if (fileUrl != null && !fileUrl.isBlank()) {
+			map.put("fileUrl", fileUrl);
+		}
 		map.put("createdAt", createdAt.toString());
 		return map;
 	}
@@ -89,5 +94,16 @@ public record ChatStreamPayload(
 			return null;
 		}
 		return Long.valueOf(value);
+	}
+
+	private static String normalizeOptional(String value) {
+		if (value == null) {
+			return null;
+		}
+		String trimmed = value.trim();
+		if (trimmed.isEmpty() || "null".equalsIgnoreCase(trimmed)) {
+			return null;
+		}
+		return trimmed;
 	}
 }
