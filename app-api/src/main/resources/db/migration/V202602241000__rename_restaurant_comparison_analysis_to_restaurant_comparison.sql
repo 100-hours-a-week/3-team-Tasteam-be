@@ -1,0 +1,5 @@
+-- restaurant_comparison_analysis → restaurant_comparison 테이블/인덱스 이름 통일 (Part C 레거시 정리)
+ALTER TABLE restaurant_comparison_analysis RENAME TO restaurant_comparison;
+
+ALTER INDEX uq_restaurant_comparison_analysis_restaurant RENAME TO uq_restaurant_comparison_restaurant;
+ALTER INDEX idx_restaurant_comparison_analysis_restaurant_analyzed RENAME TO idx_restaurant_comparison_restaurant_analyzed;

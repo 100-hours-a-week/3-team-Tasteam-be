@@ -10,10 +10,10 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.tasteam.domain.restaurant.entity.AiRestaurantComparison;
 import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
-import com.tasteam.domain.restaurant.repository.AiRestaurantComparisonRepository;
+import com.tasteam.domain.restaurant.entity.RestaurantComparison;
 import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantComparisonRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,7 +23,7 @@ public class RestaurantAiSummaryService {
 
 	private static final String REVIEW_SUMMARY_FALLBACK = "리뷰가 더 모이면 AI 요약이 제공됩니다.";
 
-	private final AiRestaurantComparisonRepository aiRestaurantComparisonRepository;
+	private final RestaurantComparisonRepository restaurantComparisonRepository;
 	private final AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
 
 	@Transactional(readOnly = true)
@@ -37,10 +37,13 @@ public class RestaurantAiSummaryService {
 			.map(this::toPercentage)
 			.orElse(null);
 
-		String aiFeature = aiRestaurantComparisonRepository.findByRestaurantId(restaurantId)
-			.map(AiRestaurantComparison::getComparisonDisplay)
-			.filter(display -> !display.isEmpty())
-			.map(List::getFirst)
+		String aiFeature = restaurantComparisonRepository.findByRestaurantId(restaurantId)
+			.map(RestaurantComparison::getComparisonJson)
+			.map(m -> m.get("comparison_display"))
+			.filter(o -> o instanceof List<?>)
+			.map(o -> (List<?>)o)
+			.filter(l -> !l.isEmpty())
+			.map(l -> l.get(0).toString())
 			.orElse(null);
 
 		return new RestaurantAiSummaryResult(aiSummary, aiFeature, positiveRatio);

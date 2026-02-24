@@ -4,9 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.tasteam.domain.restaurant.entity.AiRestaurantComparison;
 import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
-import com.tasteam.domain.restaurant.repository.AiRestaurantComparisonRepository;
 import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
 import com.tasteam.domain.restaurant.type.AnalysisStatus;
 
@@ -23,7 +21,6 @@ public class RestaurantReviewAnalysisStateService {
 	// TODO: 상태 전이 API를 transition/updateStatus 형태로 단순화 검토
 
 	private final AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
-	private final AiRestaurantComparisonRepository aiRestaurantComparisonRepository;
 
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void markAnalyzingForSummary(long restaurantId) {
@@ -42,20 +39,19 @@ public class RestaurantReviewAnalysisStateService {
 			});
 	}
 
+	/**
+	 * 비교 분석은 restaurant_comparison 테이블에만 저장. 상태 전이는 사용하지 않음 (no-op).
+	 */
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void markAnalyzingForComparison(long restaurantId) {
-		AiRestaurantComparison snapshot = aiRestaurantComparisonRepository.findByRestaurantId(restaurantId)
-			.orElseGet(() -> AiRestaurantComparison.createEmpty(restaurantId, AnalysisStatus.COMPLETED));
-		snapshot.markAnalyzing();
-		aiRestaurantComparisonRepository.save(snapshot);
+		// no-op: 비교 결과는 RestaurantComparison에만 저장
 	}
 
+	/**
+	 * 비교 분석은 restaurant_comparison 테이블에만 저장. 상태 전이는 사용하지 않음 (no-op).
+	 */
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void markCompletedForComparison(long restaurantId) {
-		aiRestaurantComparisonRepository.findByRestaurantId(restaurantId)
-			.ifPresent(snapshot -> {
-				snapshot.markCompleted();
-				aiRestaurantComparisonRepository.save(snapshot);
-			});
+		// no-op: 비교 결과는 RestaurantComparison에만 저장
 	}
 }

@@ -201,15 +201,16 @@ INSERT INTO domain_image (
   (9101, 'REVIEW', 7002, 9001, 0, now()),
   (9102, 'RESTAURANT', 6002, 9002, 0, now());
 
--- AI restaurant analysis data
-INSERT INTO ai_restaurant_comparison (
-  id, restaurant_id, category_lift, comparison_display,
-  total_candidates, validated_count, analyzed_at, status, created_at, updated_at
+-- AI restaurant comparison (restaurant_comparison: comparison_json에 category_lift, comparison_display 등 포함)
+INSERT INTO restaurant_comparison (
+  id, restaurant_id, model_version, comparison_json, analyzed_at
 ) VALUES
-  (9501, 6001, '{"service": 0.1200, "price": 0.0800, "food": 0.1000}'::jsonb,
-   '["점심에 방문하기 좋은 합정 로컬 맛집입니다."]'::jsonb, 20, 15, now(), 'COMPLETED', now(), now()),
-  (9502, 6002, '{"service": 0.1000, "price": 0.0500, "food": 0.1100}'::jsonb,
-   '["조용한 분위기의 카페로 작업하기에 좋습니다."]'::jsonb, 18, 12, now(), 'COMPLETED', now(), now());
+  (9501, 6001, '1',
+   '{"category_lift": {"service": 0.12, "price": 0.08, "food": 0.10}, "comparison_display": ["점심에 방문하기 좋은 합정 로컬 맛집입니다."], "total_candidates": 20, "validated_count": 15}'::jsonb,
+   now()),
+  (9502, 6002, '1',
+   '{"category_lift": {"service": 0.10, "price": 0.05, "food": 0.11}, "comparison_display": ["조용한 분위기의 카페로 작업하기에 좋습니다."], "total_candidates": 18, "validated_count": 12}'::jsonb,
+   now());
 
 INSERT INTO ai_restaurant_review_analysis (
   id, restaurant_id, overall_summary, category_summaries,
@@ -495,21 +496,20 @@ INSERT INTO promotion_asset (
   (14004, 12002, 'BANNER', 'https://picsum.photos/seed/promo12002-banner/1600/800', '웰컴 이벤트 배너', 0, true, NULL, now(), now()),
   (14005, 12002, 'DETAIL', 'https://picsum.photos/seed/promo12002-detail1/1200/800', '웰컴 이벤트 안내 1', 1, false, NULL, now(), now());
 
--- AI analysis (sample for 10 restaurants)
-INSERT INTO ai_restaurant_comparison (
-  id, restaurant_id, category_lift, comparison_display,
-  total_candidates, validated_count, analyzed_at, status, created_at, updated_at
+-- AI comparison (sample for 10 restaurants)
+INSERT INTO restaurant_comparison (
+  id, restaurant_id, model_version, comparison_json, analyzed_at
 ) VALUES
-  (9503, 8001, '{"service": 0.0900, "price": 0.0400, "food": 0.1200}'::jsonb, '["분위기가 안정적인 양식당입니다."]'::jsonb, 20, 14, now(), 'COMPLETED', now(), now()),
-  (9504, 8002, '{"service": 0.1100, "price": 0.1000, "food": 0.0600}'::jsonb, '["빠른 회전율의 분식집입니다."]'::jsonb, 20, 13, now(), 'COMPLETED', now(), now()),
-  (9505, 8003, '{"service": 0.0800, "price": 0.0500, "food": 0.1300}'::jsonb, '["디저트 종류가 다양한 베이커리입니다."]'::jsonb, 20, 16, now(), 'COMPLETED', now(), now()),
-  (9506, 8004, '{"service": 0.0700, "price": 0.0600, "food": 0.1400}'::jsonb, '["치킨의 풍미가 좋은 곳입니다."]'::jsonb, 20, 15, now(), 'COMPLETED', now(), now()),
-  (9507, 8005, '{"service": 0.0600, "price": 0.0700, "food": 0.1500}'::jsonb, '["피자 토핑이 풍부한 곳입니다."]'::jsonb, 20, 12, now(), 'COMPLETED', now(), now()),
-  (9508, 8006, '{"service": 0.0500, "price": 0.0300, "food": 0.0900}'::jsonb, '["아시아 음식 특유의 향이 있습니다."]'::jsonb, 20, 11, now(), 'COMPLETED', now(), now()),
-  (9509, 8007, '{"service": 0.1000, "price": 0.0800, "food": 0.1200}'::jsonb, '["국물 요리가 강점입니다."]'::jsonb, 20, 15, now(), 'COMPLETED', now(), now()),
-  (9510, 8008, '{"service": 0.0900, "price": 0.0600, "food": 0.1600}'::jsonb, '["신선한 해산물을 제공합니다."]'::jsonb, 20, 17, now(), 'COMPLETED', now(), now()),
-  (9511, 8009, '{"service": 0.0700, "price": 0.0900, "food": 0.1100}'::jsonb, '["중식 볶음 요리가 인기입니다."]'::jsonb, 20, 14, now(), 'COMPLETED', now(), now()),
-  (9512, 8010, '{"service": 0.1200, "price": 0.0500, "food": 0.1000}'::jsonb, '["커피 향이 좋은 카페입니다."]'::jsonb, 20, 18, now(), 'COMPLETED', now(), now());
+  (9503, 8001, '1', '{"category_lift": {"service": 0.09, "price": 0.04, "food": 0.12}, "comparison_display": ["분위기가 안정적인 양식당입니다."], "total_candidates": 20, "validated_count": 14}'::jsonb, now()),
+  (9504, 8002, '1', '{"category_lift": {"service": 0.11, "price": 0.10, "food": 0.06}, "comparison_display": ["빠른 회전율의 분식집입니다."], "total_candidates": 20, "validated_count": 13}'::jsonb, now()),
+  (9505, 8003, '1', '{"category_lift": {"service": 0.08, "price": 0.05, "food": 0.13}, "comparison_display": ["디저트 종류가 다양한 베이커리입니다."], "total_candidates": 20, "validated_count": 16}'::jsonb, now()),
+  (9506, 8004, '1', '{"category_lift": {"service": 0.07, "price": 0.06, "food": 0.14}, "comparison_display": ["치킨의 풍미가 좋은 곳입니다."], "total_candidates": 20, "validated_count": 15}'::jsonb, now()),
+  (9507, 8005, '1', '{"category_lift": {"service": 0.06, "price": 0.07, "food": 0.15}, "comparison_display": ["피자 토핑이 풍부한 곳입니다."], "total_candidates": 20, "validated_count": 12}'::jsonb, now()),
+  (9508, 8006, '1', '{"category_lift": {"service": 0.05, "price": 0.03, "food": 0.09}, "comparison_display": ["아시아 음식 특유의 향이 있습니다."], "total_candidates": 20, "validated_count": 11}'::jsonb, now()),
+  (9509, 8007, '1', '{"category_lift": {"service": 0.10, "price": 0.08, "food": 0.12}, "comparison_display": ["국물 요리가 강점입니다."], "total_candidates": 20, "validated_count": 15}'::jsonb, now()),
+  (9510, 8008, '1', '{"category_lift": {"service": 0.09, "price": 0.06, "food": 0.16}, "comparison_display": ["신선한 해산물을 제공합니다."], "total_candidates": 20, "validated_count": 17}'::jsonb, now()),
+  (9511, 8009, '1', '{"category_lift": {"service": 0.07, "price": 0.09, "food": 0.11}, "comparison_display": ["중식 볶음 요리가 인기입니다."], "total_candidates": 20, "validated_count": 14}'::jsonb, now()),
+  (9512, 8010, '1', '{"category_lift": {"service": 0.12, "price": 0.05, "food": 0.10}, "comparison_display": ["커피 향이 좋은 카페입니다."], "total_candidates": 20, "validated_count": 18}'::jsonb, now());
 
 INSERT INTO ai_restaurant_review_analysis (
   id, restaurant_id, overall_summary, category_summaries,
@@ -563,8 +563,8 @@ SELECT setval(
 );
 
 SELECT setval(
-  pg_get_serial_sequence('ai_restaurant_comparison', 'id'),
-  COALESCE((SELECT MAX(id) FROM ai_restaurant_comparison), 1),
+  pg_get_serial_sequence('restaurant_comparison', 'id'),
+  COALESCE((SELECT MAX(id) FROM restaurant_comparison), 1),
   true
 );
 

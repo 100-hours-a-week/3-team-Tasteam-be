@@ -26,9 +26,11 @@ import lombok.NoArgsConstructor;
 @Builder(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "restaurant_comparison_analysis")
+@Table(name = "restaurant_comparison")
 @Comment("음식점별 비교 분석 결과 (restaurant_id당 1건)")
-public class RestaurantComparisonAnalysis {
+public class RestaurantComparison {
+
+	private static final String DEFAULT_MODEL_VERSION = "1";
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -60,16 +62,24 @@ public class RestaurantComparisonAnalysis {
 	}
 
 	/**
-	 * 비교 분석 Job 완료 시 저장용. 배치(13번)에서 호출.
+	 * 비교 분석 Job 완료 시 저장용. 배치에서 호출.
 	 */
-	public static RestaurantComparisonAnalysis create(
+	public static RestaurantComparison create(
 		Long restaurantId, String modelVersion,
 		Map<String, Object> comparisonJson, Instant analyzedAt) {
-		return RestaurantComparisonAnalysis.builder()
+		return RestaurantComparison.builder()
 			.restaurantId(restaurantId)
-			.modelVersion(modelVersion)
-			.comparisonJson(comparisonJson != null ? comparisonJson : Map.of())
+			.modelVersion(modelVersion != null ? modelVersion : DEFAULT_MODEL_VERSION)
+			.comparisonJson(comparisonJson != null ? new HashMap<>(comparisonJson) : new HashMap<>())
 			.analyzedAt(analyzedAt)
 			.build();
+	}
+
+	/**
+	 * 기존 행이 있을 때 비교 결과만 갱신. (restaurant_id 유니크 기준 upsert)
+	 */
+	public void updateResult(Map<String, Object> comparisonJson, Instant analyzedAt) {
+		this.comparisonJson = comparisonJson != null ? new HashMap<>(comparisonJson) : new HashMap<>();
+		this.analyzedAt = analyzedAt;
 	}
 }
