@@ -86,7 +86,9 @@ public class ChatService {
 			.filter(Objects::nonNull)
 			.distinct()
 			.toList();
-		Map<Long, String> imageUrlByMemberId = fileService.getPrimaryDomainImageUrlMap(DomainType.MEMBER, memberIds);
+		Map<Long, String> imageUrlByMemberId = fileService.getPrimaryDomainImageUrlMapStatic(
+			DomainType.MEMBER,
+			memberIds);
 
 		Map<Long, List<ChatMessageFileItemResponse>> filesByMessageId = loadMessageFiles(
 			page.items().stream().map(ChatMessageQueryDto::id).toList());
@@ -136,7 +138,7 @@ public class ChatService {
 			message.getId(),
 			message.getMemberId(),
 			member.getNickname(),
-			fileService.getPrimaryDomainImageUrl(DomainType.MEMBER, memberId),
+			fileService.getPrimaryDomainImageUrlStatic(DomainType.MEMBER, memberId),
 			message.getContent(),
 			message.getType(),
 			fileItems,
@@ -233,11 +235,11 @@ public class ChatService {
 		for (ChatMessageFileRequest file : files) {
 			String fileUuid = file.fileUuid();
 			fileService.activateImage(fileUuid);
-			String fileUrl = fileService.getImageUrl(fileUuid).url();
 			ChatMessageFile messageFile = chatMessageFileRepository.save(ChatMessageFile.builder()
 				.chatMessageId(chatMessageId)
 				.fileType(ChatMessageFileType.IMAGE)
-				.fileUrl(fileUrl)
+				.fileUuid(fileUuid)
+				.fileUrl(null)
 				.deletedAt(null)
 				.build());
 			saved.add(messageFile);
@@ -250,7 +252,9 @@ public class ChatService {
 			return List.of();
 		}
 		return files.stream()
-			.map(file -> new ChatMessageFileItemResponse(file.getFileType(), file.getFileUrl()))
+			.map(file -> new ChatMessageFileItemResponse(
+				file.getFileType(),
+				resolveChatFileUrl(file)))
 			.toList();
 	}
 
@@ -263,7 +267,14 @@ public class ChatService {
 			.collect(java.util.stream.Collectors.groupingBy(
 				ChatMessageFile::getChatMessageId,
 				java.util.stream.Collectors.mapping(
-					file -> new ChatMessageFileItemResponse(file.getFileType(), file.getFileUrl()),
+					file -> new ChatMessageFileItemResponse(file.getFileType(), resolveChatFileUrl(file)),
 					java.util.stream.Collectors.toList())));
+	}
+
+	private String resolveChatFileUrl(ChatMessageFile file) {
+		if (file.getFileUuid() != null && !file.getFileUuid().isBlank()) {
+			return fileService.getImageStaticUrl(file.getFileUuid());
+		}
+		return file.getFileUrl();
 	}
 }
