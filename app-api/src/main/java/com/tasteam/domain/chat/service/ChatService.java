@@ -30,13 +30,19 @@ import com.tasteam.domain.chat.repository.ChatRoomRepository;
 import com.tasteam.domain.chat.stream.ChatStreamPublisher;
 import com.tasteam.domain.chat.type.ChatMessageFileType;
 import com.tasteam.domain.chat.type.ChatMessageType;
+import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
+import com.tasteam.domain.file.entity.Image;
+import com.tasteam.domain.file.entity.ImageStatus;
+import com.tasteam.domain.file.repository.DomainImageRepository;
+import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.ChatErrorCode;
 import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.utils.CursorCodec;
 import com.tasteam.global.utils.CursorPageBuilder;
 
@@ -55,6 +61,8 @@ public class ChatService {
 	private final ChatMessageFileRepository chatMessageFileRepository;
 	private final CursorCodec cursorCodec;
 	private final MemberRepository memberRepository;
+	private final ImageRepository imageRepository;
+	private final DomainImageRepository domainImageRepository;
 	private final FileService fileService;
 	private final ChatStreamPublisher chatStreamPublisher;
 
@@ -234,10 +242,13 @@ public class ChatService {
 		List<ChatMessageFile> saved = new ArrayList<>();
 		for (ChatMessageFileRequest file : files) {
 			String fileUuid = file.fileUuid();
-			fileService.activateImage(fileUuid);
+			Image image = activateAndGetImage(fileUuid);
+			DomainImage domainImage = domainImageRepository.save(
+				DomainImage.create(DomainType.CHAT_MESSAGE, chatMessageId, image, 0));
 			ChatMessageFile messageFile = chatMessageFileRepository.save(ChatMessageFile.builder()
 				.chatMessageId(chatMessageId)
 				.fileType(ChatMessageFileType.IMAGE)
+				.domainImageId(domainImage.getId())
 				.fileUuid(fileUuid)
 				.fileUrl(null)
 				.deletedAt(null)
@@ -251,10 +262,12 @@ public class ChatService {
 		if (files == null || files.isEmpty()) {
 			return List.of();
 		}
+		Map<Long, String> domainImageUrlById = resolveDomainImageUrlMap(
+			files.stream().map(ChatMessageFile::getDomainImageId).toList());
 		return files.stream()
 			.map(file -> new ChatMessageFileItemResponse(
 				file.getFileType(),
-				resolveChatFileUrl(file)))
+				resolveChatFileUrl(file, domainImageUrlById)))
 			.toList();
 	}
 
@@ -263,18 +276,70 @@ public class ChatService {
 			return Map.of();
 		}
 		List<ChatMessageFile> files = chatMessageFileRepository.findAllByChatMessageIdInAndDeletedAtIsNull(messageIds);
+		Map<Long, String> domainImageUrlById = resolveDomainImageUrlMap(
+			files.stream().map(ChatMessageFile::getDomainImageId).toList());
 		return files.stream()
 			.collect(java.util.stream.Collectors.groupingBy(
 				ChatMessageFile::getChatMessageId,
 				java.util.stream.Collectors.mapping(
-					file -> new ChatMessageFileItemResponse(file.getFileType(), resolveChatFileUrl(file)),
+					file -> new ChatMessageFileItemResponse(file.getFileType(),
+						resolveChatFileUrl(file, domainImageUrlById)),
 					java.util.stream.Collectors.toList())));
 	}
 
-	private String resolveChatFileUrl(ChatMessageFile file) {
+	private String resolveChatFileUrl(ChatMessageFile file, Map<Long, String> domainImageUrlById) {
+		Long domainImageId = file.getDomainImageId();
+		if (domainImageId != null) {
+			String url = domainImageUrlById.get(domainImageId);
+			if (url != null) {
+				return url;
+			}
+		}
 		if (file.getFileUuid() != null && !file.getFileUuid().isBlank()) {
 			return fileService.getImageStaticUrl(file.getFileUuid());
 		}
 		return file.getFileUrl();
+	}
+
+	private Map<Long, String> resolveDomainImageUrlMap(List<Long> domainImageIds) {
+		if (domainImageIds == null || domainImageIds.isEmpty()) {
+			return Map.of();
+		}
+		List<Long> filtered = domainImageIds.stream()
+			.filter(Objects::nonNull)
+			.distinct()
+			.toList();
+		if (filtered.isEmpty()) {
+			return Map.of();
+		}
+		Map<Long, String> result = new java.util.HashMap<>();
+		for (DomainImage domainImage : domainImageRepository.findAllById(filtered)) {
+			Image image = domainImage.getImage();
+			if (image == null || image.getFileUuid() == null) {
+				continue;
+			}
+			result.put(domainImage.getId(), fileService.getImageStaticUrl(image.getFileUuid().toString()));
+		}
+		return result;
+	}
+
+	private Image activateAndGetImage(String fileUuid) {
+		java.util.UUID uuid;
+		try {
+			uuid = java.util.UUID.fromString(fileUuid);
+		} catch (IllegalArgumentException ex) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST, "fileUuid 형식이 올바르지 않습니다");
+		}
+
+		Image image = imageRepository.findByFileUuid(uuid)
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() == ImageStatus.DELETED) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+		if (image.getStatus() == ImageStatus.PENDING) {
+			image.activate();
+		}
+		return image;
 	}
 }

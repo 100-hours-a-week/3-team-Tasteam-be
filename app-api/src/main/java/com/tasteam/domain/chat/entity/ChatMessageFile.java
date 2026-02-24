@@ -41,6 +41,9 @@ public class ChatMessageFile extends BaseCreatedAtEntity {
 	@Column(name = "file_type", nullable = false, length = 20)
 	private ChatMessageFileType fileType;
 
+	@Column(name = "domain_image_id")
+	private Long domainImageId;
+
 	@Column(name = "file_uuid", length = 36)
 	private String fileUuid;
 
