@@ -32,14 +32,14 @@ public class ReviewAnalysisBatchPreConditionService {
 	public PreConditionResult runPreCondition() {
 		Instant now = Instant.now();
 
-		int unclosedJobCount = aiJobRepository.markPendingAndRunningAsFailedByBatchTypeForUnclosedExecutions(
+		int unclosedJobCount = aiJobRepository.markUnclosedJobsAsFailed(
 			BATCH_TYPE, AiJobStatus.PENDING, AiJobStatus.RUNNING, AiJobStatus.FAILED);
 		if (unclosedJobCount > 0) {
 			log.info("Review analysis pre-condition: marked {} unclosed PENDING/RUNNING job(s) as FAILED",
 				unclosedJobCount);
 		}
 
-		int unclosedExecutionCount = batchExecutionRepository.markUnclosedAsFailed(
+		int unclosedExecutionCount = batchExecutionRepository.markUnclosedBatchExecutionsAsFailed(
 			BATCH_TYPE, BatchExecutionStatus.FAILED, now);
 		if (unclosedExecutionCount > 0) {
 			log.info("Review analysis pre-condition: marked {} unclosed BatchExecution(s) as FAILED",

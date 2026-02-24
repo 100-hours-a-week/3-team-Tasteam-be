@@ -62,15 +62,14 @@ public interface AiJobRepository extends JpaRepository<AiJob, Long> {
 		AiJobStatus runningStatus);
 
 	/**
-	 * 해당 batch_type에서 미종료 실행(finished_at IS NULL)에 속한 PENDING·RUNNING Job을 전부 FAILED로 변경.
-	 * 사전 작업에서 이전 배치 정리 시 호출.
+	 * 해당 batch_type에서 미종료 실행에 속한 PENDING·RUNNING Job을 FAILED로 변경. 사전 작업에서 호출.
 	 *
 	 * @return 업데이트된 행 수
 	 */
 	@Modifying(clearAutomatically = true)
 	@Query("UPDATE AiJob j SET j.status = :failedStatus WHERE j.batchExecution.batchType = :batchType "
 		+ "AND j.batchExecution.finishedAt IS NULL AND (j.status = :pending OR j.status = :running)")
-	int markPendingAndRunningAsFailedByBatchTypeForUnclosedExecutions(
+	int markUnclosedJobsAsFailed(
 		@Param("batchType")
 		BatchType batchType,
 		@Param("pending")

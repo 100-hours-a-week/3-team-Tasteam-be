@@ -1,4 +1,4 @@
-package com.tasteam.batch.ai.vector.service;
+package com.tasteam.batch.ai.comparison.service;
 
 import java.time.Instant;
 
@@ -15,15 +15,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 벡터 업로드 배치 실행 전 사전 작업
- * 이전 배치에서 미종료된 Job 또는 BatchExecution 실패(FAILED) 처리.
+ * 주간 레스토랑 비교 배치 실행 전 사전 작업.
+ * 이전 배치에서 미종료된 Job 또는 BatchExecution을 FAILED 처리.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class VectorUploadBatchPreConditionService {
+public class RestaurantComparisonBatchPreConditionService {
 
-	private static final BatchType BATCH_TYPE = BatchType.VECTOR_UPLOAD_DAILY;
+	private static final BatchType BATCH_TYPE = BatchType.RESTAURANT_COMPARISON_WEEKLY;
 
 	private final AiJobRepository aiJobRepository;
 	private final BatchExecutionRepository batchExecutionRepository;
@@ -35,14 +35,14 @@ public class VectorUploadBatchPreConditionService {
 		int unclosedJobCount = aiJobRepository.markUnclosedJobsAsFailed(
 			BATCH_TYPE, AiJobStatus.PENDING, AiJobStatus.RUNNING, AiJobStatus.FAILED);
 		if (unclosedJobCount > 0) {
-			log.info("Vector upload pre-condition: marked {} unclosed PENDING/RUNNING job(s) as FAILED",
+			log.info("Restaurant comparison pre-condition: marked {} unclosed PENDING/RUNNING job(s) as FAILED",
 				unclosedJobCount);
 		}
 
 		int unclosedExecutionCount = batchExecutionRepository.markUnclosedBatchExecutionsAsFailed(
 			BATCH_TYPE, BatchExecutionStatus.FAILED, now);
 		if (unclosedExecutionCount > 0) {
-			log.info("Vector upload pre-condition: marked {} unclosed BatchExecution(s) as FAILED",
+			log.info("Restaurant comparison pre-condition: marked {} unclosed BatchExecution(s) as FAILED",
 				unclosedExecutionCount);
 		}
 
