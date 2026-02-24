@@ -38,7 +38,7 @@ spring:
 
   sql:
     init:
-      mode: never
+      mode: always
 
   security:
     jwt:

@@ -7,7 +7,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -41,18 +40,20 @@ import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
-import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
 import com.tasteam.domain.restaurant.entity.FoodCategory;
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.entity.RestaurantComparison;
+import com.tasteam.domain.restaurant.entity.RestaurantReviewSentiment;
+import com.tasteam.domain.restaurant.entity.RestaurantReviewSummary;
 import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
 import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
-import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
 import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantAddressRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantComparisonRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantReviewSentimentRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantReviewSummaryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantWeeklyScheduleRepository;
 import com.tasteam.domain.review.entity.Review;
 import com.tasteam.domain.review.repository.ReviewRepository;
@@ -92,7 +93,10 @@ class RestaurantServiceIntegrationTest {
 	private FoodCategoryRepository foodCategoryRepository;
 
 	@Autowired
-	private AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
+	private RestaurantReviewSummaryRepository restaurantReviewSummaryRepository;
+
+	@Autowired
+	private RestaurantReviewSentimentRepository restaurantReviewSentimentRepository;
 
 	@Autowired
 	private RestaurantComparisonRepository restaurantComparisonRepository;
@@ -307,8 +311,13 @@ class RestaurantServiceIntegrationTest {
 			reviewRepository.save(Review.create(restaurant, member, 1L, null, "추천2", true));
 			reviewRepository.save(Review.create(restaurant, member, 1L, null, "비추천", false));
 
-			aiRestaurantReviewAnalysisRepository.save(
-				AiRestaurantReviewAnalysis.create(created.id(), "AI 요약", BigDecimal.valueOf(0.75)));
+			Instant now = Instant.now();
+			restaurantReviewSummaryRepository.save(
+				RestaurantReviewSummary.create(created.id(), 0L, "1",
+					Map.of("overall_summary", "AI 요약"), now));
+			restaurantReviewSentimentRepository.save(
+				RestaurantReviewSentiment.create(created.id(), 0L, "1",
+					75, 10, 15, 75, 10, 15, now));
 			restaurantComparisonRepository.save(
 				RestaurantComparison.create(
 					restaurant.getId(),

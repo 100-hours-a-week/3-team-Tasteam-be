@@ -212,23 +212,6 @@ INSERT INTO restaurant_comparison (
    '{"category_lift": {"service": 0.10, "price": 0.05, "food": 0.11}, "comparison_display": ["조용한 분위기의 카페로 작업하기에 좋습니다."], "total_candidates": 18, "validated_count": 12}'::jsonb,
    now());
 
-INSERT INTO ai_restaurant_review_analysis (
-  id, restaurant_id, overall_summary, category_summaries,
-  positive_ratio, negative_ratio, analyzed_at, status, created_at, updated_at
-) VALUES
-  (9601, 6001, '가성비와 위치가 좋은 편입니다.',
-   '{"service": "응대가 빠른 편입니다.", "price": "가격 만족도가 높습니다.", "food": "식사 품질이 안정적입니다."}'::jsonb,
-   0.8500, 0.1500, now(), 'COMPLETED', now(), now()),
-  (9602, 6002, '커피 품질과 좌석이 좋은 편입니다.',
-   '{"service": "직원 응대가 친절합니다.", "price": "가격이 합리적이라는 평가가 많습니다.", "food": "커피 맛 만족도가 높습니다."}'::jsonb,
-   0.9000, 0.1000, now(), 'COMPLETED', now(), now());
-
-INSERT INTO ai_restaurant_recommendation (
-  id, restaurant_id, reason, cache_key, expires_at, created_at
-) VALUES
-  (9701, 6001, '점심 추천도가 높아 그룹 모임에 적합합니다.', 'seed:member:1001:query:lunch', now() + interval '1 day', now()),
-  (9702, 6002, '카페 이용 고객 만족도가 높습니다.', 'seed:member:1002:query:cafe', now() + interval '1 day', now());
-
 -- Group auth code
 INSERT INTO group_auth_code (
   id, group_id, code, email, verified_at, expires_at, created_at
@@ -511,34 +494,40 @@ INSERT INTO restaurant_comparison (
   (9511, 8009, '1', '{"category_lift": {"service": 0.07, "price": 0.09, "food": 0.11}, "comparison_display": ["중식 볶음 요리가 인기입니다."], "total_candidates": 20, "validated_count": 14}'::jsonb, now()),
   (9512, 8010, '1', '{"category_lift": {"service": 0.12, "price": 0.05, "food": 0.10}, "comparison_display": ["커피 향이 좋은 카페입니다."], "total_candidates": 20, "validated_count": 18}'::jsonb, now());
 
-INSERT INTO ai_restaurant_review_analysis (
-  id, restaurant_id, overall_summary, category_summaries,
-  positive_ratio, negative_ratio, analyzed_at, status, created_at, updated_at
+-- 요약/감정: 음식점당 1건만 넣기 위해 한 곳에서만 INSERT (시드 restaurant_id: 6001, 6002, 8001~8010)
+DELETE FROM restaurant_review_sentiment WHERE restaurant_id IN (6001, 6002, 8001, 8002, 8003, 8004, 8005, 8006, 8007, 8008, 8009, 8010);
+DELETE FROM restaurant_review_summary WHERE restaurant_id IN (6001, 6002, 8001, 8002, 8003, 8004, 8005, 8006, 8007, 8008, 8009, 8010);
+INSERT INTO restaurant_review_summary (
+  id, restaurant_id, vector_epoch, model_version, summary_json, analyzed_at
 ) VALUES
-  (9603, 8001, '전체적으로 만족도가 높습니다.', '{"service":"서비스 만족도가 높습니다.","price":"가격 대비 만족도가 높습니다.","food":"음식 품질 평가가 좋습니다."}'::jsonb, 0.8800, 0.1200, now(), 'COMPLETED', now(), now()),
-  (9604, 8002, '가성비가 좋다는 평가가 많습니다.', '{"service":"빠른 제공 속도가 장점입니다.","price":"가성비가 좋다는 의견이 많습니다.","food":"메뉴 만족도가 안정적입니다."}'::jsonb, 0.8200, 0.1800, now(), 'COMPLETED', now(), now()),
-  (9605, 8003, '디저트 만족도가 높습니다.', '{"service":"응대가 친절하다는 평가가 있습니다.","price":"가격이 합리적이라는 의견이 많습니다.","food":"디저트 품질이 좋습니다."}'::jsonb, 0.9000, 0.1000, now(), 'COMPLETED', now(), now()),
-  (9606, 8004, '치킨 식감이 좋습니다.', '{"service":"포장 및 응대가 무난합니다.","price":"가격이 적절하다는 의견이 있습니다.","food":"치킨 식감 만족도가 높습니다."}'::jsonb, 0.8600, 0.1400, now(), 'COMPLETED', now(), now()),
-  (9607, 8005, '토핑에 대한 평가가 좋습니다.', '{"service":"주문 처리 속도가 빠른 편입니다.","price":"가격 대비 토핑 구성이 좋습니다.","food":"토핑 만족도가 높습니다."}'::jsonb, 0.8400, 0.1600, now(), 'COMPLETED', now(), now()),
-  (9608, 8006, '향신료 호불호가 있습니다.', '{"service":"서비스는 안정적입니다.","price":"가격 평가는 보통 수준입니다.","food":"향신료 취향 차이가 있습니다."}'::jsonb, 0.7200, 0.2800, now(), 'COMPLETED', now(), now()),
-  (9609, 8007, '국물 맛이 강점입니다.', '{"service":"응대가 빠른 편입니다.","price":"가격 대비 만족도가 높습니다.","food":"국물 맛 평가가 좋습니다."}'::jsonb, 0.8900, 0.1100, now(), 'COMPLETED', now(), now()),
-  (9610, 8008, '신선도에 대한 만족도가 높습니다.', '{"service":"친절도에 대한 평가가 좋습니다.","price":"가격은 다소 높지만 수용 가능하다는 의견입니다.","food":"신선도 만족도가 높습니다."}'::jsonb, 0.9100, 0.0900, now(), 'COMPLETED', now(), now()),
-  (9611, 8009, '볶음 요리가 인기입니다.', '{"service":"서비스는 무난합니다.","price":"가격 대비 적절하다는 의견이 있습니다.","food":"볶음 요리 선호도가 높습니다."}'::jsonb, 0.8000, 0.2000, now(), 'COMPLETED', now(), now()),
-  (9612, 8010, '카페 분위기가 좋습니다.', '{"service":"직원 응대가 친절합니다.","price":"가격이 합리적이라는 평가가 많습니다.","food":"커피 맛과 분위기 만족도가 높습니다."}'::jsonb, 0.9300, 0.0700, now(), 'COMPLETED', now(), now());
+  (9601, 6001, 0, '1', '{"overall_summary": "가성비와 위치가 좋은 편입니다.", "categories": {"service": "응대가 빠른 편입니다.", "price": "가격 만족도가 높습니다.", "food": "식사 품질이 안정적입니다."}}'::jsonb, now()),
+  (9602, 6002, 0, '1', '{"overall_summary": "커피 품질과 좌석이 좋은 편입니다.", "categories": {"service": "직원 응대가 친절합니다.", "price": "가격이 합리적이라는 평가가 많습니다.", "food": "커피 맛 만족도가 높습니다."}}'::jsonb, now()),
+  (9603, 8001, 0, '1', '{"overall_summary": "전체적으로 만족도가 높습니다.", "categories": {"service":"서비스 만족도가 높습니다.","price":"가격 대비 만족도가 높습니다.","food":"음식 품질 평가가 좋습니다."}}'::jsonb, now()),
+  (9604, 8002, 0, '1', '{"overall_summary": "가성비가 좋다는 평가가 많습니다.", "categories": {"service":"빠른 제공 속도가 장점입니다.","price":"가성비가 좋다는 의견이 많습니다.","food":"메뉴 만족도가 안정적입니다."}}'::jsonb, now()),
+  (9605, 8003, 0, '1', '{"overall_summary": "디저트 만족도가 높습니다.", "categories": {"service":"응대가 친절하다는 평가가 있습니다.","price":"가격이 합리적이라는 의견이 많습니다.","food":"디저트 품질이 좋습니다."}}'::jsonb, now()),
+  (9606, 8004, 0, '1', '{"overall_summary": "치킨 식감이 좋습니다.", "categories": {"service":"포장 및 응대가 무난합니다.","price":"가격이 적절하다는 의견이 있습니다.","food":"치킨 식감 만족도가 높습니다."}}'::jsonb, now()),
+  (9607, 8005, 0, '1', '{"overall_summary": "토핑에 대한 평가가 좋습니다.", "categories": {"service":"주문 처리 속도가 빠른 편입니다.","price":"가격 대비 토핑 구성이 좋습니다.","food":"토핑 만족도가 높습니다."}}'::jsonb, now()),
+  (9608, 8006, 0, '1', '{"overall_summary": "향신료 호불호가 있습니다.", "categories": {"service":"서비스는 안정적입니다.","price":"가격 평가는 보통 수준입니다.","food":"향신료 취향 차이가 있습니다."}}'::jsonb, now()),
+  (9609, 8007, 0, '1', '{"overall_summary": "국물 맛이 강점입니다.", "categories": {"service":"응대가 빠른 편입니다.","price":"가격 대비 만족도가 높습니다.","food":"국물 맛 평가가 좋습니다."}}'::jsonb, now()),
+  (9610, 8008, 0, '1', '{"overall_summary": "신선도에 대한 만족도가 높습니다.", "categories": {"service":"친절도에 대한 평가가 좋습니다.","price":"가격은 다소 높지만 수용 가능하다는 의견입니다.","food":"신선도 만족도가 높습니다."}}'::jsonb, now()),
+  (9611, 8009, 0, '1', '{"overall_summary": "볶음 요리가 인기입니다.", "categories": {"service":"서비스는 무난합니다.","price":"가격 대비 적절하다는 의견이 있습니다.","food":"볶음 요리 선호도가 높습니다."}}'::jsonb, now()),
+  (9612, 8010, 0, '1', '{"overall_summary": "카페 분위기가 좋습니다.", "categories": {"service":"직원 응대가 친절합니다.","price":"가격이 합리적이라는 평가가 많습니다.","food":"커피 맛과 분위기 만족도가 높습니다."}}'::jsonb, now());
 
-INSERT INTO ai_restaurant_recommendation (
-  id, restaurant_id, reason, cache_key, expires_at, created_at
+INSERT INTO restaurant_review_sentiment (
+  id, restaurant_id, vector_epoch, model_version, positive_count, negative_count, neutral_count, positive_percent, negative_percent, neutral_percent, analyzed_at
 ) VALUES
-  (9703, 8001, '모임 장소로 추천됩니다.', 'seed:member:1101:query:restaurant-8001', now() + interval '1 day', now()),
-  (9704, 8002, '빠르게 식사할 곳으로 추천됩니다.', 'seed:member:1102:query:restaurant-8002', now() + interval '1 day', now()),
-  (9705, 8003, '디저트 모임에 적합합니다.', 'seed:member:1103:query:restaurant-8003', now() + interval '1 day', now()),
-  (9706, 8004, '치킨 선호자에게 추천됩니다.', 'seed:member:1104:query:restaurant-8004', now() + interval '1 day', now()),
-  (9707, 8005, '피자 모임에 적합합니다.', 'seed:member:1105:query:restaurant-8005', now() + interval '1 day', now()),
-  (9708, 8006, '이색 음식 체험에 좋습니다.', 'seed:member:1106:query:restaurant-8006', now() + interval '1 day', now()),
-  (9709, 8007, '따뜻한 국물 메뉴가 인기입니다.', 'seed:member:1107:query:restaurant-8007', now() + interval '1 day', now()),
-  (9710, 8008, '신선한 해산물로 추천됩니다.', 'seed:member:1108:query:restaurant-8008', now() + interval '1 day', now()),
-  (9711, 8009, '중식 볶음 메뉴가 강점입니다.', 'seed:member:1109:query:restaurant-8009', now() + interval '1 day', now()),
-  (9712, 8010, '카페 작업 장소로 좋습니다.', 'seed:member:1110:query:restaurant-8010', now() + interval '1 day', now());
+  (9681, 6001, 0, '1', 85, 15, 0, 85, 15, 0, now()),
+  (9682, 6002, 0, '1', 90, 10, 0, 90, 10, 0, now()),
+  (9683, 8001, 0, '1', 88, 12, 0, 88, 12, 0, now()),
+  (9684, 8002, 0, '1', 82, 18, 0, 82, 18, 0, now()),
+  (9685, 8003, 0, '1', 90, 10, 0, 90, 10, 0, now()),
+  (9686, 8004, 0, '1', 86, 14, 0, 86, 14, 0, now()),
+  (9687, 8005, 0, '1', 84, 16, 0, 84, 16, 0, now()),
+  (9688, 8006, 0, '1', 72, 28, 0, 72, 28, 0, now()),
+  (9689, 8007, 0, '1', 89, 11, 0, 89, 11, 0, now()),
+  (9690, 8008, 0, '1', 91, 9, 0, 91, 9, 0, now()),
+  (9691, 8009, 0, '1', 80, 20, 0, 80, 20, 0, now()),
+  (9692, 8010, 0, '1', 93, 7, 0, 93, 7, 0, now());
 
 -- Search history for new members
 INSERT INTO member_search_history (
@@ -569,13 +558,13 @@ SELECT setval(
 );
 
 SELECT setval(
-  pg_get_serial_sequence('ai_restaurant_review_analysis', 'id'),
-  COALESCE((SELECT MAX(id) FROM ai_restaurant_review_analysis), 1),
+  pg_get_serial_sequence('restaurant_review_summary', 'id'),
+  COALESCE((SELECT MAX(id) FROM restaurant_review_summary), 1),
   true
 );
 
 SELECT setval(
-  pg_get_serial_sequence('ai_restaurant_recommendation', 'id'),
-  COALESCE((SELECT MAX(id) FROM ai_restaurant_recommendation), 1),
+  pg_get_serial_sequence('restaurant_review_sentiment', 'id'),
+  COALESCE((SELECT MAX(id) FROM restaurant_review_sentiment), 1),
   true
 );

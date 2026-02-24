@@ -141,11 +141,11 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 		  ST_Distance(r.location::geography,
 		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
 		from restaurant r
-		join ai_restaurant_review_analysis a on a.restaurant_id = r.id
+		join restaurant_review_sentiment s on s.restaurant_id = r.id
 		where r.deleted_at is null
 		  and ST_DWithin(r.location::geography,
 		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
-		order by a.positive_ratio desc, r.id asc
+		order by s.positive_percent desc, r.id asc
 		limit :limit
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findAiRecommendRestaurants(
@@ -191,10 +191,10 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 	@Query(value = """
 		select r.id as id, r.name as name, cast(null as double precision) as distanceMeter
 		from restaurant r
-		join ai_restaurant_review_analysis a on a.restaurant_id = r.id
+		join restaurant_review_sentiment s on s.restaurant_id = r.id
 		where r.deleted_at is null
 		  and r.id not in (:excludeIds)
-		order by a.positive_ratio desc, r.id asc
+		order by s.positive_percent desc, r.id asc
 		limit :limit
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findAiRecommendRestaurantsAll(
