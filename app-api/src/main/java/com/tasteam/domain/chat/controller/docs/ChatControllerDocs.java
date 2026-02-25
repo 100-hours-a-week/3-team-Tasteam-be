@@ -9,6 +9,7 @@ import com.tasteam.domain.chat.dto.request.ChatReadCursorUpdateRequest;
 import com.tasteam.domain.chat.dto.response.ChatMessageListResponse;
 import com.tasteam.domain.chat.dto.response.ChatMessageSendResponse;
 import com.tasteam.domain.chat.dto.response.ChatReadCursorUpdateResponse;
+import com.tasteam.domain.chat.type.ChatMessageListMode;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
@@ -35,6 +36,8 @@ public interface ChatControllerDocs {
 		Long chatRoomId,
 		@Parameter(description = "커서", example = "opaque") @RequestParam(required = false)
 		String cursor,
+		@Parameter(description = "조회 모드 (ENTER/BEFORE/AFTER)", example = "ENTER") @RequestParam(required = false)
+		ChatMessageListMode mode,
 		@Parameter(description = "페이지 크기", example = "20") @RequestParam(defaultValue = "20") @Min(1) @Max(100)
 		int size,
 		@CurrentUser
