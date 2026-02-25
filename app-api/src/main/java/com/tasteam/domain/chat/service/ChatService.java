@@ -29,6 +29,7 @@ import com.tasteam.domain.chat.repository.ChatRoomMemberRepository;
 import com.tasteam.domain.chat.repository.ChatRoomRepository;
 import com.tasteam.domain.chat.stream.ChatStreamPublisher;
 import com.tasteam.domain.chat.type.ChatMessageFileType;
+import com.tasteam.domain.chat.type.ChatMessageListMode;
 import com.tasteam.domain.chat.type.ChatMessageType;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
@@ -67,29 +68,59 @@ public class ChatService {
 	private final ChatStreamPublisher chatStreamPublisher;
 
 	@Transactional(readOnly = true)
-	public ChatMessageListResponse getMessages(Long chatRoomId, Long memberId, String cursor, Integer size) {
+	public ChatMessageListResponse getMessages(Long chatRoomId, Long memberId, String cursor, ChatMessageListMode mode,
+		Integer size) {
 		int resolvedSize = resolvePageSize(size);
 		ensureChatRoomExists(chatRoomId);
 		ChatRoomMember membership = findMembershipOrThrow(chatRoomId, memberId);
 
-		CursorPageBuilder<ChatMessageCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursor,
+		ChatMessageListMode resolvedMode = mode == null ? ChatMessageListMode.BEFORE : mode;
+		String rawCursor = resolvedMode == ChatMessageListMode.ENTER ? null : cursor;
+		CursorPageBuilder<ChatMessageCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, rawCursor,
 			ChatMessageCursor.class);
 		if (pageBuilder.isInvalid()) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 
-		Long cursorId = pageBuilder.cursor() == null ? null : pageBuilder.cursor().messageId();
-		List<ChatMessageQueryDto> results = chatMessageRepository.findMessagePage(
-			chatRoomId,
-			cursorId,
-			PageRequest.of(0, CursorPageBuilder.fetchSize(resolvedSize)));
+		CursorPageBuilder.Page<ChatMessageQueryDto> page;
+		List<ChatMessageQueryDto> pageItems;
+		// 기준 포함 여부: ENTER는 기준(lastReadMessageId)을 포함하고, BEFORE/AFTER는 커서 기준을 포함하지 않습니다.
+		switch (resolvedMode) {
+			case ENTER -> {
+				Long baseId = membership.getLastReadMessageId();
+				List<ChatMessageQueryDto> results = chatMessageRepository.findMessagePageUpTo(
+					chatRoomId,
+					baseId,
+					PageRequest.of(0, CursorPageBuilder.fetchSize(resolvedSize)));
+				page = pageBuilder.build(results, resolvedSize, last -> new ChatMessageCursor(last.id()));
+				pageItems = page.items();
+			}
+			case AFTER -> {
+				if (pageBuilder.cursor() == null) {
+					throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+				}
+				Long cursorId = pageBuilder.cursor().messageId();
+				List<ChatMessageQueryDto> results = chatMessageRepository.findMessagePageAfter(
+					chatRoomId,
+					cursorId,
+					PageRequest.of(0, CursorPageBuilder.fetchSize(resolvedSize)));
+				page = pageBuilder.build(results, resolvedSize, last -> new ChatMessageCursor(last.id()));
+				pageItems = new ArrayList<>(page.items());
+				java.util.Collections.reverse(pageItems);
+			}
+			case BEFORE -> {
+				Long cursorId = pageBuilder.cursor() == null ? null : pageBuilder.cursor().messageId();
+				List<ChatMessageQueryDto> results = chatMessageRepository.findMessagePage(
+					chatRoomId,
+					cursorId,
+					PageRequest.of(0, CursorPageBuilder.fetchSize(resolvedSize)));
+				page = pageBuilder.build(results, resolvedSize, last -> new ChatMessageCursor(last.id()));
+				pageItems = page.items();
+			}
+			default -> throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
 
-		CursorPageBuilder.Page<ChatMessageQueryDto> page = pageBuilder.build(
-			results,
-			resolvedSize,
-			last -> new ChatMessageCursor(last.id()));
-
-		List<Long> memberIds = page.items().stream()
+		List<Long> memberIds = pageItems.stream()
 			.map(ChatMessageQueryDto::memberId)
 			.filter(Objects::nonNull)
 			.distinct()
@@ -99,9 +130,9 @@ public class ChatService {
 			memberIds);
 
 		Map<Long, List<ChatMessageFileItemResponse>> filesByMessageId = loadMessageFiles(
-			page.items().stream().map(ChatMessageQueryDto::id).toList());
+			pageItems.stream().map(ChatMessageQueryDto::id).toList());
 
-		List<ChatMessageItemResponse> items = page.items().stream()
+		List<ChatMessageItemResponse> items = pageItems.stream()
 			.map(item -> new ChatMessageItemResponse(
 				item.id(),
 				item.memberId(),

@@ -35,5 +35,51 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 		Long cursorId,
 		Pageable pageable);
 
+	@Query("""
+		select new com.tasteam.domain.chat.dto.ChatMessageQueryDto(
+			m.id,
+			m.memberId,
+			member.nickname,
+			m.content,
+			m.type,
+			m.createdAt
+		)
+		from ChatMessage m
+		left join Member member on member.id = m.memberId
+		where m.chatRoomId = :chatRoomId
+		and m.deletedAt is null
+		and (:maxId is null or m.id <= :maxId)
+		order by m.id desc
+		""")
+	List<ChatMessageQueryDto> findMessagePageUpTo(
+		@Param("chatRoomId")
+		Long chatRoomId,
+		@Param("maxId")
+		Long maxId,
+		Pageable pageable);
+
+	@Query("""
+		select new com.tasteam.domain.chat.dto.ChatMessageQueryDto(
+			m.id,
+			m.memberId,
+			member.nickname,
+			m.content,
+			m.type,
+			m.createdAt
+		)
+		from ChatMessage m
+		left join Member member on member.id = m.memberId
+		where m.chatRoomId = :chatRoomId
+		and m.deletedAt is null
+		and m.id > :cursorId
+		order by m.id asc
+		""")
+	List<ChatMessageQueryDto> findMessagePageAfter(
+		@Param("chatRoomId")
+		Long chatRoomId,
+		@Param("cursorId")
+		Long cursorId,
+		Pageable pageable);
+
 	boolean existsByIdAndChatRoomIdAndDeletedAtIsNull(Long id, Long chatRoomId);
 }
