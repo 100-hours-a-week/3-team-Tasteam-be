@@ -333,12 +333,14 @@ class RestaurantServiceIntegrationTest {
 			assertThat(detail.foodCategories()).isNotEmpty();
 			assertThat(detail.businessHoursWeek()).hasSize(7);
 			assertThat(detail.image()).isNotNull();
-			assertThat(detail.recommendStat()).isNotNull();
-			assertThat(detail.recommendStat().recommendedCount()).isEqualTo(2L);
-			assertThat(detail.recommendStat().notRecommendedCount()).isEqualTo(1L);
-			assertThat(detail.recommendStat().positiveRatio()).isNotNull();
-			assertThat(detail.aiSummary()).isNotNull();
-			assertThat(detail.aiFeatures()).isNotNull();
+			assertThat(detail.recommendedCount()).isEqualTo(2L);
+			assertThat(detail.aiDetails()).isNotNull();
+			assertThat(detail.aiDetails().sentiment()).isNotNull();
+			assertThat(detail.aiDetails().sentiment().positivePercent()).isEqualTo(75);
+			assertThat(detail.aiDetails().summary()).isNotNull();
+			assertThat(detail.aiDetails().summary().overallSummary()).isEqualTo("AI 요약");
+			assertThat(detail.aiDetails().comparison()).isNotNull();
+			assertThat(detail.aiDetails().comparison().overallComparison()).isEqualTo("AI 특징");
 		}
 
 		@Test
@@ -359,10 +361,11 @@ class RestaurantServiceIntegrationTest {
 			assertThat(detail.id()).isEqualTo(created.id());
 			assertThat(detail.businessHoursWeek()).hasSize(7);
 			assertThat(detail.image()).isNull();
-			assertThat(detail.aiSummary()).isNull();
-			assertThat(detail.aiFeatures()).isNull();
-			assertThat(detail.recommendStat()).isNotNull();
-			assertThat(detail.recommendStat().positiveRatio()).isNull();
+			assertThat(detail.recommendedCount()).isNotNull();
+			assertThat(detail.aiDetails()).isNotNull();
+			assertThat(detail.aiDetails().sentiment()).isNull();
+			assertThat(detail.aiDetails().summary()).isNull();
+			assertThat(detail.aiDetails().comparison()).isNull();
 		}
 
 		@Test
