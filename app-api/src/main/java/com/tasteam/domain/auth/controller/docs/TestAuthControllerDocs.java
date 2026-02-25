@@ -3,6 +3,7 @@ package com.tasteam.domain.auth.controller.docs;
 import com.tasteam.domain.auth.dto.request.TestAuthTokenRequest;
 import com.tasteam.domain.auth.dto.response.TestAuthTokenResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
+@SwaggerTagOrder(5)
 @Tag(name = "Auth", description = "인증 관련 API")
 public interface TestAuthControllerDocs {
 

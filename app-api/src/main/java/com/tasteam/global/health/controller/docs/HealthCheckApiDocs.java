@@ -2,6 +2,7 @@ package com.tasteam.global.health.controller.docs;
 
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.health.dto.response.HealthCheckResponse;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+@SwaggerTagOrder(70)
 @Tag(name = "System", description = "시스템 상태 확인 API")
 public interface HealthCheckApiDocs {
 
