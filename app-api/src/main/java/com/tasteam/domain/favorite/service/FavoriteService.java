@@ -163,8 +163,14 @@ public class FavoriteService {
 		MemberFavoriteRestaurant favorite = memberFavoriteRestaurantRepository.findByMemberIdAndRestaurantId(memberId,
 			restaurantId)
 			.map(existing -> restoreMemberFavoriteIfDeleted(existing))
-			.orElseGet(() -> memberFavoriteRestaurantRepository.save(MemberFavoriteRestaurant.create(memberId,
-				restaurantId)));
+			.orElseGet(() -> {
+				try {
+					return memberFavoriteRestaurantRepository.save(
+						MemberFavoriteRestaurant.create(memberId, restaurantId));
+				} catch (org.springframework.dao.DataIntegrityViolationException ex) {
+					throw new BusinessException(FavoriteErrorCode.FAVORITE_ALREADY_EXISTS);
+				}
+			});
 
 		return favoriteAssembler.toCreateResponse(favorite);
 	}
