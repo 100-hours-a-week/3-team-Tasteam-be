@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.admin.controller.docs.AdminAnnouncementControllerDocs;
 import com.tasteam.domain.admin.dto.request.AdminAnnouncementCreateRequest;
 import com.tasteam.domain.admin.dto.request.AdminAnnouncementUpdateRequest;
 import com.tasteam.domain.admin.dto.response.AdminAnnouncementDetailResponse;
@@ -28,10 +29,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/announcements")
-public class AdminAnnouncementController {
+public class AdminAnnouncementController implements AdminAnnouncementControllerDocs {
 
 	private final AdminAnnouncementService adminAnnouncementService;
 
+	@Override
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<Page<AdminAnnouncementListItem>> getAnnouncements(
@@ -42,6 +44,7 @@ public class AdminAnnouncementController {
 		return SuccessResponse.success(result);
 	}
 
+	@Override
 	@GetMapping("/{announcementId}")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<AdminAnnouncementDetailResponse> getAnnouncement(
@@ -52,6 +55,7 @@ public class AdminAnnouncementController {
 		return SuccessResponse.success(result);
 	}
 
+	@Override
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<Long> createAnnouncement(
@@ -62,6 +66,7 @@ public class AdminAnnouncementController {
 		return SuccessResponse.success(announcementId);
 	}
 
+	@Override
 	@PatchMapping("/{announcementId}")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<Void> updateAnnouncement(
@@ -74,6 +79,7 @@ public class AdminAnnouncementController {
 		return SuccessResponse.success();
 	}
 
+	@Override
 	@DeleteMapping("/{announcementId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteAnnouncement(

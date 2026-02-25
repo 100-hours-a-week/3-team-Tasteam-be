@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.notification.controller.docs.AdminNotificationControllerDocs;
 import com.tasteam.domain.notification.dto.request.AdminPushNotificationRequest;
 import com.tasteam.domain.notification.dto.response.AdminPushNotificationResponse;
 import com.tasteam.domain.notification.service.FcmPushService;
@@ -21,10 +22,11 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/admin/notifications")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-public class AdminNotificationController {
+public class AdminNotificationController implements AdminNotificationControllerDocs {
 
 	private final FcmPushService fcmPushService;
 
+	@Override
 	@PostMapping("/push/test")
 	public ResponseEntity<SuccessResponse<AdminPushNotificationResponse>> sendTestPush(
 		@RequestBody @Valid
