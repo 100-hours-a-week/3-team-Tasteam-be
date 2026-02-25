@@ -187,14 +187,31 @@ tasteam:
 
 ## ====== 운영 & 관리 ======
 management:
+  metrics:
+    tags:
+      application: tasteam-api
+      environment: ${spring.profiles.active:local}
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,caches
   endpoint:
     health:
       probes:
         enabled: true
+  tracing:
+    enabled: ${TRACING_ENABLED:false}
+    sampling:
+      probability: 0.1
+  otlp:
+    tracing:
+      endpoint: ${OTEL_ENDPOINT:http://localhost:4318/v1/traces}
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${spring.profiles.active:local}
+  traces-sample-rate: 0.1
+  send-default-pii: false
 
 logging:
   level:
