@@ -2,13 +2,16 @@ package com.tasteam.global.swagger.config;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
+import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.HandlerMethod;
 
 import com.tasteam.global.dto.api.ErrorResponse;
@@ -43,7 +46,6 @@ public class SwaggerConfig {
 	public OpenAPI openAPI() {
 		return new OpenAPI()
 			.info(apiInfo())
-			.tags(resolveOrderedTags())
 			.components(new Components()
 				.addSecuritySchemes(BEARER_AUTH, new SecurityScheme()
 					.type(SecurityScheme.Type.HTTP)
@@ -52,25 +54,28 @@ public class SwaggerConfig {
 			.addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH));
 	}
 
-	private List<io.swagger.v3.oas.models.tags.Tag> resolveOrderedTags() {
-		record TagEntry(int order, String name, String description) {
-		}
+	@Bean
+	public GlobalOpenApiCustomizer sortTagsCustomizer() {
+		return openApi -> {
+			Map<String, Integer> tagOrderMap = new HashMap<>();
 
-		Map<String, Object> beans = applicationContext.getBeansOfType(Object.class);
+			applicationContext.getBeansWithAnnotation(RestController.class).values().stream()
+				.map(AopUtils::getTargetClass)
+				.flatMap(clazz -> Arrays.stream(clazz.getInterfaces()))
+				.distinct()
+				.filter(iface -> iface.isAnnotationPresent(SwaggerTagOrder.class)
+					&& iface.isAnnotationPresent(Tag.class))
+				.forEach(iface -> {
+					int order = iface.getAnnotation(SwaggerTagOrder.class).value();
+					String tagName = iface.getAnnotation(Tag.class).name();
+					tagOrderMap.putIfAbsent(tagName, order);
+				});
 
-		return beans.values().stream()
-			.flatMap(bean -> Arrays.stream(bean.getClass().getInterfaces()))
-			.distinct()
-			.filter(iface -> iface.isAnnotationPresent(SwaggerTagOrder.class)
-				&& iface.isAnnotationPresent(Tag.class))
-			.map(iface -> {
-				int order = iface.getAnnotation(SwaggerTagOrder.class).value();
-				Tag tag = iface.getAnnotation(Tag.class);
-				return new TagEntry(order, tag.name(), tag.description());
-			})
-			.sorted(Comparator.comparingInt(TagEntry::order))
-			.map(e -> new io.swagger.v3.oas.models.tags.Tag().name(e.name()).description(e.description()))
-			.collect(java.util.stream.Collectors.toList());
+			if (openApi.getTags() != null) {
+				openApi.getTags().sort(
+					Comparator.comparingInt(tag -> tagOrderMap.getOrDefault(tag.getName(), Integer.MAX_VALUE)));
+			}
+		};
 	}
 
 	private Info apiInfo() {
