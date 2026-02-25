@@ -1,13 +1,13 @@
-name: Backend Deploy (CodeDeploy Dev Test)
+name: Backend Deploy (CodeDeploy Prod)
 
 on:
   push:
-    branches-ignore:
+    branches:
       - 'deploy-prod'
       - '**/deploy-prod'
     paths:
       - 'deploy/codedeploy/backend/**'
-      - '.github/workflows/codedeploy-dev-test.yml'
+      - '.github/workflows/codedeploy-prod.yml'
   workflow_dispatch:
 
 permissions:
@@ -15,13 +15,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: codedeploy-dev-test
+  group: codedeploy-prod
   cancel-in-progress: false
 
 jobs:
-  deploy-dev:
+  deploy-prod:
     runs-on: ubuntu-latest
-    environment: development
+    environment: production
 
     env:
       AWS_REGION: ap-northeast-2
@@ -55,8 +55,8 @@ jobs:
           tags: |
             ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ env.IMAGE_TAG_SHA }}
             ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ env.IMAGE_TAG_LATEST }}
-          cache-from: type=gha,scope=backend-codedeploy-dev
-          cache-to: type=gha,mode=max,scope=backend-codedeploy-dev
+          cache-from: type=gha,scope=backend-codedeploy-prod
+          cache-to: type=gha,mode=max,scope=backend-codedeploy-prod
 
       - name: Package CodeDeploy artifact
         env:
@@ -67,7 +67,7 @@ jobs:
           cd "${DEPLOY_DIR}"
           [ -n "${ECR_REGISTRY}" ] && [ -n "${ECR_REPO_BACKEND}" ] || { echo "ECR_REGISTRY/ECR_REPO_BACKEND secret is required"; exit 1; }
           cat > .env.deploy <<EOF
-          ENV_NAME=dev
+          ENV_NAME=prod
           AWS_REGION=${AWS_REGION}
           ECR_REGISTRY=${ECR_REGISTRY}
           ECR_REPO_BACKEND=${ECR_REPO_BACKEND}
@@ -106,7 +106,7 @@ jobs:
           DEPLOYMENT_ID=$(aws deploy create-deployment \
             --application-name "${CODEDEPLOY_APP_NAME}" \
             --deployment-group-name "${CODEDEPLOY_DEPLOYMENT_GROUP}" \
-            --deployment-config-name CodeDeployDefault.AllAtOnce \
+            --deployment-config-name CodeDeployDefault.OneAtATime \
             --description "Deploy ${GITHUB_SHA}" \
             --s3-location bucket="${CODEDEPLOY_BUCKET}",key="backend/${ARTIFACT_FILE}",bundleType=zip \
             --query deploymentId \
