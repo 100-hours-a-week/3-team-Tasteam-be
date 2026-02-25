@@ -39,7 +39,7 @@ public interface BatchExecutionRepository extends JpaRepository<BatchExecution, 
 	 */
 	@Modifying(clearAutomatically = true)
 	@Query("UPDATE BatchExecution e SET e.status = :failedStatus, e.finishedAt = :finishedAt WHERE e.batchType = :batchType AND e.finishedAt IS NULL")
-	int markUnclosedAsFailed(
+	int markUnclosedBatchExecutionsAsFailed(
 		@Param("batchType")
 		BatchType batchType,
 		@Param("failedStatus")

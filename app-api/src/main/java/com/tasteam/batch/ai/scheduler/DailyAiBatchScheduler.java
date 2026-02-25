@@ -21,7 +21,7 @@ public class DailyAiBatchScheduler {
 	private final VectorUploadBatchRunner vectorUploadBatchRunner;
 	private final ReviewAnalysisBatchRunner reviewAnalysisBatchRunner;
 
-	@Scheduled(cron = "${tasteam.batch.vector-upload.cron:0 42 22 * * *}", zone = "${tasteam.batch.vector-upload.zone:Asia/Seoul}")
+	@Scheduled(cron = "${tasteam.batch.vector-upload.cron:0 0 3 * * ?}", zone = "${tasteam.batch.vector-upload.zone:Asia/Seoul}")
 	public void runDailyAiBatch() {
 		vectorUploadBatchRunner.startRun();
 		reviewAnalysisBatchRunner.startRun();

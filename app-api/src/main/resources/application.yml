@@ -68,7 +68,7 @@ springdoc:
 ## ====== 커스텀 설정 ======
 ai:
   base-url: ${AI_BASE_URL:http://localhost:8001}
-  response-timeout: ${AI_RESPONSE_TIMEOUT:10s}
+  response-timeout: ${AI_RESPONSE_TIMEOUT:30s}
 
 tasteam:
   admin:
@@ -114,10 +114,19 @@ tasteam:
       batch-size: ${IMAGE_OPTIMIZATION_BATCH_SIZE:100}
   batch:
     vector-upload:
+      cron: ${TASTEAM_BATCH_VECTOR_UPLOAD_CRON:0 0 3 * * ?}
+      zone: ${TASTEAM_BATCH_VECTOR_UPLOAD_ZONE:Asia/Seoul}
       worker-pool-size: ${TASTEAM_BATCH_VECTOR_UPLOAD_WORKER_POOL_SIZE:4}
     review-analysis:
       worker-pool-size: ${TASTEAM_BATCH_REVIEW_ANALYSIS_WORKER_POOL_SIZE:4}
-      finish-timeout: ${TASTEAM_BATCH_REVIEW_ANALYSIS_FINISH_TIMEOUT:60m}
+      finish-timeout: ${TASTEAM_BATCH_REVIEW_ANALYSIS_FINISH_TIMEOUT:10m}
+    restaurant-comparison:
+      # TODO: 임시 매일 4시. 원래는 매주 일요일 4시로 변경 — cron: 0 0 4 ? * SUN
+      cron: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_CRON:0 0 4 * * ?}
+      zone: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_ZONE:Asia/Seoul}
+      worker-pool-size: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_WORKER_POOL_SIZE:4}
+      finish-timeout: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_TIMEOUT:10m}
+      finish-check-interval: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_CHECK_INTERVAL:PT1M}
   aop:
     logging:
       enabled: ${TASTEAM_AOP_LOGGING_ENABLED:true}

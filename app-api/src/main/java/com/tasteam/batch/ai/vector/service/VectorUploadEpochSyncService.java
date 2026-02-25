@@ -35,9 +35,21 @@ public class VectorUploadEpochSyncService {
 	 */
 	@Transactional
 	public boolean syncEpochAfterUpload(AiJob job, RestaurantWithReviews data, Instant syncedAt) {
-		Long restaurantId = job.getRestaurantId();
-		long expectedEpoch = job.getBaseEpoch();
+		return syncEpochAfterUpload(job.getRestaurantId(), job.getBaseEpoch(), data, syncedAt);
+	}
 
+	/**
+	 * Job 없이 호출 (이벤트 경로). Restaurant는 expectedEpoch와 일치할 때만 epoch 증가.
+	 *
+	 * @param restaurantId   레스토랑 ID
+	 * @param expectedEpoch  현재 기대 에폭 (WHERE vector_epoch = expectedEpoch)
+	 * @param data 업로드한 레스토랑·리뷰 (리뷰 id 목록용)
+	 * @param syncedAt 갱신 시각
+	 * @return Restaurant가 정상 갱신되었으면 true
+	 */
+	@Transactional
+	public boolean syncEpochAfterUpload(long restaurantId, long expectedEpoch,
+		RestaurantWithReviews data, Instant syncedAt) {
 		int restaurantUpdated = restaurantRepository.incrementVectorEpochIfMatch(
 			restaurantId, expectedEpoch, syncedAt);
 		if (restaurantUpdated == 0) {

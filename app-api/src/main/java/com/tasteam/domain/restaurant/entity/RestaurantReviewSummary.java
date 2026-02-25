@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "restaurant_review_summary")
-@Comment("음식점별 리뷰 요약 분석 결과 (restaurant_id, vector_epoch 기준 1건)")
+@Comment("음식점별 리뷰 요약 분석 결과 (restaurant_id당 1건, 갱신 방식)")
 public class RestaurantReviewSummary {
 
 	@Id
@@ -72,8 +72,17 @@ public class RestaurantReviewSummary {
 			.restaurantId(restaurantId)
 			.vectorEpoch(vectorEpoch)
 			.modelVersion(modelVersion)
-			.summaryJson(summaryJson != null ? summaryJson : Map.of())
+			.summaryJson(summaryJson != null ? new HashMap<>(summaryJson) : new HashMap<>())
 			.analyzedAt(analyzedAt)
 			.build();
+	}
+
+	/**
+	 * 기존 행이 있을 때 요약 결과만 갱신 (restaurant_id당 1건 갱신 방식).
+	 */
+	public void update(Map<String, Object> summaryJson, long vectorEpoch, Instant analyzedAt) {
+		this.summaryJson = summaryJson != null ? new HashMap<>(summaryJson) : new HashMap<>();
+		this.vectorEpoch = vectorEpoch;
+		this.analyzedAt = analyzedAt;
 	}
 }

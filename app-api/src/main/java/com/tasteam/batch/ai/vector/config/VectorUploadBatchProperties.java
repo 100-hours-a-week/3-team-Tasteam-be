@@ -25,7 +25,7 @@ public class VectorUploadBatchProperties {
 	/**
 	 * 배치 종료 대기 최대 시간. 이 시간 경과 시 남은 PENDING/RUNNING을 FAILED 처리 후 종료.
 	 */
-	private Duration finishTimeout = Duration.ofMinutes(60);
+	private Duration finishTimeout = Duration.ofMinutes(10);
 
 	/**
 	 * RUNNING 실행에 대한 종료 조건 확인 주기.

@@ -5,8 +5,8 @@ import java.time.Instant;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.tasteam.batch.ai.review.service.ReviewAnalysisBatchFinishService;
-import com.tasteam.batch.ai.review.service.ReviewAnalysisBatchPreConditionService;
+import com.tasteam.batch.ai.service.AiBatchFinishService;
+import com.tasteam.batch.ai.service.UnclosedAiJobStatusCorrectionService;
 import com.tasteam.domain.batch.entity.BatchExecution;
 import com.tasteam.domain.batch.entity.BatchExecutionStatus;
 import com.tasteam.domain.batch.entity.BatchType;
@@ -27,9 +27,9 @@ public class ReviewAnalysisBatchRunner {
 
 	private static final BatchType BATCH_TYPE = BatchType.REVIEW_ANALYSIS_DAILY;
 
-	private final ReviewAnalysisBatchPreConditionService preConditionService;
+	private final UnclosedAiJobStatusCorrectionService unclosedCorrectionService;
 	private final BatchExecutionRepository batchExecutionRepository;
-	private final ReviewAnalysisBatchFinishService finishService;
+	private final AiBatchFinishService finishService;
 
 	/**
 	 * 배치 런 시작. 사전 작업 → 새 RUNNING 실행 생성.
@@ -38,12 +38,20 @@ public class ReviewAnalysisBatchRunner {
 	 * @return 생성된 실행
 	 */
 	public BatchExecution startRun() {
-		preConditionService.runPreCondition();
+		runPreCondition();
 		Instant now = Instant.now();
 		BatchExecution execution = BatchExecution.start(BATCH_TYPE, now);
 		execution = batchExecutionRepository.save(execution);
 		log.info("Review analysis batch run started: batchExecutionId={}", execution.getId());
 		return execution;
+	}
+
+	private void runPreCondition() {
+		var result = unclosedCorrectionService.run(BATCH_TYPE);
+		if (result.hasRecovered()) {
+			log.info("Review analysis pre-condition: corrected={}, jobsFailed={}, executionsFailed={}",
+				result.correctedCount(), result.unclosedJobCount(), result.unclosedExecutionCount());
+		}
 	}
 
 	/**

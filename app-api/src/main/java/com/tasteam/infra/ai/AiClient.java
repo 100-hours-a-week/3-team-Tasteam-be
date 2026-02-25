@@ -8,6 +8,9 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import com.tasteam.infra.ai.dto.AiComparisonBatchRequest;
+import com.tasteam.infra.ai.dto.AiComparisonBatchResponse;
+import com.tasteam.infra.ai.dto.AiComparisonRequest;
 import com.tasteam.infra.ai.dto.AiSentimentAnalysisDisplayResponse;
 import com.tasteam.infra.ai.dto.AiSentimentAnalysisResponse;
 import com.tasteam.infra.ai.dto.AiSentimentBatchRequest;
@@ -20,8 +23,6 @@ import com.tasteam.infra.ai.dto.AiSummaryBatchResponse;
 import com.tasteam.infra.ai.dto.AiSummaryDisplayResponse;
 import com.tasteam.infra.ai.dto.AiSummaryRequest;
 import com.tasteam.infra.ai.dto.AiSummaryResponse;
-import com.tasteam.infra.ai.dto.AiVectorSearchRequest;
-import com.tasteam.infra.ai.dto.AiVectorSearchResponse;
 import com.tasteam.infra.ai.dto.AiVectorUploadRequest;
 import com.tasteam.infra.ai.dto.AiVectorUploadResponse;
 import com.tasteam.infra.ai.exception.AiServerException;
@@ -50,12 +51,22 @@ public class AiClient {
 	}
 
 	public AiStrengthsResponse extractStrengths(AiStrengthsRequest request) {
-		return execute("extract strengths", requestId -> aiRestClient.post()
-			.uri("/api/v1/llm/extract/strengths")
+		AiComparisonRequest body = new AiComparisonRequest(request.restaurantId());
+		return execute("comparison", requestId -> aiRestClient.post()
+			.uri("/api/v1/llm/comparison")
+			.header(REQUEST_ID_HEADER, requestId)
+			.body(body)
+			.retrieve()
+			.body(AiStrengthsResponse.class));
+	}
+
+	public AiComparisonBatchResponse extractStrengthsBatch(AiComparisonBatchRequest request) {
+		return execute("comparison batch", requestId -> aiRestClient.post()
+			.uri("/api/v1/llm/comparison/batch")
 			.header(REQUEST_ID_HEADER, requestId)
 			.body(request)
 			.retrieve()
-			.body(AiStrengthsResponse.class));
+			.body(AiComparisonBatchResponse.class));
 	}
 
 	public AiSummaryDisplayResponse summarize(AiSummaryRequest request) {
@@ -112,15 +123,6 @@ public class AiClient {
 			.body(request)
 			.retrieve()
 			.body(AiSentimentBatchResponse.class));
-	}
-
-	public AiVectorSearchResponse searchSimilarReviews(AiVectorSearchRequest request) {
-		return execute("vector search similar", requestId -> aiRestClient.post()
-			.uri("/api/v1/vector/search/similar")
-			.header(REQUEST_ID_HEADER, requestId)
-			.body(request)
-			.retrieve()
-			.body(AiVectorSearchResponse.class));
 	}
 
 	public AiVectorUploadResponse uploadVectorData(AiVectorUploadRequest request) {

@@ -1,4 +1,4 @@
-package com.tasteam.batch.ai.vector.service;
+package com.tasteam.batch.ai.vector.runner;
 
 import com.tasteam.infra.ai.dto.AiVectorUploadResponse;
 

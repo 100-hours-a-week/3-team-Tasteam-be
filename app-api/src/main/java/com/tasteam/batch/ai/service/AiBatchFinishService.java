@@ -1,4 +1,4 @@
-package com.tasteam.batch.ai.review.service;
+package com.tasteam.batch.ai.service;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -9,7 +9,9 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.batch.ai.comparison.config.RestaurantComparisonBatchProperties;
 import com.tasteam.batch.ai.review.config.ReviewAnalysisBatchProperties;
+import com.tasteam.batch.ai.vector.config.VectorUploadBatchProperties;
 import com.tasteam.domain.batch.dto.JobStatusCount;
 import com.tasteam.domain.batch.entity.AiJobStatus;
 import com.tasteam.domain.batch.entity.BatchExecution;
@@ -22,27 +24,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 리뷰 분석 배치 실행 종료: Job 집계 후 BatchExecution.finish 호출.
- * PENDING/RUNNING이 남아 있으면 finishTimeout 경과 시 FAILED 처리 후 종료(무한 대기 방지).
+ * 배치 실행 종료: Job 집계 후 BatchExecution.finish.
+ * PENDING/RUNNING 남으면 finishTimeout 경과 시 FAILED 처리 후 종료. 배치 타입별 timeout 설정 사용.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ReviewAnalysisBatchFinishService {
-
-	private static final BatchType BATCH_TYPE = BatchType.REVIEW_ANALYSIS_DAILY;
+public class AiBatchFinishService {
 
 	private final BatchExecutionRepository batchExecutionRepository;
 	private final AiJobRepository aiJobRepository;
-	private final ReviewAnalysisBatchProperties properties;
+	private final VectorUploadBatchProperties vectorUploadProperties;
+	private final ReviewAnalysisBatchProperties reviewAnalysisProperties;
+	private final RestaurantComparisonBatchProperties restaurantComparisonProperties;
 
-	/**
-	 * 해당 실행이 종료 조건을 만족하면 집계 후 finish. 타임아웃 시 남은 PENDING/RUNNING을 FAILED로 처리 후 종료.
-	 *
-	 * @param batchExecutionId 실행 ID
-	 * @param now              기준 시각 (보통 Instant.now())
-	 * @return 종료 처리했으면 true, 아직 대기 중이면 false
-	 */
 	@Transactional
 	public boolean tryFinish(long batchExecutionId, Instant now) {
 		Optional<BatchExecution> executionOpt = batchExecutionRepository.findById(batchExecutionId);
@@ -50,19 +45,22 @@ public class ReviewAnalysisBatchFinishService {
 			return false;
 		}
 		BatchExecution execution = executionOpt.get();
-		if (execution.getBatchType() != BATCH_TYPE || execution.getStatus() != BatchExecutionStatus.RUNNING) {
+		if (execution.getStatus() != BatchExecutionStatus.RUNNING) {
 			return false;
 		}
+
+		BatchType batchType = execution.getBatchType();
+		Duration finishTimeout = getFinishTimeout(batchType);
 
 		Counts counts = Counts.from(aiJobRepository.countByBatchExecutionIdGroupByStatus(batchExecutionId));
 
 		if (counts.pending() + counts.running() > 0) {
 			Duration elapsed = Duration.between(execution.getStartedAt(), now);
-			if (elapsed.compareTo(properties.getFinishTimeout()) < 0) {
+			if (elapsed.compareTo(finishTimeout) < 0) {
 				return false;
 			}
-			log.warn("Review analysis batch timeout: batchExecutionId={}, marking {} PENDING + {} RUNNING as FAILED",
-				batchExecutionId, counts.pending(), counts.running());
+			log.warn("Batch timeout ({}): batchExecutionId={}, marking {} PENDING + {} RUNNING as FAILED",
+				batchType, batchExecutionId, counts.pending(), counts.running());
 			int marked = aiJobRepository.markPendingAndRunningAsFailedByBatchExecutionId(
 				batchExecutionId, AiJobStatus.FAILED, AiJobStatus.PENDING, AiJobStatus.RUNNING);
 			finishAndLog(execution, batchExecutionId, now, counts, counts.failed() + marked,
@@ -75,6 +73,14 @@ public class ReviewAnalysisBatchFinishService {
 			: BatchExecutionStatus.COMPLETED;
 		finishAndLog(execution, batchExecutionId, now, counts, counts.failed(), finalStatus);
 		return true;
+	}
+
+	private Duration getFinishTimeout(BatchType batchType) {
+		return switch (batchType) {
+			case VECTOR_UPLOAD_DAILY -> vectorUploadProperties.getFinishTimeout();
+			case REVIEW_ANALYSIS_DAILY -> reviewAnalysisProperties.getFinishTimeout();
+			case RESTAURANT_COMPARISON_WEEKLY -> restaurantComparisonProperties.getFinishTimeout();
+		};
 	}
 
 	private record Counts(long completed, long failed, long stale, long pending, long running) {
@@ -98,8 +104,8 @@ public class ReviewAnalysisBatchFinishService {
 		execution.finish(now, (int)counts.total(), (int)counts.completed(), (int)failed, (int)counts.stale(),
 			finalStatus);
 		batchExecutionRepository.save(execution);
-		log.info(
-			"Review analysis batch finished: batchExecutionId={}, status={}, total={}, success={}, failed={}, stale={}",
-			batchExecutionId, finalStatus, counts.total(), counts.completed(), failed, counts.stale());
+		log.info("Batch finished ({}): batchExecutionId={}, status={}, total={}, success={}, failed={}, stale={}",
+			execution.getBatchType(), batchExecutionId, finalStatus, counts.total(), counts.completed(), failed,
+			counts.stale());
 	}
 }
