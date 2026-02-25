@@ -94,7 +94,7 @@ public class ChatService {
 			.filter(Objects::nonNull)
 			.distinct()
 			.toList();
-		Map<Long, String> imageUrlByMemberId = fileService.getPrimaryDomainImageUrlMapStatic(
+		Map<Long, String> imageUrlByMemberId = fileService.getPrimaryDomainImageUrlMap(
 			DomainType.MEMBER,
 			memberIds);
 
@@ -146,7 +146,7 @@ public class ChatService {
 			message.getId(),
 			message.getMemberId(),
 			member.getNickname(),
-			fileService.getPrimaryDomainImageUrlStatic(DomainType.MEMBER, memberId),
+			fileService.getPrimaryDomainImageUrl(DomainType.MEMBER, memberId),
 			message.getContent(),
 			message.getType(),
 			fileItems,
@@ -296,7 +296,7 @@ public class ChatService {
 			}
 		}
 		if (file.getFileUuid() != null && !file.getFileUuid().isBlank()) {
-			return fileService.getImageStaticUrl(file.getFileUuid());
+			return fileService.getImageUrl(file.getFileUuid()).url();
 		}
 		return file.getFileUrl();
 	}
@@ -318,7 +318,7 @@ public class ChatService {
 			if (image == null || image.getFileUuid() == null) {
 				continue;
 			}
-			result.put(domainImage.getId(), fileService.getImageStaticUrl(image.getFileUuid().toString()));
+			result.put(domainImage.getId(), fileService.getPublicUrl(image.getStorageKey()));
 		}
 		return result;
 	}
