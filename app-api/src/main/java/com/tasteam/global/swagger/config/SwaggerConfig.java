@@ -1,6 +1,12 @@
 package com.tasteam.global.swagger.config;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.HandlerMethod;
@@ -8,8 +14,10 @@ import org.springframework.web.method.HandlerMethod;
 import com.tasteam.global.dto.api.ErrorResponse;
 import com.tasteam.global.exception.ErrorCode;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.SwaggerErrorResponseDescription;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -21,22 +29,48 @@ import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 @Configuration
 public class SwaggerConfig {
 
 	private static final String BEARER_AUTH = "BearerAuth";
 
+	private final ApplicationContext applicationContext;
+
 	@Bean
 	public OpenAPI openAPI() {
 		return new OpenAPI()
 			.info(apiInfo())
+			.tags(resolveOrderedTags())
 			.components(new Components()
 				.addSecuritySchemes(BEARER_AUTH, new SecurityScheme()
 					.type(SecurityScheme.Type.HTTP)
 					.scheme("bearer")
 					.bearerFormat("JWT")))
 			.addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH));
+	}
+
+	private List<io.swagger.v3.oas.models.tags.Tag> resolveOrderedTags() {
+		record TagEntry(int order, String name, String description) {
+		}
+
+		Map<String, Object> beans = applicationContext.getBeansOfType(Object.class);
+
+		return beans.values().stream()
+			.flatMap(bean -> Arrays.stream(bean.getClass().getInterfaces()))
+			.distinct()
+			.filter(iface -> iface.isAnnotationPresent(SwaggerTagOrder.class)
+				&& iface.isAnnotationPresent(Tag.class))
+			.map(iface -> {
+				int order = iface.getAnnotation(SwaggerTagOrder.class).value();
+				Tag tag = iface.getAnnotation(Tag.class);
+				return new TagEntry(order, tag.name(), tag.description());
+			})
+			.sorted(Comparator.comparingInt(TagEntry::order))
+			.map(e -> new io.swagger.v3.oas.models.tags.Tag().name(e.name()).description(e.description()))
+			.collect(java.util.stream.Collectors.toList());
 	}
 
 	private Info apiInfo() {
