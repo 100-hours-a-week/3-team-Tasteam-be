@@ -5,9 +5,9 @@ import java.time.Instant;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.tasteam.batch.ai.comparison.service.RestaurantComparisonBatchFinishService;
-import com.tasteam.batch.ai.comparison.service.RestaurantComparisonBatchPreConditionService;
 import com.tasteam.batch.ai.comparison.service.RestaurantComparisonJobProducer;
+import com.tasteam.batch.ai.service.AiBatchFinishService;
+import com.tasteam.batch.ai.service.UnclosedAiJobStatusCorrectionService;
 import com.tasteam.domain.batch.entity.BatchExecution;
 import com.tasteam.domain.batch.entity.BatchExecutionStatus;
 import com.tasteam.domain.batch.entity.BatchType;
@@ -28,10 +28,10 @@ public class RestaurantComparisonBatchRunner {
 
 	private static final BatchType BATCH_TYPE = BatchType.RESTAURANT_COMPARISON_WEEKLY;
 
-	private final RestaurantComparisonBatchPreConditionService preConditionService;
+	private final UnclosedAiJobStatusCorrectionService unclosedCorrectionService;
 	private final BatchExecutionRepository batchExecutionRepository;
 	private final RestaurantComparisonJobProducer jobProducer;
-	private final RestaurantComparisonBatchFinishService finishService;
+	private final AiBatchFinishService finishService;
 
 	/**
 	 * 배치 런 시작. 사전 작업 → 새 RUNNING 실행 생성 → Job 생성·디스패치.
@@ -39,13 +39,21 @@ public class RestaurantComparisonBatchRunner {
 	 * @return 생성된 실행
 	 */
 	public BatchExecution startRun() {
-		preConditionService.runPreCondition();
+		runPreCondition();
 		Instant now = Instant.now();
 		BatchExecution execution = BatchExecution.start(BATCH_TYPE, now);
 		execution = batchExecutionRepository.save(execution);
 		jobProducer.createAndDispatchJobs(execution);
 		log.info("Restaurant comparison batch run started: batchExecutionId={}", execution.getId());
 		return execution;
+	}
+
+	private void runPreCondition() {
+		var result = unclosedCorrectionService.run(BATCH_TYPE);
+		if (result.hasRecovered()) {
+			log.info("Restaurant comparison pre-condition: corrected={}, jobsFailed={}, executionsFailed={}",
+				result.correctedCount(), result.unclosedJobCount(), result.unclosedExecutionCount());
+		}
 	}
 
 	/**

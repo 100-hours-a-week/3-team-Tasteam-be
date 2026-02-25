@@ -1,40 +1,30 @@
 package com.tasteam.batch.ai.comparison.worker;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.tasteam.batch.ai.review.runner.AnalysisRunResult;
+import com.tasteam.batch.ai.review.runner.ReviewAnalysisRunner;
 import com.tasteam.domain.batch.entity.AiJob;
 import com.tasteam.domain.batch.entity.AiJobStatus;
 import com.tasteam.domain.batch.entity.AiJobType;
 import com.tasteam.domain.batch.repository.AiJobRepository;
-import com.tasteam.domain.restaurant.service.analysis.RestaurantReviewAnalysisSnapshotService;
-import com.tasteam.infra.ai.AiClient;
-import com.tasteam.infra.ai.dto.AiStrengthsRequest;
-import com.tasteam.infra.ai.dto.AiStrengthsResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 선점된 주간 레스토랑 비교 Job 1건 실행: AI 비교 분석 호출 후 DB 저장.
+ * 선점된 주간 레스토랑 비교 Job 1건 실행. Runner 호출 후 성공/실패 시 Job 완료·실패 처리.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class RestaurantComparisonJobWorker {
 
-	private static final int TOP_K = 10;
-
 	private final AiJobRepository aiJobRepository;
-	private final AiClient aiClient;
-	private final RestaurantReviewAnalysisSnapshotService snapshotService;
+	private final ReviewAnalysisRunner reviewAnalysisRunner;
 	private final TransactionTemplate transactionTemplate;
 
 	/**
@@ -58,40 +48,25 @@ public class RestaurantComparisonJobWorker {
 		}
 
 		long restaurantId = job.getRestaurantId();
-		try {
-			AiStrengthsResponse response = aiClient.extractStrengths(new AiStrengthsRequest(restaurantId, TOP_K));
-			Map<String, BigDecimal> categoryLift = toBigDecimalMap(response.categoryLift());
-			List<String> comparisonDisplay = Optional.ofNullable(response.strengthDisplay()).orElse(List.of());
-			Instant analyzedAt = Instant.now();
+		AnalysisRunResult result = reviewAnalysisRunner.runComparisonAnalysis(restaurantId);
 
-			transactionTemplate.executeWithoutResult(__ -> {
-				snapshotService.saveComparison(
-					restaurantId,
-					categoryLift,
-					comparisonDisplay,
-					response.totalCandidates(),
-					response.validatedCount(),
-					analyzedAt);
-				job.markCompleted();
-				aiJobRepository.save(job);
-			});
-			log.debug("Restaurant comparison job completed: jobId={}, restaurantId={}", jobId, restaurantId);
-		} catch (Exception e) {
-			log.error("Restaurant comparison AI call failed: jobId={}, restaurantId={}", jobId, restaurantId, e);
-			markFailedInTx(job);
+		switch (result) {
+			case AnalysisRunResult.Success __ -> {
+				transactionTemplate.executeWithoutResult(ts -> {
+					job.markCompleted();
+					aiJobRepository.save(job);
+				});
+				log.debug("Restaurant comparison job completed: jobId={}, restaurantId={}", jobId, restaurantId);
+			}
+			case AnalysisRunResult.Failure f -> {
+				log.error("Restaurant comparison failed: jobId={}, restaurantId={}", jobId, restaurantId, f.cause());
+				markFailedInTx(job);
+			}
 		}
-	}
-
-	private static Map<String, BigDecimal> toBigDecimalMap(Map<String, Double> source) {
-		if (source == null || source.isEmpty()) {
-			return Map.of();
-		}
-		return source.entrySet().stream()
-			.collect(Collectors.toMap(Map.Entry::getKey, e -> BigDecimal.valueOf(e.getValue())));
 	}
 
 	private void markFailedInTx(AiJob job) {
-		transactionTemplate.executeWithoutResult(__ -> {
+		transactionTemplate.executeWithoutResult(ts -> {
 			job.markFailed();
 			aiJobRepository.save(job);
 		});

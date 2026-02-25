@@ -110,4 +110,14 @@ public interface AiJobRepository extends JpaRepository<AiJob, Long> {
 		AiJobStatus running,
 		@Param("failedStatus")
 		AiJobStatus failedStatus);
+
+	/**
+	 * 미종료 실행(finishedAt IS NULL)에 속한 RUNNING Job 목록. 보정 배치에서 COMPLETED 후보 조회용.
+	 */
+	@Query("SELECT j FROM AiJob j WHERE j.batchExecution.batchType = :batchType AND j.batchExecution.finishedAt IS NULL AND j.status = :status")
+	List<AiJob> findByBatchTypeAndUnclosedExecutionAndStatus(
+		@Param("batchType")
+		BatchType batchType,
+		@Param("status")
+		AiJobStatus status);
 }

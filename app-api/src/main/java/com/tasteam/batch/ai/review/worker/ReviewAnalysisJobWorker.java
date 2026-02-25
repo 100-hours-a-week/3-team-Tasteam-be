@@ -1,35 +1,21 @@
 package com.tasteam.batch.ai.review.worker;
 
-import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.tasteam.batch.ai.review.runner.AnalysisRunResult;
+import com.tasteam.batch.ai.review.runner.ReviewAnalysisRunner;
 import com.tasteam.domain.batch.entity.AiJob;
 import com.tasteam.domain.batch.entity.AiJobStatus;
 import com.tasteam.domain.batch.repository.AiJobRepository;
-import com.tasteam.domain.restaurant.entity.RestaurantReviewSentiment;
-import com.tasteam.domain.restaurant.entity.RestaurantReviewSummary;
-import com.tasteam.domain.restaurant.repository.RestaurantReviewSentimentRepository;
-import com.tasteam.domain.restaurant.repository.RestaurantReviewSummaryRepository;
-import com.tasteam.infra.ai.AiClient;
-import com.tasteam.infra.ai.dto.AiSentimentAnalysisResponse;
-import com.tasteam.infra.ai.dto.AiSentimentBatchRequest;
-import com.tasteam.infra.ai.dto.AiSentimentBatchResponse;
-import com.tasteam.infra.ai.dto.AiSummaryBatchRequest;
-import com.tasteam.infra.ai.dto.AiSummaryBatchResponse;
-import com.tasteam.infra.ai.dto.AiSummaryDisplayResponse;
-import com.tasteam.infra.ai.exception.AiServerException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 선점된 리뷰 분석 Job 1건 실행 (감정 또는 요약).
+ * 선점된 리뷰 분석 Job 1건 실행 (감정 또는 요약). Runner 호출 후 성공/실패 시 Job 완료·실패 처리.
  */
 @Slf4j
 @Component
@@ -37,10 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ReviewAnalysisJobWorker {
 
 	private final AiJobRepository aiJobRepository;
-	private final AiClient aiClient;
+	private final ReviewAnalysisRunner reviewAnalysisRunner;
 	private final TransactionTemplate transactionTemplate;
-	private final RestaurantReviewSentimentRepository sentimentRepository;
-	private final RestaurantReviewSummaryRepository summaryRepository;
 
 	/**
 	 * jobId로 Job 조회 후 실행. 없거나 RUNNING이 아니면 스킵(이미 처리됨 또는 상태 이상).
@@ -58,87 +42,33 @@ public class ReviewAnalysisJobWorker {
 		}
 
 		long restaurantId = job.getRestaurantId();
-		try {
-			switch (job.getJobType()) {
-				case REVIEW_SENTIMENT -> {
-					AiSentimentBatchRequest request = AiSentimentBatchRequest.singleRestaurant(restaurantId);
-					AiSentimentBatchResponse response = aiClient.analyzeSentimentBatch(request);
-					handleSentimentSuccess(job, response);
-				}
-				case REVIEW_SUMMARY -> {
-					AiSummaryBatchRequest request = AiSummaryBatchRequest.singleRestaurant(restaurantId);
-					AiSummaryBatchResponse response = aiClient.summarizeBatch(request);
-					handleSummarySuccess(job, response);
-				}
-				case VECTOR_UPLOAD, RESTAURANT_COMPARISON -> {
-					log.warn("Unsupported job type for review analysis: jobId={}, type={}", job.getId(),
-						job.getJobType());
-					markFailedInTx(job);
-				}
-			}
-		} catch (AiServerException e) {
-			log.error("Review analysis AI call failed: jobId={}, restaurantId={}, type={}",
-				job.getId(), restaurantId, job.getJobType(), e);
-			markFailedInTx(job);
-		}
-	}
+		long baseEpoch = job.getBaseEpoch();
 
-	private void handleSentimentSuccess(AiJob job, AiSentimentBatchResponse response) {
-		if (response.results() == null || response.results().isEmpty()) {
-			log.warn("Sentiment batch returned no results: jobId={}", job.getId());
-			markFailedInTx(job);
-			return;
-		}
-		AiSentimentAnalysisResponse first = response.results().get(0);
-		long restaurantId = job.getRestaurantId();
-		long vectorEpoch = job.getBaseEpoch();
-		Instant analyzedAt = Instant.now();
-		transactionTemplate.executeWithoutResult(__ -> {
-			RestaurantReviewSentiment entity = sentimentRepository
-				.findByRestaurantIdAndVectorEpoch(restaurantId, vectorEpoch)
-				.orElse(null);
-			if (entity != null) {
-				entity.setPositiveCount(first.positiveCount());
-				entity.setNegativeCount(first.negativeCount());
-				entity.setNeutralCount(first.neutralCount());
-				entity.setPositivePercent((short)first.positiveRatio());
-				entity.setNegativePercent((short)first.negativeRatio());
-				entity.setNeutralPercent((short)first.neutralRatio());
-				entity.setAnalyzedAt(analyzedAt);
-			} else {
-				entity = RestaurantReviewSentiment.create(
-					restaurantId, vectorEpoch, null,
-					first.positiveCount(), first.negativeCount(), first.neutralCount(),
-					first.positiveRatio(), first.negativeRatio(), first.neutralRatio(),
-					analyzedAt);
+		AnalysisRunResult result = switch (job.getJobType()) {
+			case REVIEW_SENTIMENT -> reviewAnalysisRunner.runSentimentAnalysis(restaurantId, baseEpoch);
+			case REVIEW_SUMMARY -> reviewAnalysisRunner.runSummaryAnalysis(restaurantId, baseEpoch);
+			case VECTOR_UPLOAD, RESTAURANT_COMPARISON -> {
+				log.warn("Unsupported job type for review analysis: jobId={}, type={}", job.getId(),
+					job.getJobType());
+				yield new AnalysisRunResult.Failure(new IllegalArgumentException("Unsupported job type"));
 			}
-			sentimentRepository.save(entity);
-			job.markCompleted();
-			aiJobRepository.save(job);
-		});
-	}
+		};
 
-	private void handleSummarySuccess(AiJob job, AiSummaryBatchResponse response) {
-		if (response.results() == null || response.results().isEmpty()) {
-			log.warn("Summary batch returned no results: jobId={}", job.getId());
-			markFailedInTx(job);
-			return;
+		switch (result) {
+			case AnalysisRunResult.Success __ -> transactionTemplate.executeWithoutResult(ts -> {
+				job.markCompleted();
+				aiJobRepository.save(job);
+			});
+			case AnalysisRunResult.Failure f -> {
+				log.error("Review analysis failed: jobId={}, restaurantId={}, type={}",
+					job.getId(), restaurantId, job.getJobType(), f.cause());
+				markFailedInTx(job);
+			}
 		}
-		AiSummaryDisplayResponse first = response.results().get(0);
-		Map<String, Object> summaryJson = new HashMap<>();
-		summaryJson.put("overall_summary", first.overallSummary());
-		summaryJson.put("categories", first.categories() != null ? first.categories() : Collections.emptyMap());
-		RestaurantReviewSummary entity = RestaurantReviewSummary.create(
-			job.getRestaurantId(), job.getBaseEpoch(), null, summaryJson, Instant.now());
-		transactionTemplate.executeWithoutResult(__ -> {
-			summaryRepository.save(entity);
-			job.markCompleted();
-			aiJobRepository.save(job);
-		});
 	}
 
 	private void markFailedInTx(AiJob job) {
-		transactionTemplate.executeWithoutResult(__ -> {
+		transactionTemplate.executeWithoutResult(ts -> {
 			job.markFailed();
 			aiJobRepository.save(job);
 		});

@@ -78,7 +78,7 @@ public class RestaurantComparison {
 	/**
 	 * 기존 행이 있을 때 비교 결과만 갱신. (restaurant_id 유니크 기준 upsert)
 	 */
-	public void updateResult(Map<String, Object> comparisonJson, Instant analyzedAt) {
+	public void update(Map<String, Object> comparisonJson, Instant analyzedAt) {
 		this.comparisonJson = comparisonJson != null ? new HashMap<>(comparisonJson) : new HashMap<>();
 		this.analyzedAt = analyzedAt;
 	}

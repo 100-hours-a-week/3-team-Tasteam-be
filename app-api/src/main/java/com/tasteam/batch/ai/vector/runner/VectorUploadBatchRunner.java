@@ -5,8 +5,8 @@ import java.time.Instant;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.tasteam.batch.ai.vector.service.VectorUploadBatchFinishService;
-import com.tasteam.batch.ai.vector.service.VectorUploadBatchPreConditionService;
+import com.tasteam.batch.ai.service.AiBatchFinishService;
+import com.tasteam.batch.ai.service.UnclosedAiJobStatusCorrectionService;
 import com.tasteam.batch.ai.vector.service.VectorUploadJobProducer;
 import com.tasteam.domain.batch.entity.BatchExecution;
 import com.tasteam.domain.batch.entity.BatchExecutionStatus;
@@ -28,10 +28,10 @@ public class VectorUploadBatchRunner {
 
 	private static final BatchType BATCH_TYPE = BatchType.VECTOR_UPLOAD_DAILY;
 
-	private final VectorUploadBatchPreConditionService preConditionService;
+	private final UnclosedAiJobStatusCorrectionService unclosedCorrectionService;
 	private final BatchExecutionRepository batchExecutionRepository;
 	private final VectorUploadJobProducer jobProducer;
-	private final VectorUploadBatchFinishService finishService;
+	private final AiBatchFinishService finishService;
 
 	/**
 	 * 배치 런 시작. 사전 작업 → 새 RUNNING 실행 생성 → Job 생성·디스패치.
@@ -40,13 +40,21 @@ public class VectorUploadBatchRunner {
 	 * @return 생성된 실행
 	 */
 	public BatchExecution startRun() {
-		preConditionService.runPreCondition();
+		runPreCondition();
 		Instant now = Instant.now();
 		BatchExecution execution = BatchExecution.start(BATCH_TYPE, now);
 		execution = batchExecutionRepository.save(execution);
 		jobProducer.createAndDispatchJobs(execution);
 		log.info("Vector upload batch run started: batchExecutionId={}", execution.getId());
 		return execution;
+	}
+
+	private void runPreCondition() {
+		var result = unclosedCorrectionService.run(BATCH_TYPE);
+		if (result.hasRecovered()) {
+			log.info("Vector upload pre-condition: corrected={}, jobsFailed={}, executionsFailed={}",
+				result.correctedCount(), result.unclosedJobCount(), result.unclosedExecutionCount());
+		}
 	}
 
 	/**

@@ -114,13 +114,15 @@ tasteam:
       batch-size: ${IMAGE_OPTIMIZATION_BATCH_SIZE:100}
   batch:
     vector-upload:
+      cron: ${TASTEAM_BATCH_VECTOR_UPLOAD_CRON:0 0 3 * * ?}
+      zone: ${TASTEAM_BATCH_VECTOR_UPLOAD_ZONE:Asia/Seoul}
       worker-pool-size: ${TASTEAM_BATCH_VECTOR_UPLOAD_WORKER_POOL_SIZE:4}
     review-analysis:
       worker-pool-size: ${TASTEAM_BATCH_REVIEW_ANALYSIS_WORKER_POOL_SIZE:4}
       finish-timeout: ${TASTEAM_BATCH_REVIEW_ANALYSIS_FINISH_TIMEOUT:10m}
     restaurant-comparison:
-      # TODO: 테스트 후 원복 — 2분마다 실행 (원래: 0 0 5 ? * SUN 일요일 05:00)
-      cron: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_CRON:0 */2 * * * ?}
+      # TODO: 임시 매일 4시. 원래는 매주 일요일 4시로 변경 — cron: 0 0 4 ? * SUN
+      cron: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_CRON:0 0 4 * * ?}
       zone: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_ZONE:Asia/Seoul}
       worker-pool-size: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_WORKER_POOL_SIZE:4}
       finish-timeout: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_TIMEOUT:10m}

@@ -9,8 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 매주 일요일 새벽 5시(Asia/Seoul)에 주간 레스토랑 비교 분석 배치를 한 번만 시작.
- * 일일 벡터/리뷰 배치와 독립 실행.
+ * 주간 레스토랑 비교 배치 스케줄. 임시로 매일 4시 실행.
+ * 원래는 매주 일요일 4시(Asia/Seoul)로 변경할 것 — cron: 0 0 4 ? * SUN
  */
 @Slf4j
 @Component
@@ -19,7 +19,7 @@ public class WeeklyRestaurantComparisonScheduler {
 
 	private final RestaurantComparisonBatchRunner restaurantComparisonBatchRunner;
 
-	@Scheduled(cron = "${tasteam.batch.restaurant-comparison.cron:0 0 5 ? * SUN}", zone = "${tasteam.batch.restaurant-comparison.zone:Asia/Seoul}")
+	@Scheduled(cron = "${tasteam.batch.restaurant-comparison.cron:0 0 4 * * ?}", zone = "${tasteam.batch.restaurant-comparison.zone:Asia/Seoul}")
 	public void runWeeklyRestaurantComparisonBatch() {
 		log.info("Weekly restaurant comparison batch triggered by scheduler");
 		restaurantComparisonBatchRunner.startRun();
