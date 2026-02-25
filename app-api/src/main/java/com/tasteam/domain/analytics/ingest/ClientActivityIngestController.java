@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.analytics.ingest.docs.ClientActivityIngestControllerDocs;
 import com.tasteam.domain.analytics.ingest.dto.request.ClientActivityEventsIngestRequest;
 import com.tasteam.domain.analytics.ingest.dto.response.ClientActivityEventsIngestResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
@@ -22,10 +23,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/analytics/events")
 @ConditionalOnProperty(prefix = "tasteam.analytics.ingest", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class ClientActivityIngestController {
+public class ClientActivityIngestController implements ClientActivityIngestControllerDocs {
 
 	private final ClientActivityIngestService clientActivityIngestService;
 
+	@Override
 	@PostMapping
 	public SuccessResponse<ClientActivityEventsIngestResponse> ingest(
 		@CurrentUser

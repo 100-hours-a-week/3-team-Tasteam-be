@@ -1,15 +1,26 @@
 package com.tasteam.global.swagger.config;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.HandlerMethod;
 
 import com.tasteam.global.dto.api.ErrorResponse;
 import com.tasteam.global.exception.ErrorCode;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.SwaggerErrorResponseDescription;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -21,11 +32,15 @@ import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 @Configuration
 public class SwaggerConfig {
 
 	private static final String BEARER_AUTH = "BearerAuth";
+
+	private final ApplicationContext applicationContext;
 
 	@Bean
 	public OpenAPI openAPI() {
@@ -37,6 +52,30 @@ public class SwaggerConfig {
 					.scheme("bearer")
 					.bearerFormat("JWT")))
 			.addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH));
+	}
+
+	@Bean
+	public GlobalOpenApiCustomizer sortTagsCustomizer() {
+		return openApi -> {
+			Map<String, Integer> tagOrderMap = new HashMap<>();
+
+			applicationContext.getBeansWithAnnotation(RestController.class).values().stream()
+				.map(AopUtils::getTargetClass)
+				.flatMap(clazz -> Arrays.stream(clazz.getInterfaces()))
+				.distinct()
+				.filter(iface -> iface.isAnnotationPresent(SwaggerTagOrder.class)
+					&& iface.isAnnotationPresent(Tag.class))
+				.forEach(iface -> {
+					int order = iface.getAnnotation(SwaggerTagOrder.class).value();
+					String tagName = iface.getAnnotation(Tag.class).name();
+					tagOrderMap.putIfAbsent(tagName, order);
+				});
+
+			if (openApi.getTags() != null) {
+				openApi.getTags().sort(
+					Comparator.comparingInt(tag -> tagOrderMap.getOrDefault(tag.getName(), Integer.MAX_VALUE)));
+			}
+		};
 	}
 
 	private Info apiInfo() {

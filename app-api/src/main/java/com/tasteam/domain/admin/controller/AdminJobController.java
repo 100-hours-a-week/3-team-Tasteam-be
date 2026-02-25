@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.batch.image.optimization.service.ImageOptimizationService;
 import com.tasteam.batch.image.optimization.service.ImageOptimizationService.OptimizationResult;
+import com.tasteam.domain.admin.controller.docs.AdminJobControllerDocs;
 import com.tasteam.domain.admin.dto.response.AdminCleanupPendingImageResponse;
 import com.tasteam.domain.admin.dto.response.AdminJobResponse;
 import com.tasteam.domain.admin.dto.response.AdminUnoptimizedImageResponse;
@@ -23,11 +24,12 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/jobs")
-public class AdminJobController {
+public class AdminJobController implements AdminJobControllerDocs {
 
 	private final ImageOptimizationService imageOptimizationService;
 	private final FileService fileService;
 
+	@Override
 	@GetMapping("/image-optimization/pending")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<List<AdminUnoptimizedImageResponse>> getUnoptimizedImages(
@@ -43,6 +45,7 @@ public class AdminJobController {
 		return SuccessResponse.success(images);
 	}
 
+	@Override
 	@PostMapping("/image-optimization")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<AdminJobResponse> runImageOptimization(
@@ -58,6 +61,7 @@ public class AdminJobController {
 			result.skippedCount()));
 	}
 
+	@Override
 	@GetMapping("/image-cleanup/pending")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<List<AdminCleanupPendingImageResponse>> getCleanupPendingImages() {
@@ -70,6 +74,7 @@ public class AdminJobController {
 		return SuccessResponse.success(images);
 	}
 
+	@Override
 	@PostMapping("/image-cleanup")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<AdminJobResponse> runImageCleanup() {

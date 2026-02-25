@@ -14,6 +14,7 @@ import com.tasteam.domain.subgroup.dto.SubgroupMemberListItem;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.subgroup.SubgroupSwaggerErrorResponseDescription;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +25,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 
+@SwaggerTagOrder(20)
 @Tag(name = "Subgroup", description = "소모임 조회 API")
 public interface SubgroupControllerDocs {
 

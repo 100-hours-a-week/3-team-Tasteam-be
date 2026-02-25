@@ -11,6 +11,7 @@ import com.tasteam.domain.chat.dto.response.ChatMessageSendResponse;
 import com.tasteam.domain.chat.dto.response.ChatReadCursorUpdateResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +24,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 
+@SwaggerTagOrder(55)
 @Tag(name = "Chat", description = "채팅 API")
 public interface ChatControllerDocs {
 

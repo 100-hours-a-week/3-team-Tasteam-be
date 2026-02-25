@@ -14,6 +14,7 @@ import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.member.MemberSwaggerErrorResponseDescription;
 import com.tasteam.global.swagger.error.code.subgroup.SubgroupSwaggerErrorResponseDescription;
 
@@ -26,6 +27,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 
+@SwaggerTagOrder(10)
 @Tag(name = "Member", description = "회원 마이페이지 API")
 public interface MemberControllerDocs {
 

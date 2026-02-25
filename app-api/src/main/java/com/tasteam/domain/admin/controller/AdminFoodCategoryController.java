@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.admin.controller.docs.AdminFoodCategoryControllerDocs;
 import com.tasteam.domain.admin.dto.request.AdminFoodCategoryCreateRequest;
 import com.tasteam.domain.restaurant.service.FoodCategoryService;
 import com.tasteam.global.dto.api.SuccessResponse;
@@ -17,10 +18,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/food-categories")
-public class AdminFoodCategoryController {
+public class AdminFoodCategoryController implements AdminFoodCategoryControllerDocs {
 
 	private final FoodCategoryService foodCategoryService;
 
+	@Override
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<Long> createFoodCategory(

@@ -13,6 +13,7 @@ import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.notification.NotificationSwaggerErrorResponseDescription;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,6 +27,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Positive;
 
+@SwaggerTagOrder(50)
 @Tag(name = "Notification", description = "알림 API")
 public interface NotificationControllerDocs {
 

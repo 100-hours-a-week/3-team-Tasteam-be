@@ -13,6 +13,7 @@ import com.tasteam.domain.file.dto.request.ImageSummaryRequest;
 import com.tasteam.domain.file.dto.request.PresignedUploadRequest;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.file.FileSwaggerErrorResponseDescription;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +25,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+@SwaggerTagOrder(45)
 @Tag(name = "File", description = "파일 업로드/연결/조회 API")
 public interface FileControllerDocs {
 
