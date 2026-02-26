@@ -153,6 +153,7 @@ tasteam:
     include-stack-trace: ${WEBHOOK_INCLUDE_STACK_TRACE:false}
     discord:
       url: ${DISCORD_WEBHOOK_URL:}
+      batch-report-url: ${DISCORD_BATCH_REPORT_WEBHOOK_URL:}
     slack:
       url: ${SLACK_WEBHOOK_URL:}
     retry:
