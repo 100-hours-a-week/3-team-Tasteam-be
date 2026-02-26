@@ -172,6 +172,20 @@ tasteam:
     default-consumer-group: ${MQ_DEFAULT_CONSUMER_GROUP:tasteam-api}
     poll-timeout-millis: ${MQ_POLL_TIMEOUT_MILLIS:1000}
     max-retries: ${MQ_MAX_RETRIES:3}
+  notification:
+    outbox:
+      scan-delay: ${NOTIFICATION_OUTBOX_SCAN_DELAY:30000}
+      batch-size: ${NOTIFICATION_OUTBOX_BATCH_SIZE:100}
+    consumer:
+      group: ${NOTIFICATION_CONSUMER_GROUP:cg.notification.processor.v1}
+      dlq-topic: ${NOTIFICATION_DLQ_TOPIC:evt.notification.v1.dlq}
+    circuit-breaker:
+      fcm:
+        failure-threshold: ${NOTIFICATION_CB_FCM_FAILURE_THRESHOLD:5}
+        open-duration-seconds: ${NOTIFICATION_CB_FCM_OPEN_DURATION_SECONDS:60}
+      email:
+        failure-threshold: ${NOTIFICATION_CB_EMAIL_FAILURE_THRESHOLD:3}
+        open-duration-seconds: ${NOTIFICATION_CB_EMAIL_OPEN_DURATION_SECONDS:300}
   analytics:
     ingest:
       enabled: ${ANALYTICS_INGEST_ENABLED:true}
