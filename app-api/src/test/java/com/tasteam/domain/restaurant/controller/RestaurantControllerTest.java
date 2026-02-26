@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -24,6 +25,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.ControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
+import com.tasteam.domain.restaurant.dto.response.RestaurantAiComparisonResponse;
+import com.tasteam.domain.restaurant.dto.response.RestaurantAiDetailsResponse;
+import com.tasteam.domain.restaurant.dto.response.RestaurantAiSentimentResponse;
+import com.tasteam.domain.restaurant.dto.response.RestaurantAiSummaryResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
@@ -201,12 +206,16 @@ class RestaurantControllerTest {
 		@DisplayName("성공 응답은 고정 포맷을 따른다")
 		void 음식점_상세_조회_성공_응답_포맷_검증() throws Exception {
 			// given
+			RestaurantAiDetailsResponse aiDetails = new RestaurantAiDetailsResponse(
+				new RestaurantAiSentimentResponse(83),
+				new RestaurantAiSummaryResponse("AI 요약", Map.of()),
+				new RestaurantAiComparisonResponse(Map.of()));
 			RestaurantDetailResponse response = new RestaurantDetailResponse(
 				1L, "맛집식당", "서울시 강남구", "02-1234-5678", List.of("한식"),
 				List.of(), new RestaurantImageDto(1L, "https://example.com/img.jpg"),
 				false,
-				new RestaurantDetailResponse.RecommendStatResponse(10L, 2L, 83L),
-				"AI 요약", "AI 특징",
+				10L,
+				aiDetails,
 				Instant.now(), Instant.now());
 
 			given(restaurantService.getRestaurantDetail(1L)).willReturn(response);
@@ -222,12 +231,16 @@ class RestaurantControllerTest {
 		@DisplayName("음식점 ID로 상세 정보를 조회하면 음식점 정보를 반환한다")
 		void 음식점_상세_조회_성공() throws Exception {
 			// given
+			RestaurantAiDetailsResponse aiDetails = new RestaurantAiDetailsResponse(
+				new RestaurantAiSentimentResponse(83),
+				new RestaurantAiSummaryResponse("AI 요약", Map.of()),
+				new RestaurantAiComparisonResponse(Map.of()));
 			RestaurantDetailResponse response = new RestaurantDetailResponse(
 				1L, "맛집식당", "서울시 강남구", "02-1234-5678", List.of("한식"),
 				List.of(), new RestaurantImageDto(1L, "https://example.com/img.jpg"),
 				false,
-				new RestaurantDetailResponse.RecommendStatResponse(10L, 2L, 83L),
-				"AI 요약", "AI 특징",
+				10L,
+				aiDetails,
 				Instant.now(), Instant.now());
 
 			given(restaurantService.getRestaurantDetail(1L)).willReturn(response);
@@ -238,7 +251,7 @@ class RestaurantControllerTest {
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data.id").value(1))
 				.andExpect(jsonPath("$.data.name").value("맛집식당"))
-				.andExpect(jsonPath("$.data.recommendStat.recommendedCount").value(10));
+				.andExpect(jsonPath("$.data.recommendedCount").value(10));
 		}
 
 		@Test

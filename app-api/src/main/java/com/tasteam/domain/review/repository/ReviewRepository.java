@@ -32,6 +32,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
 	java.util.Optional<Review> findByIdAndDeletedAtIsNull(Long id);
 
+	List<Review> findByIdInAndDeletedAtIsNull(Iterable<Long> ids);
+
 	/**
 	 * 해당 레스토랑 소속·삭제되지 않은 리뷰만 vector_synced_at 갱신.
 	 *

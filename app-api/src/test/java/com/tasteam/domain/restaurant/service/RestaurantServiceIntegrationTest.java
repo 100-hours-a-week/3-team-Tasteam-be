@@ -322,8 +322,11 @@ class RestaurantServiceIntegrationTest {
 				RestaurantComparison.create(
 					restaurant.getId(),
 					null,
-					Map.of("comparison_display", List.of("AI 특징"), "category_lift", Map.of(), "total_candidates", 0,
-						"validated_count", 0),
+					Map.of(
+						"comparison_display", List.of("서비스 만족도는 평균과 비슷합니다.", "가격 만족도는 평균보다 높은 편입니다."),
+						"category_lift", Map.of("service", -45.0, "price", 450.0),
+						"total_candidates", 10,
+						"validated_count", 1),
 					Instant.now()));
 
 			RestaurantDetailResponse detail = restaurantService.getRestaurantDetail(created.id());
@@ -333,12 +336,19 @@ class RestaurantServiceIntegrationTest {
 			assertThat(detail.foodCategories()).isNotEmpty();
 			assertThat(detail.businessHoursWeek()).hasSize(7);
 			assertThat(detail.image()).isNotNull();
-			assertThat(detail.recommendStat()).isNotNull();
-			assertThat(detail.recommendStat().recommendedCount()).isEqualTo(2L);
-			assertThat(detail.recommendStat().notRecommendedCount()).isEqualTo(1L);
-			assertThat(detail.recommendStat().positiveRatio()).isNotNull();
-			assertThat(detail.aiSummary()).isNotNull();
-			assertThat(detail.aiFeatures()).isNotNull();
+			assertThat(detail.recommendedCount()).isEqualTo(2L);
+			assertThat(detail.aiDetails()).isNotNull();
+			assertThat(detail.aiDetails().sentiment()).isNotNull();
+			assertThat(detail.aiDetails().sentiment().positivePercent()).isEqualTo(75);
+			assertThat(detail.aiDetails().summary()).isNotNull();
+			assertThat(detail.aiDetails().summary().overallSummary()).isEqualTo("AI 요약");
+			assertThat(detail.aiDetails().comparison()).isNotNull();
+			assertThat(detail.aiDetails().comparison().categoryDetails())
+				.containsKeys("SERVICE", "PRICE");
+			assertThat(detail.aiDetails().comparison().categoryDetails().get("SERVICE").summary())
+				.isEqualTo("서비스 만족도는 평균과 비슷합니다.");
+			assertThat(detail.aiDetails().comparison().categoryDetails().get("PRICE").summary())
+				.isEqualTo("가격 만족도는 평균보다 높은 편입니다.");
 		}
 
 		@Test
@@ -359,10 +369,11 @@ class RestaurantServiceIntegrationTest {
 			assertThat(detail.id()).isEqualTo(created.id());
 			assertThat(detail.businessHoursWeek()).hasSize(7);
 			assertThat(detail.image()).isNull();
-			assertThat(detail.aiSummary()).isNull();
-			assertThat(detail.aiFeatures()).isNull();
-			assertThat(detail.recommendStat()).isNotNull();
-			assertThat(detail.recommendStat().positiveRatio()).isNull();
+			assertThat(detail.recommendedCount()).isNotNull();
+			assertThat(detail.aiDetails()).isNotNull();
+			assertThat(detail.aiDetails().sentiment()).isNull();
+			assertThat(detail.aiDetails().summary()).isNull();
+			assertThat(detail.aiDetails().comparison()).isNull();
 		}
 
 		@Test
