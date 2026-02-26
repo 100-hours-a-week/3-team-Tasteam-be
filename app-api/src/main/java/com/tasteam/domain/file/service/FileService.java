@@ -43,6 +43,7 @@ import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.infra.storage.PresignedPostRequest;
 import com.tasteam.infra.storage.PresignedPostResponse;
+import com.tasteam.infra.storage.PresignedUrlCacheService;
 import com.tasteam.infra.storage.StorageClient;
 import com.tasteam.infra.storage.StorageProperties;
 
@@ -58,6 +59,7 @@ public class FileService {
 	private final StorageProperties storageProperties;
 	private final FileCleanupProperties cleanupProperties;
 	private final FileUploadPolicyProperties uploadPolicyProperties;
+	private final PresignedUrlCacheService presignedUrlCacheService;
 
 	public PresignedUploadResponse createPresignedUploads(PresignedUploadRequest request) {
 		List<PresignedUploadItem> uploads = new ArrayList<>();
@@ -431,7 +433,7 @@ public class FileService {
 
 	private String buildPublicUrl(String storageKey) {
 		if (storageProperties.isPresignedAccess()) {
-			return storageClient.createPresignedGetUrl(storageKey);
+			return presignedUrlCacheService.getPresignedUrl(storageKey);
 		}
 		return buildStaticUrl(storageKey);
 	}

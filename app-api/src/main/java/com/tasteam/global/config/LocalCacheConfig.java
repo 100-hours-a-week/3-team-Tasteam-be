@@ -34,6 +34,18 @@ public class LocalCacheConfig {
 			.expireAfterWrite(caffeineConfig.getExpireAfterWrite())
 			.recordStats());
 
+		localCacheProperties.getTtl().forEach((cacheName, cacheTtl) -> {
+			if (cacheTtl.getTtl() != null) {
+				cacheManager.registerCustomCache(cacheName,
+					Caffeine.newBuilder()
+						.maximumSize(caffeineConfig.getMaximumSize())
+						.expireAfterWrite(cacheTtl.getTtl())
+						.recordStats()
+						.build());
+				log.info("Registered custom cache '{}' with TTL: {}", cacheName, cacheTtl.getTtl());
+			}
+		});
+
 		log.info("=== Local Cache (Caffeine) Configuration ===");
 		log.info("Maximum Size: {}", caffeineConfig.getMaximumSize());
 		log.info("Expire After Write: {}", caffeineConfig.getExpireAfterWrite());
