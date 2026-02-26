@@ -57,3 +57,4 @@ application-*.yaml
 /.github/issue
 /scripts
 scripts/create-issues.sh
+*.hprof
