@@ -1,9 +1,14 @@
 # ===============================
 # 1. Build stage
 # ===============================
-FROM amazoncorretto:21 AS builder
+FROM gradle:9.2.1-jdk21 AS builder
 
 WORKDIR /app
+
+# build.gradle의 git 명령 실행을 위해 git 설치
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Gradle wrapper & 캐시 레이어
 COPY gradlew .

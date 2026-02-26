@@ -1,112 +1,196 @@
-name: Backend Rollback
+name: Backend Rollback (CodeDeploy)
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: '롤백할 환경'
+        description: '롤백할 환경(브랜치 기준)'
         required: true
         type: choice
         options:
           - develop
           - main
-      run_number:
-        description: '롤백할 Run Number'
+      rollback_mode:
+        description: '롤백 대상 선택 방식'
         required: true
+        type: choice
+        default: previous_successful
+        options:
+          - previous_successful
+          - deployment_id
+      target_deployment_id:
+        description: 'rollback_mode=deployment_id일 때 지정 (예: d-ABC123XYZ)'
+        required: false
         type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: codedeploy-${{ inputs.environment }}
+  cancel-in-progress: false
 
 jobs:
   rollback:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment == 'main' && 'production' || 'development' }}
-    timeout-minutes: 15
+    timeout-minutes: 30
+
+    env:
+      AWS_REGION: ap-northeast-2
+      DEFAULT_DEPLOYMENT_CONFIG_NAME: ${{ inputs.environment == 'main' && 'CodeDeployDefault.OneAtATime' || 'CodeDeployDefault.AllAtOnce' }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          fetch-depth: 0
-          fetch-tags: true
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      # 1. GitHub CLI를 이용해 run_number에 해당하는 실제 run-id를 찾습니다.
-      - name: Find Run ID
+      - name: Resolve rollback target and trigger CodeDeploy
+        id: rollback
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROLLBACK_MODE: ${{ inputs.rollback_mode }}
+          REQUESTED_DEPLOYMENT_ID: ${{ inputs.target_deployment_id }}
+          CODEDEPLOY_APP_NAME: ${{ secrets.CODEDEPLOY_APP_NAME }}
+          CODEDEPLOY_DEPLOYMENT_GROUP: ${{ secrets.CODEDEPLOY_DEPLOYMENT_GROUP }}
         run: |
-          # 지정한 브랜치와 run_number에 맞는 run-id 찾기
-          RUN_ID=$(gh run list \
-            --workflow "Backend CI/CD - Full Pipeline" \
-            --json databaseId,number,headBranch \
-            --jq ".[] | select(.number == ${{ inputs.run_number }} and .headBranch == \"${{ inputs.environment }}\") | .databaseId" \
-            | head -n 1)
+          set -euo pipefail
+          export AWS_PAGER=""
 
-          if [ -z "$RUN_ID" ]; then
-            echo "❌ Error: ${{ inputs.environment }} 브랜치의 Run Number ${{ inputs.run_number }}를 찾을 수 없습니다."
-            echo ""
-            echo "사용 가능한 최근 빌드 목록:"
-            gh run list --workflow "Backend CI/CD - Full Pipeline" --branch "${{ inputs.environment }}" --limit 10
+          fail() {
+            echo "❌ $*"
             exit 1
-          fi
+          }
 
-          echo "FOUND_RUN_ID=$RUN_ID" >> $GITHUB_ENV
-          echo "✅ 찾은 Run ID: $RUN_ID (Run Number: ${{ inputs.run_number }}, Branch: ${{ inputs.environment }})"
+          [ -n "${CODEDEPLOY_APP_NAME}" ] || fail "CODEDEPLOY_APP_NAME secret is required"
+          [ -n "${CODEDEPLOY_DEPLOYMENT_GROUP}" ] || fail "CODEDEPLOY_DEPLOYMENT_GROUP secret is required"
 
-      # 2. 찾은 Run ID를 사용하여 아티팩트를 다운로드합니다.
-      - name: Download Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-jar-${{ inputs.environment }}-${{ inputs.run_number }}
-          run-id: ${{ env.FOUND_RUN_ID }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: ./rollback-temp
+          if [ "${ROLLBACK_MODE}" = "deployment_id" ]; then
+            [ -n "${REQUESTED_DEPLOYMENT_ID}" ] || fail "rollback_mode=deployment_id 인 경우 target_deployment_id 입력이 필요합니다."
+            SOURCE_DEPLOYMENT_ID="${REQUESTED_DEPLOYMENT_ID}"
+          elif [ "${ROLLBACK_MODE}" = "previous_successful" ]; then
+            mapfile -t SUCCEEDED_DEPLOYMENTS < <(
+              aws deploy list-deployments \
+                --application-name "${CODEDEPLOY_APP_NAME}" \
+                --deployment-group-name "${CODEDEPLOY_DEPLOYMENT_GROUP}" \
+                --include-only-statuses Succeeded \
+                --max-items 20 \
+                --query 'deployments' \
+                --output text \
+              | tr '\t' '\n' \
+              | sed '/^$/d;/^None$/d'
+            )
 
-      # 3. 다운로드한 JAR 파일 확인
-      - name: Show JAR Info
-        run: |
-          echo "=== Rollback JAR Info ==="
-          ls -lh ./rollback-temp/
-          echo ""
-          JAR_FILE=$(ls ./rollback-temp/*.jar | head -1)
-          if [ -f "$JAR_FILE" ]; then
-            echo "롤백할 JAR 파일: $(basename $JAR_FILE)"
+            [ "${#SUCCEEDED_DEPLOYMENTS[@]}" -gt 0 ] || fail "성공 이력이 없어 자동 롤백 대상을 찾을 수 없습니다."
+
+            LATEST_DEPLOYMENT_ID="$(aws deploy list-deployments \
+              --application-name "${CODEDEPLOY_APP_NAME}" \
+              --deployment-group-name "${CODEDEPLOY_DEPLOYMENT_GROUP}" \
+              --max-items 1 \
+              --query 'deployments[0]' \
+              --output text || true)"
+
+            LATEST_DEPLOYMENT_STATUS=""
+            if [ -n "${LATEST_DEPLOYMENT_ID}" ] && [ "${LATEST_DEPLOYMENT_ID}" != "None" ]; then
+              LATEST_DEPLOYMENT_STATUS="$(aws deploy get-deployment \
+                --deployment-id "${LATEST_DEPLOYMENT_ID}" \
+                --query 'deploymentInfo.status' \
+                --output text)"
+            fi
+
+            if [ "${LATEST_DEPLOYMENT_STATUS}" = "Succeeded" ]; then
+              [ "${#SUCCEEDED_DEPLOYMENTS[@]}" -ge 2 ] || fail "직전 성공 배포가 없어 자동 롤백을 진행할 수 없습니다. deployment_id 모드로 대상 배포를 직접 지정하세요."
+              SOURCE_DEPLOYMENT_ID="${SUCCEEDED_DEPLOYMENTS[1]}"
+            else
+              SOURCE_DEPLOYMENT_ID="${SUCCEEDED_DEPLOYMENTS[0]}"
+            fi
           else
-            echo "❌ JAR 파일을 찾을 수 없습니다."
-            exit 1
+            fail "지원하지 않는 rollback_mode: ${ROLLBACK_MODE}"
           fi
 
-      # 4. 서버로 JAR 파일 전송
-      - name: Transfer JAR to Server
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT }}
-          source: "./rollback-temp/*.jar"
-          target: "/home/${{ secrets.USERNAME }}/backend/temp"
-          strip_components: 1
+          SOURCE_STATUS="$(aws deploy get-deployment \
+            --deployment-id "${SOURCE_DEPLOYMENT_ID}" \
+            --query 'deploymentInfo.status' \
+            --output text)"
+          [ "${SOURCE_STATUS}" = "Succeeded" ] || fail "롤백 대상 배포(${SOURCE_DEPLOYMENT_ID}) 상태가 Succeeded가 아닙니다: ${SOURCE_STATUS}"
 
-      # 5. 무중단 배포 스크립트 실행 (롤백)
-      - name: Execute Blue-Green Deployment (Rollback)
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT }}
-          script: |
-            # JAR 파일명 추출 및 경로 설정
-            JAR_NAME=$(ls -t /home/${{ secrets.USERNAME }}/backend/temp/*.jar | head -1)
-            DEPLOY_SCRIPT="/home/${{ secrets.USERNAME }}/deploy/deploy.sh"
+          SOURCE_APP="$(aws deploy get-deployment \
+            --deployment-id "${SOURCE_DEPLOYMENT_ID}" \
+            --query 'deploymentInfo.applicationName' \
+            --output text)"
+          SOURCE_GROUP="$(aws deploy get-deployment \
+            --deployment-id "${SOURCE_DEPLOYMENT_ID}" \
+            --query 'deploymentInfo.deploymentGroupName' \
+            --output text)"
 
-            # 스크립트 실행 권한 부여
-            chmod +x $DEPLOY_SCRIPT
+          [ "${SOURCE_APP}" = "${CODEDEPLOY_APP_NAME}" ] || fail "배포 대상 Application 불일치: ${SOURCE_APP} (expected: ${CODEDEPLOY_APP_NAME})"
+          [ "${SOURCE_GROUP}" = "${CODEDEPLOY_DEPLOYMENT_GROUP}" ] || fail "배포 대상 Deployment Group 불일치: ${SOURCE_GROUP} (expected: ${CODEDEPLOY_DEPLOYMENT_GROUP})"
 
-            # 무중단 배포 스크립트 호출 (롤백 JAR로)
-            echo "🔄 롤백 시작: Run Number ${{ inputs.run_number }}"
-            $DEPLOY_SCRIPT $JAR_NAME
+          REVISION_TYPE="$(aws deploy get-deployment \
+            --deployment-id "${SOURCE_DEPLOYMENT_ID}" \
+            --query 'deploymentInfo.revision.revisionType' \
+            --output text)"
+          [ "${REVISION_TYPE}" = "S3" ] || fail "현재 rollback workflow는 S3 revision만 지원합니다. actual=${REVISION_TYPE}"
 
-      # 6. 롤백 결과 알림
+          read -r REV_BUCKET REV_KEY REV_BUNDLE REV_ETAG REV_VERSION <<<"$(aws deploy get-deployment \
+            --deployment-id "${SOURCE_DEPLOYMENT_ID}" \
+            --query 'deploymentInfo.revision.s3Location.[bucket,key,bundleType,eTag,version]' \
+            --output text)"
+
+          [ -n "${REV_BUCKET}" ] && [ "${REV_BUCKET}" != "None" ] || fail "S3 bucket 정보를 가져오지 못했습니다."
+          [ -n "${REV_KEY}" ] && [ "${REV_KEY}" != "None" ] || fail "S3 key 정보를 가져오지 못했습니다."
+          [ -n "${REV_BUNDLE}" ] && [ "${REV_BUNDLE}" != "None" ] || fail "bundleType 정보를 가져오지 못했습니다."
+
+          DEPLOYMENT_CONFIG_NAME="$(aws deploy get-deployment \
+            --deployment-id "${SOURCE_DEPLOYMENT_ID}" \
+            --query 'deploymentInfo.deploymentConfigName' \
+            --output text)"
+          if [ -z "${DEPLOYMENT_CONFIG_NAME}" ] || [ "${DEPLOYMENT_CONFIG_NAME}" = "None" ]; then
+            DEPLOYMENT_CONFIG_NAME="${DEFAULT_DEPLOYMENT_CONFIG_NAME}"
+          fi
+
+          S3_LOCATION="bucket=${REV_BUCKET},key=${REV_KEY},bundleType=${REV_BUNDLE}"
+          if [ -n "${REV_ETAG:-}" ] && [ "${REV_ETAG}" != "None" ]; then
+            S3_LOCATION="${S3_LOCATION},eTag=${REV_ETAG}"
+          fi
+          if [ -n "${REV_VERSION:-}" ] && [ "${REV_VERSION}" != "None" ]; then
+            S3_LOCATION="${S3_LOCATION},version=${REV_VERSION}"
+          fi
+
+          ROLLBACK_DEPLOYMENT_ID="$(aws deploy create-deployment \
+            --application-name "${CODEDEPLOY_APP_NAME}" \
+            --deployment-group-name "${CODEDEPLOY_DEPLOYMENT_GROUP}" \
+            --deployment-config-name "${DEPLOYMENT_CONFIG_NAME}" \
+            --description "Rollback to ${SOURCE_DEPLOYMENT_ID} (workflow run ${GITHUB_RUN_ID})" \
+            --s3-location "${S3_LOCATION}" \
+            --query 'deploymentId' \
+            --output text)"
+
+          echo "source_deployment_id=${SOURCE_DEPLOYMENT_ID}" >> "$GITHUB_OUTPUT"
+          echo "rollback_deployment_id=${ROLLBACK_DEPLOYMENT_ID}" >> "$GITHUB_OUTPUT"
+          echo "rollback_deployment_config_name=${DEPLOYMENT_CONFIG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "rollback_revision_s3_key=${REV_KEY}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### CodeDeploy Rollback Target"
+            echo "- source deployment: \`${SOURCE_DEPLOYMENT_ID}\`"
+            echo "- new rollback deployment: \`${ROLLBACK_DEPLOYMENT_ID}\`"
+            echo "- deployment config: \`${DEPLOYMENT_CONFIG_NAME}\`"
+            echo "- artifact: \`s3://${REV_BUCKET}/${REV_KEY}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "🔄 롤백 시작: source=${SOURCE_DEPLOYMENT_ID}, new=${ROLLBACK_DEPLOYMENT_ID}"
+
+      - name: Wait rollback deployment result
+        env:
+          ROLLBACK_DEPLOYMENT_ID: ${{ steps.rollback.outputs.rollback_deployment_id }}
+        run: |
+          set -euo pipefail
+          aws deploy wait deployment-successful --deployment-id "${ROLLBACK_DEPLOYMENT_ID}"
+          aws deploy get-deployment --deployment-id "${ROLLBACK_DEPLOYMENT_ID}" --query 'deploymentInfo.status' --output text
+
       - name: Notify Rollback Result
         if: always()
         run: |
@@ -129,7 +213,9 @@ jobs:
                      {\"name\": \"결과\", \"value\": \"${{ job.status }}\", \"inline\": true},
                      {\"name\": \"환경\", \"value\": \"${{ inputs.environment == 'main' && '운영' || '개발' }}\", \"inline\": true},
                      {\"name\": \"실행자\", \"value\": \"${{ github.actor }}\", \"inline\": true},
-                     {\"name\": \"롤백 대상 Run Number\", \"value\": \"${{ inputs.run_number }}\", \"inline\": false},
+                     {\"name\": \"롤백 모드\", \"value\": \"${{ inputs.rollback_mode }}\", \"inline\": false},
+                     {\"name\": \"롤백 기준 배포 ID\", \"value\": \"${{ steps.rollback.outputs.source_deployment_id || inputs.target_deployment_id || '자동 선택 실패' }}\", \"inline\": false},
+                     {\"name\": \"생성된 롤백 배포 ID\", \"value\": \"${{ steps.rollback.outputs.rollback_deployment_id || '생성 실패' }}\", \"inline\": false},
                      {\"name\": \"서버 환경\", \"value\": \"${{ inputs.environment == 'main' && '운영' || '개발' }} 서버\", \"inline\": false},
                      {\"name\": \"워크플로우\", \"value\": \"[실행 로그 보기](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\", \"inline\": false}
                    ]

@@ -1,0 +1,11 @@
+services:
+  backend:
+    image: ${BACKEND_IMAGE:-public.ecr.aws/docker/library/busybox:latest}
+    container_name: ${CONTAINER_NAME:-tasteam-be}
+    restart: unless-stopped
+    env_file:
+      - ${BACKEND_ENV_FILE:-/opt/tasteam/backend.env}
+    ports:
+      - "${CONTAINER_PORT:-8080}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
