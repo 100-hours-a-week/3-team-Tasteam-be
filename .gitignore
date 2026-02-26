@@ -49,12 +49,26 @@ CLAUDE.md
 .env
 .env.*
 !.env.example
+
+# GitHub issue templates
+/.github/issue
+
+# Scripts
+/scripts
+scripts/create-issues.sh
+
+# Application configuration files
 application.yaml
 application-*.yaml
+
+# Logs, temp files, and other generated files
 *.log
 *.gz
 *.tmp
-/.github/issue
-/scripts
-scripts/create-issues.sh
 *.hprof
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+/3-team-tasteam-wiki.wiki
