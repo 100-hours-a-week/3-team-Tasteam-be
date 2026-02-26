@@ -10,6 +10,6 @@ public record ChatMessageListResponse(
 	public record Meta(Long lastReadMessageId) {
 	}
 
-	public record Page(String nextCursor, int size, boolean hasNext) {
+	public record Page(String nextCursor, String afterCursor, int size, boolean hasNext) {
 	}
 }

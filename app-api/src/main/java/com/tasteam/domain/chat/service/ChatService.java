@@ -144,10 +144,14 @@ public class ChatService {
 				item.createdAt()))
 			.toList();
 
+		String afterCursor = pageItems.isEmpty()
+			? null
+			: cursorCodec.encode(new ChatMessageCursor(pageItems.get(0).id()));
+
 		return new ChatMessageListResponse(
 			new ChatMessageListResponse.Meta(membership.getLastReadMessageId()),
 			items,
-			new ChatMessageListResponse.Page(page.nextCursor(), resolvedSize, page.hasNext()));
+			new ChatMessageListResponse.Page(page.nextCursor(), afterCursor, resolvedSize, page.hasNext()));
 	}
 
 	@Transactional
