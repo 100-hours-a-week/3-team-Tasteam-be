@@ -222,6 +222,7 @@ sequenceDiagram
                 - `createdAt`: string (ISO-8601)
             - `page`: object
                 - `nextCursor`: string
+                - `afterCursor`: string
                 - `size`: number
                 - `hasNext`: boolean
         - 예시(JSON)
@@ -243,6 +244,7 @@ sequenceDiagram
             ],
             "page": {
               "nextCursor": "opaque",
+              "afterCursor": "opaque",
               "size": 20,
               "hasNext": true
             }
@@ -259,6 +261,8 @@ sequenceDiagram
         5. 응답 매핑
             - `memberNickname`, `memberProfileImageUrl`은 `member` 조인(또는 배치 조회)로 구성
             - `meta.lastReadMessageId`는 `chat_room_member.last_read_message_id`를 그대로 내려 “unread 구분선” 렌더링에 사용
+            - `page.nextCursor`는 `BEFORE`(과거 페이지) 조회용 커서
+            - `page.afterCursor`는 `AFTER`(신규 메시지 동기화) 조회용 커서
     - **트랜잭션 관리:** read-only(또는 트랜잭션 생략)
     - **동시성/멱등성(필요시):** 조회 API는 멱등
     - **에러 코드(주요, API 명세서 기준):** `UNAUTHORIZED`(401), `FORBIDDEN`(403), `CHAT_ROOM_NOT_FOUND`(404), `TOO_MANY_REQUESTS`(429), `INTERNAL_SERVER_ERROR`(500)

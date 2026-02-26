@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.admin.controller.docs.AdminPromotionControllerDocs;
 import com.tasteam.domain.admin.dto.request.AdminPromotionCreateRequest;
 import com.tasteam.domain.admin.dto.request.AdminPromotionUpdateRequest;
 import com.tasteam.domain.admin.dto.response.AdminPromotionDetailResponse;
@@ -32,10 +33,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/promotions")
-public class AdminPromotionController {
+public class AdminPromotionController implements AdminPromotionControllerDocs {
 
 	private final AdminPromotionService adminPromotionService;
 
+	@Override
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<Page<AdminPromotionListItem>> getPromotions(
@@ -53,6 +55,7 @@ public class AdminPromotionController {
 		return SuccessResponse.success(result);
 	}
 
+	@Override
 	@GetMapping("/{promotionId}")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<AdminPromotionDetailResponse> getPromotion(
@@ -63,6 +66,7 @@ public class AdminPromotionController {
 		return SuccessResponse.success(result);
 	}
 
+	@Override
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<Long> createPromotion(
@@ -73,6 +77,7 @@ public class AdminPromotionController {
 		return SuccessResponse.success(promotionId);
 	}
 
+	@Override
 	@PatchMapping("/{promotionId}")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<Void> updatePromotion(
@@ -85,6 +90,7 @@ public class AdminPromotionController {
 		return SuccessResponse.success();
 	}
 
+	@Override
 	@DeleteMapping("/{promotionId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deletePromotion(

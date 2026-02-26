@@ -8,11 +8,13 @@ import com.tasteam.domain.announcement.dto.response.AnnouncementDetailResponse;
 import com.tasteam.domain.announcement.dto.response.AnnouncementListResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+@SwaggerTagOrder(60)
 @Tag(name = "Announcement", description = "공지사항 API")
 public interface AnnouncementControllerDocs {
 

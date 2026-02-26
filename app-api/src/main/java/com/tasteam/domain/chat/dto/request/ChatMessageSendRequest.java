@@ -1,8 +1,11 @@
 package com.tasteam.domain.chat.dto.request;
 
+import java.util.List;
+
 import com.tasteam.domain.chat.type.ChatMessageType;
 
 public record ChatMessageSendRequest(
 	ChatMessageType messageType,
-	String content) {
+	String content,
+	List<ChatMessageFileRequest> files) {
 }

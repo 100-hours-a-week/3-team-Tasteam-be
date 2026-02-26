@@ -1,6 +1,7 @@
 package com.tasteam.domain.chat.dto.response;
 
 import java.time.Instant;
+import java.util.List;
 
 import com.tasteam.domain.chat.type.ChatMessageType;
 
@@ -11,5 +12,6 @@ public record ChatMessageItemResponse(
 	String memberProfileImageUrl,
 	String content,
 	ChatMessageType messageType,
+	List<ChatMessageFileItemResponse> files,
 	Instant createdAt) {
 }

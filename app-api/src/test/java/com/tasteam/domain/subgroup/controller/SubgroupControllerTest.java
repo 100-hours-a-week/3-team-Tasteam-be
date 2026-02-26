@@ -1,7 +1,6 @@
 package com.tasteam.domain.subgroup.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -81,7 +80,7 @@ class SubgroupControllerTest {
 					"https://example.com/profile.jpg", Instant.now())),
 				new CursorPageResponse.Pagination(null, false, 20));
 
-			given(subgroupFacade.getSubgroupMembers(eq(1L), any(), any())).willReturn(response);
+			given(subgroupFacade.getSubgroupMembers(eq(1L), anyLong(), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/api/v1/subgroups/{subgroupId}/members", 1L)

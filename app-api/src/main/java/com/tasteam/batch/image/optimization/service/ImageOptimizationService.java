@@ -169,7 +169,7 @@ public class ImageOptimizationService {
 		return switch (purpose) {
 			case PROFILE_IMAGE, GROUP_IMAGE -> !isWebp || width > PROFILE_SIZE || height > PROFILE_SIZE;
 			case RESTAURANT_IMAGE -> !isWebp || width > RESTAURANT_MAX_WIDTH;
-			case REVIEW_IMAGE, MENU_IMAGE -> !isWebp || width > REVIEW_MAX_WIDTH;
+			case REVIEW_IMAGE, MENU_IMAGE, CHAT_IMAGE -> !isWebp || width > REVIEW_MAX_WIDTH;
 			case COMMON_ASSET -> !isWebp;
 		};
 	}
@@ -183,6 +183,7 @@ public class ImageOptimizationService {
 			case RESTAURANT_IMAGE -> processRestaurantImage(image, width, outputStream);
 			case REVIEW_IMAGE -> processReviewImage(image, width, outputStream);
 			case MENU_IMAGE -> processReviewImage(image, width, outputStream);
+			case CHAT_IMAGE -> processReviewImage(image, width, outputStream);
 			case COMMON_ASSET -> processCommonImage(image, outputStream);
 			default -> throw new IllegalArgumentException("Unsupported file purpose: " + purpose);
 		}
@@ -250,6 +251,7 @@ public class ImageOptimizationService {
 			case RESTAURANT_IMAGE -> "restaurant";
 			case REVIEW_IMAGE -> "review";
 			case MENU_IMAGE -> "menu";
+			case CHAT_IMAGE -> "chat";
 			case COMMON_ASSET -> "common";
 		};
 		return folder + "/" + uuid + ".webp";

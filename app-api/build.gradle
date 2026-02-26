@@ -72,6 +72,10 @@ dependencies {
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.15"
     implementation "net.logstash.logback:logstash-logback-encoder:9.0"
     implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.+'
+    // Phase 3: 분산 트레이싱 (TRACING_ENABLED=true + OTEL_ENDPOINT 설정 시 활성화)
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
     /* ==================================================
      * Storage (S3)

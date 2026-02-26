@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.admin.controller.docs.AdminScheduleControllerDocs;
 import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.BusinessHourWeekItem;
 import com.tasteam.domain.restaurant.service.RestaurantScheduleService;
@@ -22,10 +23,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/restaurants/{restaurantId}/schedules")
-public class AdminScheduleController {
+public class AdminScheduleController implements AdminScheduleControllerDocs {
 
 	private final RestaurantScheduleService restaurantScheduleService;
 
+	@Override
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<List<BusinessHourWeekItem>> getSchedules(
@@ -36,6 +38,7 @@ public class AdminScheduleController {
 		return SuccessResponse.success(result);
 	}
 
+	@Override
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<Void> createSchedules(

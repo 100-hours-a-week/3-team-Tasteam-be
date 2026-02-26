@@ -7,5 +7,6 @@ public enum DomainType {
 	GROUP,
 	MENU,
 	SUBGROUP,
-	MEMBER
+	MEMBER,
+	CHAT_MESSAGE
 }

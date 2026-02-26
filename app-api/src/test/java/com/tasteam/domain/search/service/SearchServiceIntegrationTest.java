@@ -81,6 +81,17 @@ class SearchServiceIntegrationTest {
 			assertThat(response.groups()).isEmpty();
 			assertThat(response.restaurants().items()).isEmpty();
 		}
+
+		@Test
+		@DisplayName("키워드에 공격 문자열이 포함되면 예외가 발생한다")
+		void searchUnsafeKeywordFails() {
+			assertThatThrownBy(() -> searchService.search(
+				null,
+				new SearchRequest("<script>alert('hacked')</script>", null, null, null, null, 10)))
+				.isInstanceOf(BusinessException.class)
+				.extracting(ex -> ((BusinessException)ex).getErrorCode())
+				.isEqualTo(SearchErrorCode.INVALID_SEARCH_KEYWORD.name());
+		}
 	}
 
 	@Nested

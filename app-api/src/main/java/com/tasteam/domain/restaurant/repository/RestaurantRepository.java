@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,7 +17,28 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
 	Optional<Restaurant> findByIdAndDeletedAtIsNull(Long id);
 
+	/**
+	 * ID 목록 중 삭제되지 않은 레스토랑만 조회. 벡터 업로드 배치 대상 조회용.
+	 */
+	List<Restaurant> findByIdInAndDeletedAtIsNull(Iterable<Long> ids);
+
 	boolean existsByIdAndDeletedAtIsNull(Long id);
+
+	/**
+	 * vector_epoch가 expectedEpoch일 때만 1 증가 및 vector_synced_at 갱신.
+	 * 다른 트랜잭션이 이미 올렸으면 0건 반환.
+	 *
+	 * @return 업데이트된 행 수 (0 또는 1)
+	 */
+	@Modifying(clearAutomatically = true)
+	@Query("UPDATE Restaurant r SET r.vectorEpoch = r.vectorEpoch + 1, r.vectorSyncedAt = :syncedAt WHERE r.id = :id AND r.vectorEpoch = :expectedEpoch")
+	int incrementVectorEpochIfMatch(
+		@Param("id")
+		Long id,
+		@Param("expectedEpoch")
+		Long expectedEpoch,
+		@Param("syncedAt")
+		Instant syncedAt);
 
 	@Query("""
 		select r
@@ -119,11 +141,11 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 		  ST_Distance(r.location::geography,
 		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
 		from restaurant r
-		join ai_restaurant_review_analysis a on a.restaurant_id = r.id
+		join restaurant_review_sentiment s on s.restaurant_id = r.id
 		where r.deleted_at is null
 		  and ST_DWithin(r.location::geography,
 		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
-		order by a.positive_ratio desc, r.id asc
+		order by s.positive_percent desc, r.id asc
 		limit :limit
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findAiRecommendRestaurants(
@@ -169,10 +191,10 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 	@Query(value = """
 		select r.id as id, r.name as name, cast(null as double precision) as distanceMeter
 		from restaurant r
-		join ai_restaurant_review_analysis a on a.restaurant_id = r.id
+		join restaurant_review_sentiment s on s.restaurant_id = r.id
 		where r.deleted_at is null
 		  and r.id not in (:excludeIds)
-		order by a.positive_ratio desc, r.id asc
+		order by s.positive_percent desc, r.id asc
 		limit :limit
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findAiRecommendRestaurantsAll(

@@ -8,7 +8,6 @@ public record ChatMessageQueryDto(
 	Long id,
 	Long memberId,
 	String memberNickname,
-	String memberProfileImageUrl,
 	String content,
 	ChatMessageType messageType,
 	Instant createdAt) {
