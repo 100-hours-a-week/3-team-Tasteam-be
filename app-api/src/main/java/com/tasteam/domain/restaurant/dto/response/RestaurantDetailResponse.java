@@ -12,12 +12,8 @@ public record RestaurantDetailResponse(
 	List<BusinessHourWeekItem> businessHoursWeek,
 	RestaurantImageDto image,
 	Boolean isFavorite,
-	RecommendStatResponse recommendStat,
-	String aiSummary,
-	String aiFeatures,
+	Long recommendedCount,
+	RestaurantAiDetailsResponse aiDetails,
 	Instant createdAt,
 	Instant updatedAt) {
-
-	public record RecommendStatResponse(Long recommendedCount, Long notRecommendedCount, Long positiveRatio) {
-	}
 }

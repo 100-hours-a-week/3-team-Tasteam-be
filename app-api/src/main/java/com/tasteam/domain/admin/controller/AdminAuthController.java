@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.admin.controller.docs.AdminAuthControllerDocs;
 import com.tasteam.domain.admin.dto.request.AdminLoginRequest;
 import com.tasteam.domain.admin.dto.response.AdminLoginResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
@@ -21,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/auth")
-public class AdminAuthController {
+public class AdminAuthController implements AdminAuthControllerDocs {
 
 	private final JwtTokenProvider jwtTokenProvider;
 
@@ -31,6 +32,7 @@ public class AdminAuthController {
 	@Value("${tasteam.admin.password}")
 	private String adminPassword;
 
+	@Override
 	@PostMapping("/login")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<AdminLoginResponse> login(

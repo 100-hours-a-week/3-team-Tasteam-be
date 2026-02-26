@@ -73,6 +73,13 @@ public class ChatStreamSubscriber {
 		}
 	}
 
+	public void ensureSubscribed(Long roomId) {
+		if (roomId == null) {
+			return;
+		}
+		subscriptions.computeIfAbsent(roomId, this::registerRoomSubscription);
+	}
+
 	@Scheduled(fixedDelayString = "PT30S")
 	public void recoverPendingMessages() {
 		StreamOperations<String, String, String> streamOperations = stringRedisTemplate.opsForStream();

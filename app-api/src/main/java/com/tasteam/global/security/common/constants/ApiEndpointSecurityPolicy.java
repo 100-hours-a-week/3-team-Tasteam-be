@@ -64,8 +64,14 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.GROUPS_SUBGROUPS),
 			permit(GET, ApiEndpoints.GROUPS_SUBGROUPS_SEARCH),
 
+			// 역지오코딩 (토큰 유무 무관)
+			permit(GET, ApiEndpoints.GEOCODE_REVERSE),
+
 			// 검색 (토큰 유무 무관)
 			permit(POST, ApiEndpoints.SEARCH),
+
+			// Analytics Ingest (토큰 유무 무관)
+			permit(POST, ApiEndpoints.ANALYTICS_EVENTS),
 
 			// Swagger
 			permit(GET, ApiEndpoints.SWAGGER_UI),
@@ -84,7 +90,10 @@ public final class ApiEndpointSecurityPolicy {
 			permit(POST, ApiEndpoints.ADMIN_AUTH_LOGIN),
 
 			// Test
-			permit(GET, ApiEndpoints.TEST));
+			permit(GET, ApiEndpoints.TEST),
+
+			// WebSocket
+			permit(GET, ApiEndpoints.WEBSOCKET));
 	}
 
 	/**

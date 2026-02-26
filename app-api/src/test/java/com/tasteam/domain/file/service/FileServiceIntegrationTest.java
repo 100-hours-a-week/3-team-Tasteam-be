@@ -219,6 +219,30 @@ class FileServiceIntegrationTest {
 		}
 
 		@Test
+		@DisplayName("COMMON_ASSET 용도의 PENDING 이미지도 URL 조회가 가능하다")
+		void getImageUrlPendingCommonAssetSuccess() {
+			imageRepository.save(ImageFixture.create(
+				FilePurpose.COMMON_ASSET,
+				"uploads/common/asset/promo-banner.png",
+				FILE_UUID));
+
+			ImageUrlResponse response = fileService.getImageUrl(FILE_UUID.toString());
+
+			assertThat(response.url()).contains("uploads/common/asset/promo-banner.png");
+		}
+
+		@Test
+		@DisplayName("COMMON_ASSET가 아닌 PENDING 이미지는 URL 조회에 실패한다")
+		void getImageUrlPendingNonCommonAssetFails() {
+			createAndSaveImage(FILE_UUID, "uploads/test/pending-url.png");
+
+			assertThatThrownBy(() -> fileService.getImageUrl(FILE_UUID.toString()))
+				.isInstanceOf(BusinessException.class)
+				.extracting(ex -> ((BusinessException)ex).getErrorCode())
+				.isEqualTo(FileErrorCode.FILE_NOT_ACTIVE.name());
+		}
+
+		@Test
 		@DisplayName("존재하지 않는 파일 UUID면 실패한다")
 		void getImageUrlMissingFileFails() {
 			assertThatThrownBy(() -> fileService.getImageUrl(FILE_UUID_MISSING.toString()))

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tasteam.domain.analytics.resilience.UserActivityReplayService;
 import com.tasteam.domain.analytics.resilience.UserActivitySourceOutboxService;
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.infra.messagequeue.docs.UserActivityOutboxAdminControllerDocs;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,19 +22,21 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/admin/user-activity/outbox")
 @PreAuthorize("hasRole('ADMIN')")
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
-public class UserActivityOutboxAdminController {
+public class UserActivityOutboxAdminController implements UserActivityOutboxAdminControllerDocs {
 
 	private static final int MAX_LIMIT = 500;
 
 	private final UserActivitySourceOutboxService outboxService;
 	private final UserActivityReplayService replayService;
 
+	@Override
 	@GetMapping("/summary")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<UserActivityOutboxSummaryResponse> getSummary() {
 		return SuccessResponse.success(UserActivityOutboxSummaryResponse.from(outboxService.summarize()));
 	}
 
+	@Override
 	@PostMapping("/replay")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<UserActivityReplayResponse> replay(

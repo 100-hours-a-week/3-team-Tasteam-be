@@ -2,9 +2,12 @@ package com.tasteam.domain.chat.stream;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import com.tasteam.domain.chat.dto.response.ChatMessageFileItemResponse;
 import com.tasteam.domain.chat.dto.response.ChatMessageItemResponse;
+import com.tasteam.domain.chat.type.ChatMessageFileType;
 import com.tasteam.domain.chat.type.ChatMessageType;
 
 public record ChatStreamPayload(
@@ -15,9 +18,14 @@ public record ChatStreamPayload(
 	String memberProfileImageUrl,
 	String content,
 	ChatMessageType messageType,
+	ChatMessageFileType fileType,
+	String fileUrl,
 	Instant createdAt) {
 
 	public static ChatStreamPayload from(Long chatRoomId, ChatMessageItemResponse item) {
+		ChatMessageFileItemResponse file = item.files() == null || item.files().isEmpty()
+			? null
+			: item.files().get(0);
 		return new ChatStreamPayload(
 			chatRoomId,
 			item.id(),
@@ -26,10 +34,14 @@ public record ChatStreamPayload(
 			item.memberProfileImageUrl(),
 			item.content(),
 			item.messageType(),
+			file == null ? null : file.fileType(),
+			file == null ? null : file.fileUrl(),
 			item.createdAt());
 	}
 
 	public static ChatStreamPayload fromMap(Map<String, String> map) {
+		String fileTypeValue = normalizeOptional(map.get("fileType"));
+		String fileUrlValue = normalizeOptional(map.get("fileUrl"));
 		return new ChatStreamPayload(
 			parseLong(map.get("chatRoomId")),
 			parseLong(map.get("messageId")),
@@ -38,6 +50,8 @@ public record ChatStreamPayload(
 			map.get("memberProfileImageUrl"),
 			map.get("content"),
 			ChatMessageType.valueOf(map.get("messageType")),
+			fileTypeValue == null ? null : ChatMessageFileType.valueOf(fileTypeValue),
+			fileUrlValue,
 			Instant.parse(map.get("createdAt")));
 	}
 
@@ -50,11 +64,20 @@ public record ChatStreamPayload(
 		map.put("memberProfileImageUrl", memberProfileImageUrl);
 		map.put("content", content);
 		map.put("messageType", messageType.name());
+		if (fileType != null) {
+			map.put("fileType", fileType.name());
+		}
+		if (fileUrl != null && !fileUrl.isBlank()) {
+			map.put("fileUrl", fileUrl);
+		}
 		map.put("createdAt", createdAt.toString());
 		return map;
 	}
 
 	public ChatMessageItemResponse toMessageItem() {
+		List<ChatMessageFileItemResponse> files = fileUrl == null
+			? List.of()
+			: List.of(new ChatMessageFileItemResponse(fileType, fileUrl));
 		return new ChatMessageItemResponse(
 			messageId,
 			memberId,
@@ -62,6 +85,7 @@ public record ChatStreamPayload(
 			memberProfileImageUrl,
 			content,
 			messageType,
+			files,
 			createdAt);
 	}
 
@@ -70,5 +94,16 @@ public record ChatStreamPayload(
 			return null;
 		}
 		return Long.valueOf(value);
+	}
+
+	private static String normalizeOptional(String value) {
+		if (value == null) {
+			return null;
+		}
+		String trimmed = value.trim();
+		if (trimmed.isEmpty() || "null".equalsIgnoreCase(trimmed)) {
+			return null;
+		}
+		return trimmed;
 	}
 }

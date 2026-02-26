@@ -31,11 +31,11 @@ import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryRow;
 import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
 import com.tasteam.domain.promotion.service.PromotionService;
-import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
+import com.tasteam.domain.restaurant.entity.RestaurantReviewSummary;
 import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
-import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantReviewSummaryRepository;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 
@@ -49,7 +49,7 @@ public class MainService {
 
 	private final RestaurantRepository restaurantRepository;
 	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
-	private final AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
+	private final RestaurantReviewSummaryRepository restaurantReviewSummaryRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final GroupRepository groupRepository;
 	private final FileService fileService;
@@ -312,12 +312,20 @@ public class MainService {
 		if (restaurantIds.isEmpty()) {
 			return Map.of();
 		}
-		return aiRestaurantReviewAnalysisRepository
+		return restaurantReviewSummaryRepository
 			.findByRestaurantIdIn(restaurantIds)
 			.stream()
 			.collect(Collectors.toMap(
-				AiRestaurantReviewAnalysis::getRestaurantId,
-				AiRestaurantReviewAnalysis::getSummary));
+				RestaurantReviewSummary::getRestaurantId,
+				s -> toSummaryString(s.getSummaryJson())));
+	}
+
+	private static String toSummaryString(Map<String, Object> summaryJson) {
+		if (summaryJson == null) {
+			return null;
+		}
+		Object overall = summaryJson.get("overall_summary");
+		return overall != null ? overall.toString() : null;
 	}
 
 	private List<SectionItem> toSectionItems(

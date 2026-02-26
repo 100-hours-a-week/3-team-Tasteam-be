@@ -31,6 +31,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        generate_statistics: true
+        session:
+          events:
+            log:
+              LOG_QUERIES_SLOWER_THAN_MS: 2000
 
   flyway:
     enabled: true
@@ -99,17 +106,17 @@ tasteam:
       fixed-delay-ms: ${FILE_CLEANUP_FIXED_DELAY_MS:}
   aop:
     logging:
-      enabled: ${TASTEAM_AOP_LOGGING_ENABLED:false}
+      enabled: true
       api-logging:
-        enabled: ${TASTEAM_AOP_LOGGING_API_LOGGING_ENABLED:false}
+        enabled: false
       exception-logging:
-        enabled: ${TASTEAM_AOP_LOGGING_EXCEPTION_LOGGING_ENABLED:false}
+        enabled: true
       transactional-query-logging:
-        enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:false}
+        enabled: true
       service-performance:
-        enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:false}
+        enabled: false
       ai-analysis-performance:
-        enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:false}
+        enabled: false
   webhook:
     enabled: false
   firebase:
@@ -123,7 +130,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,caches
   endpoint:
     health:
       probes:

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.admin.controller.docs.AdminRestaurantControllerDocs;
 import com.tasteam.domain.admin.dto.request.AdminRestaurantCreateRequest;
 import com.tasteam.domain.admin.dto.request.AdminRestaurantSearchCondition;
 import com.tasteam.domain.admin.dto.request.AdminRestaurantUpdateRequest;
@@ -30,10 +31,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/restaurants")
-public class AdminRestaurantController {
+public class AdminRestaurantController implements AdminRestaurantControllerDocs {
 
 	private final AdminRestaurantService adminRestaurantService;
 
+	@Override
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<Page<AdminRestaurantListItem>> getRestaurants(
@@ -46,6 +48,7 @@ public class AdminRestaurantController {
 		return SuccessResponse.success(result);
 	}
 
+	@Override
 	@GetMapping("/{restaurantId}")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<AdminRestaurantDetailResponse> getRestaurant(
@@ -56,6 +59,7 @@ public class AdminRestaurantController {
 		return SuccessResponse.success(result);
 	}
 
+	@Override
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<Long> createRestaurant(
@@ -66,6 +70,7 @@ public class AdminRestaurantController {
 		return SuccessResponse.success(restaurantId);
 	}
 
+	@Override
 	@PatchMapping("/{restaurantId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void updateRestaurant(
@@ -77,6 +82,7 @@ public class AdminRestaurantController {
 		adminRestaurantService.updateRestaurant(restaurantId, request);
 	}
 
+	@Override
 	@DeleteMapping("/{restaurantId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteRestaurant(

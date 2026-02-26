@@ -100,12 +100,21 @@ public final class ApiEndpoints {
 	// Search
 	public static final String SEARCH = API_V1 + "/search";
 
+	// Analytics
+	public static final String ANALYTICS_EVENTS = API_V1 + "/analytics/events";
+
 	// File
 	public static final String FILES = API_V1 + "/files";
 	public static final String FILES_ALL = FILES + ALL;
 
 	// Test
 	public static final String TEST = API_V1 + "/test" + ALL;
+
+	// Geocode
+	public static final String GEOCODE_REVERSE = API_V1 + "/geocode/reverse";
+
+	// WebSocket
+	public static final String WEBSOCKET = "/ws" + ALL;
 
 	// Admin
 	public static final String ADMIN = API_V1 + "/admin";

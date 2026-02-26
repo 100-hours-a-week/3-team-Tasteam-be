@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.infra.messagequeue.trace.docs.MessageQueueTraceAdminControllerDocs;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,12 +19,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/mq-traces")
 @PreAuthorize("hasRole('ADMIN')")
-public class MessageQueueTraceAdminController {
+public class MessageQueueTraceAdminController implements MessageQueueTraceAdminControllerDocs {
 
 	private static final int MAX_LIMIT = 200;
 
 	private final MessageQueueTraceService traceService;
 
+	@Override
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<List<MessageQueueTraceLogResponse>> findRecent(

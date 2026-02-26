@@ -20,6 +20,7 @@ import com.tasteam.domain.chat.dto.response.ChatMessageListResponse;
 import com.tasteam.domain.chat.dto.response.ChatMessageSendResponse;
 import com.tasteam.domain.chat.dto.response.ChatReadCursorUpdateResponse;
 import com.tasteam.domain.chat.service.ChatService;
+import com.tasteam.domain.chat.type.ChatMessageListMode;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
@@ -43,11 +44,13 @@ public class ChatController implements ChatControllerDocs {
 		Long chatRoomId,
 		@RequestParam(required = false)
 		String cursor,
+		@RequestParam(required = false)
+		ChatMessageListMode mode,
 		@RequestParam(defaultValue = "20") @Min(1) @Max(100)
 		int size,
 		@CurrentUser
 		Long memberId) {
-		return SuccessResponse.success(chatService.getMessages(chatRoomId, memberId, cursor, size));
+		return SuccessResponse.success(chatService.getMessages(chatRoomId, memberId, cursor, mode, size));
 	}
 
 	@PostMapping("/{chatRoomId}/messages")

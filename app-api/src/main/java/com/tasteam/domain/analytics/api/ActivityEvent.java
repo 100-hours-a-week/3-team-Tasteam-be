@@ -37,7 +37,7 @@ public record ActivityEvent(
 		}
 		occurredAt = Objects.requireNonNull(occurredAt, "occurredAt은 null일 수 없습니다.");
 		anonymousId = normalizeNullable(anonymousId);
-		properties = properties == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(properties));
+		properties = normalizeProperties(properties);
 	}
 
 	private static boolean isBlank(String value) {
@@ -49,5 +49,25 @@ public record ActivityEvent(
 			return null;
 		}
 		return value;
+	}
+
+	private static Map<String, Object> normalizeProperties(Map<String, Object> properties) {
+		if (properties == null || properties.isEmpty()) {
+			return Map.of();
+		}
+		LinkedHashMap<String, Object> normalized = new LinkedHashMap<>();
+		for (Map.Entry<String, Object> entry : properties.entrySet()) {
+			if (entry.getKey() == null || entry.getKey().isBlank()) {
+				continue;
+			}
+			if (entry.getValue() == null) {
+				continue;
+			}
+			normalized.put(entry.getKey(), entry.getValue());
+		}
+		if (normalized.isEmpty()) {
+			return Map.of();
+		}
+		return Map.copyOf(normalized);
 	}
 }

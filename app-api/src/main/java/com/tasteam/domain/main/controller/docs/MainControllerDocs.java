@@ -9,6 +9,7 @@ import com.tasteam.domain.main.dto.response.HomePageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,6 +17,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+@SwaggerTagOrder(25)
 @Tag(name = "Main", description = "메인 페이지 API")
 public interface MainControllerDocs {
 

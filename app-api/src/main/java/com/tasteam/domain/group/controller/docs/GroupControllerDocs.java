@@ -30,6 +30,7 @@ import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.group.GroupSwaggerErrorResponseDescription;
 import com.tasteam.global.swagger.error.code.subgroup.SubgroupSwaggerErrorResponseDescription;
 
@@ -42,6 +43,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 
+@SwaggerTagOrder(15)
 @Tag(name = "Group", description = "그룹 관리 API")
 public interface GroupControllerDocs {
 

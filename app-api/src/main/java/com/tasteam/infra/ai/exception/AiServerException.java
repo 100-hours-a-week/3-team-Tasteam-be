@@ -25,6 +25,10 @@ public class AiServerException extends ExternalServiceException {
 		return new AiServerException(AiErrorCode.AI_TIMEOUT, "AI server timeout");
 	}
 
+	public static AiServerException unavailable(String requestId, String message) {
+		return new AiServerException(AiErrorCode.AI_UNAVAILABLE, message != null ? message : "AI server unavailable");
+	}
+
 	public static AiServerException unknown(Exception e, String requestId) {
 		return new AiServerException(AiErrorCode.AI_UNAVAILABLE, e.getMessage());
 	}

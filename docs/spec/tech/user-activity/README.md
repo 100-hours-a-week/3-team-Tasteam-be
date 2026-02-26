@@ -1,492 +1,410 @@
 | 항목 | 내용 |
 |---|---|
-| 문서 제목 | 사용자 이벤트 수집(User Activity Collection) 모듈 테크 스펙 |
-| 문서 목적 | 도메인 의존을 최소화한 내부 이벤트 수집 아키텍처를 정의하고, 장애 격리·중복/손실 관리·PostHog 확장을 포함한 운영 기준을 고정한다. |
+| 문서 제목 | 사용자 이벤트 수집(User Activity Collection) 모듈 구현 문서 |
+| 문서 목적 | 현재 브랜치 기준의 실제 구현을 기준으로 수집 파이프라인 구조, 데이터 흐름, 확장 경계, 운영 추적 포인트를 명확히 정리한다. |
 | 작성 및 관리 | Backend Team |
 | 최초 작성일 | 2026.02.18 |
-| 최종 수정일 | 2026.02.18 |
-| 문서 버전 | v0.2 |
+| 최종 수정일 | 2026.02.20 |
+| 문서 버전 | v1.0 |
 
 <br>
 
-# 사용자 이벤트 수집(User Activity Collection) - BE 테크스펙
+# 사용자 이벤트 수집(User Activity Collection) - 구현 현황
 
 ---
 
-# **[1] 배경 (Background)**
+# **[1] 배경과 목표 (Background & Objective)**
 
-## **[1-1] 목표 (Objective)**
+## **[1-1] 배경**
 
-- 사용자 이벤트 수집 기능이 개별 도메인 서비스에 강결합되지 않도록 설계한다.
-- 수집 장애가 API/도메인 핵심 트랜잭션을 실패시키지 않도록 격리한다.
-- OCP 원칙으로 신규 이벤트/신규 외부 sink를 “기존 코드 수정 최소” 방식으로 확장한다.
-- 내부 저장소를 source of truth로 두고, PostHog는 선택적 downstream sink로 둔다.
+- 사용자 이벤트 수집이 도메인 서비스 구현에 직접 결합되면 변경 비용과 회귀 위험이 커진다.
+- 외부 분석 도구(PostHog) 장애가 핵심 비즈니스 기능으로 전파되면 안 된다.
+- MQ 기반 수집은 중복/재시도/장애복구 운영 규칙이 없으면 장기 운영이 어렵다.
 
-핵심 결과(초안):
+## **[1-2] 목표**
 
-- 도메인 트랜잭션에 대한 수집 기능 기인 장애 전파율: `0%`
-- 서버 사실 이벤트(final store 기준) 중복률: `0%` (`event_id` unique)
-- 서버 사실 이벤트 손실률(비재난 조건): `0%` 목표
-- PostHog 전송 지연 p95: `10분` 이내
+- 도메인 이벤트를 정규화(`ActivityEvent`)하여 확장 가능한 수집 경로를 제공한다.
+- 내부 저장소(`user_activity_event`)를 기준 데이터(source of truth)로 유지한다.
+- 장애를 격리하고 재처리 가능한 구조(source outbox, dispatch outbox)를 제공한다.
+- 클라이언트 UI 이벤트도 동일 저장 경로에 수렴시킨다.
 
-## **[1-2] 문제 정의 (Problem)**
+## **[1-3] 범위 / 비범위**
 
-- 이벤트 수집 로직이 도메인 서비스 내부로 스며들면 변경 비용과 회귀 위험이 증가한다.
-- 외부 분석 도구(PostHog) 장애가 내부 기능 장애로 전이되면 안 된다.
-- MQ는 기본적으로 at-least-once 경향이므로 중복/순서/손실 정책을 명시하지 않으면 운영 분쟁이 발생한다.
+범위:
+- 서버 도메인 이벤트 수집
+- 클라이언트 ingest API 수집
+- source outbox + MQ + 최종 저장
+- PostHog 비동기 dispatch
+- 운영 조회/재처리 경로
 
-## **[1-3] 설계 원칙 (Design Principles)**
-
-1. **Dependency Inversion**
-   - 도메인은 `analytics` 구현체를 모른다.
-   - analytics 모듈이 도메인 이벤트를 “구독”하고 매핑한다.
-2. **Open/Closed Principle**
-   - 신규 이벤트 추가 시 `Mapper` 클래스 추가만으로 확장한다.
-   - 신규 sink(PostHog 외) 추가 시 `ActivitySink` 구현 추가로 확장한다.
-3. **Failure Isolation**
-   - 수집 실패는 도메인 응답 성공/실패와 분리한다.
-   - 외부 sink 실패는 내부 저장 성공을 롤백하지 않는다.
-4. **Idempotent At-least-once**
-   - 전송은 at-least-once를 채택하되 최종 저장은 `effectively-once`(중복제거)로 수렴한다.
+비범위:
+- 이벤트 스키마 자동 버전 업그레이드
+- PostHog 이외 다중 외부 sink 동시 운영
+- 검색 이벤트(`search.executed`) 자동 수집 구현
 
 ---
 
 # **[2] 모듈 구조 (Module Structure)**
 
-## **[2-1] 경계와 의존 방향**
+## **[2-1] 패키지와 책임**
 
-- Domain Layer
-  - 기존 도메인 이벤트 발행 책임만 유지
-  - analytics 구현 세부사항 참조 금지
-- Analytics Application Layer
-  - 도메인 이벤트 -> Canonical Activity Event 변환
-  - 내부 저장/외부 전송 오케스트레이션
-- Infra Layer
-  - MQ/DB/PostHog 어댑터 구현
+| 패키지 | 책임 | 대표 클래스 |
+|---|---|---|
+| `com.tasteam.domain.analytics.api` | 정규화 이벤트/확장 포트 계약 | `ActivityEvent`, `ActivitySink`, `ActivityEventMapper<T>` |
+| `com.tasteam.domain.analytics.application` | 도메인 이벤트 매핑 및 sink 오케스트레이션 | `ActivityDomainEventListener`, `ActivityEventOrchestrator`, `ActivityEventMapperRegistry` |
+| `com.tasteam.domain.analytics.persistence` | 최종 이벤트 저장 및 저장 후 hook 확장점 | `UserActivityEventStoreService`, `UserActivityEventJdbcRepository`, `UserActivityStoredHook` |
+| `com.tasteam.domain.analytics.resilience` | source outbox 저장/상태관리/재처리 | `UserActivitySourceOutboxService`, `UserActivityReplayService`, `UserActivitySourceOutboxJdbcRepository` |
+| `com.tasteam.infra.messagequeue` | MQ 발행/구독/관리 API/스케줄러 | `UserActivityMessageQueuePublisher`, `UserActivityMessageQueueConsumerRegistrar`, `UserActivityOutboxAdminController` |
+| `com.tasteam.domain.analytics.dispatch` | dispatch outbox/재시도/서킷브레이커 | `UserActivityDispatchOutboxDispatcher`, `UserActivityDispatchOutboxService`, `UserActivityDispatchCircuitBreaker` |
+| `com.tasteam.infra.analytics.posthog` | PostHog 어댑터 | `PosthogClient`, `PosthogSink`, `UserActivityDispatchOutboxEnqueueHook` |
+| `com.tasteam.domain.analytics.ingest` | 클라이언트 ingest API 정책/검증/레이트리밋 | `ClientActivityIngestController`, `ClientActivityIngestService`, `ClientActivityIngestRateLimiter` |
 
-의존 방향: `domain -> (none)` / `analytics -> domain event contract` / `infra -> analytics port`
+## **[2-2] 의존 경계**
 
-## **[2-2] 패키지 설계 (Target)**
+- 도메인 서비스는 analytics 구현체를 직접 참조하지 않는다.
+- analytics는 도메인 이벤트 contract를 수신하여 자체 포트(`ActivitySink`)로 전달한다.
+- 인프라 어댑터(MQ/PostHog)는 analytics 포트를 구현한다.
 
-- `app-api/src/main/java/com/tasteam/domain/analytics/api`
-  - `ActivityEvent` (정규화 이벤트 계약)
-  - `ActivitySink` (내부 저장/외부 전송 공통 포트)
-  - `ActivityEventMapper<T>` (도메인 이벤트 -> ActivityEvent 변환 포트)
-- `app-api/src/main/java/com/tasteam/domain/analytics/application`
-  - `ActivityEventOrchestrator`
-  - `ActivityEventMapperRegistry`
-  - `ActivityIngestPolicy`
-- `app-api/src/main/java/com/tasteam/domain/analytics/persistence`
-  - `UserActivityEventLog` / `UserActivityEventRepository`
-  - `UserActivityDispatchOutbox` / `UserActivityDispatchOutboxRepository`
-- `app-api/src/main/java/com/tasteam/infra/messagequeue`
-  - `UserActivityMessageQueuePublisher`
-  - `UserActivityMessageQueueConsumerRegistrar`
-  - `MessageQueueTopics.USER_ACTIVITY`
-- `app-api/src/main/java/com/tasteam/infra/analytics/posthog`
-  - `PosthogSink` (`ActivitySink` 구현)
-  - `PosthogClient`
-
-## **[2-3] OCP 확장점**
-
-- 신규 도메인 이벤트 추가:
-  - `ActivityEventMapper<NewDomainEvent>` 1개 클래스 추가
-  - 기존 orchestrator 수정 없음
-- 신규 외부 도구 추가:
-  - `ActivitySink` 구현체 추가 (`AmplitudeSink` 등)
-  - 기존 publisher/collector 수정 없음
-
-## **[2-4] 아키텍처 다이어그램**
+## **[2-3] 컴포넌트 흐름도**
 
 ```mermaid
 flowchart LR
-    subgraph Domain["Domain Modules"]
-      D1["ReviewService + ReviewEventPublisher"]
-      D2["GroupAuthService + GroupEventPublisher"]
-      D3["SearchService (optional domain event)"]
+    subgraph Domain[Domain]
+      D1["ReviewCreatedEvent"]
+      D2["GroupMemberJoinedEvent"]
     end
 
-    subgraph Analytics["domain.analytics"]
-      A1["ActivityEventMapper<T>"]
-      A2["ActivityEventMapperRegistry"]
-      A3["ActivityEventOrchestrator"]
-      A4["ActivitySink (Port)"]
+    subgraph AnalyticsApp[domain.analytics.application]
+      L["ActivityDomainEventListener"]
+      O["ActivityEventOrchestrator"]
+      R["ActivityEventMapperRegistry"]
+      M1["ReviewCreatedActivityEventMapper"]
+      M2["GroupMemberJoinedActivityEventMapper"]
     end
 
-    subgraph Infra["infra adapters"]
-      I1["UserActivity MQ Publisher/Consumer"]
-      I2["InternalStoreSink"]
-      I3["PosthogSink (optional)"]
-      I4[("user_activity_event")]
-      I5[("user_activity_dispatch_outbox")]
-      I6["PostHog API"]
+    subgraph Sinks[ActivitySink Implementations]
+      S1["UserActivitySourceOutboxSink"]
+      S2["UserActivityMessageQueuePublisher"]
     end
 
-    D1 --> A1
-    D2 --> A1
-    D3 --> A1
-    A1 --> A2 --> A3 --> I1 --> I2 --> I4
-    I2 --> I5 --> I3 --> I6
+    subgraph Infra[Infra + Storage]
+      SO[("user_activity_source_outbox")]
+      MQ["domain.user.activity topic"]
+      C["UserActivityMessageQueueConsumerRegistrar"]
+      ST["UserActivityEventStoreService"]
+      EV[("user_activity_event")]
+      HOOK["UserActivityStoredHook"]
+      DO[("user_activity_dispatch_outbox")]
+      PH["PosthogSink/PosthogClient"]
+    end
+
+    D1 --> L
+    D2 --> L
+    L --> O --> R
+    R --> M1
+    R --> M2
+    O --> S1 --> SO
+    O --> S2 --> MQ --> C --> ST --> EV
+    ST --> HOOK --> DO --> PH
 ```
 
-## **[2-5] 클래스 계약 다이어그램**
+## **[2-4] 공개 계약(Interfaces / Types)**
 
-```mermaid
-classDiagram
-    class ActivityEvent {
-      +String eventId
-      +String eventName
-      +String eventVersion
-      +Instant occurredAt
-      +Long memberId
-      +String anonymousId
-      +Map~String,Object~ properties
-    }
-
-    class ActivityEventMapper~T~ {
-      +supports(Class eventType) boolean
-      +map(T event) ActivityEvent
-    }
-
-    class ActivitySink {
-      +sink(ActivityEvent event)
-      +sinkBatch(List~ActivityEvent~ events)
-      +sinkType() String
-    }
-
-    class ActivityEventOrchestrator {
-      +handleDomainEvent(Object event)
-      +handleClientEvents(List~ActivityEvent~ events)
-    }
-
-    class InternalStoreSink {
-      +sink(ActivityEvent event)
-      +sinkBatch(List~ActivityEvent~ events)
-    }
-
-    class PosthogSink {
-      +sinkBatch(List~ActivityEvent~ events)
-    }
-
-    ActivityEventOrchestrator --> ActivityEventMapper
-    ActivityEventOrchestrator --> ActivitySink
-    InternalStoreSink ..|> ActivitySink
-    PosthogSink ..|> ActivitySink
-```
+- `ActivityEvent`: 정규화 이벤트 계약
+- `ActivitySink`: 수집 sink 확장 포트
+- `ActivityEventMapper<T>`: 도메인 이벤트 -> `ActivityEvent` 매핑 포트
+- `UserActivityStoredHook`: 최종 저장 후 후속 동작 확장 포트
+- `UserActivityDispatchSink`: dispatch 타겟 확장 포트
 
 ---
 
-# **[3] 실행 흐름 (Runtime Flow)**
+# **[3] 런타임 흐름 (Runtime Flow)**
 
-## **[3-1] 서버 사실 이벤트 경로 (권장 기본)**
+## **[3-1] 서버 도메인 이벤트 수집 흐름**
 
-설명:
-
-1. 도메인은 기존 방식대로 커밋 후 도메인 이벤트 발행
-2. Analytics Mapper가 정규화 이벤트로 변환
-3. MQ 토픽 `domain.user.activity`에 발행
-4. Consumer가 내부 저장소(`user_activity_event`)에 멱등 저장
-5. ACK는 DB 커밋 후 수행
+- 진입: `@TransactionalEventListener(phase = AFTER_COMMIT)`
+- 매핑: registry에서 이벤트 타입별 mapper 조회
+- sink 전달: 등록된 `ActivitySink` 순회, sink별 예외 격리
+- source outbox 적재: `UserActivitySourceOutboxSink`
+- MQ 발행: `UserActivityMessageQueuePublisher`
+- 최종 저장: consumer -> `UserActivityEventStoreService` -> `user_activity_event`
+- 저장 후 hook: PostHog 활성 시 dispatch outbox enqueue
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant DS as Domain Service
-    participant DEP as Domain Event Publisher
-    participant MAP as ActivityEventMapper
-    participant MQP as UserActivityMessageQueuePublisher
-    participant MQ as Redis Stream
-    participant MQC as UserActivityMessageQueueConsumer
-    participant STORE as InternalStoreSink
-    participant DB as user_activity_event
+    participant Domain as Domain Transaction
+    participant Listener as ActivityDomainEventListener
+    participant Orch as ActivityEventOrchestrator
+    participant Mapper as ActivityEventMapper
+    participant SourceOutbox as UserActivitySourceOutboxSink
+    participant MqPub as UserActivityMessageQueuePublisher
+    participant MQ as Redis Stream Topic(domain.user.activity)
+    participant MqCon as UserActivityMessageQueueConsumerRegistrar
+    participant Store as UserActivityEventStoreService
+    participant EventDB as user_activity_event
 
-    DS->>DEP: publish after commit
-    DEP->>MAP: domain event
-    MAP->>MQP: ActivityEvent(eventId)
-    MQP->>MQ: publish
-    MQ->>MQC: deliver(at-least-once)
-    MQC->>STORE: sink(event)
-    STORE->>DB: INSERT ON CONFLICT(event_id) DO NOTHING
-    DB-->>MQC: committed
-    MQC->>MQ: ACK
+    Domain->>Listener: ReviewCreatedEvent/GroupMemberJoinedEvent (after commit)
+    Listener->>Orch: handleDomainEvent(event)
+    Orch->>Mapper: map(event)
+    Mapper-->>Orch: ActivityEvent
+    Orch->>SourceOutbox: sink(activityEvent)
+    SourceOutbox->>EventDB: 없음 (source outbox table 사용)
+    Orch->>MqPub: sink(activityEvent)
+    MqPub->>MQ: publish(message)
+    MQ->>MqCon: deliver
+    MqCon->>Store: store(activityEvent)
+    Store->>EventDB: INSERT ON CONFLICT(event_id) DO NOTHING
 ```
 
-## **[3-2] 장애 격리 흐름 (PostHog 실패 시)**
+## **[3-2] 클라이언트 ingest 흐름**
 
-원칙:
-
-- 내부 저장 성공이 우선
-- PostHog 실패는 outbox 재시도로 흡수
-- 사용자 요청 흐름에는 영향 없음
+- API: `POST /api/v1/analytics/events`
+- 인증/익명 정책:
+  - 인증 사용자: `member:{id}` 키로 레이트리밋
+  - 익명 사용자: `anonymousId` 필수
+- 정책:
+  - 배치 수 제한
+  - allowlist 이벤트만 허용
+  - 레이트리밋 초과 시 429
+- 저장:
+  - `UserActivityEventStoreService` 동일 경로 재사용
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant STORE as InternalStoreSink
-    participant OX as dispatch_outbox
-    participant DIS as PosthogDispatcher
+    participant Client as Client
+    participant API as ClientActivityIngestController
+    participant Service as ClientActivityIngestService
+    participant RL as ClientActivityIngestRateLimiter
+    participant Store as UserActivityEventStoreService
+    participant EventDB as user_activity_event
+
+    Client->>API: POST /api/v1/analytics/events
+    API->>Service: ingest(memberId, anonymousId, events)
+    Service->>Service: validateBatch + validateAllowlist
+    Service->>RL: tryAcquire(rateLimitKey)
+    alt allowed
+      Service->>Store: store(ActivityEvent)
+      Store->>EventDB: INSERT ON CONFLICT(event_id) DO NOTHING
+      Service-->>API: acceptedCount
+    else blocked
+      Service-->>API: BusinessException(429)
+    end
+```
+
+## **[3-3] PostHog dispatch 흐름**
+
+- 트리거: 저장 성공 후 `UserActivityStoredHook`
+- enqueue: `user_activity_dispatch_outbox`
+- 배치 dispatch: `UserActivityDispatchScheduler` 주기 실행
+- 실패 처리: backoff 재시도 + circuit breaker
+- 격리: PostHog 실패가 내부 저장 롤백을 유발하지 않음
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Store as UserActivityEventStoreService
+    participant Hook as UserActivityDispatchOutboxEnqueueHook
+    participant Outbox as user_activity_dispatch_outbox
+    participant Dispatcher as UserActivityDispatchOutboxDispatcher
+    participant Circuit as UserActivityDispatchCircuitBreaker
+    participant Sink as PosthogSink
     participant PH as PostHog API
 
-    STORE->>OX: enqueue pending
-    DIS->>OX: poll pending
-    DIS->>PH: send batch
-    alt success
-      DIS->>OX: mark SENT
-    else timeout/5xx
-      DIS->>OX: retry_count++, next_retry_at
+    Store->>Hook: afterStored(event)
+    Hook->>Outbox: enqueue(PENDING)
+
+    loop Scheduled dispatch
+      Dispatcher->>Circuit: allowRequest?
+      alt circuit open
+        Dispatcher-->>Dispatcher: skip batch
+      else circuit closed
+        Dispatcher->>Outbox: find candidates
+        Dispatcher->>Sink: dispatch(event)
+        Sink->>PH: /capture/
+        alt success
+          Dispatcher->>Outbox: mark DISPATCHED
+          Dispatcher->>Circuit: recordSuccess
+        else fail
+          Dispatcher->>Outbox: mark FAILED + next_retry_at
+          Dispatcher->>Circuit: recordFailure
+        end
+      end
     end
 ```
 
 ---
 
-# **[4] 설정 계약 (Configuration Contract)**
+# **[4] 저장소 스키마 (Schema Reality)**
 
-## **[4-1] 기존 설정 활용**
+## **[4-1] 핵심 테이블**
 
-- `tasteam.message-queue.enabled`
-- `tasteam.message-queue.provider`
-- `tasteam.message-queue.topic-prefix`
-- `tasteam.message-queue.default-consumer-group`
-- `tasteam.message-queue.poll-timeout-millis`
+| 테이블 | 용도 | 멱등 기준 |
+|---|---|---|
+| `user_activity_event` | 최종 이벤트 저장소 | `event_id` unique |
+| `user_activity_source_outbox` | source 발행 보장/재처리 | `event_id` unique |
+| `user_activity_dispatch_outbox` | 외부 sink 전송 대기열 | `(event_id, sink/target)` unique |
 
-## **[4-2] 신규 설정 제안**
+## **[4-2] 현재 코드 기준 의미**
 
-```yaml
-tasteam:
-  analytics:
-    enabled: ${ANALYTICS_ENABLED:true}
-    mode: ${ANALYTICS_MODE:INTERNAL_ONLY} # INTERNAL_ONLY | INTERNAL_PLUS_POSTHOG
-    client-ingest-enabled: ${ANALYTICS_CLIENT_INGEST_ENABLED:false}
-    ingest-max-batch-size: ${ANALYTICS_INGEST_MAX_BATCH_SIZE:100}
-    ingest-rate-limit-per-minute: ${ANALYTICS_INGEST_RATE_LIMIT_PER_MINUTE:120}
-    strict-server-event-lossless: ${ANALYTICS_STRICT_SERVER_EVENT_LOSSLESS:true}
-    pii:
-      keyword-mode: ${ANALYTICS_KEYWORD_MODE:HASH}
-      store-ip: ${ANALYTICS_STORE_IP:false}
-      store-user-agent: ${ANALYTICS_STORE_USER_AGENT:false}
-    posthog:
-      enabled: ${ANALYTICS_POSTHOG_ENABLED:false}
-      host: ${ANALYTICS_POSTHOG_HOST:https://app.posthog.com}
-      project-api-key: ${ANALYTICS_POSTHOG_PROJECT_API_KEY:}
-      batch-size: ${ANALYTICS_POSTHOG_BATCH_SIZE:100}
-      timeout-ms: ${ANALYTICS_POSTHOG_TIMEOUT_MS:3000}
-      max-retries: ${ANALYTICS_POSTHOG_MAX_RETRIES:5}
-      circuit-open-seconds: ${ANALYTICS_POSTHOG_CIRCUIT_OPEN_SECONDS:60}
-```
+- 최종 중복 제거는 `user_activity_event.event_id` 기준이다.
+- source outbox는 `PENDING/PUBLISHED/FAILED` 상태를 사용한다.
+- dispatch outbox는 코드 기준 `PENDING/FAILED/DISPATCHED` 상태를 사용한다.
 
-기본 운영값:
-
-- 내부 수집 ON
-- 클라이언트 ingest OFF
-- PostHog OFF (점진 활성화)
+주의:
+- migration/코드 컬럼·상태 명칭 불일치는 `TRACEABILITY.md` 갭 리포트에 별도 정리한다.
 
 ---
 
-# **[5] 확장/마이그레이션 전략 (Extension & Migration Strategy)**
+# **[5] 설정 계약 (Configuration Contract)**
 
-## **[5-1] 단계별 도입**
+## **[5-1] application.yml 기반 설정**
 
-1. **Phase 1 (내부 저장 우선)**
-   - `review.created`, `group.joined`, `search.executed` 수집
-   - `user_activity_event` 구축 + 멱등 insert
-2. **Phase 1.5 (신뢰성 강화)**
-   - 재처리 잡 + 관리자 조회 API
-   - 컨슈머 ACK-after-commit 검증
-3. **Phase 2 (PostHog 연계)**
-   - `dispatch_outbox` + dispatcher
-   - circuit breaker / retry / dead-letter 정책 반영
-4. **Phase 3 (클라이언트 ingest)**
-   - allowlist/스키마 버전/rate-limit
-   - anonymousId + sessionId 정책 고정
+| 키 | 기본값 | 설명 |
+|---|---|---|
+| `tasteam.message-queue.enabled` | `false` | MQ 수집 경로 활성화 |
+| `tasteam.message-queue.provider` | `none` | `none/redis-stream/kafka` |
+| `tasteam.message-queue.topic-prefix` | `tasteam` | stream prefix |
+| `tasteam.message-queue.default-consumer-group` | `tasteam-api` | 기본 consumer group |
+| `tasteam.analytics.ingest.enabled` | `true` | 클라이언트 ingest API 활성화 |
+| `tasteam.analytics.ingest.max-batch-size` | `50` | ingest 배치 최대 건수 |
+| `tasteam.analytics.ingest.allowlist` | `ui.restaurant.viewed,ui.restaurant.clicked,ui.review.write_started,ui.review.submitted` | 허용 이벤트 |
+| `tasteam.analytics.ingest.rate-limit.max-requests` | `120` | 윈도우당 요청 허용 수 |
+| `tasteam.analytics.ingest.rate-limit.window` | `PT1M` | 레이트리밋 윈도우 |
+| `tasteam.analytics.dispatch.enabled` | `true` | dispatch 워커 논리 활성화 |
+| `tasteam.analytics.dispatch.batch-size` | `100` | dispatch 배치 크기 |
+| `tasteam.analytics.dispatch.fixed-delay` | `PT1M` | dispatch 주기 |
+| `tasteam.analytics.dispatch.retry.base-delay` | `PT10S` | 재시도 base delay |
+| `tasteam.analytics.dispatch.retry.max-delay` | `PT10M` | 재시도 max delay |
+| `tasteam.analytics.dispatch.circuit.failure-threshold` | `5` | circuit open 임계치 |
+| `tasteam.analytics.dispatch.circuit.open-duration` | `PT1M` | circuit open 유지 시간 |
+| `tasteam.analytics.posthog.enabled` | `false` | PostHog 경로 활성화 |
+| `tasteam.analytics.posthog.host` | `https://app.posthog.com` | PostHog host |
+| `tasteam.analytics.posthog.api-key` | 비어있음 | API key |
 
-## **[5-2] 이벤트 카탈로그 v1**
+## **[5-2] 코드에서 직접 참조되는 추가 키**
 
-- `review.created`
-  - `reviewId`, `restaurantId`, `groupId`, `subgroupId`, `hasImage`
-- `group.joined`
-  - `groupId`, `joinType`, `joinedAt`
-- `search.executed`
-  - `queryHash`, `resultGroupCount`, `resultRestaurantCount`, `hasLocation`
-
----
-
-# **[6] 전달 보장·중복·손실 정책 (Delivery Semantics)**
-
-## **[6-1] 목표 전달 보장**
-
-- 내부 저장소 기준 목표: **effectively-once**
-  - 전송 계층은 **at-least-once**
-  - 저장 계층에서 `event_id` 멱등으로 중복 제거
-- 외부(PostHog) 기준 목표: **at-least-once best effort**
-  - 중복 허용(도구 측 distinct id로 보정)
-
-## **[6-2] 허용치 (SLO/에러 버짓)**
-
-| 분류 | 손실 허용 | 중복 허용 | 목표 보장 |
-|---|---:|---:|---|
-| 서버 사실 이벤트(내부 DB) | `0%` (비재난 조건) | raw는 허용, 최종 저장 `0%` | at-least-once + idempotent |
-| 클라이언트 UI 이벤트(내부 DB) | `<= 1.0%` | `<= 0.5%` | at-least-once best effort |
-| PostHog 전송 | 내부 손실 `0%`, 외부 지연 허용 | 허용 | at-least-once best effort |
-
-비고:
-
-- “정확히 한 번(exactly-once)”은 인프라 전체에서 강제하지 않는다.
-- 대신 저장소 최종 상태를 effectively-once로 정의한다.
-
-## **[6-3] 중복 제거 전략**
-
-- `event_id`는 producer에서 UUID(v7 권장) 생성
-- DB 제약: `UNIQUE(event_id)`
-- SQL: `INSERT ... ON CONFLICT(event_id) DO NOTHING`
-
-## **[6-4] 손실 최소화 전략**
-
-- Consumer는 DB 커밋 성공 후 ACK
-- 컨슈머 실패는 재시도 큐/미처리 pending으로 회수
-- PostHog 실패는 outbox 재시도(지수 백오프)로 흡수
-
-## **[6-5] Source Publish 보장 점검 (중요)**
-
-- 현재 방식(커밋 후 즉시 MQ publish)은 프로세스 크래시 타이밍에 따라 소량 손실 가능성이 있다.
-- 서버 사실 이벤트 손실 `0%` 목표를 유지하려면 source-side transactional outbox가 필요하다.
-
-결론:
-
-1. 서버 사실 이벤트(`review.created`, `group.joined`)는 **source-side outbox 도입 권장(필수에 가깝다)**.
-2. UI/제품 분석 이벤트는 best-effort publish 허용 가능.
+| 키 | 기본값(코드) | 위치 |
+|---|---|---|
+| `tasteam.analytics.outbox.enabled` | `true` (`matchIfMissing=true`) | `UserActivitySourceOutboxSink` |
+| `tasteam.analytics.replay.batch-size` | `100` | `UserActivityReplayScheduler` |
+| `tasteam.analytics.replay.fixed-delay` | `PT1M` | `UserActivityReplayScheduler` |
 
 ---
 
-# **[7] 장애 격리 설계 (Failure Isolation)**
+# **[6] 이벤트 카탈로그 (Current vs TODO)**
 
-## **[7-1] 격리 정책**
+## **[6-1] 현재 구현된 서버 이벤트**
 
-- 도메인 요청 경로와 analytics sink 호출을 동기 결합하지 않는다.
-- 외부 sink(PostHog)는 별도 워커/스레드풀/서킷브레이커로 분리한다.
-- 내부 저장 실패 시에도 도메인 기능 영향은 정책적으로 차단한다.
-  - 단, 동일 DB 전면 장애와 같은 공통 인프라 장애는 예외
+| 이벤트명 | 생성 경로 | 매퍼 |
+|---|---|---|
+| `review.created` | `ReviewCreatedEvent` | `ReviewCreatedActivityEventMapper` |
+| `group.joined` | `GroupMemberJoinedEvent` | `GroupMemberJoinedActivityEventMapper` |
 
-## **[7-2] 장애 시 동작**
+## **[6-2] 현재 구현된 클라이언트 allowlist 기본값**
 
-1. MQ publish 실패
-   - trace 기록 + 경고
-   - 도메인 트랜잭션은 유지(커밋 이후 경로)
-2. Consumer 저장 실패
-   - ACK 미수행 -> 재전달
-   - 중복은 `event_id`로 흡수
-3. PostHog 장애
-   - dispatcher circuit open
-   - outbox 적체 허용, 내부 저장 유지
+- `ui.restaurant.viewed`
+- `ui.restaurant.clicked`
+- `ui.review.write_started`
+- `ui.review.submitted`
 
----
+## **[6-3] 문서/백로그에 있으나 미구현**
 
-# **[8] 저장소 스키마 제안 (Schema)**
-
-## **[8-1] `user_activity_event`**
-
-- 목적: 감사/재처리 가능한 정규화 이벤트 저장소
-- 핵심 제약: `UNIQUE(event_id)`
-- 권장 인덱스:
-  - `(member_id, occurred_at DESC)`
-  - `(event_name, occurred_at DESC)`
-  - `(occurred_at DESC)`
-
-권장 컬럼:
-
-- `id BIGSERIAL`
-- `event_id VARCHAR(64) NOT NULL`
-- `event_name VARCHAR(100) NOT NULL`
-- `event_version VARCHAR(20) NOT NULL`
-- `occurred_at TIMESTAMPTZ NOT NULL`
-- `member_id BIGINT NULL`
-- `anonymous_id VARCHAR(100) NULL`
-- `session_id VARCHAR(100) NULL`
-- `source VARCHAR(20) NOT NULL`
-- `request_path VARCHAR(255) NULL`
-- `request_method VARCHAR(10) NULL`
-- `device_id VARCHAR(100) NULL`
-- `platform VARCHAR(30) NULL`
-- `app_version VARCHAR(30) NULL`
-- `locale VARCHAR(20) NULL`
-- `properties JSONB NOT NULL`
-- `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
-
-## **[8-2] `user_activity_dispatch_outbox`**
-
-- 목적: 외부 sink 전달/재시도 추적
-- 핵심 컬럼:
-  - `event_id`, `sink_type`, `status`, `retry_count`, `next_retry_at`, `last_error`, `updated_at`
+- `search.executed` 서버 이벤트 매퍼/연계
 
 ---
 
-# **[9] 보안/개인정보 정책 (PII Policy)**
+# **[7] 코드 경로 맵 (Code Path Map)**
 
-- 저장 금지:
-  - JWT/AccessToken/RefreshToken
-  - 이메일/전화번호 원문
-  - 리뷰 본문 원문
-- 검색어는 기본 `HASH` 저장
-- IP/User-Agent는 기본 미저장(필요 시 해시)
-- 로그 출력 시 `properties` 전체 출력 금지(allowlist 필드만)
+## **[7-1] API 엔드포인트**
+
+- `POST /api/v1/analytics/events` -> `ClientActivityIngestController`
+- `GET /api/v1/admin/user-activity/outbox/summary` -> `UserActivityOutboxAdminController`
+- `POST /api/v1/admin/user-activity/outbox/replay` -> `UserActivityOutboxAdminController`
+- `GET /api/v1/admin/mq-traces` -> `MessageQueueTraceAdminController`
+
+## **[7-2] 보안 정책 연결**
+
+- 공개 엔드포인트 허용: `ApiEndpointSecurityPolicy.publicEndpoints()`
+- URL 상수: `ApiEndpoints.ANALYTICS_EVENTS`
+
+## **[7-3] 스토리지/재처리/dispatch 핵심 클래스**
+
+- 최종 저장: `UserActivityEventJdbcRepository`, `UserActivityEventStoreService`
+- source outbox: `UserActivitySourceOutboxJdbcRepository`, `UserActivitySourceOutboxService`, `UserActivityReplayService`
+- dispatch outbox: `UserActivityDispatchOutboxJdbcRepository`, `UserActivityDispatchOutboxService`, `UserActivityDispatchOutboxDispatcher`
+
+---
+
+# **[8] 전달 보장과 장애 격리 (Guarantees & Best Effort)**
+
+| 구간 | 보장 수준 | 근거 |
+|---|---|---|
+| 도메인 이벤트 리스닝 | 핵심 트랜잭션과 분리 | `AFTER_COMMIT`, listener/orchestrator 예외 격리 |
+| source outbox 적재 | 중복 억제 + 재처리 가능 | `ON CONFLICT(event_id) DO NOTHING`, status/replay |
+| MQ 전달 | at-least-once 성향 | consumer 성공 시 ACK |
+| 최종 저장 | effectively-once | `user_activity_event` unique(event_id) |
+| PostHog 전송 | at-least-once best effort | dispatch outbox + retry + circuit |
+
+Best effort 구간:
+- 외부 PostHog 전달 성공 시점
+- MQ 비활성(`provider=none`) 환경의 source outbox 적체 해소
+
+---
+
+# **[9] 확장 전략 (Extension Strategy)**
+
+## **[9-1] 신규 서버 이벤트 추가**
+
+1. `ActivityEventMapper<NewDomainEvent>` 구현 추가
+2. `sourceType()`으로 타입 등록
+3. 필요 시 properties 스키마 정의
+
+기존 오케스트레이터/레지스트리 수정 없이 확장 가능.
+
+## **[9-2] 신규 외부 sink 추가**
+
+1. `UserActivityDispatchTarget` 확장
+2. `UserActivityDispatchSink` 구현 추가
+3. outbox enqueue hook 또는 라우팅 규칙 추가
+
+## **[9-3] 클라이언트 이벤트 확장**
+
+1. allowlist 설정에 이벤트명 추가
+2. 프론트 이벤트 payload 스키마 합의
+3. 필요 시 ingest validation 규칙 강화
 
 ---
 
 # **[10] 리뷰 체크리스트 (Review Checklist)**
 
-- 모듈화
-  - 도메인 서비스가 analytics 구현체를 import하지 않는가
-  - mapper/sink 추가만으로 확장이 가능한가(OCP)
-- 안정성
-  - ACK-after-commit이 보장되는가
-  - `event_id` unique + upsert가 적용되는가
-  - PostHog 장애가 내부 저장/요청 처리에 전파되지 않는가
-- 운영성
-  - trace/metric/dashboard로 적체·실패 확인이 가능한가
-  - 재처리(runbook)가 문서화되어 있는가
-- 보안
-  - 금지 필드 마스킹/차단이 테스트되는가
+- 도메인 서비스가 analytics 구현체를 직접 import하지 않는가
+- mapper 중복 등록이 없는가 (`ActivityEventMapperRegistry`)
+- `event_id` 멱등 저장이 모든 저장 경로에 적용되는가
+- source/dispatch outbox 상태 전이가 운영 가능한가
+- PostHog 장애가 내부 저장 성공을 훼손하지 않는가
+- ingest allowlist/rate-limit/anonymous 정책이 테스트로 보장되는가
+- 문서의 클래스/설정키/엔드포인트가 실제 코드와 일치하는가
 
 ---
 
-# **[11] 구현 현황 (Implementation Status)**
+# **[11] 구현 상태 및 검증 근거 (Status & Validation)**
 
-## **[11-1] 현재 구현(이미 존재)**
+- Issue #350~#355 구현분은 PR #356~#362에서 `develop` 머지 완료.
+- 단위/통합 테스트가 주요 경로를 커버한다.
 
-- 도메인 이벤트 발행 + MQ 발행/소비 패턴 구현
-- MQ trace/메트릭/운영 조회 API 구현
-- 검색 히스토리 기능 단위 수집 구현
+대표 검증 클래스:
+- `UserActivityMessageQueueFlowIntegrationTest`
+- `UserActivityEventJdbcRepositoryTest`
+- `UserActivityEventStoreServiceTest`
+- `UserActivityReplayServiceTest`
+- `UserActivityDispatchOutboxDispatcherTest`
+- `UserActivityDispatchCircuitBreakerTest`
+- `PosthogClientTest`
+- `ClientActivityIngestServiceTest`
+- `ClientActivityIngestRateLimiterTest`
+- `ClientActivityIngestControllerTest`
 
-## **[11-2] 본 모듈 TODO**
-
-- `domain.user.activity` 토픽 추가
-- mapper registry + orchestrator + sink 포트 구현
-- `user_activity_event` / `user_activity_dispatch_outbox` 마이그레이션 추가
-- `InternalStoreSink` 멱등 저장 구현
-- PostHog dispatcher(옵션) 구현
-
-## **[11-3] 검증 계획**
-
-- 단위 테스트
-  - mapper 매핑, idempotency, 마스킹 정책
-- 통합 테스트
-  - domain event -> MQ -> DB end-to-end
-  - 중복 재전달 시 최종 row 1건 보장
-  - PostHog 실패 시 내부 저장 성공 보장
-
----
-
-# **[12] Open Questions**
-
-1. `search.executed`를 기존 서비스 로직에서 직접 발행할지, 별도 AOP/Interceptor로 수집할지
-2. 서버 사실 이벤트 손실 `0%`를 위해 source-side transactional outbox를 즉시 도입할지, 2차 단계로 둘지
-3. 클라이언트 ingest를 익명 허용으로 시작할지, 인증 사용자 전용으로 시작할지
-4. PostHog sink 대상 이벤트를 전량으로 할지 allowlist로 시작할지
-
----
-
-# **[13] 변경이력**
-
-| 버전 | 일자 | 작성자 | 변경 내역 | 비고 |
-|---|---|---|---|---|
-| `v0.2` | 2026.02.18 | Devon.woo(우승화) | 의존성 역전/OCP/장애 격리/전달 보장·손실 예산 정책 반영 | 확장 |
-| `v0.1` | 2026.02.18 | Devon.woo(우승화) | 사용자 이벤트 내부 수집 + PostHog 확장 전략 초기 설계 문서 작성 | 신규 |
+자세한 이슈/PR/커밋/갭 추적은 `TRACEABILITY.md`를 따른다.
+운영 대응 절차는 `RUNBOOK.md`를 따른다.
