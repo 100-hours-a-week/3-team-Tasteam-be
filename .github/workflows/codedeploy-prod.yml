@@ -1,0 +1,124 @@
+name: Backend Deploy (CodeDeploy Prod)
+
+on:
+  push:
+    branches:
+      - 'deploy-prod'
+      - '**/deploy-prod'
+    paths:
+      - 'deploy/codedeploy/backend/**'
+      - '.github/workflows/codedeploy-prod.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: codedeploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      AWS_REGION: ap-northeast-2
+      DEPLOY_DIR: deploy/codedeploy/backend
+      ARTIFACT_FILE: codedeploy-backend-${{ github.sha }}.zip
+      IMAGE_TAG_SHA: ${{ github.sha }}
+      IMAGE_TAG_LATEST: latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend image (with GHA cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: app-api/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ env.IMAGE_TAG_SHA }}
+            ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ env.IMAGE_TAG_LATEST }}
+          cache-from: type=gha,scope=backend-codedeploy-prod
+          cache-to: type=gha,mode=max,scope=backend-codedeploy-prod
+
+      - name: Package CodeDeploy artifact
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          ECR_REPO_BACKEND: ${{ secrets.ECR_REPOSITORY_BACKEND }}
+        run: |
+          set -euo pipefail
+          cd "${DEPLOY_DIR}"
+          [ -n "${ECR_REGISTRY}" ] && [ -n "${ECR_REPO_BACKEND}" ] || { echo "ECR_REGISTRY/ECR_REPO_BACKEND secret is required"; exit 1; }
+          cat > .env.deploy <<EOF
+          ENV_NAME=prod
+          AWS_REGION=${AWS_REGION}
+          ECR_REGISTRY=${ECR_REGISTRY}
+          ECR_REPO_BACKEND=${ECR_REPO_BACKEND}
+          IMAGE_TAG=${IMAGE_TAG_SHA}
+          EOF
+
+          chmod +x deploy.sh stop.sh health.sh traffic.sh switch.sh rollback.sh
+          zip -r "${GITHUB_WORKSPACE}/${ARTIFACT_FILE}" \
+            appspec.yml \
+            deploy.sh \
+            stop.sh \
+            health.sh \
+            traffic.sh \
+            switch.sh \
+            rollback.sh \
+            docker-compose.backend.yml \
+            docker-compose.dev-infra.yml \
+            .env.deploy \
+            RUNBOOK.md
+
+      - name: Upload artifact to S3
+        env:
+          CODEDEPLOY_BUCKET: ${{ secrets.CODEDEPLOY_ARTIFACT_BUCKET }}
+        run: |
+          set -euo pipefail
+          aws s3 cp "${ARTIFACT_FILE}" "s3://${CODEDEPLOY_BUCKET}/backend/${ARTIFACT_FILE}"
+
+      - name: Trigger CodeDeploy deployment
+        id: trigger
+        env:
+          CODEDEPLOY_BUCKET: ${{ secrets.CODEDEPLOY_ARTIFACT_BUCKET }}
+          CODEDEPLOY_APP_NAME: ${{ secrets.CODEDEPLOY_APP_NAME }}
+          CODEDEPLOY_DEPLOYMENT_GROUP: ${{ secrets.CODEDEPLOY_DEPLOYMENT_GROUP }}
+        run: |
+          set -euo pipefail
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name "${CODEDEPLOY_APP_NAME}" \
+            --deployment-group-name "${CODEDEPLOY_DEPLOYMENT_GROUP}" \
+            --deployment-config-name CodeDeployDefault.OneAtATime \
+            --description "Deploy ${GITHUB_SHA}" \
+            --s3-location bucket="${CODEDEPLOY_BUCKET}",key="backend/${ARTIFACT_FILE}",bundleType=zip \
+            --query deploymentId \
+            --output text)
+
+          echo "deployment_id=${DEPLOYMENT_ID}" >> "$GITHUB_OUTPUT"
+          echo "Triggered deployment: ${DEPLOYMENT_ID}"
+
+      - name: Wait deployment result
+        env:
+          DEPLOYMENT_ID: ${{ steps.trigger.outputs.deployment_id }}
+        run: |
+          set -euo pipefail
+          aws deploy wait deployment-successful --deployment-id "${DEPLOYMENT_ID}"
+          aws deploy get-deployment --deployment-id "${DEPLOYMENT_ID}" --query 'deploymentInfo.status' --output text
