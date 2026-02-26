@@ -13,13 +13,18 @@ public record DiscordMessage(
 		@JsonProperty("color")
 		int color,
 		List<Field> fields,
-		String timestamp) {
+		String timestamp,
+		Footer footer) {
 	}
 
 	public record Field(
 		String name,
 		String value,
 		boolean inline) {
+	}
+
+	public record Footer(
+		String text) {
 	}
 
 	public static DiscordMessage from(com.tasteam.infra.webhook.WebhookMessage message) {
@@ -34,7 +39,8 @@ public record DiscordMessage(
 			message.description(),
 			colorInt,
 			fields,
-			message.timestamp().toString());
+			message.timestamp().toString(),
+			null);
 
 		return new DiscordMessage(List.of(embed));
 	}

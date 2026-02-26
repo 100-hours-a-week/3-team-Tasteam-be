@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.tasteam.domain.batch.dto.JobStatusCount;
+import com.tasteam.domain.batch.dto.JobTypeStatusCount;
 import com.tasteam.domain.batch.entity.AiJob;
 import com.tasteam.domain.batch.entity.AiJobStatus;
 import com.tasteam.domain.batch.entity.AiJobType;
@@ -34,6 +35,14 @@ public interface AiJobRepository extends JpaRepository<AiJob, Long> {
 	 */
 	@Query("SELECT new com.tasteam.domain.batch.dto.JobStatusCount(j.status, COUNT(j)) FROM AiJob j WHERE j.batchExecution.id = :batchExecutionId GROUP BY j.status")
 	List<JobStatusCount> countByBatchExecutionIdGroupByStatus(@Param("batchExecutionId")
+	Long batchExecutionId);
+
+	/**
+	 * 해당 배치 실행의 jobType+status별 Job 개수. DB에서 집계해 리포트 포맷에 사용.
+	 */
+	@Query("SELECT new com.tasteam.domain.batch.dto.JobTypeStatusCount(j.jobType, j.status, COUNT(j)) "
+		+ "FROM AiJob j WHERE j.batchExecution.id = :batchExecutionId GROUP BY j.jobType, j.status")
+	List<JobTypeStatusCount> countByBatchExecutionIdGroupByJobTypeAndStatus(@Param("batchExecutionId")
 	Long batchExecutionId);
 
 	/**
