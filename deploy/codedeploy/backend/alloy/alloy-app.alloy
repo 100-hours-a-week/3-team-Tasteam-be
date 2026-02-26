@@ -1,0 +1,140 @@
+// ── 로그 수집: Spring JSON 파일 → Loki push ──
+
+local.file_match "spring_logs" {
+  path_targets = [{"__path__" = "/var/log/tasteam/*.log"}]
+}
+
+loki.source.file "spring_logs" {
+  targets    = local.file_match.spring_logs.targets
+  forward_to = [loki.process.spring_labels.receiver]
+}
+
+loki.process "spring_labels" {
+  stage.static_labels {
+    values = { job = "spring" }
+  }
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://" + sys.env("LOKI_HOST") + ":3100/loki/api/v1/push"
+  }
+  external_labels = {
+    environment = sys.env("ENVIRONMENT"),
+    role        = sys.env("ROLE"),
+    instance    = sys.env("HOSTNAME"),
+  }
+}
+
+// ── 호스트 메트릭: node_exporter ──
+
+prometheus.exporter.unix "node" {
+  set_collectors = ["cpu", "diskstats", "filesystem", "loadavg", "meminfo", "netdev"]
+  filesystem {
+    mount_points_exclude = "^/(sys|proc|dev|host|etc)($|/)"
+  }
+}
+
+// ── 컨테이너 메트릭: cAdvisor ──
+
+prometheus.exporter.cadvisor "containers" {
+  docker_host            = "unix:///var/run/docker.sock"
+  store_container_labels = false
+}
+
+// ── PostgreSQL 메트릭 (RDS) ──
+// POSTGRES_DSN: deploy.sh가 backend.env의 DB_URL/DB_USERNAME/DB_PASSWORD로 조립 후 monitoring.env에 주입
+// RDS 로그는 CloudWatch Logs로 수집 (Alloy 대상 외)
+
+prometheus.exporter.postgres "db" {
+  data_source_names = [sys.env("POSTGRES_DSN")]
+}
+
+// ── Spring Actuator 메트릭 ──
+// Spring 컨테이너가 호스트 포트로 바인딩 → host.docker.internal:8080으로 접근
+
+prometheus.relabel "spring" {
+  forward_to = [prometheus.remote_write.default.receiver]
+  rule {
+    target_label = "instance"
+    replacement  = sys.env("HOSTNAME")
+  }
+}
+
+prometheus.scrape "spring" {
+  targets = [{
+    __address__ = "host.docker.internal:8080",
+    job         = "spring",
+  }]
+  metrics_path    = "/actuator/prometheus"
+  forward_to      = [prometheus.relabel.spring.receiver]
+  scrape_interval = "30s"
+}
+
+// ── 호스트/컨테이너/PostgreSQL 메트릭 → remote_write push ──
+
+prometheus.relabel "node" {
+  forward_to = [prometheus.remote_write.default.receiver]
+  rule {
+    target_label = "job"
+    replacement  = "node"
+  }
+  rule {
+    target_label = "instance"
+    replacement  = sys.env("HOSTNAME")
+  }
+}
+
+prometheus.scrape "node" {
+  targets         = prometheus.exporter.unix.node.targets
+  forward_to      = [prometheus.relabel.node.receiver]
+  scrape_interval = "30s"
+}
+
+prometheus.relabel "cadvisor" {
+  forward_to = [prometheus.remote_write.default.receiver]
+  rule {
+    target_label = "job"
+    replacement  = "cadvisor"
+  }
+  rule {
+    target_label = "instance"
+    replacement  = sys.env("HOSTNAME")
+  }
+}
+
+prometheus.scrape "cadvisor" {
+  targets         = prometheus.exporter.cadvisor.containers.targets
+  forward_to      = [prometheus.relabel.cadvisor.receiver]
+  scrape_interval = "30s"
+}
+
+prometheus.relabel "postgres" {
+  forward_to = [prometheus.remote_write.default.receiver]
+  rule {
+    target_label = "job"
+    replacement  = "postgres"
+  }
+  rule {
+    target_label = "instance"
+    replacement  = sys.env("HOSTNAME")
+  }
+}
+
+prometheus.scrape "postgres" {
+  targets         = prometheus.exporter.postgres.db.targets
+  forward_to      = [prometheus.relabel.postgres.receiver]
+  scrape_interval = "30s"
+}
+
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://" + sys.env("PROMETHEUS_HOST") + ":9090/api/v1/write"
+  }
+  external_labels = {
+    environment = sys.env("ENVIRONMENT"),
+    role        = sys.env("ROLE"),
+    instance    = sys.env("HOSTNAME"),
+  }
+}
