@@ -32,15 +32,16 @@ public class StorageProperties {
 	@PostConstruct
 	public void logConfiguration() {
 		log.info("=== Storage Configuration ===");
-		log.info("type: {}", type);
-		log.info("region: {}", isConfigured(region) ? region : "(not set)");
-		log.info("bucket: {}", isConfigured(bucket) ? maskValue(bucket) : "(not set)");
-		log.info("baseUrl: {}", isConfigured(baseUrl) ? baseUrl : "(not set)");
-		log.info("accessMode: {}", accessMode);
-		log.info("accessKey: {}", isConfigured(accessKey) ? "(configured)" : "(not set)");
-		log.info("secretKey: {}", isConfigured(secretKey) ? "(configured)" : "(not set)");
-		log.info("presignedExpirationSeconds: {}", presignedExpirationSeconds);
-		log.info("tempUploadPrefix: {}", tempUploadPrefix);
+		log.info("type              : {}", isConfigured(type) ? type : "(not set)");
+		log.info("region            : {}", isConfigured(region) ? region : "(not set)");
+		log.info("bucket            : {}", isConfigured(bucket) ? bucket : "(not set)");
+		log.info("baseUrl           : {}", isConfigured(baseUrl) ? baseUrl : "(not set)");
+		log.info("accessMode        : {} (presigned={})", accessMode, isPresignedAccess());
+		log.info("accessKey         : {}",
+			isConfigured(accessKey) ? maskValue(accessKey) : "(not set - DefaultChain 사용)");
+		log.info("secretKey         : {}", isConfigured(secretKey) ? "****" : "(not set - DefaultChain 사용)");
+		log.info("presignedExpirySec: {}", presignedExpirationSeconds);
+		log.info("tempUploadPrefix  : {}", tempUploadPrefix);
 		log.info("==============================");
 	}
 
