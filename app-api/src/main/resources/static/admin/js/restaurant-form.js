@@ -242,26 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const addCategoryBtn = document.getElementById('addFoodCategoryBtn');
-    const newCategoryInput = document.getElementById('newFoodCategoryName');
-
-    addCategoryBtn.addEventListener('click', async () => {
-        const name = newCategoryInput.value.trim();
-        if (!name) {
-            alert('카테고리명을 입력해주세요.');
-            return;
-        }
-
-        try {
-            const selectedIds = getSelectedCategoryIds();
-            await createFoodCategory({ name });
-            newCategoryInput.value = '';
-            await loadFoodCategories(selectedIds);
-        } catch (error) {
-            alert('카테고리 추가에 실패했습니다: ' + error.message);
-        }
-    });
-
     document.getElementById('restaurantForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
