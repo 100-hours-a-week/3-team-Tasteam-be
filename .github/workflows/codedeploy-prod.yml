@@ -85,6 +85,8 @@ jobs:
             rollback.sh \
             docker-compose.backend.yml \
             docker-compose.dev-infra.yml \
+            docker-compose.alloy.yml \
+            alloy/ \
             .env.deploy \
             RUNBOOK.md
 

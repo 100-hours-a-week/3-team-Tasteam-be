@@ -1,0 +1,24 @@
+services:
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    restart: unless-stopped
+    ports:
+      - "12345:12345"  # Alloy 자체 텔레메트리 포트
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Spring/Redis 호스트 포트 접근용
+    volumes:
+      - ${ALLOY_CONFIG_FILE}:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock  # cAdvisor + 컨테이너 로그 수집용
+      - /var/log/tasteam:/var/log/tasteam:ro         # Spring JSON 로그 읽기
+    environment:
+      - LOKI_HOST=${LOKI_HOST}
+      - PROMETHEUS_HOST=${PROMETHEUS_HOST}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - ROLE=app
+      - HOSTNAME=${HOSTNAME}
+      - POSTGRES_DSN=${POSTGRES_DSN}
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/alloy/config.alloy
