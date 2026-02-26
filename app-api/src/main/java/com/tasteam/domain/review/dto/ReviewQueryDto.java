@@ -10,6 +10,7 @@ public record ReviewQueryDto(
 	String subgroupName,
 	Long memberId,
 	String memberName,
+	String memberProfileImageUrl,
 	String content,
 	boolean isRecommended,
 	Instant createdAt,

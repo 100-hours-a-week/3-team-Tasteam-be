@@ -8,6 +8,7 @@ public record ReviewDetailQueryDto(
 	String restaurantName,
 	Long memberId,
 	String memberNickname,
+	String memberProfileImageUrl,
 	String content,
 	boolean isRecommended,
 	Instant createdAt,
