@@ -147,6 +147,9 @@ tasteam:
       maximum-size: ${LOCAL_CACHE_CAFFEINE_MAXIMUM_SIZE:1000}
       expire-after-write: ${LOCAL_CACHE_CAFFEINE_EXPIRE_AFTER_WRITE:10m}
       record-stats: ${LOCAL_CACHE_CAFFEINE_RECORD_STATS:true}
+    ttl:
+      presigned-url:
+        ttl: ${LOCAL_CACHE_PRESIGNED_URL_TTL:240s}
   webhook:
     enabled: ${WEBHOOK_ENABLED:false}
     provider: ${WEBHOOK_PROVIDER:discord}

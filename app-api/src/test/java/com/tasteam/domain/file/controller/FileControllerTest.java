@@ -37,6 +37,7 @@ import com.tasteam.domain.file.dto.response.PresignedUploadResponse;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.FilePurpose;
 import com.tasteam.domain.file.service.FileService;
+import com.tasteam.infra.storage.StorageProperties;
 
 @ControllerWebMvcTest(FileController.class)
 class FileControllerTest {
@@ -49,6 +50,9 @@ class FileControllerTest {
 
 	@MockitoBean
 	private FileService fileService;
+
+	@MockitoBean
+	private StorageProperties storageProperties;
 
 	@Nested
 	@DisplayName("프리사인드 업로드 URL 생성")
