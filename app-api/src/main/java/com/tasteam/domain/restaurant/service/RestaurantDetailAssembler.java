@@ -103,7 +103,7 @@ public class RestaurantDetailAssembler {
 			? Map.of()
 			: comparison.categoryDetails().entrySet().stream()
 				.collect(Collectors.toMap(e -> e.getKey().name(), e -> toCategoryComparisonResponse(e.getValue())));
-		return new RestaurantAiComparisonResponse(comparison.overallComparison(), categoryDetails);
+		return new RestaurantAiComparisonResponse(categoryDetails);
 	}
 
 	private AiCategoryComparisonResponse toCategoryComparisonResponse(RestaurantAiCategoryComparison detail) {
@@ -124,6 +124,11 @@ public class RestaurantDetailAssembler {
 		if (evidence == null) {
 			return null;
 		}
-		return new AiEvidenceResponse(evidence.reviewId(), evidence.snippet());
+		return new AiEvidenceResponse(
+			evidence.reviewId(),
+			evidence.snippet(),
+			evidence.authorId(),
+			evidence.authorName(),
+			evidence.createdAt());
 	}
 }

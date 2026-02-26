@@ -322,8 +322,11 @@ class RestaurantServiceIntegrationTest {
 				RestaurantComparison.create(
 					restaurant.getId(),
 					null,
-					Map.of("comparison_display", List.of("AI 특징"), "category_lift", Map.of(), "total_candidates", 0,
-						"validated_count", 0),
+					Map.of(
+						"comparison_display", List.of("서비스 만족도는 평균과 비슷합니다.", "가격 만족도는 평균보다 높은 편입니다."),
+						"category_lift", Map.of("service", -45.0, "price", 450.0),
+						"total_candidates", 10,
+						"validated_count", 1),
 					Instant.now()));
 
 			RestaurantDetailResponse detail = restaurantService.getRestaurantDetail(created.id());
@@ -340,7 +343,12 @@ class RestaurantServiceIntegrationTest {
 			assertThat(detail.aiDetails().summary()).isNotNull();
 			assertThat(detail.aiDetails().summary().overallSummary()).isEqualTo("AI 요약");
 			assertThat(detail.aiDetails().comparison()).isNotNull();
-			assertThat(detail.aiDetails().comparison().overallComparison()).isEqualTo("AI 특징");
+			assertThat(detail.aiDetails().comparison().categoryDetails())
+				.containsKeys("SERVICE", "PRICE");
+			assertThat(detail.aiDetails().comparison().categoryDetails().get("SERVICE").summary())
+				.isEqualTo("서비스 만족도는 평균과 비슷합니다.");
+			assertThat(detail.aiDetails().comparison().categoryDetails().get("PRICE").summary())
+				.isEqualTo("가격 만족도는 평균보다 높은 편입니다.");
 		}
 
 		@Test

@@ -209,7 +209,7 @@ class RestaurantControllerTest {
 			RestaurantAiDetailsResponse aiDetails = new RestaurantAiDetailsResponse(
 				new RestaurantAiSentimentResponse(83),
 				new RestaurantAiSummaryResponse("AI 요약", Map.of()),
-				new RestaurantAiComparisonResponse("AI 특징", Map.of()));
+				new RestaurantAiComparisonResponse(Map.of()));
 			RestaurantDetailResponse response = new RestaurantDetailResponse(
 				1L, "맛집식당", "서울시 강남구", "02-1234-5678", List.of("한식"),
 				List.of(), new RestaurantImageDto(1L, "https://example.com/img.jpg"),
@@ -234,7 +234,7 @@ class RestaurantControllerTest {
 			RestaurantAiDetailsResponse aiDetails = new RestaurantAiDetailsResponse(
 				new RestaurantAiSentimentResponse(83),
 				new RestaurantAiSummaryResponse("AI 요약", Map.of()),
-				new RestaurantAiComparisonResponse("AI 특징", Map.of()));
+				new RestaurantAiComparisonResponse(Map.of()));
 			RestaurantDetailResponse response = new RestaurantDetailResponse(
 				1L, "맛집식당", "서울시 강남구", "02-1234-5678", List.of("한식"),
 				List.of(), new RestaurantImageDto(1L, "https://example.com/img.jpg"),

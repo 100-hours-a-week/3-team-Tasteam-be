@@ -1,9 +1,12 @@
 package com.tasteam.domain.restaurant.service;
 
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +22,8 @@ import com.tasteam.domain.restaurant.repository.RestaurantComparisonRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantReviewSentimentRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantReviewSummaryRepository;
 import com.tasteam.domain.restaurant.type.AiReviewCategory;
+import com.tasteam.domain.review.entity.Review;
+import com.tasteam.domain.review.repository.ReviewRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,6 +37,7 @@ public class RestaurantAiSummaryService {
 	private final RestaurantComparisonRepository restaurantComparisonRepository;
 	private final RestaurantReviewSummaryRepository restaurantReviewSummaryRepository;
 	private final RestaurantReviewSentimentRepository restaurantReviewSentimentRepository;
+	private final ReviewRepository reviewRepository;
 
 	@Transactional(readOnly = true)
 	public RestaurantAiDetails getRestaurantAiDetails(long restaurantId) {
@@ -72,7 +78,43 @@ public class RestaurantAiSummaryService {
 		@SuppressWarnings("unchecked") Map<String, Object> categoriesRaw = (Map<String, Object>)summaryJson
 			.get("categories");
 		Map<AiReviewCategory, RestaurantAiCategorySummary> categoryDetails = parseCategorySummaries(categoriesRaw);
+		if (categoryDetails != null && !categoryDetails.isEmpty()) {
+			Set<Long> reviewIds = categoryDetails.values().stream()
+				.flatMap(d -> d.evidences() != null ? d.evidences().stream() : Stream.of())
+				.map(RestaurantAiEvidence::reviewId)
+				.filter(id -> id != null)
+				.collect(Collectors.toSet());
+			if (!reviewIds.isEmpty()) {
+				Map<Long, Review> reviewMap = reviewRepository.findByIdInAndDeletedAtIsNull(reviewIds).stream()
+					.collect(Collectors.toMap(Review::getId, r -> r));
+				categoryDetails = categoryDetails.entrySet().stream()
+					.collect(Collectors.toMap(Map.Entry::getKey, e -> enrichCategorySummary(e.getValue(), reviewMap),
+						(a, b) -> a, LinkedHashMap::new));
+			}
+		}
 		return new RestaurantAiSummary(overallSummary, categoryDetails != null ? categoryDetails : Map.of());
+	}
+
+	private RestaurantAiCategorySummary enrichCategorySummary(
+		RestaurantAiCategorySummary summary,
+		Map<Long, Review> reviewMap) {
+		if (summary.evidences() == null || summary.evidences().isEmpty()) {
+			return summary;
+		}
+		List<RestaurantAiEvidence> enriched = summary.evidences().stream()
+			.map(ev -> enrichEvidence(ev, reviewMap.get(ev.reviewId())))
+			.toList();
+		return new RestaurantAiCategorySummary(summary.summary(), summary.bullets(), enriched);
+	}
+
+	private RestaurantAiEvidence enrichEvidence(RestaurantAiEvidence ev, Review review) {
+		if (review == null) {
+			return ev;
+		}
+		Long authorId = review.getMember() != null ? review.getMember().getId() : null;
+		String authorName = review.getMember() != null ? review.getMember().getNickname() : null;
+		Instant createdAt = review.getCreatedAt();
+		return new RestaurantAiEvidence(ev.reviewId(), ev.snippet(), authorId, authorName, createdAt);
 	}
 
 	private Map<AiReviewCategory, RestaurantAiCategorySummary> parseCategorySummaries(
@@ -125,7 +167,10 @@ public class RestaurantAiSummaryService {
 			.map(item -> (Map<String, Object>)item)
 			.map(e -> new RestaurantAiEvidence(
 				parseReviewId(e.get("review_id")),
-				e.get("snippet") != null ? e.get("snippet").toString() : null))
+				e.get("snippet") != null ? e.get("snippet").toString() : null,
+				null,
+				null,
+				null))
 			.toList();
 	}
 
@@ -147,29 +192,45 @@ public class RestaurantAiSummaryService {
 		if (comparisonJson == null) {
 			return null;
 		}
-		String overallComparison = null;
 		Object displayObj = comparisonJson.get("comparison_display");
-		if (displayObj instanceof List<?> list && !list.isEmpty()) {
-			overallComparison = list.get(0).toString();
-		}
+		List<String> comparisonDisplay = toDisplayList(displayObj);
 		Map<AiReviewCategory, RestaurantAiCategoryComparison> categoryDetails = parseCategoryComparisons(
-			comparisonJson.get("category_lift"));
-		return new RestaurantAiComparison(overallComparison, categoryDetails != null ? categoryDetails : Map.of());
+			comparisonJson.get("category_lift"), comparisonDisplay);
+		return new RestaurantAiComparison(categoryDetails != null ? categoryDetails : Map.of());
 	}
 
 	@SuppressWarnings("unchecked")
-	private Map<AiReviewCategory, RestaurantAiCategoryComparison> parseCategoryComparisons(Object categoryLiftObj) {
+	private List<String> toDisplayList(Object comparisonDisplay) {
+		if (!(comparisonDisplay instanceof List<?> list)) {
+			return List.of();
+		}
+		return list.stream()
+			.map(o -> o != null ? o.toString() : null)
+			.toList();
+	}
+
+	/**
+	 * comparison_display 순서([0]=서비스, [1]=가격)에 맞춰 고정 카테고리 순서로 매핑.
+	 * Map.entrySet() 순서는 보장되지 않으므로, 인덱스로 문장을 매칭하면 가격/서비스가 바뀌는 문제가 발생함.
+	 */
+	@SuppressWarnings("unchecked")
+	private Map<AiReviewCategory, RestaurantAiCategoryComparison> parseCategoryComparisons(
+		Object categoryLiftObj,
+		List<String> comparisonDisplay) {
 		if (!(categoryLiftObj instanceof Map<?, ?> map)) {
 			return Map.of();
 		}
 		Map<String, Object> m = (Map<String, Object>)map;
 		Map<AiReviewCategory, RestaurantAiCategoryComparison> result = new LinkedHashMap<>();
-		for (Map.Entry<String, Object> entry : m.entrySet()) {
-			AiReviewCategory.fromJsonKey(entry.getKey()).ifPresent(category -> {
-				Double liftScore = toDouble(entry.getValue());
-				result.put(category, new RestaurantAiCategoryComparison(
-					null, List.of(), List.of(), liftScore));
-			});
+		// AI 응답 순서: comparison_display[0]=서비스, [1]=가격
+		List<AiReviewCategory> displayOrder = List.of(AiReviewCategory.SERVICE, AiReviewCategory.PRICE);
+		for (int i = 0; i < displayOrder.size(); i++) {
+			AiReviewCategory category = displayOrder.get(i);
+			Object liftValue = m.get(category.getJsonKey());
+			Double liftScore = toDouble(liftValue);
+			String summary = i < comparisonDisplay.size() ? comparisonDisplay.get(i) : null;
+			result.put(category, new RestaurantAiCategoryComparison(
+				summary, List.of(), List.of(), liftScore));
 		}
 		return result;
 	}
