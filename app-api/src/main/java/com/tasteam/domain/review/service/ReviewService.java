@@ -110,7 +110,8 @@ public class ReviewService {
 				review.restaurantName()),
 			new ReviewDetailResponse.AuthorResponse(
 				review.memberId(),
-				review.memberNickname()),
+				review.memberNickname(),
+				review.memberProfileImageUrl()),
 			review.content(),
 			review.isRecommended(),
 			keywords,
@@ -337,7 +338,9 @@ public class ReviewService {
 				review.subgroupId(),
 				review.groupName(),
 				review.subgroupName(),
-				new ReviewResponse.AuthorResponse(review.memberName()),
+				new ReviewResponse.AuthorResponse(
+					review.memberName(),
+					review.memberProfileImageUrl()),
 				review.content(),
 				review.isRecommended(),
 				reviewKeywords.getOrDefault(review.reviewId(), List.of()),
