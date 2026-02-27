@@ -66,6 +66,12 @@ dependencies {
     implementation "nl.martijndwars:web-push:5.1.2"
 
     /* ==================================================
+     * Email
+     * ================================================== */
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+    /* ==================================================
      * Observability / API Docs
      * ================================================== */
     implementation "org.springframework.boot:spring-boot-starter-actuator:3.5.9"
