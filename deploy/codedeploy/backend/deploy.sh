@@ -257,18 +257,14 @@ start_alloy() {
   fetch_ssm_env "/${ENV_NAME}/tasteam/monitoring" "${MONITORING_ENV_FILE}"
   printf 'ENVIRONMENT=%s\nHOSTNAME=%s\n' "${ENV_NAME}" "$(hostname)" >> "${MONITORING_ENV_FILE}"
 
-  # POSTGRES_DSN 조립 (postgres exporter용)
-  local db_user db_pass db_url
-  db_user="$(read_env_value "DB_USERNAME")"
-  db_pass="$(read_env_value "DB_PASSWORD")"
+  # POSTGRES_DSN 조립 (dev postgres exporter용)
+  # prod RDS 메트릭은 shared 모니터링 서버의 Alloy에서 수집
   if [ "${ENV_NAME}" = "dev" ]; then
+    local db_user db_pass
+    db_user="$(read_env_value "DB_USERNAME")"
+    db_pass="$(read_env_value "DB_PASSWORD")"
     printf 'POSTGRES_DSN=postgresql://%s:%s@host.docker.internal:5432/tasteam?sslmode=disable\n' \
       "${db_user}" "${db_pass}" >> "${MONITORING_ENV_FILE}"
-  else
-    db_url="$(read_env_value "DB_URL")"
-    local pg_addr="${db_url#jdbc:postgresql://}"
-    printf 'POSTGRES_DSN=postgresql://%s:%s@%s?sslmode=require\n' \
-      "${db_user}" "${db_pass}" "${pg_addr}" >> "${MONITORING_ENV_FILE}"
   fi
 
   local alloy_config="${SCRIPT_DIR}/alloy/alloy-app.alloy"
