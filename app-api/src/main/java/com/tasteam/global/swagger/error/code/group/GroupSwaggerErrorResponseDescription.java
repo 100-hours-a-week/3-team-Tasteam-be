@@ -34,7 +34,8 @@ public enum GroupSwaggerErrorResponseDescription implements SwaggerErrorResponse
 	GROUP_EMAIL_AUTHENTICATION(new LinkedHashSet<>(Set.of(
 		CommonErrorCode.INVALID_REQUEST,
 		GroupErrorCode.GROUP_NOT_FOUND,
-		GroupErrorCode.EMAIL_CODE_MISMATCH))),
+		GroupErrorCode.EMAIL_TOKEN_INVALID,
+		GroupErrorCode.EMAIL_TOKEN_EXPIRED))),
 	GROUP_PASSWORD_AUTHENTICATION(new LinkedHashSet<>(Set.of(
 		CommonErrorCode.INVALID_REQUEST,
 		GroupErrorCode.GROUP_NOT_FOUND,

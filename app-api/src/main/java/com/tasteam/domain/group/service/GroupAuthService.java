@@ -1,12 +1,12 @@
 package com.tasteam.domain.group.service;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.concurrent.ThreadLocalRandom;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import com.tasteam.domain.group.dto.GroupEmailAuthenticationResponse;
 import com.tasteam.domain.group.dto.GroupEmailVerificationResponse;
@@ -17,10 +17,13 @@ import com.tasteam.domain.group.entity.GroupMember;
 import com.tasteam.domain.group.event.GroupEventPublisher;
 import com.tasteam.domain.group.repository.GroupAuthCodeRepository;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
+import com.tasteam.domain.group.service.GroupInviteTokenService.InviteClaims;
+import com.tasteam.domain.group.service.GroupInviteTokenService.InviteToken;
 import com.tasteam.domain.group.type.GroupJoinType;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.group.type.GroupType;
 import com.tasteam.domain.member.repository.MemberRepository;
+import com.tasteam.global.config.DomainProperties;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
@@ -39,6 +42,8 @@ public class GroupAuthService {
 	private final PasswordEncoder passwordEncoder;
 	private final EmailSender emailSender;
 	private final GroupEventPublisher groupEventPublisher;
+	private final GroupInviteTokenService groupInviteTokenService;
+	private final DomainProperties domainProperties;
 
 	@Transactional
 	public void saveInitialPasswordCode(Group group, String code) {
@@ -60,50 +65,46 @@ public class GroupAuthService {
 		}
 
 		validateEmailDomain(email, group.getEmailDomain());
-		Instant now = Instant.now();
-		if (groupAuthCodeRepository.existsByGroupIdAndExpiresAtAfterAndVerifiedAtIsNull(group.getId(), now)) {
-			throw new BusinessException(GroupErrorCode.EMAIL_ALREADY_EXISTS);
-		}
 
-		String code = generateVerificationCode();
-		Instant expiresAt = now.plus(Duration.ofMinutes(10));
-		GroupAuthCode authCode = groupAuthCodeRepository.save(GroupAuthCode.builder()
-			.groupId(group.getId())
-			.code(code)
-			.email(email)
-			.expiresAt(expiresAt)
-			.build());
-
-		emailSender.sendGroupJoinVerification(email, code, expiresAt);
-		return GroupEmailVerificationResponse.from(authCode);
+		InviteToken inviteToken = groupInviteTokenService.issue(group.getId(), email);
+		String verificationUrl = buildVerificationUrl(group.getId(), inviteToken.token());
+		emailSender.sendGroupJoinVerificationLink(email, verificationUrl, inviteToken.expiresAt());
+		return new GroupEmailVerificationResponse(inviteToken.expiresAt());
 	}
 
 	@Transactional
-	public GroupEmailAuthenticationResponse authenticateGroupByEmail(Group group, Long memberId, String code) {
+	public GroupEmailAuthenticationResponse authenticateGroupByEmail(Group group, Long memberId, String token) {
 		if (group.getJoinType() != GroupJoinType.EMAIL) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 
-		GroupAuthCode authCode = groupAuthCodeRepository
-			.findByGroupIdAndCodeAndExpiresAtAfterAndVerifiedAtIsNull(group.getId(), code, Instant.now())
-			.orElseThrow(() -> new BusinessException(GroupErrorCode.EMAIL_CODE_MISMATCH));
+		InviteClaims claims = groupInviteTokenService.parse(token);
+		if (!group.getId().equals(claims.groupId())) {
+			throw new BusinessException(GroupErrorCode.EMAIL_TOKEN_INVALID);
+		}
+
+		var member = memberRepository.findByIdAndDeletedAtIsNull(memberId)
+			.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
+		if (!StringUtils.hasText(member.getEmail()) || !member.getEmail().equalsIgnoreCase(claims.email())) {
+			throw new BusinessException(GroupErrorCode.EMAIL_TOKEN_INVALID);
+		}
 
 		GroupMember groupMember = groupMemberRepository
-			.findByGroupIdAndMember_Id(group.getId(), memberId)
+			.findByGroupIdAndMember_Id(group.getId(), member.getId())
 			.orElse(null);
 
 		if (groupMember == null) {
 			groupMember = groupMemberRepository.save(GroupMember.create(
 				group.getId(),
-				memberRepository.findByIdAndDeletedAtIsNull(memberId)
-					.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND))));
+				member));
 		} else if (groupMember.getDeletedAt() != null) {
 			groupMember.restore();
+		} else {
+			return new GroupEmailAuthenticationResponse(true, groupMember.getCreatedAt());
 		}
 
-		authCode.verify(Instant.now());
-		groupEventPublisher.publishMemberJoined(group.getId(), memberId, group.getName(), groupMember.getCreatedAt());
-
+		groupEventPublisher.publishMemberJoined(group.getId(), member.getId(), group.getName(),
+			groupMember.getCreatedAt());
 		return new GroupEmailAuthenticationResponse(true, groupMember.getCreatedAt());
 	}
 
@@ -148,8 +149,12 @@ public class GroupAuthService {
 		}
 	}
 
-	private String generateVerificationCode() {
-		int code = ThreadLocalRandom.current().nextInt(100000, 1000000);
-		return String.valueOf(code);
+	private String buildVerificationUrl(Long groupId, String token) {
+		if (!StringUtils.hasText(domainProperties.getService())) {
+			throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
+		}
+		String encodedToken = URLEncoder.encode(token, StandardCharsets.UTF_8);
+		return domainProperties.getService() + "/api/v1/groups/" + groupId + "/email-authentications?token="
+			+ encodedToken;
 	}
 }

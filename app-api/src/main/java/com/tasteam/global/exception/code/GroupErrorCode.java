@@ -15,6 +15,8 @@ public enum GroupErrorCode implements ErrorCode {
 	ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 존재하는 그룹입니다"),
 	EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 유효한 인증 코드가 존재합니다"),
 	EMAIL_CODE_MISMATCH(HttpStatus.CONFLICT, "인증 코드가 일치하지 않습니다"),
+	EMAIL_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "이메일 인증 토큰이 유효하지 않습니다"),
+	EMAIL_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "이메일 인증 토큰이 만료되었습니다"),
 	GROUP_PASSWORD_MISMATCH(HttpStatus.CONFLICT, "비밀번호가 일치하지 않습니다");
 
 	private final HttpStatus httpStatus;

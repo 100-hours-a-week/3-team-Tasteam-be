@@ -49,7 +49,6 @@ import com.tasteam.domain.subgroup.entity.SubgroupMember;
 import com.tasteam.domain.subgroup.repository.SubgroupMemberRepository;
 import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.domain.subgroup.type.SubgroupJoinType;
-import com.tasteam.fixture.GroupAuthCodeFixture;
 import com.tasteam.fixture.GroupFixture;
 import com.tasteam.fixture.GroupMemberFixture;
 import com.tasteam.fixture.GroupRequestFixture;
@@ -82,6 +81,9 @@ class GroupFacadeIntegrationTest {
 
 	@Autowired
 	private GroupAuthCodeRepository groupAuthCodeRepository;
+
+	@Autowired
+	private GroupInviteTokenService groupInviteTokenService;
 
 	@Autowired
 	private SubgroupRepository subgroupRepository;
@@ -289,16 +291,14 @@ class GroupFacadeIntegrationTest {
 		}
 
 		@Test
-		@DisplayName("이메일 인증을 발송하면 6자리 코드가 생성되고 expiresAt이 10분 후로 설정된다")
+		@DisplayName("이메일 인증 링크를 발송하면 만료시간(5분)이 반환되고 메일 발송이 호출된다")
 		void sendGroupEmailVerification_success() {
 			Instant before = Instant.now();
 
-			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
+			var response = groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
 
-			verify(emailSender, times(1)).sendGroupJoinVerification(anyString(), anyString(), any(Instant.class));
-			GroupAuthCode authCode = groupAuthCodeRepository.findByGroupId(emailGroup.getId()).get();
-			assertThat(authCode.getCode()).hasSize(6);
-			assertThat(authCode.getExpiresAt()).isAfter(before.plusSeconds(590));
+			verify(emailSender, times(1)).sendGroupJoinVerificationLink(anyString(), anyString(), any(Instant.class));
+			assertThat(response.expiresAt()).isAfter(before.plusSeconds(290));
 		}
 
 		@Test
@@ -310,13 +310,11 @@ class GroupFacadeIntegrationTest {
 		}
 
 		@Test
-		@DisplayName("이미 미검증 코드가 존재하고 유효 시간 내인 경우 예외를 발생시킨다")
-		void sendGroupEmailVerification_alreadyPending_throwsBusinessException() {
+		@DisplayName("유효시간 내에도 이메일 인증 링크 재발송이 가능하다")
+		void sendGroupEmailVerification_resend_success() {
 			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
-
-			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
-				emailGroup.getId(), "user2@example.com"))
-				.isInstanceOf(BusinessException.class);
+			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
+			verify(emailSender, times(2)).sendGroupJoinVerificationLink(anyString(), anyString(), any(Instant.class));
 		}
 	}
 
@@ -325,7 +323,7 @@ class GroupFacadeIntegrationTest {
 	class AuthenticateByEmail {
 
 		private Group emailGroup;
-		private String verificationCode;
+		private String verificationToken;
 
 		@BeforeEach
 		void setUp() {
@@ -333,15 +331,14 @@ class GroupFacadeIntegrationTest {
 			GroupCreateResponse response = groupFacade.createGroup(request);
 			emailGroup = groupRepository.findById(response.id()).get();
 			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
-			GroupAuthCode authCode = groupAuthCodeRepository.findByGroupId(emailGroup.getId()).get();
-			verificationCode = authCode.getCode();
+			verificationToken = groupInviteTokenService.issue(emailGroup.getId(), member3.getEmail()).token();
 		}
 
 		@Test
-		@DisplayName("올바른 코드와 유효 시간 내 인증 시 가입 성공하고 GroupMember가 생성된다")
+		@DisplayName("올바른 토큰으로 인증 시 가입 성공하고 GroupMember가 생성된다")
 		void authenticateGroupByEmail_success() {
 			GroupEmailAuthenticationResponse response = groupFacade.authenticateGroupByEmail(
-				emailGroup.getId(), member3.getId(), verificationCode);
+				emailGroup.getId(), member3.getId(), verificationToken);
 
 			assertThat(response.verified()).isTrue();
 			assertThat(groupMemberRepository.findByGroupIdAndMember_IdAndDeletedAtIsNull(
@@ -349,23 +346,18 @@ class GroupFacadeIntegrationTest {
 		}
 
 		@Test
-		@DisplayName("만료된 코드는 예외를 발생시킨다")
-		void authenticateGroupByEmail_expiredCode_throwsBusinessException() {
-			GroupAuthCode authCode = groupAuthCodeRepository.findByGroupId(emailGroup.getId()).get();
-			groupAuthCodeRepository.save(GroupAuthCodeFixture.expire(
-				authCode,
-				Instant.now().minusSeconds(1)));
-
+		@DisplayName("토큰의 이메일과 로그인 사용자 이메일이 다르면 예외를 발생시킨다")
+		void authenticateGroupByEmail_emailMismatch_throwsBusinessException() {
 			assertThatThrownBy(() -> groupFacade.authenticateGroupByEmail(
-				emailGroup.getId(), member3.getId(), verificationCode))
+				emailGroup.getId(), member1.getId(), verificationToken))
 				.isInstanceOf(BusinessException.class);
 		}
 
 		@Test
-		@DisplayName("틀린 코드는 예외를 발생시킨다")
-		void authenticateGroupByEmail_wrongCode_throwsBusinessException() {
+		@DisplayName("유효하지 않은 토큰은 예외를 발생시킨다")
+		void authenticateGroupByEmail_invalidToken_throwsBusinessException() {
 			assertThatThrownBy(() -> groupFacade.authenticateGroupByEmail(
-				emailGroup.getId(), member3.getId(), "999999"))
+				emailGroup.getId(), member3.getId(), "invalid-token"))
 				.isInstanceOf(BusinessException.class);
 		}
 
@@ -375,7 +367,7 @@ class GroupFacadeIntegrationTest {
 			GroupMember membership = groupMemberRepository.save(GroupMemberFixture.create(emailGroup.getId(), member3));
 			membership.softDelete(Instant.now());
 
-			groupFacade.authenticateGroupByEmail(emailGroup.getId(), member3.getId(), verificationCode);
+			groupFacade.authenticateGroupByEmail(emailGroup.getId(), member3.getId(), verificationToken);
 
 			GroupMember restored = groupMemberRepository.findByGroupIdAndMember_Id(
 				emailGroup.getId(), member3.getId()).get();

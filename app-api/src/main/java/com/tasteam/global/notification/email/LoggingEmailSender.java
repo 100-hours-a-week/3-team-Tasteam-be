@@ -12,12 +12,22 @@ import lombok.extern.slf4j.Slf4j;
 public class LoggingEmailSender implements EmailSender {
 
 	@Override
-	public void sendGroupJoinVerification(String email, String code, Instant expiresAt) {
-		log.info("Email verification code sent. email={}, code={}, expiresAt={}", email, code, expiresAt);
+	public void sendGroupJoinVerificationLink(String email, String verificationUrl, Instant expiresAt) {
+		log.info("Group invite verification link sent. email={}, url={}, expiresAt={}",
+			email,
+			redactToken(verificationUrl),
+			expiresAt);
 	}
 
 	@Override
 	public void sendTemplateEmail(String toEmail, String templateKey, Map<String, Object> variables) {
 		log.info("[EMAIL] templateKey={}, to={}, vars={}", templateKey, toEmail, variables);
+	}
+
+	private String redactToken(String url) {
+		if (url == null) {
+			return null;
+		}
+		return url.replaceAll("([?&]token=)[^&]+", "$1[REDACTED]");
 	}
 }
