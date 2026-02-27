@@ -112,6 +112,7 @@ tasteam:
       enabled: ${IMAGE_OPTIMIZATION_ENABLED:false}
       cron: ${IMAGE_OPTIMIZATION_CRON:0 0 3 * * ?}
       batch-size: ${IMAGE_OPTIMIZATION_BATCH_SIZE:100}
+      cleanup-cron: ${IMAGE_OPTIMIZATION_CLEANUP_CRON:0 0 4 * * ?}
   batch:
     vector-upload:
       cron: ${TASTEAM_BATCH_VECTOR_UPLOAD_CRON:0 0 3 * * ?}

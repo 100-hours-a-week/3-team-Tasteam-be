@@ -3,6 +3,7 @@ package com.tasteam.domain.admin.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,7 +16,7 @@ import com.tasteam.batch.image.optimization.service.ImageOptimizationService.Opt
 import com.tasteam.domain.admin.controller.docs.AdminJobControllerDocs;
 import com.tasteam.domain.admin.dto.response.AdminCleanupPendingImageResponse;
 import com.tasteam.domain.admin.dto.response.AdminJobResponse;
-import com.tasteam.domain.admin.dto.response.AdminUnoptimizedImageResponse;
+import com.tasteam.domain.admin.dto.response.AdminPendingJobResponse;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.global.dto.api.SuccessResponse;
 
@@ -30,19 +31,27 @@ public class AdminJobController implements AdminJobControllerDocs {
 	private final FileService fileService;
 
 	@Override
+	@PostMapping("/image-optimization/discover")
+	@ResponseStatus(HttpStatus.OK)
+	public SuccessResponse<AdminJobResponse> discoverOptimizationTargets() {
+		int enqueued = imageOptimizationService.discoverOptimizationTargets();
+		return SuccessResponse.success(new AdminJobResponse("image-optimization-discover", enqueued, 0, 0));
+	}
+
+	@Override
 	@GetMapping("/image-optimization/pending")
 	@ResponseStatus(HttpStatus.OK)
-	public SuccessResponse<List<AdminUnoptimizedImageResponse>> getUnoptimizedImages(
+	public SuccessResponse<List<AdminPendingJobResponse>> getPendingJobs(
 		@RequestParam(defaultValue = "100")
 		int limit) {
 
-		List<AdminUnoptimizedImageResponse> images = imageOptimizationService
-			.findUnoptimizedDomainImages(limit)
+		List<AdminPendingJobResponse> jobs = imageOptimizationService
+			.findPendingJobs(limit)
 			.stream()
-			.map(AdminUnoptimizedImageResponse::from)
+			.map(AdminPendingJobResponse::from)
 			.toList();
 
-		return SuccessResponse.success(images);
+		return SuccessResponse.success(jobs);
 	}
 
 	@Override
@@ -59,6 +68,13 @@ public class AdminJobController implements AdminJobControllerDocs {
 			result.successCount(),
 			result.failedCount(),
 			result.skippedCount()));
+	}
+
+	@Override
+	@DeleteMapping("/image-optimization")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteAllOptimizationJobs() {
+		imageOptimizationService.deleteAllJobs();
 	}
 
 	@Override

@@ -6,7 +6,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
@@ -18,12 +21,15 @@ import net.coobird.thumbnailator.Thumbnails;
 import net.coobird.thumbnailator.geometry.Positions;
 
 import com.tasteam.batch.image.optimization.entity.ImageOptimizationJob;
+import com.tasteam.batch.image.optimization.entity.OptimizationJobStatus;
 import com.tasteam.batch.image.optimization.repository.ImageOptimizationJobRepository;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.FilePurpose;
 import com.tasteam.domain.file.entity.Image;
+import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.infra.storage.StorageClient;
+import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,33 +47,83 @@ public class ImageOptimizationService {
 	private static final String WEBP_FORMAT = "webp";
 	private static final String WEBP_CONTENT_TYPE = "image/webp";
 	private static final int DEFAULT_BATCH_SIZE = 100;
+	private static final int DISCOVERY_BATCH_SIZE = 500;
 
 	private final ImageOptimizationJobRepository optimizationJobRepository;
 	private final ImageRepository imageRepository;
+	private final DomainImageRepository domainImageRepository;
 	private final StorageClient storageClient;
+	private final StorageProperties storageProperties;
+
+	@Transactional
+	public int discoverOptimizationTargets() {
+		List<String> allKeys = storageClient.listObjects("");
+		List<String> candidateKeys = allKeys.stream()
+			.filter(key -> !key.startsWith(storageProperties.getTempUploadPrefix()))
+			.toList();
+
+		int enqueued = 0;
+
+		for (int i = 0; i < candidateKeys.size(); i += DISCOVERY_BATCH_SIZE) {
+			List<String> batch = candidateKeys.subList(i, Math.min(i + DISCOVERY_BATCH_SIZE, candidateKeys.size()));
+			List<Image> candidates = imageRepository.findOptimizationCandidatesByStorageKeys(batch);
+
+			if (candidates.isEmpty()) {
+				continue;
+			}
+
+			List<Long> candidateIds = candidates.stream().map(Image::getId).toList();
+			Set<Long> alreadyEnqueued = optimizationJobRepository.findAlreadyEnqueuedImageIds(candidateIds);
+
+			List<Long> retryableIds = candidateIds.stream()
+				.filter(id -> !alreadyEnqueued.contains(id))
+				.toList();
+
+			Map<Long, ImageOptimizationJob> retryableByImageId = optimizationJobRepository
+				.findRetryableJobsByImageIds(retryableIds)
+				.stream()
+				.collect(Collectors.toMap(j -> j.getImage().getId(), j -> j));
+
+			for (Image image : candidates) {
+				if (alreadyEnqueued.contains(image.getId())) {
+					continue;
+				}
+				ImageOptimizationJob existingJob = retryableByImageId.get(image.getId());
+				if (existingJob != null) {
+					existingJob.resetToPending();
+				} else {
+					optimizationJobRepository.save(ImageOptimizationJob.createPending(image));
+				}
+				enqueued++;
+			}
+		}
+
+		log.info("Discovered {} images to optimize", enqueued);
+		return enqueued;
+	}
 
 	public OptimizationResult processOptimizationBatch() {
 		return processOptimizationBatch(DEFAULT_BATCH_SIZE);
 	}
 
 	public OptimizationResult processOptimizationBatch(int batchSize) {
-		List<DomainImage> unoptimizedDomainImages = findUnoptimizedDomainImages(batchSize);
+		List<ImageOptimizationJob> pendingJobs = optimizationJobRepository
+			.findByStatusOrderByCreatedAtAsc(OptimizationJobStatus.PENDING, PageRequest.of(0, batchSize));
 
 		int successCount = 0;
 		int failedCount = 0;
 		int skippedCount = 0;
 
-		for (DomainImage domainImage : unoptimizedDomainImages) {
+		for (ImageOptimizationJob job : pendingJobs) {
 			try {
-				OptimizationOutcome outcome = processSingleDomainImage(domainImage);
+				OptimizationOutcome outcome = processSingleJob(job);
 				switch (outcome) {
 					case SUCCESS -> successCount++;
 					case SKIPPED -> skippedCount++;
 					case FAILED -> failedCount++;
 				}
 			} catch (Exception e) {
-				log.error("Unexpected error during optimization for domainImage {}: {}", domainImage.getId(),
-					e.getMessage());
+				log.error("Unexpected error for job {}: {}", job.getId(), e.getMessage());
 				failedCount++;
 			}
 		}
@@ -76,18 +132,21 @@ public class ImageOptimizationService {
 	}
 
 	@Transactional(readOnly = true)
-	public List<DomainImage> findUnoptimizedDomainImages(int batchSize) {
-		return optimizationJobRepository.findUnoptimizedDomainImages(PageRequest.of(0, batchSize));
+	public List<ImageOptimizationJob> findPendingJobs(int limit) {
+		return optimizationJobRepository
+			.findByStatusOrderByCreatedAtAsc(OptimizationJobStatus.PENDING, PageRequest.of(0, limit));
+	}
+
+	public void deleteAllJobs() {
+		optimizationJobRepository.deleteAll();
 	}
 
 	@Transactional
-	public OptimizationOutcome processSingleDomainImage(DomainImage domainImage) {
-		Image originalImage = domainImage.getImage();
-		ImageOptimizationJob job = ImageOptimizationJob.createPending(originalImage);
-		optimizationJobRepository.save(job);
-
+	public OptimizationOutcome processSingleJob(ImageOptimizationJob job) {
+		Image originalImage = job.getImage();
+		List<DomainImage> domainImages = domainImageRepository.findAllByImage(originalImage);
 		try {
-			return optimizeAndReplaceImage(domainImage, originalImage, job);
+			return optimizeAndReplaceImage(domainImages, originalImage, job);
 		} catch (Exception e) {
 			log.error("Unexpected error during optimization for image {}: {}", originalImage.getId(), e.getMessage());
 			job.markFailed("Unexpected error: " + e.getMessage());
@@ -95,7 +154,7 @@ public class ImageOptimizationService {
 		}
 	}
 
-	private OptimizationOutcome optimizeAndReplaceImage(DomainImage domainImage, Image originalImage,
+	private OptimizationOutcome optimizeAndReplaceImage(List<DomainImage> domainImages, Image originalImage,
 		ImageOptimizationJob job) {
 		try {
 			byte[] originalData = storageClient.downloadObject(originalImage.getStorageKey());
@@ -138,7 +197,7 @@ public class ImageOptimizationService {
 
 			storageClient.uploadObject(newStorageKey, optimizedData, WEBP_CONTENT_TYPE);
 
-			domainImage.replaceImage(newImage);
+			domainImages.forEach(di -> di.replaceImage(newImage));
 			newImage.activate();
 
 			originalImage.markDeletedAt(Instant.now());
