@@ -43,14 +43,6 @@ prometheus.exporter.cadvisor "containers" {
   store_container_labels = false
 }
 
-// ── PostgreSQL 메트릭 (RDS) ──
-// POSTGRES_DSN: deploy.sh가 backend.env의 DB_URL/DB_USERNAME/DB_PASSWORD로 조립 후 monitoring.env에 주입
-// RDS 로그는 CloudWatch Logs로 수집 (Alloy 대상 외)
-
-prometheus.exporter.postgres "db" {
-  data_source_names = [sys.env("POSTGRES_DSN")]
-}
-
 // ── Spring Actuator 메트릭 ──
 // Spring 컨테이너가 호스트 포트로 바인딩 → host.docker.internal:8080으로 접근
 
@@ -72,7 +64,7 @@ prometheus.scrape "spring" {
   scrape_interval = "30s"
 }
 
-// ── 호스트/컨테이너/PostgreSQL 메트릭 → remote_write push ──
+// ── 호스트/컨테이너 메트릭 → remote_write push ──
 
 prometheus.relabel "node" {
   forward_to = [prometheus.remote_write.default.receiver]
@@ -107,24 +99,6 @@ prometheus.relabel "cadvisor" {
 prometheus.scrape "cadvisor" {
   targets         = prometheus.exporter.cadvisor.containers.targets
   forward_to      = [prometheus.relabel.cadvisor.receiver]
-  scrape_interval = "30s"
-}
-
-prometheus.relabel "postgres" {
-  forward_to = [prometheus.remote_write.default.receiver]
-  rule {
-    target_label = "job"
-    replacement  = "postgres"
-  }
-  rule {
-    target_label = "instance"
-    replacement  = sys.env("HOSTNAME")
-  }
-}
-
-prometheus.scrape "postgres" {
-  targets         = prometheus.exporter.postgres.db.targets
-  forward_to      = [prometheus.relabel.postgres.receiver]
   scrape_interval = "30s"
 }
 
