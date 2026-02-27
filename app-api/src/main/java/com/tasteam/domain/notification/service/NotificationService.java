@@ -69,4 +69,15 @@ public class NotificationService {
 		String deepLink) {
 		return notificationRepository.save(Notification.create(memberId, type, title, body, deepLink));
 	}
+
+	@Transactional
+	public Notification createNotification(
+		String eventId,
+		Long memberId,
+		NotificationType type,
+		String title,
+		String body,
+		String deepLink) {
+		return notificationRepository.save(Notification.create(eventId, memberId, type, title, body, deepLink));
+	}
 }
