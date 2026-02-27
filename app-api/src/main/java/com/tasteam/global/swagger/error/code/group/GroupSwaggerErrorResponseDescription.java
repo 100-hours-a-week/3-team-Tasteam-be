@@ -29,8 +29,7 @@ public enum GroupSwaggerErrorResponseDescription implements SwaggerErrorResponse
 		GroupErrorCode.GROUP_NOT_FOUND))),
 	GROUP_EMAIL_VERIFICATION(new LinkedHashSet<>(Set.of(
 		CommonErrorCode.INVALID_REQUEST,
-		GroupErrorCode.GROUP_NOT_FOUND,
-		GroupErrorCode.EMAIL_ALREADY_EXISTS))),
+		GroupErrorCode.GROUP_NOT_FOUND))),
 	GROUP_EMAIL_AUTHENTICATION(new LinkedHashSet<>(Set.of(
 		CommonErrorCode.INVALID_REQUEST,
 		GroupErrorCode.GROUP_NOT_FOUND,
