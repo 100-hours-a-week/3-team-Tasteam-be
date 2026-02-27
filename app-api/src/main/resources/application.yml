@@ -181,6 +181,14 @@ tasteam:
     poll-timeout-millis: ${MQ_POLL_TIMEOUT_MILLIS:1000}
     max-retries: ${MQ_MAX_RETRIES:3}
   notification:
+    email:
+      provider: ${NOTIFICATION_EMAIL_PROVIDER:log}
+      ses:
+        region: ${NOTIFICATION_EMAIL_SES_REGION:ap-northeast-2}
+        access-key: ${NOTIFICATION_EMAIL_SES_ACCESS_KEY:}
+        secret-key: ${NOTIFICATION_EMAIL_SES_SECRET_KEY:}
+        from-address: ${NOTIFICATION_EMAIL_SES_FROM_ADDRESS:noreply@tasteam.kr}
+        charset: ${NOTIFICATION_EMAIL_SES_CHARSET:UTF-8}
     outbox:
       scan-delay: ${NOTIFICATION_OUTBOX_SCAN_DELAY:30000}
       batch-size: ${NOTIFICATION_OUTBOX_BATCH_SIZE:100}

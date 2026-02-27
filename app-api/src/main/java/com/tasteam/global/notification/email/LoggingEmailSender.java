@@ -15,7 +15,7 @@ public class LoggingEmailSender implements EmailSender {
 	public void sendGroupJoinVerificationLink(String email, String verificationUrl, Instant expiresAt) {
 		log.info("Group invite verification link sent. email={}, url={}, expiresAt={}",
 			email,
-			redactToken(verificationUrl),
+			redactToken(verificationUrl), // 그룹 가입 인증 토큰 노출 방지
 			expiresAt);
 	}
 

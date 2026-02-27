@@ -97,6 +97,15 @@ chat:
       client-to-server: ${CHAT_WEBSOCKET_HEARTBEAT_CLIENT_TO_SERVER:15000}
 
 tasteam:
+  notification:
+    email:
+      provider: ${NOTIFICATION_EMAIL_PROVIDER:ses}
+      ses:
+        region: ${NOTIFICATION_EMAIL_SES_REGION:ap-northeast-2}
+        access-key: ${NOTIFICATION_EMAIL_SES_ACCESS_KEY:}
+        secret-key: ${NOTIFICATION_EMAIL_SES_SECRET_KEY:}
+        from-address: ${NOTIFICATION_EMAIL_SES_FROM_ADDRESS:}
+        charset: ${NOTIFICATION_EMAIL_SES_CHARSET:UTF-8}
   storage:
     type: s3
     region: ${STORAGE_REGION:}
