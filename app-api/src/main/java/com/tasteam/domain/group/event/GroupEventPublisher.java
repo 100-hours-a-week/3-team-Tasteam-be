@@ -20,6 +20,17 @@ public class GroupEventPublisher {
 		publishAfterCommit(new GroupMemberJoinedEvent(groupId, memberId, groupName, joinedAt));
 	}
 
+	public void publishRequestSubmitted(Long groupId, Long applicantMemberId, Long ownerId, String groupName,
+		Instant submittedAt) {
+		publishAfterCommit(new GroupRequestSubmittedEvent(groupId, applicantMemberId, ownerId, groupName, submittedAt));
+	}
+
+	public void publishRequestReviewed(Long groupId, Long applicantMemberId, String groupName,
+		GroupRequestReviewedEvent.ReviewResult result, String reason, Instant reviewedAt) {
+		publishAfterCommit(
+			new GroupRequestReviewedEvent(groupId, applicantMemberId, groupName, result, reason, reviewedAt));
+	}
+
 	private void publishAfterCommit(Object event) {
 		if (TransactionSynchronizationManager.isActualTransactionActive()) {
 			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

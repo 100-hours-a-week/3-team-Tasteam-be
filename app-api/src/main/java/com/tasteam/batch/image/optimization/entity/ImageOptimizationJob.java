@@ -114,6 +114,12 @@ public class ImageOptimizationJob {
 		this.processedAt = Instant.now();
 	}
 
+	public void resetToPending() {
+		this.status = OptimizationJobStatus.PENDING;
+		this.errorMessage = null;
+		this.processedAt = null;
+	}
+
 	@Override
 	public String toString() {
 		Long imageId = image != null ? image.getId() : null;
