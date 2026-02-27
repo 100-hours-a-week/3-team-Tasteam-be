@@ -7,8 +7,6 @@ import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -32,7 +30,6 @@ public class NotificationDomainEventListener {
 	private final NotificationOutboxService outboxService;
 
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
-	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void onGroupMemberJoined(GroupMemberJoinedEvent event) {
 		try {
 			NotificationRequestedPayload payload = new NotificationRequestedPayload(
@@ -57,7 +54,6 @@ public class NotificationDomainEventListener {
 	}
 
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
-	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void onGroupRequestSubmitted(GroupRequestSubmittedEvent event) {
 		try {
 			NotificationRequestedPayload payload = new NotificationRequestedPayload(
@@ -83,7 +79,6 @@ public class NotificationDomainEventListener {
 	}
 
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
-	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void onGroupRequestReviewed(GroupRequestReviewedEvent event) {
 		try {
 			boolean approved = event.result() == GroupRequestReviewedEvent.ReviewResult.APPROVED;
