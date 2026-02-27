@@ -1,6 +1,7 @@
 package com.tasteam.domain.notification.service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -78,5 +79,30 @@ public class NotificationPreferenceService {
 			.ifPresentOrElse(
 				existing -> existing.changeFcmToken(fcmToken),
 				() -> pushTargetRepository.save(PushNotificationTarget.create(memberId, deviceId, fcmToken)));
+	}
+
+	@Transactional(readOnly = true)
+	public Map<Long, Boolean> getEnabledMap(Collection<Long> memberIds, NotificationChannel channel,
+		NotificationType type) {
+		if (memberIds == null || memberIds.isEmpty()) {
+			return Map.of();
+		}
+
+		Map<Long, Boolean> enabledByMemberId = memberIds.stream()
+			.collect(Collectors.toMap(memberId -> memberId, memberId -> getDefaultEnabled(channel)));
+
+		List<MemberNotificationPreference> saved = preferenceRepository
+			.findAllByMemberIdInAndChannelAndNotificationType(memberIds, channel, type);
+		for (MemberNotificationPreference preference : saved) {
+			enabledByMemberId.put(preference.getMemberId(), preference.getIsEnabled());
+		}
+		return enabledByMemberId;
+	}
+
+	private static boolean getDefaultEnabled(NotificationChannel channel) {
+		return switch (channel) {
+			case WEB, PUSH -> true;
+			case EMAIL, SMS -> false;
+		};
 	}
 }

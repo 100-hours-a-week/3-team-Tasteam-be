@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ import com.tasteam.domain.chat.dto.response.ChatReadCursorUpdateResponse;
 import com.tasteam.domain.chat.entity.ChatMessage;
 import com.tasteam.domain.chat.entity.ChatMessageFile;
 import com.tasteam.domain.chat.entity.ChatRoomMember;
+import com.tasteam.domain.chat.event.ChatMessageSentEvent;
 import com.tasteam.domain.chat.repository.ChatMessageFileRepository;
 import com.tasteam.domain.chat.repository.ChatMessageRepository;
 import com.tasteam.domain.chat.repository.ChatRoomMemberRepository;
@@ -66,6 +68,7 @@ public class ChatService {
 	private final DomainImageRepository domainImageRepository;
 	private final FileService fileService;
 	private final ChatStreamPublisher chatStreamPublisher;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Transactional(readOnly = true)
 	public ChatMessageListResponse getMessages(Long chatRoomId, Long memberId, String cursor, ChatMessageListMode mode,
@@ -188,6 +191,14 @@ public class ChatService {
 			message.getCreatedAt());
 
 		chatStreamPublisher.publish(chatRoomId, item);
+		eventPublisher.publishEvent(new ChatMessageSentEvent(
+			chatRoomId,
+			message.getId(),
+			memberId,
+			member.getNickname(),
+			message.getType(),
+			message.getContent(),
+			message.getCreatedAt()));
 
 		return new ChatMessageSendResponse(item);
 	}

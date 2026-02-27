@@ -14,6 +14,11 @@ public interface NotificationPreferenceRepository extends JpaRepository<MemberNo
 
 	List<MemberNotificationPreference> findAllByMemberId(Long memberId);
 
+	List<MemberNotificationPreference> findAllByMemberIdInAndChannelAndNotificationType(
+		Collection<Long> memberIds,
+		NotificationChannel channel,
+		NotificationType notificationType);
+
 	List<MemberNotificationPreference> findAllByMemberIdAndChannelIn(
 		Long memberId, Collection<NotificationChannel> channels);
 
