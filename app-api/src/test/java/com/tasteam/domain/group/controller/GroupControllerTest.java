@@ -390,7 +390,7 @@ class GroupControllerTest {
 			// given
 			CursorPageResponse<ReviewResponse> response = new CursorPageResponse<>(
 				List.of(new ReviewResponse(1L, 2L, 3L, "테스트그룹", "테스트하위그룹",
-					new ReviewResponse.AuthorResponse("테스트유저"),
+					new ReviewResponse.AuthorResponse("테스트유저", "https://example.com/profile.jpg"),
 					"맛있어요", true, List.of("친절"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
 					Instant.now(), null, null, null, null, null, null)),

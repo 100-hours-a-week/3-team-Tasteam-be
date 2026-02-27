@@ -48,7 +48,7 @@ class SubgroupControllerTest {
 			// given
 			CursorPageResponse<ReviewResponse> response = new CursorPageResponse<>(
 				List.of(new ReviewResponse(1L, 2L, 3L, "테스트그룹", "테스트하위그룹",
-					new ReviewResponse.AuthorResponse("테스트유저"),
+					new ReviewResponse.AuthorResponse("테스트유저", "https://example.com/profile.jpg"),
 					"맛있어요", true, List.of("친절"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
 					Instant.now(), 10L, "테스트음식점", null, null, null, "서울시 강남구 테스트로 123")),
@@ -63,6 +63,7 @@ class SubgroupControllerTest {
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data.items[0].id").value(1))
 				.andExpect(jsonPath("$.data.items[0].author.nickname").value("테스트유저"))
+				.andExpect(jsonPath("$.data.items[0].author.profileImageUrl").value("https://example.com/profile.jpg"))
 				.andExpect(jsonPath("$.data.pagination.hasNext").value(false));
 		}
 	}
