@@ -1,6 +1,7 @@
 package com.tasteam.domain.notification.service;
 
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,51 @@ public class FcmPushService {
 
 		List<String> tokens = targets.stream()
 			.map(PushNotificationTarget::getFcmToken)
+			.toList();
+		List<Message> messages = tokens.stream()
+			.map(token -> buildMessage(token, title, body, deepLink))
+			.toList();
+
+		int successCount = 0;
+		int failureCount = 0;
+		int invalidTokenCount = 0;
+
+		for (int start = 0; start < messages.size(); start += FCM_BATCH_SIZE) {
+			int end = Math.min(start + FCM_BATCH_SIZE, messages.size());
+			List<Message> batch = messages.subList(start, end);
+			try {
+				BatchResponse response = firebaseMessaging.sendAll(batch, false);
+				successCount += response.getSuccessCount();
+				failureCount += response.getFailureCount();
+				invalidTokenCount += handleFailures(response, tokens.subList(start, end));
+			} catch (FirebaseMessagingException ex) {
+				failureCount += batch.size();
+			}
+		}
+
+		return new AdminPushNotificationResponse(successCount, failureCount, invalidTokenCount);
+	}
+
+	@Transactional
+	public AdminPushNotificationResponse sendToMembers(Set<Long> memberIds, String title, String body,
+		String deepLink) {
+		if (memberIds == null || memberIds.isEmpty()) {
+			return new AdminPushNotificationResponse(0, 0, 0);
+		}
+
+		FirebaseMessaging firebaseMessaging = firebaseMessagingProvider.getIfAvailable();
+		if (firebaseMessaging == null) {
+			throw new IllegalStateException("FCM is not configured.");
+		}
+
+		List<PushNotificationTarget> targets = pushTargetRepository.findAllByMemberIdIn(memberIds);
+		if (targets.isEmpty()) {
+			return new AdminPushNotificationResponse(0, 0, 0);
+		}
+
+		List<String> tokens = targets.stream()
+			.map(PushNotificationTarget::getFcmToken)
+			.distinct()
 			.toList();
 		List<Message> messages = tokens.stream()
 			.map(token -> buildMessage(token, title, body, deepLink))
