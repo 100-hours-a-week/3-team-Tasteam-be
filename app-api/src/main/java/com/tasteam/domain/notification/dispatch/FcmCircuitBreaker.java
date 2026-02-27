@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,7 @@ public class FcmCircuitBreaker {
 	private int consecutiveFailures;
 	private Instant openedAt;
 
+	@Autowired
 	public FcmCircuitBreaker(
 		@Value("${tasteam.notification.circuit-breaker.fcm.failure-threshold:5}")
 		int failureThreshold,

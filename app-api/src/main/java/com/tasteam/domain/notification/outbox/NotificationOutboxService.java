@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,7 +19,7 @@ public class NotificationOutboxService {
 	private final NotificationOutboxJdbcRepository outboxRepository;
 	private final ObjectMapper objectMapper;
 
-	@Transactional
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void enqueue(NotificationRequestedPayload payload) {
 		String payloadJson = serializePayload(payload);
 		outboxRepository.insertIfAbsent(
