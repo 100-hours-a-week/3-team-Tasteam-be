@@ -43,8 +43,14 @@
                         <input type="number" id="batchSize" value="100" min="1" max="500">
                     </div>
                     <div class="button-group">
-                        <button id="loadPendingImages" class="btn btn-secondary">대기 이미지 조회</button>
+                        <button id="discoverOptimization" class="btn btn-secondary">탐색 실행</button>
+                        <button id="loadPendingImages" class="btn btn-secondary">대기 잡 조회</button>
                         <button id="runImageOptimization" class="btn btn-primary">최적화 실행</button>
+                        <button id="resetOptimizationJobs" class="btn btn-danger">잡 초기화</button>
+                    </div>
+                    <div id="discoverResult" class="job-result" style="display: none;">
+                        <h4>탐색 결과</h4>
+                        <p>등록된 PENDING 잡: <span id="discoveredCount" class="pending-count">0</span>개</p>
                     </div>
                     <div id="jobResult" class="job-result" style="display: none;">
                         <h4>실행 결과</h4>
@@ -57,17 +63,17 @@
                     <div id="jobError" class="error-message" style="display: none;"></div>
 
                     <div id="pendingImages" class="pending-images" style="display: none;">
-                        <h4>최적화 대기 이미지 (<span id="pendingCount" class="pending-count">0</span>개)</h4>
+                        <h4>최적화 대기 잡 (<span id="pendingCount" class="pending-count">0</span>개)</h4>
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th>잡 ID</th>
+                                    <th>이미지 ID</th>
                                     <th>파일명</th>
                                     <th>크기</th>
                                     <th>타입</th>
                                     <th>용도</th>
-                                    <th>도메인</th>
-                                    <th>생성일</th>
+                                    <th>잡 등록일</th>
                                 </tr>
                             </thead>
                             <tbody id="pendingImagesBody"></tbody>

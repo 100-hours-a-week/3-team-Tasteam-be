@@ -40,6 +40,31 @@ function getDomainLabel(domainType) {
     return labels[domainType] || domainType;
 }
 
+document.getElementById('discoverOptimization').addEventListener('click', async () => {
+    const button = document.getElementById('discoverOptimization');
+    const resultDiv = document.getElementById('discoverResult');
+    const errorDiv = document.getElementById('jobError');
+
+    button.disabled = true;
+    button.textContent = '탐색 중...';
+    resultDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+
+    try {
+        const response = await apiRequest('/admin/jobs/image-optimization/discover', { method: 'POST' });
+        document.getElementById('discoveredCount').textContent = response.data.successCount;
+        resultDiv.style.display = 'block';
+
+        document.getElementById('loadPendingImages').click();
+    } catch (error) {
+        errorDiv.textContent = error.message;
+        errorDiv.style.display = 'block';
+    } finally {
+        button.disabled = false;
+        button.textContent = '탐색 실행';
+    }
+});
+
 document.getElementById('loadPendingImages').addEventListener('click', async () => {
     const button = document.getElementById('loadPendingImages');
     const pendingDiv = document.getElementById('pendingImages');
@@ -52,20 +77,20 @@ document.getElementById('loadPendingImages').addEventListener('click', async () 
 
     try {
         const response = await apiRequest(`/admin/jobs/image-optimization/pending?limit=${limit}`);
-        const images = response.data;
+        const jobs = response.data;
 
-        document.getElementById('pendingCount').textContent = images.length;
+        document.getElementById('pendingCount').textContent = jobs.length;
 
         const tbody = document.getElementById('pendingImagesBody');
-        tbody.innerHTML = images.map(img => `
+        tbody.innerHTML = jobs.map(job => `
             <tr>
-                <td>${img.imageId}</td>
-                <td title="${img.fileName}">${img.fileName.length > 30 ? img.fileName.substring(0, 30) + '...' : img.fileName}</td>
-                <td class="file-size">${formatFileSize(img.fileSize)}</td>
-                <td>${img.fileType}</td>
-                <td>${getPurposeLabel(img.purpose)}</td>
-                <td>${getDomainLabel(img.domainType)} #${img.domainId}</td>
-                <td>${formatDate(img.createdAt)}</td>
+                <td>${job.jobId}</td>
+                <td>${job.imageId}</td>
+                <td title="${job.fileName}">${job.fileName.length > 30 ? job.fileName.substring(0, 30) + '...' : job.fileName}</td>
+                <td class="file-size">${formatFileSize(job.fileSize)}</td>
+                <td>${job.fileType}</td>
+                <td>${getPurposeLabel(job.purpose)}</td>
+                <td>${formatDate(job.jobCreatedAt)}</td>
             </tr>
         `).join('');
 
@@ -75,7 +100,34 @@ document.getElementById('loadPendingImages').addEventListener('click', async () 
         errorDiv.style.display = 'block';
     } finally {
         button.disabled = false;
-        button.textContent = '대기 이미지 조회';
+        button.textContent = '대기 잡 조회';
+    }
+});
+
+document.getElementById('resetOptimizationJobs').addEventListener('click', async () => {
+    if (!confirm('모든 최적화 잡을 삭제합니다. 계속하시겠습니까?')) return;
+
+    const button = document.getElementById('resetOptimizationJobs');
+    const errorDiv = document.getElementById('jobError');
+
+    button.disabled = true;
+    button.textContent = '초기화 중...';
+    errorDiv.style.display = 'none';
+
+    try {
+        await apiRequest('/admin/jobs/image-optimization', { method: 'DELETE' });
+
+        document.getElementById('pendingImages').style.display = 'none';
+        document.getElementById('pendingImagesBody').innerHTML = '';
+        document.getElementById('pendingCount').textContent = '0';
+        document.getElementById('discoverResult').style.display = 'none';
+        document.getElementById('jobResult').style.display = 'none';
+    } catch (error) {
+        errorDiv.textContent = error.message;
+        errorDiv.style.display = 'block';
+    } finally {
+        button.disabled = false;
+        button.textContent = '잡 초기화';
     }
 });
 

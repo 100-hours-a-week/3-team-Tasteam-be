@@ -58,8 +58,11 @@ public class ImageOptimizationService {
 	@Transactional
 	public int discoverOptimizationTargets() {
 		List<String> allKeys = storageClient.listObjects("");
+		String tempPrefix = storageProperties.getTempUploadPrefix().endsWith("/")
+			? storageProperties.getTempUploadPrefix()
+			: storageProperties.getTempUploadPrefix() + "/";
 		List<String> candidateKeys = allKeys.stream()
-			.filter(key -> !key.startsWith(storageProperties.getTempUploadPrefix()))
+			.filter(key -> !key.startsWith(tempPrefix))
 			.toList();
 
 		int enqueued = 0;
