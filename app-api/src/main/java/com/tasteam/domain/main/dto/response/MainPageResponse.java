@@ -34,7 +34,7 @@ public record MainPageResponse(
 		Long restaurantId,
 		String name,
 		Double distanceMeter,
-		String category,
+		List<String> foodCategories,
 		String thumbnailImageUrl,
 		Boolean isFavorite,
 		String reviewSummary) {

@@ -45,7 +45,8 @@ class SearchControllerTest {
 					new SearchGroupSummary(1L, "맛집모임", "https://example.com/logo.jpg", 10L)),
 				new CursorPageResponse<>(
 					List.of(
-						new SearchRestaurantItem(1L, "맛집식당", "서울시 강남구", "https://example.com/img.jpg")),
+						new SearchRestaurantItem(1L, "맛집식당", "서울시 강남구", "https://example.com/img.jpg",
+							List.of("한식", "국밥"))),
 					new CursorPageResponse.Pagination(null, false, 20)));
 
 			given(searchService.search(any(), any())).willReturn(response);
@@ -73,7 +74,8 @@ class SearchControllerTest {
 				List.of(),
 				new CursorPageResponse<>(
 					List.of(
-						new SearchRestaurantItem(2L, "다음맛집", "서울시 서초구", "https://example.com/img2.jpg")),
+						new SearchRestaurantItem(2L, "다음맛집", "서울시 서초구", "https://example.com/img2.jpg",
+							List.of("분식"))),
 					new CursorPageResponse.Pagination("next-cursor", true, 20)));
 
 			given(searchService.search(any(), any())).willReturn(response);
