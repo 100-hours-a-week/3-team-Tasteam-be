@@ -239,8 +239,8 @@ class MemberControllerTest {
 			// given
 			Instant now = Instant.now();
 			CursorPageResponse<FavoriteRestaurantItem> response = new CursorPageResponse<>(
-				List.of(new FavoriteRestaurantItem(101L, "국밥집", "https://cdn.example.com/restaurants/101.jpg", "한식",
-					"서울시 강남구", now)),
+				List.of(new FavoriteRestaurantItem(101L, "국밥집", "https://cdn.example.com/restaurants/101.jpg",
+					List.of("한식", "국밥"), "서울시 강남구", now)),
 				new CursorPageResponse.Pagination(null, false, 1));
 
 			given(favoriteService.getMyFavoriteRestaurants(any(), any())).willReturn(response);

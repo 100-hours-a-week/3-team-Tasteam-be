@@ -291,7 +291,7 @@ public class FavoriteService {
 				entry -> entry.getValue().getFirst().url()));
 	}
 
-	private Map<Long, String> findCategories(List<Long> restaurantIds) {
+	private Map<Long, List<String>> findCategories(List<Long> restaurantIds) {
 		if (restaurantIds.isEmpty()) {
 			return Map.of();
 		}
@@ -302,9 +302,7 @@ public class FavoriteService {
 				RestaurantCategoryProjection::getRestaurantId,
 				Collectors.mapping(
 					RestaurantCategoryProjection::getCategoryName,
-					Collectors.collectingAndThen(
-						Collectors.toList(),
-						list -> String.join(", ", list)))));
+					Collectors.toList())));
 	}
 
 	private Map<Long, String> findAddresses(List<Long> restaurantIds) {

@@ -35,7 +35,8 @@ class MainControllerTest {
 	private MainService mainService;
 
 	private MainPageResponse createMockResponse() {
-		SectionItem item = new SectionItem(1L, "맛집1", 100.0, "한식", "https://example.com/img1.jpg", false, "맛있어요");
+		SectionItem item = new SectionItem(1L, "맛집1", 100.0, List.of("한식", "국밥"), "https://example.com/img1.jpg",
+			false, "맛있어요");
 		return new MainPageResponse(
 			new Banners(false, List.of()),
 			List.of(
@@ -48,7 +49,7 @@ class MainControllerTest {
 
 	private HomePageResponse createHomeResponse() {
 		HomePageResponse.SectionItem item = new HomePageResponse.SectionItem(
-			1L, "맛집1", 120.0, "한식", "https://example.com/img1.jpg", "요약");
+			1L, "맛집1", 120.0, List.of("한식", "국밥"), "https://example.com/img1.jpg", "요약");
 		return new HomePageResponse(
 			List.of(
 				new HomePageResponse.Section("NEW", "신규 개장", List.of(item)),
@@ -57,7 +58,7 @@ class MainControllerTest {
 
 	private AiRecommendResponse createAiResponse() {
 		AiRecommendResponse.SectionItem item = new AiRecommendResponse.SectionItem(
-			2L, "카페", 80.0, "카페", "https://example.com/img2.jpg", "AI 요약");
+			2L, "카페", 80.0, List.of("카페", "디저트"), "https://example.com/img2.jpg", "AI 요약");
 		return new AiRecommendResponse(
 			new AiRecommendResponse.Section("AI_RECOMMEND", "AI 추천", List.of(item)));
 	}

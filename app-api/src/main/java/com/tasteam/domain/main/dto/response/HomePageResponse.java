@@ -14,7 +14,7 @@ public record HomePageResponse(List<Section> sections) {
 		Long restaurantId,
 		String name,
 		Double distanceMeter,
-		String category,
+		List<String> foodCategories,
 		String thumbnailImageUrl,
 		String reviewSummary) {
 	}
