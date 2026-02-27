@@ -70,6 +70,13 @@ ai:
   base-url: ${AI_BASE_URL:http://localhost:8001}
   response-timeout: ${AI_RESPONSE_TIMEOUT:30s}
 
+chat:
+  websocket:
+    heartbeat:
+      enabled: ${CHAT_WEBSOCKET_HEARTBEAT_ENABLED:true}
+      server-to-client: ${CHAT_WEBSOCKET_HEARTBEAT_SERVER_TO_CLIENT:15000}
+      client-to-server: ${CHAT_WEBSOCKET_HEARTBEAT_CLIENT_TO_SERVER:15000}
+
 tasteam:
   admin:
     username: ${ADMIN_USERNAME:}
