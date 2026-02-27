@@ -81,13 +81,14 @@ class FavoriteServiceIntegrationTest {
 	private SubgroupFavoriteRestaurantRepository subgroupFavoriteRepository;
 
 	private Member member;
+	private Group group;
 	private Subgroup subgroup;
 	private Restaurant restaurant;
 
 	@BeforeEach
 	void setUp() {
 		member = memberRepository.save(MemberFixture.create());
-		Group group = groupRepository.save(GroupFixture.create());
+		group = groupRepository.save(GroupFixture.create());
 		subgroup = subgroupRepository.save(SubgroupFixture.create(group, "테스트 소모임"));
 		subgroupMemberRepository.save(SubgroupMemberFixture.create(subgroup.getId(), member));
 		restaurant = restaurantRepository.save(createRestaurant("테스트 식당"));
@@ -209,6 +210,46 @@ class FavoriteServiceIntegrationTest {
 			.isInstanceOf(BusinessException.class)
 			.satisfies(ex -> assertThat(((BusinessException)ex).getErrorCode()).isEqualTo(
 				CommonErrorCode.NO_PERMISSION.name()));
+	}
+
+	@Test
+	@DisplayName("소모임 찜 목록 조회는 같은 음식점을 restaurantId 기준으로 1건만 반환한다")
+	void getSubgroupFavorites_deduplicatesByRestaurantId() {
+		Member another = memberRepository.save(MemberFixture.create("duplicate@example.com", "중복유저"));
+		subgroupFavoriteRepository.save(SubgroupFavoriteRestaurant.create(member.getId(), subgroup.getId(),
+			restaurant.getId()));
+		subgroupFavoriteRepository.save(SubgroupFavoriteRestaurant.create(another.getId(), subgroup.getId(),
+			restaurant.getId()));
+
+		CursorPageResponse<SubgroupFavoriteRestaurantItem> response = favoriteService.getSubgroupFavoriteRestaurants(
+			member.getId(),
+			subgroup.getId(),
+			null);
+
+		assertThat(response.items()).hasSize(1);
+		assertThat(response.items().getFirst().restaurantId()).isEqualTo(restaurant.getId());
+	}
+
+	@Test
+	@DisplayName("소모임 찜 목록은 같은 소모임의 찜 멤버 수를 restaurant별로 집계해 반환한다")
+	void getSubgroupFavorites_returnsGroupFavoriteMemberCount() {
+		Subgroup anotherSubgroupInSameGroup = subgroupRepository.save(SubgroupFixture.create(group, "같은 그룹 소모임"));
+		Member another = memberRepository.save(MemberFixture.create("count@example.com", "카운트유저"));
+
+		subgroupFavoriteRepository.save(SubgroupFavoriteRestaurant.create(member.getId(), subgroup.getId(),
+			restaurant.getId()));
+		subgroupFavoriteRepository.save(SubgroupFavoriteRestaurant.create(member.getId(), anotherSubgroupInSameGroup
+			.getId(), restaurant.getId()));
+		subgroupFavoriteRepository.save(SubgroupFavoriteRestaurant.create(another.getId(), anotherSubgroupInSameGroup
+			.getId(), restaurant.getId()));
+
+		CursorPageResponse<SubgroupFavoriteRestaurantItem> response = favoriteService.getSubgroupFavoriteRestaurants(
+			member.getId(),
+			subgroup.getId(),
+			null);
+
+		assertThat(response.items()).hasSize(1);
+		assertThat(response.items().getFirst().groupFavoriteCount()).isEqualTo(1L);
 	}
 
 	@Test

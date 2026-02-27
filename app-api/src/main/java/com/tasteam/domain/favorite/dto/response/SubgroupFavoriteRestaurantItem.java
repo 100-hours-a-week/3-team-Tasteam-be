@@ -10,5 +10,6 @@ public record SubgroupFavoriteRestaurantItem(
 	List<String> foodCategories,
 	String address,
 	Long subgroupId,
-	Instant favoritedAt) {
+	Instant favoritedAt,
+	Long groupFavoriteCount) {
 }
