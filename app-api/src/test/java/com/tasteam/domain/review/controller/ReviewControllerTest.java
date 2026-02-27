@@ -91,7 +91,7 @@ class ReviewControllerTest {
 			ReviewDetailResponse response = new ReviewDetailResponse(
 				1L,
 				new ReviewDetailResponse.RestaurantResponse(10L, "맛집식당"),
-				new ReviewDetailResponse.AuthorResponse(100L, "테스트유저"),
+				new ReviewDetailResponse.AuthorResponse(100L, "테스트유저", "https://example.com/profile.jpg"),
 				"맛있어요",
 				true,
 				List.of("친절", "깨끗"),
@@ -109,6 +109,7 @@ class ReviewControllerTest {
 				.andExpect(jsonPath("$.data.restaurant.id").value(10))
 				.andExpect(jsonPath("$.data.restaurant.name").value("맛집식당"))
 				.andExpect(jsonPath("$.data.author.nickname").value("테스트유저"))
+				.andExpect(jsonPath("$.data.author.profileImageUrl").value("https://example.com/profile.jpg"))
 				.andExpect(jsonPath("$.data.content").value("맛있어요"))
 				.andExpect(jsonPath("$.data.isRecommended").value(true))
 				.andExpect(jsonPath("$.data.keywords[0]").value("친절"))
