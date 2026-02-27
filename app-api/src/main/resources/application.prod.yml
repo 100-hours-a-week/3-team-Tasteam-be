@@ -89,6 +89,13 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+chat:
+  websocket:
+    heartbeat:
+      enabled: ${CHAT_WEBSOCKET_HEARTBEAT_ENABLED:true}
+      server-to-client: ${CHAT_WEBSOCKET_HEARTBEAT_SERVER_TO_CLIENT:15000}
+      client-to-server: ${CHAT_WEBSOCKET_HEARTBEAT_CLIENT_TO_SERVER:15000}
+
 tasteam:
   storage:
     type: s3
