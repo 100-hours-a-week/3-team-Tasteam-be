@@ -1,5 +1,7 @@
 package com.tasteam.infra.storage;
 
+import java.util.List;
+
 public interface StorageClient {
 
 	PresignedPostResponse createPresignedPost(PresignedPostRequest request);
@@ -11,4 +13,6 @@ public interface StorageClient {
 	byte[] downloadObject(String objectKey);
 
 	void uploadObject(String objectKey, byte[] data, String contentType);
+
+	List<String> listObjects(String prefix);
 }

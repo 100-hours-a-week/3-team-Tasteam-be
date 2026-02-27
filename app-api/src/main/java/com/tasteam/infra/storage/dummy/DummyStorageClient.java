@@ -1,6 +1,8 @@
 package com.tasteam.infra.storage.dummy;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -62,6 +64,11 @@ public class DummyStorageClient implements StorageClient {
 		Assert.hasText(objectKey, "objectKey는 필수입니다");
 		Assert.notNull(data, "data는 필수입니다");
 		Assert.hasText(contentType, "contentType은 필수입니다");
+	}
+
+	@Override
+	public List<String> listObjects(String prefix) {
+		return Collections.emptyList();
 	}
 
 	private String buildFallbackUrl(String objectKey) {
