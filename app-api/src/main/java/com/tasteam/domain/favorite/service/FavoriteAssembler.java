@@ -61,7 +61,8 @@ public class FavoriteAssembler {
 				categories.getOrDefault(dto.restaurantId(), List.of()),
 				addresses.getOrDefault(dto.restaurantId(), ""),
 				subgroupId,
-				dto.createdAt()))
+				dto.createdAt(),
+				dto.groupFavoriteCount()))
 			.toList();
 	}
 
