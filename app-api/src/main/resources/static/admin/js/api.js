@@ -163,6 +163,17 @@ async function uploadToPresigned(presignedItem, file) {
     }
 }
 
+async function getReviews(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/reviews?${queryString}`);
+}
+
+async function adminDeleteReview(id) {
+    return apiRequest(`/admin/reviews/${id}`, {
+        method: 'DELETE'
+    });
+}
+
 async function geocodeAddress(query) {
     const params = new URLSearchParams({ query });
     return apiRequest(`/admin/geocoding?${params.toString()}`);
