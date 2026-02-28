@@ -1,10 +1,12 @@
-package com.tasteam.global.notification.email;
+package com.tasteam.infra.email.log;
 
 import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+
+import com.tasteam.infra.email.EmailSender;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -14,7 +14,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder;
-import com.tasteam.global.notification.email.EmailNotificationProperties;
+import com.tasteam.infra.email.EmailNotificationProperties;
 
 @Configuration
 @Profile("!test")

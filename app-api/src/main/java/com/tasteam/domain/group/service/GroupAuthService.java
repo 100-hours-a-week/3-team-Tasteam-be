@@ -32,11 +32,11 @@ import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.NotificationErrorCode;
-import com.tasteam.global.notification.email.EmailSender;
 import com.tasteam.global.ratelimit.RateLimitReason;
 import com.tasteam.global.ratelimit.RateLimitRequest;
 import com.tasteam.global.ratelimit.RateLimitResult;
 import com.tasteam.global.ratelimit.RedisRateLimiter;
+import com.tasteam.infra.email.EmailSender;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;

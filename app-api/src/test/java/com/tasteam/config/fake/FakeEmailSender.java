@@ -8,7 +8,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import com.tasteam.global.notification.email.EmailSender;
+import com.tasteam.infra.email.EmailSender;
 
 @Component
 @Profile("test")

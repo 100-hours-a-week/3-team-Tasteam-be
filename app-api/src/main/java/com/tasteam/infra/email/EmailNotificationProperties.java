@@ -1,4 +1,4 @@
-package com.tasteam.global.notification.email;
+package com.tasteam.infra.email;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;

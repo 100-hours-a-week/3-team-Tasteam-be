@@ -1,4 +1,4 @@
-package com.tasteam.global.notification.email;
+package com.tasteam.infra.email;
 
 import java.util.Map;
 

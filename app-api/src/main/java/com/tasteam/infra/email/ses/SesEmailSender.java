@@ -15,8 +15,8 @@ import com.amazonaws.services.simpleemail.model.Destination;
 import com.amazonaws.services.simpleemail.model.Message;
 import com.amazonaws.services.simpleemail.model.MessageRejectedException;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
-import com.tasteam.global.notification.email.EmailNotificationProperties;
-import com.tasteam.global.notification.email.EmailSender;
+import com.tasteam.infra.email.EmailNotificationProperties;
+import com.tasteam.infra.email.EmailSender;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
