@@ -55,7 +55,7 @@ public class FcmPushService {
 			int end = Math.min(start + FCM_BATCH_SIZE, messages.size());
 			List<Message> batch = messages.subList(start, end);
 			try {
-				BatchResponse response = firebaseMessaging.sendAll(batch, false);
+				BatchResponse response = firebaseMessaging.sendEach(batch);
 				successCount += response.getSuccessCount();
 				failureCount += response.getFailureCount();
 				invalidTokenCount += handleFailures(response, tokens.subList(start, end));
@@ -100,7 +100,7 @@ public class FcmPushService {
 			int end = Math.min(start + FCM_BATCH_SIZE, messages.size());
 			List<Message> batch = messages.subList(start, end);
 			try {
-				BatchResponse response = firebaseMessaging.sendAll(batch, false);
+				BatchResponse response = firebaseMessaging.sendEach(batch);
 				successCount += response.getSuccessCount();
 				failureCount += response.getFailureCount();
 				invalidTokenCount += handleFailures(response, tokens.subList(start, end));

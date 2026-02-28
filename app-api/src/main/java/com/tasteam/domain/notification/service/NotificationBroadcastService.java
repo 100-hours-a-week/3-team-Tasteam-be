@@ -82,7 +82,7 @@ public class NotificationBroadcastService {
 					.map(PushNotificationTarget::getFcmToken)
 					.toList();
 				try {
-					BatchResponse batchResponse = firebaseMessaging.sendAll(batch, false);
+					BatchResponse batchResponse = firebaseMessaging.sendEach(batch);
 					successCount += batchResponse.getSuccessCount();
 					failureCount += batchResponse.getFailureCount();
 					handlePushFailures(batchResponse, batchTokens);
