@@ -105,7 +105,8 @@ public final class ApiEndpointSecurityPolicy {
 			ApiEndpoints.GROUPS_ALL,
 			ApiEndpoints.SUBGROUPS_ALL,
 			ApiEndpoints.CHAT_ROOMS_ALL,
-			ApiEndpoints.MEMBERS_ALL
+			ApiEndpoints.MEMBERS_ALL,
+			ApiEndpoints.REPORTS_ALL
 		};
 	}
 
