@@ -1,5 +1,6 @@
 package com.tasteam.global.notification.email;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +32,7 @@ public class SesEmailConfig {
 	@Bean
 	public AmazonSimpleEmailService amazonSimpleEmailService(
 		EmailNotificationProperties properties,
+		@Qualifier("sesAwsCredentialsProvider")
 		AWSCredentialsProvider sesAwsCredentialsProvider) {
 		return AmazonSimpleEmailServiceClientBuilder.standard()
 			.withRegion(properties.getSes().getRegion())

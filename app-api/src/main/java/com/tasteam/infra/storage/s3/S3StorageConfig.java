@@ -1,5 +1,6 @@
 package com.tasteam.infra.storage.s3;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,7 +30,10 @@ public class S3StorageConfig {
 	}
 
 	@Bean
-	public AmazonS3 amazonS3(StorageProperties properties, AWSCredentialsProvider credentialsProvider) {
+	public AmazonS3 amazonS3(
+		StorageProperties properties,
+		@Qualifier("awsCredentialsProvider")
+		AWSCredentialsProvider credentialsProvider) {
 		Assert.hasText(properties.getRegion(), "tasteam.storage.region은 필수입니다");
 
 		return AmazonS3ClientBuilder.standard()
