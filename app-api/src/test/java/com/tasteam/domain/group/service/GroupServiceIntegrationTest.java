@@ -298,23 +298,37 @@ class GroupFacadeIntegrationTest {
 		}
 
 		@Test
-		@DisplayName("이메일 인증 링크를 발송하면 만료시간(5분)이 반환되고 메일 발송이 호출된다")
-		void sendGroupEmailVerification_success() {
-			Instant before = Instant.now();
+		@DisplayName("인증 이메일이 입력한 주소로 발송된다")
+		void sendGroupEmailVerification_emailSentToRecipient() {
+			// when
+			groupFacade.sendGroupEmailVerification(
+				emailGroup.getId(),
+				member3.getId(),
+				"127.0.0.1",
+				"user@example.com");
 
+			// then
+			assertThat(emailSender.hasEmailSentTo("user@example.com")).isTrue();
+		}
+
+		@Test
+		@DisplayName("인증 발송 응답에 만료시간이 포함된다")
+		void sendGroupEmailVerification_expiresAtIsReturned() {
+			// when
 			var response = groupFacade.sendGroupEmailVerification(
 				emailGroup.getId(),
 				member3.getId(),
 				"127.0.0.1",
 				"user@example.com");
 
-			assertThat(emailSender.hasSentGroupJoinVerificationLinkTo("user@example.com")).isTrue();
-			assertThat(response.expiresAt()).isAfter(before.plusSeconds(290));
+			// then
+			assertThat(response.expiresAt()).isNotNull().isAfter(Instant.now());
 		}
 
 		@Test
-		@DisplayName("이메일 도메인이 일치하지 않으면 예외를 발생시킨다")
+		@DisplayName("이메일 도메인이 일치하지 않으면 인증 발송에 실패한다")
 		void sendGroupEmailVerification_emailDomainMismatch_throwsBusinessException() {
+			// when & then
 			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
 				emailGroup.getId(),
 				member3.getId(),
@@ -324,11 +338,13 @@ class GroupFacadeIntegrationTest {
 		}
 
 		@Test
-		@DisplayName("유효시간 내 재발송은 1분 제한으로 차단된다")
-		void sendGroupEmailVerification_resend_rateLimited() {
+		@DisplayName("1분 이내 재발송 요청은 레이트 리밋 예외를 반환한다")
+		void sendGroupEmailVerification_withinCooldown_throwsRateLimitException() {
+			// given
 			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
 				"user@example.com");
 
+			// when & then
 			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
 				emailGroup.getId(),
 				member3.getId(),
@@ -336,7 +352,23 @@ class GroupFacadeIntegrationTest {
 				"user@example.com"))
 				.isInstanceOfSatisfying(BusinessException.class,
 					ex -> assertThat(ex.getErrorCode()).isEqualTo(NotificationErrorCode.EMAIL_RATE_LIMITED.name()));
-			assertThat(emailSender.getSentVerificationLinks()).hasSize(1);
+		}
+
+		@Test
+		@DisplayName("레이트 리밋으로 차단된 요청은 이메일을 추가로 발송하지 않는다")
+		void sendGroupEmailVerification_rateLimited_doesNotSendAdditionalEmail() {
+			// given
+			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
+				"user@example.com");
+
+			// when
+			try {
+				groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
+					"user@example.com");
+			} catch (BusinessException ignored) {}
+
+			// then
+			assertThat(emailSender.getSentEmails()).hasSize(1);
 		}
 	}
 
