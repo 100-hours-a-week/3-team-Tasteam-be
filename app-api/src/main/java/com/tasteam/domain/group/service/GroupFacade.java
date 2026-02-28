@@ -86,8 +86,9 @@ public class GroupFacade {
 	}
 
 	@Transactional
-	public GroupEmailVerificationResponse sendGroupEmailVerification(Long groupId, String email) {
-		return groupAuthService.sendGroupEmailVerification(getActiveGroup(groupId), email);
+	public GroupEmailVerificationResponse sendGroupEmailVerification(Long groupId, Long memberId, String clientIp,
+		String email) {
+		return groupAuthService.sendGroupEmailVerification(getActiveGroup(groupId), memberId, clientIp, email);
 	}
 
 	@Transactional

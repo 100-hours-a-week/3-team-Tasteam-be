@@ -28,7 +28,12 @@ import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
+import com.tasteam.global.exception.code.NotificationErrorCode;
 import com.tasteam.global.notification.email.EmailSender;
+import com.tasteam.global.ratelimit.RateLimitReason;
+import com.tasteam.global.ratelimit.RateLimitRequest;
+import com.tasteam.global.ratelimit.RateLimitResult;
+import com.tasteam.global.ratelimit.RedisRateLimiter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -44,6 +49,7 @@ public class GroupAuthService {
 	private final GroupEventPublisher groupEventPublisher;
 	private final GroupInviteTokenService groupInviteTokenService;
 	private final DomainProperties domainProperties;
+	private final RedisRateLimiter redisRateLimiter;
 
 	@Transactional
 	public void saveInitialPasswordCode(Group group, String code) {
@@ -59,17 +65,35 @@ public class GroupAuthService {
 	}
 
 	@Transactional
-	public GroupEmailVerificationResponse sendGroupEmailVerification(Group group, String email) {
+	public GroupEmailVerificationResponse sendGroupEmailVerification(Group group, Long memberId, String clientIp,
+		String email) {
 		if (group.getJoinType() != GroupJoinType.EMAIL || group.getEmailDomain() == null) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 
 		validateEmailDomain(email, group.getEmailDomain());
+		enforceMailRateLimit(memberId, clientIp, email);
 
 		InviteToken inviteToken = groupInviteTokenService.issue(group.getId(), email);
 		String verificationUrl = buildVerificationUrl(group.getId(), inviteToken.token());
 		emailSender.sendGroupJoinVerificationLink(email, verificationUrl, inviteToken.expiresAt());
 		return new GroupEmailVerificationResponse(inviteToken.expiresAt());
+	}
+
+	private void enforceMailRateLimit(Long memberId, String clientIp, String email) {
+		RateLimitResult result = redisRateLimiter.checkMailSend(new RateLimitRequest(email, clientIp, memberId));
+		if (result.allowed()) {
+			return;
+		}
+
+		RateLimitReason reason = result.reason();
+		if (reason == RateLimitReason.EMAIL_BLOCKED_24H) {
+			throw new BusinessException(NotificationErrorCode.EMAIL_BLOCKED_24H);
+		}
+		if (reason == RateLimitReason.RATE_LIMITER_UNAVAILABLE) {
+			throw new BusinessException(NotificationErrorCode.EMAIL_RATE_LIMITER_UNAVAILABLE);
+		}
+		throw new BusinessException(NotificationErrorCode.EMAIL_RATE_LIMITED);
 	}
 
 	@Transactional

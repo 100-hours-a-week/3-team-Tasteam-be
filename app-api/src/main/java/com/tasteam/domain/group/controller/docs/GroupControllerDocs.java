@@ -41,6 +41,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Positive;
 
 @SwaggerTagOrder(15)
@@ -161,6 +162,9 @@ public interface GroupControllerDocs {
 	SuccessResponse<GroupEmailVerificationResponse> sendGroupEmailVerification(
 		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
+		@CurrentUser
+		Long memberId,
+		HttpServletRequest servletRequest,
 		@Validated
 		GroupEmailVerificationRequest request);
 

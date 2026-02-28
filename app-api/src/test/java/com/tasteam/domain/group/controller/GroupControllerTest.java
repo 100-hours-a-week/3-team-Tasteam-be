@@ -282,7 +282,7 @@ class GroupControllerTest {
 			GroupEmailVerificationResponse response = new GroupEmailVerificationResponse(
 				Instant.now().plusSeconds(300));
 
-			given(groupFacade.sendGroupEmailVerification(eq(1L), any())).willReturn(response);
+			given(groupFacade.sendGroupEmailVerification(eq(1L), any(), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(post("/api/v1/groups/{groupId}/email-verifications", 1L)

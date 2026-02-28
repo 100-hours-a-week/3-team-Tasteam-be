@@ -295,7 +295,11 @@ class GroupFacadeIntegrationTest {
 		void sendGroupEmailVerification_success() {
 			Instant before = Instant.now();
 
-			var response = groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
+			var response = groupFacade.sendGroupEmailVerification(
+				emailGroup.getId(),
+				member3.getId(),
+				"127.0.0.1",
+				"user@example.com");
 
 			verify(emailSender, times(1)).sendGroupJoinVerificationLink(anyString(), anyString(), any(Instant.class));
 			assertThat(response.expiresAt()).isAfter(before.plusSeconds(290));
@@ -305,15 +309,20 @@ class GroupFacadeIntegrationTest {
 		@DisplayName("이메일 도메인이 일치하지 않으면 예외를 발생시킨다")
 		void sendGroupEmailVerification_emailDomainMismatch_throwsBusinessException() {
 			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
-				emailGroup.getId(), "user@other.com"))
+				emailGroup.getId(),
+				member3.getId(),
+				"127.0.0.1",
+				"user@other.com"))
 				.isInstanceOf(BusinessException.class);
 		}
 
 		@Test
 		@DisplayName("유효시간 내에도 이메일 인증 링크 재발송이 가능하다")
 		void sendGroupEmailVerification_resend_success() {
-			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
-			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
+			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
+				"user@example.com");
+			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
+				"user@example.com");
 			verify(emailSender, times(2)).sendGroupJoinVerificationLink(anyString(), anyString(), any(Instant.class));
 		}
 	}
@@ -330,7 +339,8 @@ class GroupFacadeIntegrationTest {
 			GroupCreateRequest request = GroupRequestFixture.createEmailGroupRequest("이메일가입그룹", "example.com");
 			GroupCreateResponse response = groupFacade.createGroup(request);
 			emailGroup = groupRepository.findById(response.id()).get();
-			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
+			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
+				"user@example.com");
 			verificationToken = groupInviteTokenService.issue(emailGroup.getId(), member3.getEmail()).token();
 		}
 

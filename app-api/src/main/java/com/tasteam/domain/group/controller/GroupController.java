@@ -33,8 +33,10 @@ import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
 import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.global.ratelimit.ClientIpResolver;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
@@ -48,6 +50,7 @@ public class GroupController implements GroupControllerDocs {
 	private final RestaurantService restaurantService;
 	private final ReviewService reviewService;
 	private final SubgroupFacade subgroupFacade;
+	private final ClientIpResolver clientIpResolver;
 
 	@PostMapping
 	@PreAuthorize("hasRole('USER')")
@@ -98,9 +101,14 @@ public class GroupController implements GroupControllerDocs {
 	public SuccessResponse<GroupEmailVerificationResponse> sendGroupEmailVerification(
 		@PathVariable @Positive
 		Long groupId,
+		@CurrentUser
+		Long memberId,
+		HttpServletRequest servletRequest,
 		@RequestBody @Validated
 		GroupEmailVerificationRequest request) {
-		return SuccessResponse.success(groupFacade.sendGroupEmailVerification(groupId, request.email()));
+		String clientIp = clientIpResolver.resolve(servletRequest);
+		return SuccessResponse
+			.success(groupFacade.sendGroupEmailVerification(groupId, memberId, clientIp, request.email()));
 	}
 
 	@PostMapping("/{groupId}/email-authentications")
