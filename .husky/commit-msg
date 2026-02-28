@@ -11,12 +11,12 @@ first_line=$(sed -n '1p' "$COMMIT_MESSAGE_FILE")
 remaining_lines=$(tail -n +2 "$COMMIT_MESSAGE_FILE")
 
 # 커밋 기여자(Co-authored-by) 트레일러 엄격 차단
-#if grep -Eiq '(co-authored-by|co-committed-by):[[:space:]]*' "$COMMIT_MESSAGE_FILE"; then
-#  echo "⛔ 커밋 기여자(Co-authored-by) 트레일러가 포함되어 있어 커밋을 차단했습니다."
-#  echo "   모든 커밋은 단독 작성자만 허용됩니다."
-#  echo "   AI 도구의 도움을 받아 커밋 메시지를 작성하지 마세요."
-#  exit 1
-#fi
+if grep -Eiq '(co-authored-by|co-committed-by):[[:space:]]*' "$COMMIT_MESSAGE_FILE"; then
+  echo "⛔ 커밋 기여자(Co-authored-by) 트레일러가 포함되어 있어 커밋을 차단했습니다."
+  echo "   모든 커밋은 단독 작성자만 허용됩니다."
+  echo "   AI 도구의 도움을 받아 커밋 메시지를 작성하지 마세요."
+  exit 1
+fi
 
 # AI 생성 콘텐츠 표시 차단
 if grep -Eiq '(claude|sonnet|anthropic|generated with|🤖 generated)' "$COMMIT_MESSAGE_FILE"; then
