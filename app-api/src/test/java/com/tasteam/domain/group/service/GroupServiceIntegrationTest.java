@@ -16,6 +16,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +59,7 @@ import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.SubgroupFixture;
 import com.tasteam.fixture.SubgroupMemberFixture;
 import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.NotificationErrorCode;
 import com.tasteam.global.notification.email.EmailSender;
 
 @ServiceIntegrationTest
@@ -100,6 +103,9 @@ class GroupFacadeIntegrationTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
+	@Autowired
+	private StringRedisTemplate redisTemplate;
+
 	@MockitoBean
 	private EmailSender emailSender;
 
@@ -109,6 +115,11 @@ class GroupFacadeIntegrationTest {
 
 	@BeforeEach
 	void setUp() {
+		redisTemplate.execute((RedisCallback<Void>)connection -> {
+			connection.serverCommands().flushAll();
+			return null;
+		});
+
 		member1 = memberRepository.save(MemberFixture.create("member1@test.com", "회원1"));
 		member2 = memberRepository.save(MemberFixture.create("member2@test.com", "회원2"));
 		member3 = memberRepository.save(MemberFixture.create("member3@example.com", "회원3"));
@@ -295,7 +306,11 @@ class GroupFacadeIntegrationTest {
 		void sendGroupEmailVerification_success() {
 			Instant before = Instant.now();
 
-			var response = groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
+			var response = groupFacade.sendGroupEmailVerification(
+				emailGroup.getId(),
+				member3.getId(),
+				"127.0.0.1",
+				"user@example.com");
 
 			verify(emailSender, times(1)).sendGroupJoinVerificationLink(anyString(), anyString(), any(Instant.class));
 			assertThat(response.expiresAt()).isAfter(before.plusSeconds(290));
@@ -305,16 +320,27 @@ class GroupFacadeIntegrationTest {
 		@DisplayName("이메일 도메인이 일치하지 않으면 예외를 발생시킨다")
 		void sendGroupEmailVerification_emailDomainMismatch_throwsBusinessException() {
 			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
-				emailGroup.getId(), "user@other.com"))
+				emailGroup.getId(),
+				member3.getId(),
+				"127.0.0.1",
+				"user@other.com"))
 				.isInstanceOf(BusinessException.class);
 		}
 
 		@Test
-		@DisplayName("유효시간 내에도 이메일 인증 링크 재발송이 가능하다")
-		void sendGroupEmailVerification_resend_success() {
-			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
-			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
-			verify(emailSender, times(2)).sendGroupJoinVerificationLink(anyString(), anyString(), any(Instant.class));
+		@DisplayName("유효시간 내 재발송은 1분 제한으로 차단된다")
+		void sendGroupEmailVerification_resend_rateLimited() {
+			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
+				"user@example.com");
+
+			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
+				emailGroup.getId(),
+				member3.getId(),
+				"127.0.0.1",
+				"user@example.com"))
+				.isInstanceOfSatisfying(BusinessException.class,
+					ex -> assertThat(ex.getErrorCode()).isEqualTo(NotificationErrorCode.EMAIL_RATE_LIMITED.name()));
+			verify(emailSender, times(1)).sendGroupJoinVerificationLink(anyString(), anyString(), any(Instant.class));
 		}
 	}
 
@@ -330,7 +356,8 @@ class GroupFacadeIntegrationTest {
 			GroupCreateRequest request = GroupRequestFixture.createEmailGroupRequest("이메일가입그룹", "example.com");
 			GroupCreateResponse response = groupFacade.createGroup(request);
 			emailGroup = groupRepository.findById(response.id()).get();
-			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
+			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
+				"user@example.com");
 			verificationToken = groupInviteTokenService.issue(emailGroup.getId(), member3.getEmail()).token();
 		}
 

@@ -47,6 +47,7 @@ import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.fixture.GroupRequestFixture;
 import com.tasteam.fixture.RestaurantRequestFixture;
+import com.tasteam.global.ratelimit.ClientIpResolver;
 
 @ControllerWebMvcTest(GroupController.class)
 class GroupControllerTest {
@@ -68,6 +69,9 @@ class GroupControllerTest {
 
 	@MockitoBean
 	private SubgroupFacade subgroupFacade;
+
+	@MockitoBean
+	private ClientIpResolver clientIpResolver;
 
 	@Nested
 	@DisplayName("그룹 생성")
@@ -282,7 +286,7 @@ class GroupControllerTest {
 			GroupEmailVerificationResponse response = new GroupEmailVerificationResponse(
 				Instant.now().plusSeconds(300));
 
-			given(groupFacade.sendGroupEmailVerification(eq(1L), any())).willReturn(response);
+			given(groupFacade.sendGroupEmailVerification(eq(1L), any(), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(post("/api/v1/groups/{groupId}/email-verifications", 1L)
