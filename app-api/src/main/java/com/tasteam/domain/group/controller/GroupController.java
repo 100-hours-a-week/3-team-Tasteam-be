@@ -105,7 +105,6 @@ public class GroupController implements GroupControllerDocs {
 
 	@PostMapping("/{groupId}/email-authentications")
 	@PreAuthorize("hasRole('USER')")
-	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<GroupEmailAuthenticationResponse> authenticateGroupByEmail(
 		@PathVariable @Positive
 		Long groupId,
@@ -113,8 +112,19 @@ public class GroupController implements GroupControllerDocs {
 		Long memberId,
 		@RequestBody @Validated
 		GroupEmailAuthenticationRequest request) {
-		return SuccessResponse.success(
-			groupFacade.authenticateGroupByEmail(groupId, memberId, request.code()));
+		return SuccessResponse.success(groupFacade.authenticateGroupByEmail(groupId, memberId, request.token()));
+	}
+
+	@GetMapping("/{groupId}/email-authentications")
+	@PreAuthorize("hasRole('USER')")
+	public SuccessResponse<GroupEmailAuthenticationResponse> authenticateGroupByEmailByLink(
+		@PathVariable @Positive
+		Long groupId,
+		@CurrentUser
+		Long memberId,
+		@RequestParam
+		String token) {
+		return SuccessResponse.success(groupFacade.authenticateGroupByEmail(groupId, memberId, token));
 	}
 
 	@PostMapping("/{groupId}/password-authentications")

@@ -41,8 +41,8 @@ public class GroupService {
 	}
 
 	@Transactional
-	public GroupEmailAuthenticationResponse authenticateGroupByEmail(Long groupId, Long memberId, String code) {
-		return groupFacade.authenticateGroupByEmail(groupId, memberId, code);
+	public GroupEmailAuthenticationResponse authenticateGroupByEmail(Long groupId, Long memberId, String token) {
+		return groupFacade.authenticateGroupByEmail(groupId, memberId, token);
 	}
 
 	@Transactional

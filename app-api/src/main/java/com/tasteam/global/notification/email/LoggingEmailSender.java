@@ -12,8 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 public class LoggingEmailSender implements EmailSender {
 
 	@Override
-	public void sendGroupJoinVerification(String email, String code, Instant expiresAt) {
-		log.info("Email verification code sent. email={}, code={}, expiresAt={}", email, code, expiresAt);
+	public void sendGroupJoinVerificationLink(String email, String verificationUrl, Instant expiresAt) {
+		log.info("Group invite verification link sent. email={}, expiresAt={}",
+			email,
+			expiresAt);
 	}
 
 	@Override
