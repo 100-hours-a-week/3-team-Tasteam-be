@@ -57,6 +57,7 @@ import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.SubgroupFixture;
 import com.tasteam.fixture.SubgroupMemberFixture;
 import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.NotificationErrorCode;
 import com.tasteam.global.notification.email.EmailSender;
 
 @ServiceIntegrationTest
@@ -317,13 +318,19 @@ class GroupFacadeIntegrationTest {
 		}
 
 		@Test
-		@DisplayName("유효시간 내에도 이메일 인증 링크 재발송이 가능하다")
-		void sendGroupEmailVerification_resend_success() {
+		@DisplayName("유효시간 내 재발송은 1분 제한으로 차단된다")
+		void sendGroupEmailVerification_resend_rateLimited() {
 			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
 				"user@example.com");
-			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
-				"user@example.com");
-			verify(emailSender, times(2)).sendGroupJoinVerificationLink(anyString(), anyString(), any(Instant.class));
+
+			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
+				emailGroup.getId(),
+				member3.getId(),
+				"127.0.0.1",
+				"user@example.com"))
+				.isInstanceOfSatisfying(BusinessException.class,
+					ex -> assertThat(ex.getErrorCode()).isEqualTo(NotificationErrorCode.EMAIL_RATE_LIMITED.name()));
+			verify(emailSender, times(1)).sendGroupJoinVerificationLink(anyString(), anyString(), any(Instant.class));
 		}
 	}
 

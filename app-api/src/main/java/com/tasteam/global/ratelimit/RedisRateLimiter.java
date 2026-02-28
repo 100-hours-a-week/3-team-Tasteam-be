@@ -44,14 +44,14 @@ public class RedisRateLimiter {
 			keyFactory.emailBlockKey(normalizedEmail));
 
 		Object[] args = {
-			Instant.now().getEpochSecond(),
-			policy.getEmail1m().validatedLimit(),
-			policy.getIp1m().validatedLimit(),
-			policy.getUser1m().validatedLimit(),
-			policy.getEmail1d().validatedLimit(),
-			policy.getEmail1m().validatedTtlSeconds(),
-			policy.getEmail1d().validatedTtlSeconds(),
-			policy.blockTtlSeconds()
+			String.valueOf(Instant.now().getEpochSecond()),
+			String.valueOf(policy.getEmail1m().validatedLimit()),
+			String.valueOf(policy.getIp1m().validatedLimit()),
+			String.valueOf(policy.getUser1m().validatedLimit()),
+			String.valueOf(policy.getEmail1d().validatedLimit()),
+			String.valueOf(policy.getEmail1m().validatedTtlSeconds()),
+			String.valueOf(policy.getEmail1d().validatedTtlSeconds()),
+			String.valueOf(policy.blockTtlSeconds())
 		};
 
 		Timer.Sample sample = Timer.start(meterRegistry);
