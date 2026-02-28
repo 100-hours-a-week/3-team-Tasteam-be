@@ -2,6 +2,9 @@ package com.tasteam.domain.group.service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +35,9 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class GroupAuthService {
+
+	private static final DateTimeFormatter KST_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+		.withZone(ZoneId.of("Asia/Seoul"));
 
 	private final GroupAuthCodeRepository groupAuthCodeRepository;
 	private final GroupMemberRepository groupMemberRepository;
@@ -74,7 +80,10 @@ public class GroupAuthService {
 			.expiresAt(expiresAt)
 			.build());
 
-		emailSender.sendGroupJoinVerification(email, code, expiresAt);
+		emailSender.sendTemplateEmail(email, "group-join-verification", Map.of(
+			"code", code,
+			"expiresAt", KST_FORMATTER.format(expiresAt),
+			"subject", "[Tasteam] 그룹 참여 인증 코드"));
 		return GroupEmailVerificationResponse.from(authCode);
 	}
 

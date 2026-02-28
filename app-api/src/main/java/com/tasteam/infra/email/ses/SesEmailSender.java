@@ -1,8 +1,5 @@
 package com.tasteam.infra.email.ses;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -30,21 +27,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class SesEmailSender implements EmailSender {
 
-	private static final DateTimeFormatter KST_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-		.withZone(ZoneId.of("Asia/Seoul"));
-
 	private final AmazonSimpleEmailService sesClient;
 	private final EmailProperties emailProperties;
 	private final TemplateEngine templateEngine;
-
-	@Override
-	public void sendGroupJoinVerification(String email, String code, Instant expiresAt) {
-		Context ctx = new Context();
-		ctx.setVariable("code", code);
-		ctx.setVariable("expiresAt", KST_FORMATTER.format(expiresAt));
-		String html = templateEngine.process("email/group-join-verification", ctx);
-		send(email, "[Tasteam] 그룹 참여 인증 코드", html);
-	}
 
 	@Override
 	public void sendTemplateEmail(String toEmail, String templateKey, Map<String, Object> variables) {
