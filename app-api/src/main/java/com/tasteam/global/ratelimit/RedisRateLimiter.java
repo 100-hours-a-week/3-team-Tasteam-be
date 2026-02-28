@@ -10,6 +10,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -21,6 +23,7 @@ public class RedisRateLimiter {
 	private final StringRedisTemplate redisTemplate;
 	private final RateLimitPolicy policy;
 	private final RateLimitKeyFactory keyFactory;
+	private final MeterRegistry meterRegistry;
 
 	private volatile DefaultRedisScript<List> script;
 
@@ -51,13 +54,21 @@ public class RedisRateLimiter {
 			policy.blockTtlSeconds()
 		};
 
+		Timer.Sample sample = Timer.start(meterRegistry);
+		String result = "success";
 		try {
-			List<?> result = redisTemplate.execute(getScript(), keys, args);
-			return parseResult(result);
+			List<?> scriptResult = redisTemplate.execute(getScript(), keys, args);
+			return parseResult(scriptResult);
 		} catch (RedisSystemException e) {
+			result = "error";
+			meterRegistry.counter("redis_errors_count").increment();
 			return new RateLimitResult(false, RateLimitReason.RATE_LIMITER_UNAVAILABLE, 0L);
 		} catch (Exception e) {
+			result = "error";
+			meterRegistry.counter("redis_errors_count").increment();
 			return new RateLimitResult(false, RateLimitReason.RATE_LIMITER_UNAVAILABLE, 0L);
+		} finally {
+			sample.stop(meterRegistry.timer("redis_eval_latency", "result", result));
 		}
 	}
 

@@ -35,6 +35,7 @@ import com.tasteam.global.ratelimit.RateLimitRequest;
 import com.tasteam.global.ratelimit.RateLimitResult;
 import com.tasteam.global.ratelimit.RedisRateLimiter;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -50,6 +51,7 @@ public class GroupAuthService {
 	private final GroupInviteTokenService groupInviteTokenService;
 	private final DomainProperties domainProperties;
 	private final RedisRateLimiter redisRateLimiter;
+	private final MeterRegistry meterRegistry;
 
 	@Transactional
 	public void saveInitialPasswordCode(Group group, String code) {
@@ -81,12 +83,14 @@ public class GroupAuthService {
 	}
 
 	private void enforceMailRateLimit(Long memberId, String clientIp, String email) {
+		meterRegistry.counter("mail_send_request_count").increment();
 		RateLimitResult result = redisRateLimiter.checkMailSend(new RateLimitRequest(email, clientIp, memberId));
 		if (result.allowed()) {
 			return;
 		}
-
 		RateLimitReason reason = result.reason();
+		meterRegistry.counter("rate_limited_count", "reason", reason.name()).increment();
+
 		if (reason == RateLimitReason.EMAIL_BLOCKED_24H) {
 			throw new BusinessException(NotificationErrorCode.EMAIL_BLOCKED_24H);
 		}
