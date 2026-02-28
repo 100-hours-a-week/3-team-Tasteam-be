@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>공지사항 관리 - Tasteam Admin</title>
+    <title>리뷰 관리 - Tasteam Admin</title>
     <link rel="stylesheet" href="/admin/css/admin.css">
 </head>
 <body>
@@ -17,33 +17,40 @@
                 <li><a href="/admin/pages/restaurants.html">음식점 관리</a></li>
                 <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
                 <li><a href="/admin/pages/promotions.html">프로모션 관리</a></li>
-                <li><a href="/admin/pages/announcements.html" class="active">공지사항 관리</a></li>
-                <li><a href="/admin/pages/reviews.html">리뷰 관리</a></li>
+                <li><a href="/admin/pages/announcements.html">공지사항 관리</a></li>
+                <li><a href="/admin/pages/reviews.html" class="active">리뷰 관리</a></li>
                 <li><a href="/admin/pages/jobs.html">배치 작업</a></li>
                 <li><a href="#" id="logoutBtn">로그아웃</a></li>
             </ul>
         </nav>
         <main class="content">
             <div class="content-header">
-                <h1>공지사항 관리</h1>
-                <button class="btn btn-primary" onclick="location.href='/admin/pages/announcement-create.html'">공지사항 등록</button>
+                <h1>리뷰 관리</h1>
             </div>
 
-            <div class="table-container">
+            <div class="filter-section">
+                <div class="filter-row">
+                    <input type="number" id="restaurantIdFilter" placeholder="음식점 ID로 필터" min="1">
+                    <button class="btn btn-secondary" id="searchBtn">검색</button>
+                    <button class="btn btn-secondary" id="resetBtn">초기화</button>
+                </div>
+            </div>
+
+            <div id="reviewsTableContainer">
                 <table class="data-table">
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>제목</th>
-                            <th>등록일</th>
-                            <th>수정일</th>
-                            <th>작업</th>
+                            <th>음식점</th>
+                            <th>작성자</th>
+                            <th>내용</th>
+                            <th>추천</th>
+                            <th>작성일</th>
+                            <th>관리</th>
                         </tr>
                     </thead>
-                    <tbody id="announcementList">
-                        <tr>
-                            <td colspan="5" class="loading">로딩 중...</td>
-                        </tr>
+                    <tbody id="reviewsTableBody">
+                        <tr><td colspan="7">로딩 중...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -53,6 +60,6 @@
     </div>
     <script src="/admin/js/auth.js"></script>
     <script src="/admin/js/api.js"></script>
-    <script src="/admin/js/announcements.js"></script>
+    <script src="/admin/js/reviews.js"></script>
 </body>
 </html>
