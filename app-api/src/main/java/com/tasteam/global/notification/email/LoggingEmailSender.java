@@ -4,12 +4,14 @@ import java.time.Instant;
 import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
+@Profile("!test")
 @ConditionalOnProperty(prefix = "tasteam.notification.email", name = "provider", havingValue = "log", matchIfMissing = true)
 public class LoggingEmailSender implements EmailSender {
 

@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -15,6 +16,7 @@ import com.amazonaws.services.simpleemail.model.Body;
 import com.amazonaws.services.simpleemail.model.Content;
 import com.amazonaws.services.simpleemail.model.Destination;
 import com.amazonaws.services.simpleemail.model.Message;
+import com.amazonaws.services.simpleemail.model.MessageRejectedException;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.tasteam.global.notification.email.EmailNotificationProperties;
 import com.tasteam.global.notification.email.EmailSender;
@@ -24,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
+@Profile("!test")
 @ConditionalOnProperty(prefix = "tasteam.notification.email", name = "provider", havingValue = "ses")
 @RequiredArgsConstructor
 public class SesEmailSender implements EmailSender {
@@ -153,6 +156,11 @@ public class SesEmailSender implements EmailSender {
 		try {
 			sesClient.sendEmail(request);
 			log.info("[SES] 이메일 발송 완료. to={}", to);
+		} catch (MessageRejectedException e) {
+			log.error("[SES] 메일 거부됨. to={}, reason={}. "
+				+ "샌드박스 모드인 경우 수신자 이메일을 SES Verified Identity로 등록해야 합니다.",
+				to, e.getMessage());
+			throw new RuntimeException("이메일 발송이 거부되었습니다. to=" + to, e);
 		} catch (Exception e) {
 			log.error("[SES] 이메일 발송 실패. to={}", to, e);
 			throw new RuntimeException("이메일 발송에 실패했습니다. to=" + to, e);
