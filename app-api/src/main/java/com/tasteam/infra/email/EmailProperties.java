@@ -20,6 +20,7 @@ public class EmailProperties {
 	private String from;
 	private String accessKey;
 	private String secretKey;
+	private String appUrl;
 
 	public boolean hasStaticCredentials() {
 		return accessKey != null && !accessKey.isBlank()
@@ -34,6 +35,7 @@ public class EmailProperties {
 		log.info("from      : {}", isConfigured(from) ? from : "(not set)");
 		log.info("accessKey : {}", isConfigured(accessKey) ? maskValue(accessKey) : "(not set - DefaultChain 사용)");
 		log.info("secretKey : {}", isConfigured(secretKey) ? "****" : "(not set - DefaultChain 사용)");
+		log.info("appUrl    : {}", isConfigured(appUrl) ? appUrl : "(not set)");
 		log.info("===========================");
 	}
 

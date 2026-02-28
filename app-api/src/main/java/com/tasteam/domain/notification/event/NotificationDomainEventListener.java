@@ -31,7 +31,7 @@ public class NotificationDomainEventListener {
 
 	private final NotificationOutboxService outboxService;
 
-	@Value("${tasteam.mail.app-url:https://tasteam.co.kr}")
+	@Value("${tasteam.email.app-url:https://tasteam.co.kr}")
 	private String appUrl;
 
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
