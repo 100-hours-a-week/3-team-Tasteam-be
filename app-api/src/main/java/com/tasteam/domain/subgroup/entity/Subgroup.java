@@ -17,7 +17,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -33,8 +32,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "subgroup")
 public class Subgroup extends BaseTimeEntity {
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "subgroup_seq_gen")
-	@SequenceGenerator(name = "subgroup_seq_gen", sequenceName = "subgroup_seq", allocationSize = 50)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "id", nullable = false)
 	private Long id;
 
