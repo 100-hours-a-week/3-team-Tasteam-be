@@ -21,7 +21,7 @@ import com.tasteam.infra.storage.StorageProperties;
 public class S3StorageConfig {
 
 	@Bean
-	public AWSCredentialsProvider awsCredentialsProvider(StorageProperties properties) {
+	public AWSCredentialsProvider s3AwsCredentialsProvider(StorageProperties properties) {
 		if (properties.hasStaticCredentials()) {
 			return new AWSStaticCredentialsProvider(
 				new BasicAWSCredentials(properties.getAccessKey(), properties.getSecretKey()));
@@ -32,7 +32,7 @@ public class S3StorageConfig {
 	@Bean
 	public AmazonS3 amazonS3(
 		StorageProperties properties,
-		@Qualifier("awsCredentialsProvider")
+		@Qualifier("s3AwsCredentialsProvider")
 		AWSCredentialsProvider credentialsProvider) {
 		Assert.hasText(properties.getRegion(), "tasteam.storage.region은 필수입니다");
 

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -46,6 +47,7 @@ import lombok.RequiredArgsConstructor;
 public class S3StorageClient implements StorageClient {
 
 	private final AmazonS3 amazonS3;
+	@Qualifier("s3AwsCredentialsProvider")
 	private final AWSCredentialsProvider credentialsProvider;
 	private final StorageProperties properties;
 	private final S3PresignPolicyBuilder presignPolicyBuilder;
