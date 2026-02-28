@@ -148,6 +148,11 @@ tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'perf'
     }
+    // 중단된 테스트로 인해 jacoco exec 파일이 깨지면(EOF) 이후 리포트 생성이 실패할 수 있다.
+    // 매 실행마다 exec를 초기화해서 flaky한 pre-push 실패를 방지한다.
+    doFirst {
+        delete file("$buildDir/jacoco/test.exec")
+    }
     finalizedBy tasks.jacocoTestReport
 }
 
@@ -176,6 +181,10 @@ tasks.register('performanceTest', Test) {
 
 tasks.jacocoTestReport {
     dependsOn tasks.test
+    // test 실패 시에는 리포트를 만들지 않는다(실패 원인 노이즈 감소).
+    onlyIf {
+        tasks.test.state.failure == null
+    }
 
     reports {
         html.required = true
