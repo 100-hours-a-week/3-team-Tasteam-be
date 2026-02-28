@@ -142,6 +142,12 @@ def calculateTestForks() {
 tasks.withType(Test).configureEach {
     systemProperty "spring.profiles.active", "test"
     maxParallelForks = calculateTestForks()
+    // Gradle의 테스트 출력 스토어가 비정상 종료로 깨지면(EOF) XML 리포트 생성 단계에서 실패할 수 있다.
+    // 테스트 실행 전 결과/임시 디렉토리를 정리해 flaky한 실패를 방지한다.
+    doFirst {
+        delete file("$buildDir/test-results/$name")
+        delete file("$buildDir/tmp/$name")
+    }
 }
 
 tasks.named('test') {
