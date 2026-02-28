@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>그룹 가입 인증 코드</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;max-width:600px;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#FF6B35;padding:32px 40px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:-0.5px;">🍽️ Tasteam</h1>
+              <p style="margin:8px 0 0;color:#ffe0d0;font-size:14px;">팀 식사 추천 서비스</p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:48px 40px 40px;">
+              <h2 style="margin:0 0 16px;color:#1a1a1a;font-size:22px;font-weight:700;">그룹 가입 인증 코드</h2>
+              <p style="margin:0 0 32px;color:#555555;font-size:15px;line-height:1.7;">
+                아래 인증 코드를 입력하여 그룹 가입을 완료해 주세요.
+              </p>
+              <div style="text-align:center;padding:32px;background-color:#fff8f6;border-radius:12px;margin-bottom:32px;">
+                <p style="margin:0;color:#666666;font-size:13px;margin-bottom:8px;">인증 코드</p>
+                <p style="margin:0;color:#FF6B35;font-size:36px;font-weight:700;letter-spacing:8px;" th:text="${code}">000000</p>
+              </div>
+              <p style="margin:0;color:#999999;font-size:13px;text-align:center;">
+                인증 코드는 <strong th:text="${expiresAt}">잠시 후</strong>에 만료됩니다.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#f9f9f9;padding:24px 40px;border-top:1px solid #eeeeee;">
+              <p style="margin:0;color:#999999;font-size:12px;line-height:1.7;text-align:center;">
+                본 메일은 발신 전용입니다. 이 인증 코드를 요청하지 않으셨다면 무시해 주세요.<br/>
+                © 2025 Tasteam. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

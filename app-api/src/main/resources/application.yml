@@ -17,6 +17,15 @@ spring:
     ansi:
       enabled: ALWAYS
 
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
   jpa:
     open-in-view: false
 
@@ -179,6 +188,11 @@ tasteam:
     filters:
       min-http-status: ${WEBHOOK_MIN_HTTP_STATUS:500}
       exclude-error-codes: ${WEBHOOK_EXCLUDE_ERROR_CODES:}
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:noreply@tasteam.co.kr}
+    from-name: ${MAIL_FROM_NAME:Tasteam}
+    app-url: ${APP_URL:https://tasteam.co.kr}
   message-queue:
     enabled: ${MQ_ENABLED:false}
     provider: ${MQ_PROVIDER:none}
