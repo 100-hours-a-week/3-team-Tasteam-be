@@ -47,6 +47,7 @@ import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.fixture.GroupRequestFixture;
 import com.tasteam.fixture.RestaurantRequestFixture;
+import com.tasteam.global.ratelimit.ClientIpResolver;
 
 @ControllerWebMvcTest(GroupController.class)
 class GroupControllerTest {
@@ -68,6 +69,9 @@ class GroupControllerTest {
 
 	@MockitoBean
 	private SubgroupFacade subgroupFacade;
+
+	@MockitoBean
+	private ClientIpResolver clientIpResolver;
 
 	@Nested
 	@DisplayName("그룹 생성")

@@ -16,6 +16,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -101,6 +103,9 @@ class GroupFacadeIntegrationTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
+	@Autowired
+	private StringRedisTemplate redisTemplate;
+
 	@MockitoBean
 	private EmailSender emailSender;
 
@@ -110,6 +115,11 @@ class GroupFacadeIntegrationTest {
 
 	@BeforeEach
 	void setUp() {
+		redisTemplate.execute((RedisCallback<Void>)connection -> {
+			connection.serverCommands().flushAll();
+			return null;
+		});
+
 		member1 = memberRepository.save(MemberFixture.create("member1@test.com", "회원1"));
 		member2 = memberRepository.save(MemberFixture.create("member2@test.com", "회원2"));
 		member3 = memberRepository.save(MemberFixture.create("member3@example.com", "회원3"));
