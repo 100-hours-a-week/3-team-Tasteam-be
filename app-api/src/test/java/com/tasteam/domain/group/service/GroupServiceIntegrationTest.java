@@ -114,6 +114,7 @@ class GroupFacadeIntegrationTest {
 			connection.serverCommands().flushAll();
 			return null;
 		});
+		emailSender.clear();
 
 		member1 = memberRepository.save(MemberFixture.create("member1@test.com", "회원1"));
 		member2 = memberRepository.save(MemberFixture.create("member2@test.com", "회원2"));
