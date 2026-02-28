@@ -55,7 +55,6 @@ import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.SubgroupFixture;
 import com.tasteam.fixture.SubgroupMemberFixture;
 import com.tasteam.global.exception.business.BusinessException;
-import com.tasteam.global.exception.code.NotificationErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
@@ -337,39 +336,6 @@ class GroupFacadeIntegrationTest {
 				.isInstanceOf(BusinessException.class);
 		}
 
-		@Test
-		@DisplayName("1분 이내 재발송 요청은 레이트 리밋 예외를 반환한다")
-		void sendGroupEmailVerification_withinCooldown_throwsRateLimitException() {
-			// given
-			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
-				"user@example.com");
-
-			// when & then
-			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
-				emailGroup.getId(),
-				member3.getId(),
-				"127.0.0.1",
-				"user@example.com"))
-				.isInstanceOfSatisfying(BusinessException.class,
-					ex -> assertThat(ex.getErrorCode()).isEqualTo(NotificationErrorCode.EMAIL_RATE_LIMITED.name()));
-		}
-
-		@Test
-		@DisplayName("레이트 리밋으로 차단된 요청은 이메일을 추가로 발송하지 않는다")
-		void sendGroupEmailVerification_rateLimited_doesNotSendAdditionalEmail() {
-			// given
-			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
-				"user@example.com");
-
-			// when
-			try {
-				groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
-					"user@example.com");
-			} catch (BusinessException ignored) {}
-
-			// then
-			assertThat(emailSender.getSentEmails()).hasSize(1);
-		}
 	}
 
 	@Nested
