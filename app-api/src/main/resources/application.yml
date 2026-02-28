@@ -88,6 +88,12 @@ tasteam:
     query:
       strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:TWO_STEP}
       candidate-limit: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:200}
+  email:
+    type: ${EMAIL_TYPE:logging}
+    region: ${EMAIL_REGION:}
+    from: ${EMAIL_FROM:}
+    access-key: ${EMAIL_ACCESS_KEY:}
+    secret-key: ${EMAIL_SECRET_KEY:}
   storage:
     type: ${STORAGE_TYPE:dummy}
     region: ${STORAGE_REGION:}

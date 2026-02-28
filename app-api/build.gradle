@@ -78,9 +78,10 @@ dependencies {
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
     /* ==================================================
-     * Storage (S3)
+     * Storage (S3) & Email (SES)
      * ================================================== */
     implementation "com.amazonaws:aws-java-sdk-s3:1.12.538"
+    implementation "com.amazonaws:aws-java-sdk-ses:1.12.538"
 
     /* ==================================================
      * Image Processing
