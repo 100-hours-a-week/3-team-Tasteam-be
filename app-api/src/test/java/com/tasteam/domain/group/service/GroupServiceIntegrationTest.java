@@ -2,15 +2,9 @@ package com.tasteam.domain.group.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -18,11 +12,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.ServiceIntegrationTest;
+import com.tasteam.config.fake.FakeEmailSender;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.FilePurpose;
@@ -60,7 +54,6 @@ import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.SubgroupFixture;
 import com.tasteam.fixture.SubgroupMemberFixture;
 import com.tasteam.global.exception.business.BusinessException;
-import com.tasteam.global.notification.email.EmailSender;
 
 @ServiceIntegrationTest
 @Transactional
@@ -100,8 +93,8 @@ class GroupFacadeIntegrationTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
-	@MockitoBean
-	private EmailSender emailSender;
+	@Autowired
+	private FakeEmailSender emailSender;
 
 	private Member member1;
 	private Member member2;
@@ -297,7 +290,7 @@ class GroupFacadeIntegrationTest {
 
 			groupFacade.sendGroupEmailVerification(emailGroup.getId(), "user@example.com");
 
-			verify(emailSender, times(1)).sendTemplateEmail(anyString(), eq("group-join-verification"), any(Map.class));
+			assertThat(emailSender.hasEmailSentWith("group-join-verification")).isTrue();
 			GroupAuthCode authCode = groupAuthCodeRepository.findByGroupId(emailGroup.getId()).get();
 			assertThat(authCode.getCode()).hasSize(6);
 			assertThat(authCode.getExpiresAt()).isAfter(before.plusSeconds(590));
