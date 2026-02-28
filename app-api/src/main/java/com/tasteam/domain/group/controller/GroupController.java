@@ -33,8 +33,10 @@ import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
 import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.global.ratelimit.ClientIpResolver;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 
@@ -48,6 +50,7 @@ public class GroupController implements GroupControllerDocs {
 	private final RestaurantService restaurantService;
 	private final ReviewService reviewService;
 	private final SubgroupFacade subgroupFacade;
+	private final ClientIpResolver clientIpResolver;
 
 	@PostMapping
 	@PreAuthorize("hasRole('USER')")
@@ -98,14 +101,18 @@ public class GroupController implements GroupControllerDocs {
 	public SuccessResponse<GroupEmailVerificationResponse> sendGroupEmailVerification(
 		@PathVariable @Positive
 		Long groupId,
+		@CurrentUser
+		Long memberId,
+		HttpServletRequest servletRequest,
 		@RequestBody @Validated
 		GroupEmailVerificationRequest request) {
-		return SuccessResponse.success(groupFacade.sendGroupEmailVerification(groupId, request.email()));
+		String clientIp = clientIpResolver.resolve(servletRequest);
+		return SuccessResponse
+			.success(groupFacade.sendGroupEmailVerification(groupId, memberId, clientIp, request.email()));
 	}
 
 	@PostMapping("/{groupId}/email-authentications")
 	@PreAuthorize("hasRole('USER')")
-	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<GroupEmailAuthenticationResponse> authenticateGroupByEmail(
 		@PathVariable @Positive
 		Long groupId,
@@ -113,8 +120,19 @@ public class GroupController implements GroupControllerDocs {
 		Long memberId,
 		@RequestBody @Validated
 		GroupEmailAuthenticationRequest request) {
-		return SuccessResponse.success(
-			groupFacade.authenticateGroupByEmail(groupId, memberId, request.code()));
+		return SuccessResponse.success(groupFacade.authenticateGroupByEmail(groupId, memberId, request.token()));
+	}
+
+	@GetMapping("/{groupId}/email-authentications")
+	@PreAuthorize("hasRole('USER')")
+	public SuccessResponse<GroupEmailAuthenticationResponse> authenticateGroupByEmailByLink(
+		@PathVariable @Positive
+		Long groupId,
+		@CurrentUser
+		Long memberId,
+		@RequestParam
+		String token) {
+		return SuccessResponse.success(groupFacade.authenticateGroupByEmail(groupId, memberId, token));
 	}
 
 	@PostMapping("/{groupId}/password-authentications")

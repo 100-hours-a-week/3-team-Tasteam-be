@@ -163,6 +163,34 @@ async function uploadToPresigned(presignedItem, file) {
     }
 }
 
+async function getReviews(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/reviews?${queryString}`);
+}
+
+async function adminDeleteReview(id) {
+    return apiRequest(`/admin/reviews/${id}`, {
+        method: 'DELETE'
+    });
+}
+
+
+
+async function getAdminReports(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/reports?${queryString}`);
+}
+
+async function getAdminReport(id) {
+    return apiRequest(`/admin/reports/${id}`);
+}
+
+async function updateReportStatus(id, status) {
+    return apiRequest(`/admin/reports/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+    });
+}
 async function geocodeAddress(query) {
     const params = new URLSearchParams({ query });
     return apiRequest(`/admin/geocoding?${params.toString()}`);

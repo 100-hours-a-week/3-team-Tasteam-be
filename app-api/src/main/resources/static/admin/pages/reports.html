@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>신고 관리 - Tasteam Admin</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Tasteam Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/admin/pages/dashboard.html">대시보드</a></li>
+                <li><a href="/admin/pages/restaurants.html">음식점 관리</a></li>
+                <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
+                <li><a href="/admin/pages/promotions.html">프로모션 관리</a></li>
+                <li><a href="/admin/pages/announcements.html">공지사항 관리</a></li>
+                <li><a href="/admin/pages/reviews.html">리뷰 관리</a></li>
+                <li><a href="/admin/pages/reports.html" class="active">신고 관리</a></li>
+                <li><a href="/admin/pages/jobs.html">배치 작업</a></li>
+                <li><a href="#" id="logoutBtn">로그아웃</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <div class="content-header">
+                <h1>신고 관리</h1>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-row">
+                    <select id="categoryFilter">
+                        <option value="">전체 카테고리</option>
+                        <option value="BUG">버그/오류</option>
+                        <option value="INAPPROPRIATE_REVIEW">부적절한 리뷰</option>
+                        <option value="INAPPROPRIATE_CONTENT">부적절한 콘텐츠</option>
+                        <option value="RESTAURANT_INFO">음식점 정보 오류</option>
+                        <option value="SPAM">스팸/광고</option>
+                        <option value="OTHER">기타</option>
+                    </select>
+                    <select id="statusFilter">
+                        <option value="">전체 상태</option>
+                        <option value="PENDING">접수됨</option>
+                        <option value="IN_PROGRESS">처리 중</option>
+                        <option value="RESOLVED">해결됨</option>
+                        <option value="REJECTED">반려</option>
+                    </select>
+                    <button class="btn btn-secondary" id="searchBtn">검색</button>
+                    <button class="btn btn-secondary" id="resetBtn">초기화</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>카테고리</th>
+                            <th>신고자</th>
+                            <th>내용</th>
+                            <th>상태</th>
+                            <th>접수일</th>
+                            <th>상세보기</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportsTableBody">
+                        <tr><td colspan="7">로딩 중...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="pagination"></div>
+        </main>
+    </div>
+
+    <!-- 상세 모달 -->
+    <div id="reportModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" id="modalClose">&times;</span>
+            <h2>신고 상세</h2>
+            <table class="data-table" id="modalDetailTable">
+                <tbody></tbody>
+            </table>
+            <div style="margin-top:16px;">
+                <label for="modalStatus"><strong>처리 상태 변경:</strong></label>
+                <select id="modalStatus" style="margin-left:8px;">
+                    <option value="PENDING">접수됨</option>
+                    <option value="IN_PROGRESS">처리 중</option>
+                    <option value="RESOLVED">해결됨</option>
+                    <option value="REJECTED">반려</option>
+                </select>
+                <button class="btn btn-primary" id="saveStatusBtn" style="margin-left:8px;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/reports.js"></script>
+</body>
+</html>

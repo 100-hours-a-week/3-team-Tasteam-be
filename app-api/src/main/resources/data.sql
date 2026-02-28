@@ -214,9 +214,9 @@ INSERT INTO restaurant_comparison (
 
 -- Group auth code
 INSERT INTO group_auth_code (
-  id, group_id, code, email, verified_at, expires_at, created_at
+  id, group_id, code, created_at
 ) VALUES
-  (9801, 2002, 'LOCAL-1234', 'local.user2@tasteam.dev', NULL, now() + interval '15 minutes', now());
+  (9801, 2002, 'LOCAL-1234', now());
 
 -- Additional search history
 INSERT INTO member_search_history (

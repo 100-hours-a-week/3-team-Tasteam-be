@@ -88,13 +88,6 @@ tasteam:
     query:
       strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:TWO_STEP}
       candidate-limit: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:200}
-  email:
-    type: ${EMAIL_TYPE:ses}
-    region: ${EMAIL_REGION:}
-    from: ${EMAIL_FROM:}
-    access-key: ${EMAIL_ACCESS_KEY:}
-    secret-key: ${EMAIL_SECRET_KEY:}
-    app-url: ${APP_URL:https://tasteam.co.kr}
   storage:
     type: ${STORAGE_TYPE:dummy}
     region: ${STORAGE_REGION:}
@@ -188,6 +181,34 @@ tasteam:
     poll-timeout-millis: ${MQ_POLL_TIMEOUT_MILLIS:1000}
     max-retries: ${MQ_MAX_RETRIES:3}
   notification:
+    email:
+      provider: ${NOTIFICATION_EMAIL_PROVIDER:log}
+      ses:
+        region: ${NOTIFICATION_EMAIL_SES_REGION:ap-northeast-2}
+        access-key: ${NOTIFICATION_EMAIL_SES_ACCESS_KEY:}
+        secret-key: ${NOTIFICATION_EMAIL_SES_SECRET_KEY:}
+        from-address: ${NOTIFICATION_EMAIL_SES_FROM_ADDRESS:noreply@tasteam.kr}
+        charset: ${NOTIFICATION_EMAIL_SES_CHARSET:UTF-8}
+      rate-limit:
+        # fixed-window policy
+        enabled: ${NOTIFICATION_EMAIL_RATE_LIMIT_ENABLED:true}
+        prefix: ${NOTIFICATION_EMAIL_RATE_LIMIT_PREFIX:rl:mail}
+        action: ${NOTIFICATION_EMAIL_RATE_LIMIT_ACTION:send}
+        timezone: ${NOTIFICATION_EMAIL_RATE_LIMIT_TIMEZONE:Asia/Seoul}
+        trusted-proxies: ${NOTIFICATION_EMAIL_RATE_LIMIT_TRUSTED_PROXIES:127.0.0.1,::1,0:0:0:0:0:0:0:1}
+        email1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1M_LIMIT:1}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1M_TTL_SECONDS:60}
+        ip1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_IP_1M_LIMIT:5}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_IP_1M_TTL_SECONDS:60}
+        user1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_USER_1M_LIMIT:5}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_USER_1M_TTL_SECONDS:60}
+        email1d:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1D_LIMIT:10}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1D_TTL_SECONDS:86400}
+        block-ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_BLOCK_TTL_SECONDS:86400}
     outbox:
       scan-delay: ${NOTIFICATION_OUTBOX_SCAN_DELAY:30000}
       batch-size: ${NOTIFICATION_OUTBOX_BATCH_SIZE:100}

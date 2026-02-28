@@ -24,7 +24,9 @@ import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.entity.GroupMember;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
+import com.tasteam.domain.group.type.GroupJoinType;
 import com.tasteam.domain.group.type.GroupStatus;
+import com.tasteam.domain.group.type.GroupType;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.subgroup.entity.Subgroup;
 import com.tasteam.domain.subgroup.entity.SubgroupMember;
@@ -78,19 +80,20 @@ public class GroupFacade {
 		JsonNodePatchUtils.applyStringIfPresent(request.name(), group::updateName, false, false);
 		JsonNodePatchUtils.applyStringIfPresent(request.address(), group::updateAddress, false, false);
 		JsonNodePatchUtils.applyStringIfPresent(request.detailAddress(), group::updateDetailAddress, true, false);
-		JsonNodePatchUtils.applyStringIfPresent(request.emailDomain(), group::updateEmailDomain, true, false);
+		applyEmailDomainIfPresent(request.emailDomain(), group);
 		groupImageService.applyLogoImagePatch(request.logoImageFileUuid(), group.getId());
 		applyStatusIfPresent(request.status(), group);
 	}
 
 	@Transactional
-	public GroupEmailVerificationResponse sendGroupEmailVerification(Long groupId, String email) {
-		return groupAuthService.sendGroupEmailVerification(getActiveGroup(groupId), email);
+	public GroupEmailVerificationResponse sendGroupEmailVerification(Long groupId, Long memberId, String clientIp,
+		String email) {
+		return groupAuthService.sendGroupEmailVerification(getActiveGroup(groupId), memberId, clientIp, email);
 	}
 
 	@Transactional
-	public GroupEmailAuthenticationResponse authenticateGroupByEmail(Long groupId, Long memberId, String code) {
-		return groupAuthService.authenticateGroupByEmail(getActiveGroup(groupId), memberId, code);
+	public GroupEmailAuthenticationResponse authenticateGroupByEmail(Long groupId, Long memberId, String token) {
+		return groupAuthService.authenticateGroupByEmail(getActiveGroup(groupId), memberId, token);
 	}
 
 	@Transactional
@@ -190,5 +193,26 @@ public class GroupFacade {
 		} catch (IllegalArgumentException e) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
+	}
+
+	private void applyEmailDomainIfPresent(JsonNode node, Group group) {
+		if (node == null) {
+			return;
+		}
+		if (node.isNull()) {
+			if (group.getType() == GroupType.OFFICIAL || group.getJoinType() == GroupJoinType.EMAIL) {
+				throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+			}
+			group.updateEmailDomain(null);
+			return;
+		}
+		if (!node.isTextual()) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+		String emailDomain = node.asText();
+		if (emailDomain.isBlank()) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+		group.updateEmailDomain(emailDomain);
 	}
 }

@@ -47,6 +47,7 @@ import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.fixture.GroupRequestFixture;
 import com.tasteam.fixture.RestaurantRequestFixture;
+import com.tasteam.global.ratelimit.ClientIpResolver;
 
 @ControllerWebMvcTest(GroupController.class)
 class GroupControllerTest {
@@ -68,6 +69,9 @@ class GroupControllerTest {
 
 	@MockitoBean
 	private SubgroupFacade subgroupFacade;
+
+	@MockitoBean
+	private ClientIpResolver clientIpResolver;
 
 	@Nested
 	@DisplayName("그룹 생성")
@@ -280,17 +284,16 @@ class GroupControllerTest {
 		void 이메일_인증_코드_발송_성공() throws Exception {
 			// given
 			GroupEmailVerificationResponse response = new GroupEmailVerificationResponse(
-				1L, Instant.now(), Instant.now().plusSeconds(600));
+				Instant.now().plusSeconds(300));
 
-			given(groupFacade.sendGroupEmailVerification(eq(1L), any())).willReturn(response);
+			given(groupFacade.sendGroupEmailVerification(eq(1L), any(), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(post("/api/v1/groups/{groupId}/email-verifications", 1L)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(GroupRequestFixture.createEmailVerificationRequest())))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.id").value(1));
+				.andExpect(jsonPath("$.success").value(true));
 		}
 	}
 
@@ -299,7 +302,7 @@ class GroupControllerTest {
 	class AuthenticateByEmail {
 
 		@Test
-		@DisplayName("이메일 인증에 성공하면 201과 인증 결과를 반환한다")
+		@DisplayName("이메일 인증에 성공하면 200과 인증 결과를 반환한다")
 		void 이메일_인증_성공() throws Exception {
 			// given
 			GroupEmailAuthenticationResponse response = new GroupEmailAuthenticationResponse(true, Instant.now());
@@ -310,7 +313,7 @@ class GroupControllerTest {
 			mockMvc.perform(post("/api/v1/groups/{groupId}/email-authentications", 1L)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(GroupRequestFixture.createEmailAuthenticationRequest())))
-				.andExpect(status().isCreated())
+				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data.verified").value(true));
 		}
