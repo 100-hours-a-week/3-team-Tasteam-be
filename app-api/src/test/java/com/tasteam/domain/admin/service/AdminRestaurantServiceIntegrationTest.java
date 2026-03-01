@@ -44,7 +44,6 @@ import com.tasteam.fixture.ImageFixture;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
-import com.tasteam.infra.storage.StorageClient;
 
 @ServiceIntegrationTest
 @Transactional
@@ -84,9 +83,6 @@ class AdminRestaurantServiceIntegrationTest {
 
 	@MockitoBean
 	private RestaurantEventPublisher restaurantEventPublisher;
-
-	@MockitoBean
-	private StorageClient storageClient;
 
 	@BeforeEach
 	void setUp() {
