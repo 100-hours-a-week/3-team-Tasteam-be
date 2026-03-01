@@ -87,6 +87,7 @@ public final class ApiEndpointSecurityPolicy {
 
 			// Admin Static Pages
 			permit(GET, ApiEndpoints.ADMIN_STATIC),
+			permit(GET, ApiEndpoints.ADMIN_STATIC_ROOT),
 			permit(POST, ApiEndpoints.ADMIN_AUTH_LOGIN),
 
 			// Test

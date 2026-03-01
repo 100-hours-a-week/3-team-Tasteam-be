@@ -6,6 +6,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class AdminSpaFallbackController {
 
+	@GetMapping({"/admin", "/admin/"})
+	public String serveAdminSpa() {
+		return "forward:/admin/index.html";
+	}
+
 	@GetMapping({
 		"/admin/pages",
 		"/admin/pages/",

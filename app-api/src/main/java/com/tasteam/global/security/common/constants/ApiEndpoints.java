@@ -46,6 +46,7 @@ public final class ApiEndpoints {
 
 	// Static Admin Pages
 	public static final String ADMIN_STATIC = "/admin" + ALL;
+	public static final String ADMIN_STATIC_ROOT = "/admin";
 	public static final String ADMIN_AUTH = API_V1 + "/admin/auth";
 	public static final String ADMIN_AUTH_LOGIN = ADMIN_AUTH + "/login";
 
