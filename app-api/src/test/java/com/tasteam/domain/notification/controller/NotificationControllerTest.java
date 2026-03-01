@@ -13,31 +13,16 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.notification.dto.response.NotificationPreferenceResponse;
 import com.tasteam.domain.notification.dto.response.NotificationResponse;
 import com.tasteam.domain.notification.entity.NotificationChannel;
 import com.tasteam.domain.notification.entity.NotificationType;
-import com.tasteam.domain.notification.service.NotificationPreferenceService;
-import com.tasteam.domain.notification.service.NotificationService;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.dto.pagination.OffsetPagination;
 
-@ControllerWebMvcTest(NotificationController.class)
-class NotificationControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private NotificationService notificationService;
-
-	@MockitoBean
-	private NotificationPreferenceService notificationPreferenceService;
+class NotificationControllerTest extends BaseControllerWebMvcTest {
 
 	private OffsetPageResponse<NotificationResponse> createMockNotifications() {
 		NotificationResponse notification = new NotificationResponse(

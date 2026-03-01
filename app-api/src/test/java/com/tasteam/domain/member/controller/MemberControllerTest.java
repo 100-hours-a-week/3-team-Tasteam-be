@@ -19,19 +19,14 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.favorite.dto.response.FavoriteCreateResponse;
 import com.tasteam.domain.favorite.dto.response.FavoritePageTargetsResponse;
 import com.tasteam.domain.favorite.dto.response.FavoriteRestaurantItem;
 import com.tasteam.domain.favorite.dto.response.RestaurantFavoriteTargetItem;
 import com.tasteam.domain.favorite.dto.response.RestaurantFavoriteTargetsResponse;
-import com.tasteam.domain.favorite.service.FavoriteService;
 import com.tasteam.domain.favorite.type.FavoriteState;
 import com.tasteam.domain.favorite.type.FavoriteTargetType;
 import com.tasteam.domain.member.dto.request.MemberProfileUpdateRequest;
@@ -41,34 +36,12 @@ import com.tasteam.domain.member.dto.response.MemberPreviewResponse;
 import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberSummaryResponse;
 import com.tasteam.domain.member.dto.response.ReviewSummaryResponse;
-import com.tasteam.domain.member.service.MemberService;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
-import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
-import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.fixture.MemberRequestFixture;
 
-@ControllerWebMvcTest(MemberController.class)
-class MemberControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private MemberService memberService;
-
-	@MockitoBean
-	private SubgroupFacade subgroupFacade;
-
-	@MockitoBean
-	private ReviewService reviewService;
-
-	@MockitoBean
-	private FavoriteService favoriteService;
+class MemberControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("내 정보 조회")

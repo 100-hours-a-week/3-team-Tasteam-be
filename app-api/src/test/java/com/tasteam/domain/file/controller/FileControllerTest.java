@@ -15,13 +15,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.file.dto.request.DomainImageLinkRequest;
 import com.tasteam.domain.file.dto.request.ImageSummaryRequest;
 import com.tasteam.domain.file.dto.request.PresignedUploadFileRequest;
@@ -36,23 +32,8 @@ import com.tasteam.domain.file.dto.response.PresignedUploadItem;
 import com.tasteam.domain.file.dto.response.PresignedUploadResponse;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.FilePurpose;
-import com.tasteam.domain.file.service.FileService;
-import com.tasteam.infra.storage.StorageProperties;
 
-@ControllerWebMvcTest(FileController.class)
-class FileControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private FileService fileService;
-
-	@MockitoBean
-	private StorageProperties storageProperties;
+class FileControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("프리사인드 업로드 URL 생성")

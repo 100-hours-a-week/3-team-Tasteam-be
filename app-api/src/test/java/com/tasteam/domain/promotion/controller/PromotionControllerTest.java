@@ -13,26 +13,15 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.promotion.dto.response.PromotionDetailResponse;
 import com.tasteam.domain.promotion.dto.response.PromotionSummaryResponse;
 import com.tasteam.domain.promotion.entity.PromotionStatus;
-import com.tasteam.domain.promotion.service.PromotionService;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.dto.pagination.OffsetPagination;
 
-@ControllerWebMvcTest(PromotionController.class)
-class PromotionControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private PromotionService promotionService;
+class PromotionControllerTest extends BaseControllerWebMvcTest {
 
 	private OffsetPageResponse<PromotionSummaryResponse> createMockListResponse() {
 		PromotionSummaryResponse item = new PromotionSummaryResponse(

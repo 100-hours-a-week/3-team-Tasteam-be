@@ -16,13 +16,9 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantAiComparisonResponse;
@@ -32,25 +28,10 @@ import com.tasteam.domain.restaurant.dto.response.RestaurantAiSummaryResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
-import com.tasteam.domain.restaurant.service.RestaurantService;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
-import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.fixture.RestaurantRequestFixture;
 
-@ControllerWebMvcTest(RestaurantController.class)
-class RestaurantControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private RestaurantService restaurantService;
-
-	@MockitoBean
-	private ReviewService reviewService;
+class RestaurantControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("음식점 목록 조회")

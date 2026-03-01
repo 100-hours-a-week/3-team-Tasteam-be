@@ -14,24 +14,13 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.search.dto.response.RecentSearchItem;
-import com.tasteam.domain.search.service.SearchService;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.dto.pagination.OffsetPagination;
 
-@ControllerWebMvcTest(RecentSearchController.class)
-class RecentSearchControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private SearchService searchService;
+class RecentSearchControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("최근 검색어 목록 조회")

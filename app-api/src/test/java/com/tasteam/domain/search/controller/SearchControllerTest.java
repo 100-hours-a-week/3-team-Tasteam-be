@@ -11,26 +11,15 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.search.dto.response.SearchGroupSummary;
 import com.tasteam.domain.search.dto.response.SearchResponse;
 import com.tasteam.domain.search.dto.response.SearchRestaurantItem;
-import com.tasteam.domain.search.service.SearchService;
 import com.tasteam.fixture.SearchRequestFixture;
 
-@ControllerWebMvcTest(SearchController.class)
-class SearchControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private SearchService searchService;
+class SearchControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("통합 검색")
