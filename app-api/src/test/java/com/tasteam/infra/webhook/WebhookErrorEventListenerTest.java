@@ -23,7 +23,7 @@ import com.tasteam.infra.webhook.template.BusinessExceptionTemplate;
 import com.tasteam.infra.webhook.template.SystemExceptionTemplate;
 
 @UnitTest
-@DisplayName("WebhookErrorEventListener")
+@DisplayName("[유닛](Webhook) WebhookErrorEventListener 단위 테스트")
 class WebhookErrorEventListenerTest {
 
 	@Mock

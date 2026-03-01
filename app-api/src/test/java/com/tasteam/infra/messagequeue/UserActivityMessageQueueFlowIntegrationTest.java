@@ -33,7 +33,7 @@ import jakarta.annotation.Resource;
 @SpringBootTest(classes = UserActivityMessageQueueFlowIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("test")
 @Tag("integration")
-@DisplayName("User Activity MQ 연동 통합 테스트")
+@DisplayName("[통합](UserActivity) UserActivityMessageQueueFlow 통합 테스트")
 class UserActivityMessageQueueFlowIntegrationTest {
 
 	@Resource

@@ -17,6 +17,7 @@ import com.tasteam.domain.restaurant.dto.response.MenuCategoryResponse;
 import com.tasteam.domain.restaurant.dto.response.MenuItemResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantMenuResponse;
 
+@DisplayName("[유닛](Menu) MenuController 단위 테스트")
 class MenuControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested

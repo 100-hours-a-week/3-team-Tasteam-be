@@ -22,6 +22,7 @@ import com.tasteam.domain.notification.entity.NotificationType;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.dto.pagination.OffsetPagination;
 
+@DisplayName("[유닛](Notification) NotificationController 단위 테스트")
 class NotificationControllerTest extends BaseControllerWebMvcTest {
 
 	private OffsetPageResponse<NotificationResponse> createMockNotifications() {

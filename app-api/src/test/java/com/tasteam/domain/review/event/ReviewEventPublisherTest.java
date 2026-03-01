@@ -11,7 +11,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("ReviewEventPublisher")
+@DisplayName("[유닛](Review) ReviewEventPublisher 단위 테스트")
 class ReviewEventPublisherTest {
 
 	@Test

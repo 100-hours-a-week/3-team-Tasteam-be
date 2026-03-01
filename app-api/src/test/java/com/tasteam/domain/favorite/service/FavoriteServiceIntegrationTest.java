@@ -54,6 +54,7 @@ import com.tasteam.global.exception.code.FavoriteErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Favorite) FavoriteService 통합 테스트")
 class FavoriteServiceIntegrationTest {
 
 	@Autowired

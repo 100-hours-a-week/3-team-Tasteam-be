@@ -19,7 +19,7 @@ import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
 @Import(GroupQueryRepositoryImpl.class)
-@DisplayName("GroupQueryRepository 테스트")
+@DisplayName("[유닛](Group) GroupQueryRepository 단위 테스트")
 class GroupQueryRepositoryTest {
 
 	@Autowired

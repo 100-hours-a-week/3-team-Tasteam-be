@@ -33,6 +33,7 @@ import com.tasteam.fixture.MemberFixture;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Favorite) FavoriteRestaurantImage 통합 테스트")
 class FavoriteRestaurantImageIntegrationTest {
 
 	@Autowired

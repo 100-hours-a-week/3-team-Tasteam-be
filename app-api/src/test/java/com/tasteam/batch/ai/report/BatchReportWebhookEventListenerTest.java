@@ -21,7 +21,7 @@ import com.tasteam.infra.webhook.discord.BatchReportDiscordWebhookClient;
 import com.tasteam.infra.webhook.discord.DiscordMessage;
 
 @UnitTest
-@DisplayName("BatchReportWebhookEventListener")
+@DisplayName("[유닛](Batch) BatchReportWebhookEventListener 단위 테스트")
 class BatchReportWebhookEventListenerTest {
 
 	@Mock

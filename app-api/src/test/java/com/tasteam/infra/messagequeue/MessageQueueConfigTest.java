@@ -14,7 +14,7 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
 @UnitTest
-@DisplayName("메시지큐 설정 기반 빈 선택")
+@DisplayName("[유닛](Message) MessageQueueConfig 단위 테스트")
 class MessageQueueConfigTest {
 
 	private final MessageQueueConfig config = new MessageQueueConfig();

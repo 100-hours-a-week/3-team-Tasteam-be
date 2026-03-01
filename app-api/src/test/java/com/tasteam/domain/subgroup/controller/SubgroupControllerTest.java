@@ -21,6 +21,7 @@ import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupDetailResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupMemberListItem;
 
+@DisplayName("[유닛](Subgroup) SubgroupController 단위 테스트")
 class SubgroupControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested

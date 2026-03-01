@@ -10,7 +10,7 @@ import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.domain.review.event.ReviewCreatedEvent;
 
 @UnitTest
-@DisplayName("리뷰 생성 사용자 이벤트 매퍼")
+@DisplayName("[유닛](Review) ReviewCreatedActivityEventMapper 단위 테스트")
 class ReviewCreatedActivityEventMapperTest {
 
 	private final ReviewCreatedActivityEventMapper mapper = new ReviewCreatedActivityEventMapper();

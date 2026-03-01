@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("키워드 엔티티")
+@DisplayName("[유닛](Keyword) Keyword 단위 테스트")
 class KeywordTest {
 
 	@Nested

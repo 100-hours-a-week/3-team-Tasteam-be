@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("클라이언트 이벤트 수집 요청 레이트리미터")
+@DisplayName("[유닛](Client) ClientActivityIngestRateLimiter 단위 테스트")
 class ClientActivityIngestRateLimiterTest {
 
 	@Test

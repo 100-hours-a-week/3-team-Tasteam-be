@@ -10,7 +10,7 @@ import com.tasteam.config.annotation.RepositoryJpaTest;
 import com.tasteam.domain.favorite.entity.SubgroupFavoriteRestaurant;
 
 @RepositoryJpaTest
-@DisplayName("SubgroupFavoriteRestaurantRepository 테스트")
+@DisplayName("[유닛](Subgroup) SubgroupFavoriteRestaurantRepository 단위 테스트")
 class SubgroupFavoriteRestaurantRepositoryTest {
 
 	@Autowired

@@ -22,6 +22,7 @@ import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 
 @RepositoryJpaTest
+@DisplayName("[유닛](Search) SearchQueryRepository 단위 테스트")
 class SearchQueryRepositoryTest {
 
 	private static final double LAT = 37.5;

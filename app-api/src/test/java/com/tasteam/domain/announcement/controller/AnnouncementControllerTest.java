@@ -20,6 +20,7 @@ import com.tasteam.domain.announcement.dto.response.AnnouncementListResponse;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.dto.pagination.OffsetPagination;
 
+@DisplayName("[유닛](Announcement) AnnouncementController 단위 테스트")
 class AnnouncementControllerTest extends BaseControllerWebMvcTest {
 
 	private OffsetPageResponse<AnnouncementListResponse> createMockListResponse() {

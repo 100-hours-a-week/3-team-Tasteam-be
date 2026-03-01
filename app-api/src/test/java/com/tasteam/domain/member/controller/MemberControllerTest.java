@@ -41,6 +41,7 @@ import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
 import com.tasteam.fixture.MemberRequestFixture;
 
+@DisplayName("[유닛](Member) MemberController 단위 테스트")
 class MemberControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested

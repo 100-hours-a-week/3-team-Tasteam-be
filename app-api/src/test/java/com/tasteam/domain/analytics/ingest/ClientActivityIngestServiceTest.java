@@ -24,7 +24,7 @@ import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.AnalyticsErrorCode;
 
 @UnitTest
-@DisplayName("클라이언트 활동 이벤트 수집 서비스")
+@DisplayName("[유닛](Client) ClientActivityIngestService 단위 테스트")
 class ClientActivityIngestServiceTest {
 
 	@Test

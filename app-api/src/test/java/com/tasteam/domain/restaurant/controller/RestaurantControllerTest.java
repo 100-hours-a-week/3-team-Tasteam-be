@@ -31,6 +31,7 @@ import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.fixture.RestaurantRequestFixture;
 
+@DisplayName("[유닛](Restaurant) RestaurantController 단위 테스트")
 class RestaurantControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested

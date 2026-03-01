@@ -18,7 +18,7 @@ import com.tasteam.config.annotation.UnitTest;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 @UnitTest
-@DisplayName("RedisRateLimiter 단위 테스트")
+@DisplayName("[유닛](Redis) RedisRateLimiter 단위 테스트")
 class RedisRateLimiterTest {
 
 	@Mock

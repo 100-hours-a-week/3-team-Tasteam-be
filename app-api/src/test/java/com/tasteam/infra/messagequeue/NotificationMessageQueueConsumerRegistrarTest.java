@@ -20,7 +20,7 @@ import com.tasteam.domain.notification.entity.NotificationType;
 import com.tasteam.domain.notification.service.NotificationService;
 
 @UnitTest
-@DisplayName("Notification MQ 컨슈머 등록기")
+@DisplayName("[유닛](Notification) NotificationMessageQueueConsumerRegistrar 단위 테스트")
 class NotificationMessageQueueConsumerRegistrarTest {
 
 	@Test

@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("사용자 이벤트 dispatch 서킷 브레이커")
+@DisplayName("[유닛](UserActivity) UserActivityDispatchCircuitBreaker 단위 테스트")
 class UserActivityDispatchCircuitBreakerTest {
 
 	@Test

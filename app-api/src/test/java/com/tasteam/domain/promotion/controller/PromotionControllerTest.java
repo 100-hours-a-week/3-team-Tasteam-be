@@ -21,6 +21,7 @@ import com.tasteam.domain.promotion.entity.PromotionStatus;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.dto.pagination.OffsetPagination;
 
+@DisplayName("[유닛](Promotion) PromotionController 단위 테스트")
 class PromotionControllerTest extends BaseControllerWebMvcTest {
 
 	private OffsetPageResponse<PromotionSummaryResponse> createMockListResponse() {

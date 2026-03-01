@@ -14,7 +14,7 @@ import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.fixture.GroupFixture;
 
 @UnitTest
-@DisplayName("하위그룹 엔티티")
+@DisplayName("[유닛](Subgroup) Subgroup 단위 테스트")
 class SubgroupTest {
 
 	private Subgroup createSubgroup(Integer memberCount) {

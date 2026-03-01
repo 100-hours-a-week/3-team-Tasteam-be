@@ -20,6 +20,7 @@ import com.tasteam.domain.search.dto.response.RecentSearchItem;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.dto.pagination.OffsetPagination;
 
+@DisplayName("[유닛](Recent) RecentSearchController 단위 테스트")
 class RecentSearchControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested

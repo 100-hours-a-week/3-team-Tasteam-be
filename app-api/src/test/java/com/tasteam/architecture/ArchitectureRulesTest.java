@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -28,6 +29,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 
+@DisplayName("[유닛](Architecture) ArchitectureRules 단위 테스트")
 class ArchitectureRulesTest {
 
 	private static final String TARGET_PACKAGE = "com.tasteam..";

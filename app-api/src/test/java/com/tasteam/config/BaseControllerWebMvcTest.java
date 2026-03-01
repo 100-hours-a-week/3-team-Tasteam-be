@@ -1,5 +1,6 @@
 package com.tasteam.config;
 
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -51,6 +52,7 @@ import com.tasteam.infra.storage.StorageProperties;
 	PromotionController.class,
 	AnnouncementController.class
 })
+@DisplayName("[유닛](Base) BaseControllerWebMvc 단위 테스트")
 public abstract class BaseControllerWebMvcTest {
 
 	@Autowired

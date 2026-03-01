@@ -13,7 +13,7 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.fixture.ImageFixture;
 
 @UnitTest
-@DisplayName("도메인 이미지 엔티티")
+@DisplayName("[유닛](Domain) DomainImage 단위 테스트")
 class DomainImageTest {
 
 	private static final DomainType DEFAULT_DOMAIN_TYPE = DomainType.REVIEW;

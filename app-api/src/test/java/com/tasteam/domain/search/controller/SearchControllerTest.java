@@ -19,6 +19,7 @@ import com.tasteam.domain.search.dto.response.SearchResponse;
 import com.tasteam.domain.search.dto.response.SearchRestaurantItem;
 import com.tasteam.fixture.SearchRequestFixture;
 
+@DisplayName("[유닛](Search) SearchController 단위 테스트")
 class SearchControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested

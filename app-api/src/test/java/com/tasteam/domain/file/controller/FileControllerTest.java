@@ -33,6 +33,7 @@ import com.tasteam.domain.file.dto.response.PresignedUploadResponse;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.FilePurpose;
 
+@DisplayName("[유닛](File) FileController 단위 테스트")
 class FileControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested

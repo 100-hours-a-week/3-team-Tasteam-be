@@ -21,7 +21,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("Redis Stream 메시지큐 producer")
+@DisplayName("[유닛](Redis) RedisStreamMessageQueueProducer 단위 테스트")
 class RedisStreamMessageQueueProducerTest {
 
 	@Test

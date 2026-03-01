@@ -21,6 +21,7 @@ import com.tasteam.domain.main.dto.response.MainPageResponse.Section;
 import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
 import com.tasteam.fixture.MainPageRequestFixture;
 
+@DisplayName("[유닛](Main) MainController 단위 테스트")
 class MainControllerTest extends BaseControllerWebMvcTest {
 
 	private MainPageResponse createMockResponse() {

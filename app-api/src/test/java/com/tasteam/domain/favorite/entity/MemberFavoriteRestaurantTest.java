@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("즐겨찾기 엔티티")
+@DisplayName("[유닛](Member) MemberFavoriteRestaurant 단위 테스트")
 class MemberFavoriteRestaurantTest {
 
 	@Nested

@@ -31,6 +31,7 @@ import com.tasteam.global.exception.code.SearchErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Search) SearchService 통합 테스트")
 class SearchServiceIntegrationTest {
 
 	@Autowired

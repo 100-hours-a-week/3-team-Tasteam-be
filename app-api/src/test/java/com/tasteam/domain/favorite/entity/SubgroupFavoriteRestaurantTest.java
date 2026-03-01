@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("하위그룹 찜 엔티티")
+@DisplayName("[유닛](Subgroup) SubgroupFavoriteRestaurant 단위 테스트")
 class SubgroupFavoriteRestaurantTest {
 
 	@Test

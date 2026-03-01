@@ -21,6 +21,7 @@ import com.tasteam.domain.review.dto.response.ReviewDetailResponse;
 import com.tasteam.domain.review.dto.response.ReviewKeywordItemResponse;
 import com.tasteam.domain.review.entity.KeywordType;
 
+@DisplayName("[유닛](Review) ReviewController 단위 테스트")
 class ReviewControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested

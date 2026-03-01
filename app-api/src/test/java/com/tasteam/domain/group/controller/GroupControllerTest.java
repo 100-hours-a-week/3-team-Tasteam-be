@@ -40,6 +40,7 @@ import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.fixture.GroupRequestFixture;
 import com.tasteam.fixture.RestaurantRequestFixture;
 
+@DisplayName("[유닛](Group) GroupController 단위 테스트")
 class GroupControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
