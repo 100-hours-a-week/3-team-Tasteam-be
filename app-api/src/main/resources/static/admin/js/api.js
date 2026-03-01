@@ -1,10 +1,16 @@
 const API_BASE_URL = '/api/v1';
 
+let authFailureHandler = null;
+
+function setApiUnauthorizedHandler(handler) {
+    authFailureHandler = handler;
+}
+
 function getAuthHeaders() {
     const token = localStorage.getItem('authToken');
     return {
         'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
+        Authorization: token ? `Bearer ${token}` : ''
     };
 }
 
@@ -19,7 +25,11 @@ async function apiRequest(url, options = {}) {
 
     if (response.status === 401) {
         localStorage.removeItem('authToken');
-        window.location.href = '/admin/index.html';
+        if (typeof authFailureHandler === 'function') {
+            authFailureHandler();
+        } else {
+            window.location.href = '/admin/';
+        }
         throw new Error('인증이 필요합니다.');
     }
 
@@ -174,8 +184,6 @@ async function adminDeleteReview(id) {
     });
 }
 
-
-
 async function getAdminReports(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     return apiRequest(`/admin/reports?${queryString}`);
@@ -191,6 +199,7 @@ async function updateReportStatus(id, status) {
         body: JSON.stringify({ status })
     });
 }
+
 async function geocodeAddress(query) {
     const params = new URLSearchParams({ query });
     return apiRequest(`/admin/geocoding?${params.toString()}`);
@@ -228,23 +237,51 @@ async function deleteDummyData() {
 const api = {
     get: async (url) => {
         const result = await apiRequest(url, { method: 'GET' });
-        return result.data || result;
+        return result?.data || result;
     },
     post: async (url, data) => {
         const result = await apiRequest(url, {
             method: 'POST',
             body: JSON.stringify(data)
         });
-        return result.data || result;
+        return result?.data || result;
     },
     patch: async (url, data) => {
         const result = await apiRequest(url, {
             method: 'PATCH',
             body: JSON.stringify(data)
         });
-        return result.data || result;
+        return result?.data || result;
     },
     delete: async (url) => {
         return await apiRequest(url, { method: 'DELETE' });
     }
 };
+
+window.setApiUnauthorizedHandler = setApiUnauthorizedHandler;
+window.apiRequest = apiRequest;
+window.api = api;
+window.login = login;
+window.getRestaurants = getRestaurants;
+window.getRestaurant = getRestaurant;
+window.createRestaurant = createRestaurant;
+window.updateRestaurant = updateRestaurant;
+window.deleteRestaurant = deleteRestaurant;
+window.getFoodCategories = getFoodCategories;
+window.createFoodCategory = createFoodCategory;
+window.getRestaurantMenus = getRestaurantMenus;
+window.createMenuCategory = createMenuCategory;
+window.createMenu = createMenu;
+window.createPresignedUploads = createPresignedUploads;
+window.uploadToPresigned = uploadToPresigned;
+window.getReviews = getReviews;
+window.adminDeleteReview = adminDeleteReview;
+window.getAdminReports = getAdminReports;
+window.getAdminReport = getAdminReport;
+window.updateReportStatus = updateReportStatus;
+window.geocodeAddress = geocodeAddress;
+window.getGroups = getGroups;
+window.createGroup = createGroup;
+window.seedDummyData = seedDummyData;
+window.getDataCounts = getDataCounts;
+window.deleteDummyData = deleteDummyData;
