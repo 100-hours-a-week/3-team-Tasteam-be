@@ -93,7 +93,7 @@ public interface SubgroupMemberRepository extends JpaRepository<SubgroupMember, 
 			sm.id,
 			sm.member.id,
 			m.nickname,
-			m.profileImageUrl,
+			null,
 			sm.createdAt
 		)
 		from SubgroupMember sm
