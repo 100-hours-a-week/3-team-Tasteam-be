@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.config.annotation.ServiceIntegrationTest;
@@ -31,7 +30,6 @@ import com.tasteam.fixture.MemberFixture;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.NotificationErrorCode;
 import com.tasteam.global.ratelimit.RateLimitKeyFactory;
-import com.tasteam.infra.email.EmailSender;
 
 @ServiceIntegrationTest
 @Transactional
@@ -63,9 +61,6 @@ class GroupEmailRateLimitIntegrationTest {
 
 	@Autowired
 	private RateLimitKeyFactory keyFactory;
-
-	@MockitoBean
-	private EmailSender emailSender;
 
 	private Group emailGroup;
 	private List<Member> members;
