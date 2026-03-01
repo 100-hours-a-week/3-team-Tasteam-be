@@ -18,7 +18,7 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.analytics.api.ActivityEvent;
 
 @UnitTest
-@DisplayName("사용자 이벤트 저장 서비스")
+@DisplayName("[유닛](UserActivity) UserActivityEventStoreService 단위 테스트")
 class UserActivityEventStoreServiceTest {
 
 	@Test

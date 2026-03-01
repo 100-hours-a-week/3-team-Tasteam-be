@@ -19,7 +19,7 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.analytics.api.ActivityEvent;
 
 @UnitTest
-@DisplayName("사용자 이벤트 JDBC 저장소")
+@DisplayName("[유닛](UserActivity) UserActivityEventJdbcRepository 단위 테스트")
 class UserActivityEventJdbcRepositoryTest {
 
 	@Test

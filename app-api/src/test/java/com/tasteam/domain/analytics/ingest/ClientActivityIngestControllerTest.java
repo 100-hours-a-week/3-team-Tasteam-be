@@ -19,7 +19,7 @@ import com.tasteam.domain.analytics.ingest.dto.response.ClientActivityEventsInge
 import com.tasteam.global.dto.api.SuccessResponse;
 
 @UnitTest
-@DisplayName("클라이언트 활동 이벤트 수집 컨트롤러")
+@DisplayName("[유닛](Client) ClientActivityIngestController 단위 테스트")
 class ClientActivityIngestControllerTest {
 
 	@Test

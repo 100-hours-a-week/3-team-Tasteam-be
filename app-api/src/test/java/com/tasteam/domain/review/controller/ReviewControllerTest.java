@@ -15,24 +15,14 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.review.dto.response.ReviewDetailResponse;
 import com.tasteam.domain.review.dto.response.ReviewKeywordItemResponse;
 import com.tasteam.domain.review.entity.KeywordType;
-import com.tasteam.domain.review.service.ReviewService;
 
-@ControllerWebMvcTest(ReviewController.class)
-class ReviewControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private ReviewService reviewService;
+@DisplayName("[유닛](Review) ReviewController 단위 테스트")
+class ReviewControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("리뷰 키워드 목록 조회")

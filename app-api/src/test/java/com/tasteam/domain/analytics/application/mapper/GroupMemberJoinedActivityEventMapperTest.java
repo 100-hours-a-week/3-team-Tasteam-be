@@ -12,7 +12,7 @@ import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.domain.group.event.GroupMemberJoinedEvent;
 
 @UnitTest
-@DisplayName("그룹 가입 사용자 이벤트 매퍼")
+@DisplayName("[유닛](Group) GroupMemberJoinedActivityEventMapper 단위 테스트")
 class GroupMemberJoinedActivityEventMapperTest {
 
 	private final GroupMemberJoinedActivityEventMapper mapper = new GroupMemberJoinedActivityEventMapper();

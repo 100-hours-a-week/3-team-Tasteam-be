@@ -32,7 +32,7 @@ import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
 @Import(ReviewQueryRepositoryImpl.class)
-@DisplayName("ReviewQueryRepository 테스트")
+@DisplayName("[유닛](Review) ReviewQueryRepository 단위 테스트")
 class ReviewQueryRepositoryTest {
 
 	@Autowired

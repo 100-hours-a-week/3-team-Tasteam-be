@@ -18,7 +18,7 @@ import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
 @Import(MemberSearchHistoryQueryRepositoryImpl.class)
-@DisplayName("MemberSearchHistoryQueryRepository 테스트")
+@DisplayName("[유닛](Member) MemberSearchHistoryQueryRepository 단위 테스트")
 class MemberSearchHistoryQueryRepositoryTest {
 
 	@Autowired

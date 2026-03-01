@@ -36,6 +36,7 @@ import com.tasteam.global.exception.code.FileErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Admin) AdminGroupImage 통합 테스트")
 class AdminGroupImageIntegrationTest {
 
 	private static final String MISSING_FILE_UUID = "11111111-2222-3333-4444-555555555555";

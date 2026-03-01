@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("메시지큐 제공자 타입 매핑")
+@DisplayName("[유닛](Message) MessageQueueProviderType 단위 테스트")
 class MessageQueueProviderTypeTest {
 
 	@Test

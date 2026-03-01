@@ -41,6 +41,7 @@ import com.tasteam.global.exception.code.CommonErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Review) ReviewImageDeletion 통합 테스트")
 class ReviewImageDeletionIntegrationTest {
 
 	@Autowired

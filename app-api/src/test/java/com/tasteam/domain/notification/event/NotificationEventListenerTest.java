@@ -19,7 +19,7 @@ import com.tasteam.domain.notification.entity.NotificationType;
 import com.tasteam.domain.notification.service.NotificationService;
 
 @UnitTest
-@DisplayName("NotificationEventListener")
+@DisplayName("[유닛](Notification) NotificationEventListener 단위 테스트")
 class NotificationEventListenerTest {
 
 	@Mock

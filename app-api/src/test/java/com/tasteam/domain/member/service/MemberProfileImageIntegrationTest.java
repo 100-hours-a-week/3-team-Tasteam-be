@@ -27,6 +27,7 @@ import com.tasteam.global.exception.code.FileErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Member) MemberProfileImage 통합 테스트")
 class MemberProfileImageIntegrationTest {
 
 	private static final String MISSING_FILE_UUID = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff";

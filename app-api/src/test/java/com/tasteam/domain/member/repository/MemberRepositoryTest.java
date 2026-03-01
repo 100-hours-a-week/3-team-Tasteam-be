@@ -15,7 +15,7 @@ import com.tasteam.fixture.MemberFixture;
 import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
-@DisplayName("MemberRepository 테스트")
+@DisplayName("[유닛](Member) MemberRepository 단위 테스트")
 class MemberRepositoryTest {
 
 	@Autowired

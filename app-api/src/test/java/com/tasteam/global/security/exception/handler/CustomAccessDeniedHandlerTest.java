@@ -4,6 +4,7 @@ import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -15,6 +16,7 @@ import com.tasteam.global.security.exception.notifier.SecurityErrorNotifier;
 
 import jakarta.servlet.ServletException;
 
+@DisplayName("[유닛](Custom) CustomAccessDeniedHandler 단위 테스트")
 class CustomAccessDeniedHandlerTest {
 
 	@Test

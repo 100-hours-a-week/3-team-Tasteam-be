@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("프로모션 엔티티")
+@DisplayName("[유닛](Promotion) Promotion 단위 테스트")
 class PromotionTest {
 
 	private static final String DEFAULT_TITLE = "신년 특가 프로모션";

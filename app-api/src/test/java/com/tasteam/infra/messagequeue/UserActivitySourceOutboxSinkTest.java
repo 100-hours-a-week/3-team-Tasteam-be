@@ -14,7 +14,7 @@ import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.domain.analytics.resilience.UserActivitySourceOutboxService;
 
 @UnitTest
-@DisplayName("사용자 이벤트 source outbox sink")
+@DisplayName("[유닛](UserActivity) UserActivitySourceOutboxSink 단위 테스트")
 class UserActivitySourceOutboxSinkTest {
 
 	@Test

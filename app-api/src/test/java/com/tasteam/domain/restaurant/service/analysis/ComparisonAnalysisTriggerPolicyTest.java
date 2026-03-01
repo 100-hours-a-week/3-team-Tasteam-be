@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
+@DisplayName("[유닛](Comparison) ComparisonAnalysisTriggerPolicy 단위 테스트")
 class ComparisonAnalysisTriggerPolicyTest {
 
 	private final RestaurantReviewAnalysisPolicyProperties properties = createProperties();

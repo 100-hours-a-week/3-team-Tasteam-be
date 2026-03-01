@@ -22,7 +22,7 @@ import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 
 @UnitTest
-@DisplayName("메시지큐 추적 서비스")
+@DisplayName("[유닛](Message) MessageQueueTraceService 단위 테스트")
 class MessageQueueTraceServiceTest {
 
 	@Test

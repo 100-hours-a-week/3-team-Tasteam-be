@@ -8,8 +8,8 @@ spring:
       ddl-auto: create-drop
     properties:
       hibernate:
-        format_sql: true
-        generate_statistics: true
+        format_sql: false
+        generate_statistics: false
 
   flyway:
     enabled: false 
@@ -28,8 +28,4 @@ tasteam:
     logging:
       enabled: true
       transactional-query-logging:
-        enabled: true
-
-logging:
-  level:
-    org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: INFO
+        enabled: false

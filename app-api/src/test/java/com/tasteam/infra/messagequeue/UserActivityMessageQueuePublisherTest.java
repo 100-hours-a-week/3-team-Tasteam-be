@@ -18,7 +18,7 @@ import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.domain.analytics.resilience.UserActivitySourceOutboxService;
 
 @UnitTest
-@DisplayName("사용자 이벤트 MQ publisher")
+@DisplayName("[유닛](UserActivity) UserActivityMessageQueuePublisher 단위 테스트")
 class UserActivityMessageQueuePublisherTest {
 
 	@Test

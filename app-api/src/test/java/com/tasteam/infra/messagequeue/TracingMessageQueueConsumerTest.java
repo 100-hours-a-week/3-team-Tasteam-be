@@ -15,7 +15,7 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
 @UnitTest
-@DisplayName("Tracing 메시지큐 consumer")
+@DisplayName("[유닛](Tracing) TracingMessageQueueConsumer 단위 테스트")
 class TracingMessageQueueConsumerTest {
 
 	@Test

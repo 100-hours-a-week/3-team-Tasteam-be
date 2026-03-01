@@ -54,7 +54,7 @@ import com.tasteam.global.exception.code.SearchErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
-@DisplayName("SubgroupFacade 통합 테스트")
+@DisplayName("[통합](Subgroup) SubgroupFacade 통합 테스트")
 class SubgroupFacadeIntegrationTest {
 
 	private static final UUID IMAGE_UUID_1 = UUID.fromString("11111111-1111-1111-1111-111111111111");

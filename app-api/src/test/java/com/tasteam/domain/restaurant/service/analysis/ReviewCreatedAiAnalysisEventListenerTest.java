@@ -11,7 +11,7 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.review.event.ReviewCreatedEvent;
 
 @UnitTest
-@DisplayName("ReviewCreatedAiAnalysisEventListener")
+@DisplayName("[유닛](Review) ReviewCreatedAiAnalysisEventListener 단위 테스트")
 class ReviewCreatedAiAnalysisEventListenerTest {
 
 	@Mock

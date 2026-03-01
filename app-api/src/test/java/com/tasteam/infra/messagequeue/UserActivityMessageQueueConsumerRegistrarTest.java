@@ -22,7 +22,7 @@ import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.domain.analytics.persistence.UserActivityEventStoreService;
 
 @UnitTest
-@DisplayName("사용자 이벤트 MQ consumer registrar")
+@DisplayName("[유닛](UserActivity) UserActivityMessageQueueConsumerRegistrar 단위 테스트")
 class UserActivityMessageQueueConsumerRegistrarTest {
 
 	@Test

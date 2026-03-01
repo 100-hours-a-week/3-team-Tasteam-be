@@ -29,7 +29,7 @@ import jakarta.annotation.Resource;
 @SpringBootTest(classes = NotificationMessageQueueFlowIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("test")
 @Tag("integration")
-@DisplayName("Notification MQ 연동 통합 테스트")
+@DisplayName("[통합](Notification) NotificationMessageQueueFlow 통합 테스트")
 class NotificationMessageQueueFlowIntegrationTest {
 
 	private static final String CONSUMER_GROUP = "tasteam-api";
