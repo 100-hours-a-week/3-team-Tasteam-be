@@ -3,23 +3,13 @@ package com.tasteam.domain.favorite.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.config.annotation.ServiceIntegrationTest;
@@ -251,56 +241,6 @@ class FavoriteServiceIntegrationTest {
 
 		assertThat(response.items()).hasSize(1);
 		assertThat(response.items().getFirst().groupFavoriteCount()).isEqualTo(1L);
-	}
-
-	@Test
-	@Disabled("TODO: 트랜잭션 경계/DB 격리수준을 반영한 안정적인 동시성 테스트로 재작성 필요")
-	@DisplayName("동시에 같은 내 찜을 등록해도 최종 활성 상태는 1건으로 일관된다")
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	void concurrentCreateMyFavorite_keepsSingleActiveRow() throws Exception {
-		Member concurrentMember = memberRepository.save(MemberFixture.create("concurrent@example.com", "동시성유저"));
-		Restaurant concurrentRestaurant = restaurantRepository.save(createRestaurant("동시성식당"));
-
-		int threadCount = 2;
-		ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-		CountDownLatch ready = new CountDownLatch(threadCount);
-		CountDownLatch start = new CountDownLatch(1);
-		List<Callable<Boolean>> tasks = new ArrayList<>();
-
-		for (int i = 0; i < threadCount; i++) {
-			tasks.add(() -> {
-				ready.countDown();
-				start.await();
-				try {
-					favoriteService.createMyFavorite(concurrentMember.getId(), concurrentRestaurant.getId());
-					return true;
-				} catch (BusinessException ex) {
-					return false;
-				}
-			});
-		}
-
-		List<Future<Boolean>> futures = new ArrayList<>();
-		try {
-			for (Callable<Boolean> task : tasks) {
-				futures.add(executor.submit(task));
-			}
-			ready.await();
-			start.countDown();
-		} finally {
-			executor.shutdown();
-		}
-
-		long successCount = 0;
-		for (Future<Boolean> future : futures) {
-			if (future.get()) {
-				successCount++;
-			}
-		}
-
-		assertThat(successCount).isGreaterThanOrEqualTo(1L);
-		assertThat(memberFavoriteRepository.countByMemberIdAndRestaurantIdAndDeletedAtIsNull(concurrentMember.getId(),
-			concurrentRestaurant.getId())).isEqualTo(1L);
 	}
 
 	private Restaurant createRestaurant(String name) {
