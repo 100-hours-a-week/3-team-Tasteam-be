@@ -8,12 +8,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.tasteam.config.annotation.MessageQueueFlowTest;
 import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.domain.analytics.api.ActivityEventMapper;
@@ -29,7 +30,7 @@ import com.tasteam.domain.review.event.ReviewCreatedEvent;
 import jakarta.annotation.Resource;
 
 @MessageQueueFlowTest
-@Import(UserActivityMessageQueueFlowIntegrationTest.TestConfig.class)
+@SpringBootTest(classes = UserActivityMessageQueueFlowIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("[통합](UserActivity) UserActivityMessageQueueFlow 통합 테스트")
 class UserActivityMessageQueueFlowIntegrationTest {
 
@@ -85,6 +86,30 @@ class UserActivityMessageQueueFlowIntegrationTest {
 
 	@Configuration
 	static class TestConfig {
+
+		@Bean
+		MessageQueueProperties messageQueueProperties() {
+			MessageQueueProperties properties = new MessageQueueProperties();
+			properties.setEnabled(true);
+			properties.setProvider(MessageQueueProviderType.REDIS_STREAM.value());
+			properties.setDefaultConsumerGroup("tasteam-api");
+			return properties;
+		}
+
+		@Bean
+		ObjectMapper objectMapper() {
+			return JsonMapper.builder().findAndAddModules().build();
+		}
+
+		@Bean
+		MessageQueueProducer messageQueueProducer() {
+			return Mockito.mock(MessageQueueProducer.class);
+		}
+
+		@Bean
+		MessageQueueConsumer messageQueueConsumer() {
+			return Mockito.mock(MessageQueueConsumer.class);
+		}
 
 		@Bean
 		UserActivityEventStoreService userActivityEventStoreService() {
