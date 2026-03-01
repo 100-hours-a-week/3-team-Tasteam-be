@@ -11,6 +11,8 @@ public class AdminSpaFallbackController {
 		"/admin/pages/",
 		"/admin/pages/{page}",
 		"/admin/pages/{page}.html",
+		"/admin/pages/{route1}/{route2}",
+		"/admin/pages/{route1}/{route2}.html",
 		"/admin/pages/index.html"
 	})
 	public String fallbackToAdminSpa() {
