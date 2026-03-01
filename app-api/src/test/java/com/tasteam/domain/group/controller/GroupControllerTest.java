@@ -17,13 +17,9 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
 import com.tasteam.domain.group.dto.GroupEmailAuthenticationResponse;
 import com.tasteam.domain.group.dto.GroupEmailVerificationResponse;
@@ -31,47 +27,21 @@ import com.tasteam.domain.group.dto.GroupGetResponse;
 import com.tasteam.domain.group.dto.GroupMemberListItem;
 import com.tasteam.domain.group.dto.GroupMemberListResponse;
 import com.tasteam.domain.group.dto.GroupPasswordAuthenticationResponse;
-import com.tasteam.domain.group.service.GroupFacade;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
-import com.tasteam.domain.restaurant.service.RestaurantService;
-import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateRequest;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupJoinResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
-import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.fixture.GroupRequestFixture;
 import com.tasteam.fixture.RestaurantRequestFixture;
-import com.tasteam.global.ratelimit.ClientIpResolver;
 
-@ControllerWebMvcTest(GroupController.class)
-class GroupControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private GroupFacade groupFacade;
-
-	@MockitoBean
-	private RestaurantService restaurantService;
-
-	@MockitoBean
-	private ReviewService reviewService;
-
-	@MockitoBean
-	private SubgroupFacade subgroupFacade;
-
-	@MockitoBean
-	private ClientIpResolver clientIpResolver;
+@DisplayName("[유닛](Group) GroupController 단위 테스트")
+class GroupControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("그룹 생성")

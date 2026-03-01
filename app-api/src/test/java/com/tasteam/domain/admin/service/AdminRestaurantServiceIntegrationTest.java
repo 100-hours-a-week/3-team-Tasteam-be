@@ -48,6 +48,7 @@ import com.tasteam.infra.storage.StorageClient;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Admin) AdminRestaurantService 통합 테스트")
 class AdminRestaurantServiceIntegrationTest {
 
 	private static final UUID RESTAURANT_IMAGE_UUID = UUID.fromString("aaaaaaaa-1111-1111-1111-111111111111");

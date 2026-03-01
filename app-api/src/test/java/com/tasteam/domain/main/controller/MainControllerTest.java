@@ -11,28 +11,18 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.main.dto.response.AiRecommendResponse;
 import com.tasteam.domain.main.dto.response.HomePageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Banners;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Section;
 import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
-import com.tasteam.domain.main.service.MainService;
 import com.tasteam.fixture.MainPageRequestFixture;
 
-@ControllerWebMvcTest(MainController.class)
-class MainControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private MainService mainService;
+@DisplayName("[유닛](Main) MainController 단위 테스트")
+class MainControllerTest extends BaseControllerWebMvcTest {
 
 	private MainPageResponse createMockResponse() {
 		SectionItem item = new SectionItem(1L, "맛집1", 100.0, List.of("한식", "국밥"), "https://example.com/img1.jpg",

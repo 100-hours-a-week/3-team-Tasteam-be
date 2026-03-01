@@ -13,7 +13,7 @@ import com.tasteam.fixture.MemberSearchHistoryFixture;
 import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
-@DisplayName("MemberSearchHistoryRepository 테스트")
+@DisplayName("[유닛](Member) MemberSearchHistoryRepository 단위 테스트")
 class MemberSearchHistoryRepositoryTest {
 
 	@Autowired

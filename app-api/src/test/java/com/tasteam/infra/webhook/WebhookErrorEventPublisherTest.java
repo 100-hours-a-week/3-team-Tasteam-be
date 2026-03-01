@@ -3,6 +3,7 @@ package com.tasteam.infra.webhook;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -12,6 +13,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import com.tasteam.infra.webhook.event.ErrorContext;
 import com.tasteam.infra.webhook.event.ErrorOccurredEvent;
 
+@DisplayName("[유닛](Webhook) WebhookErrorEventPublisher 단위 테스트")
 class WebhookErrorEventPublisherTest {
 
 	@Test

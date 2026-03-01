@@ -34,6 +34,7 @@ import io.jsonwebtoken.security.Keys;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Token) TokenRefreshService 통합 테스트")
 class TokenRefreshServiceIntegrationTest {
 
 	@Autowired

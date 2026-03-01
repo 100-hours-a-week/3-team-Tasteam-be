@@ -58,7 +58,7 @@ import com.tasteam.global.exception.business.BusinessException;
 
 @ServiceIntegrationTest
 @Transactional
-@DisplayName("GroupFacade 통합 테스트")
+@DisplayName("[통합](Group) GroupFacade 통합 테스트")
 class GroupFacadeIntegrationTest {
 
 	private static final UUID LOGO_UUID_1 = UUID.fromString("11111111-1111-1111-1111-111111111111");

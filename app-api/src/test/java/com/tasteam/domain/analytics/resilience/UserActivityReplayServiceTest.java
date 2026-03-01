@@ -23,7 +23,7 @@ import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 import com.tasteam.infra.messagequeue.UserActivityMessageQueuePublisher;
 
 @UnitTest
-@DisplayName("사용자 이벤트 재처리 서비스")
+@DisplayName("[유닛](UserActivity) UserActivityReplayService 단위 테스트")
 class UserActivityReplayServiceTest {
 
 	@Test

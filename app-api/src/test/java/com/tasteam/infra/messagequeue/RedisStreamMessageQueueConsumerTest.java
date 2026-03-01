@@ -29,7 +29,7 @@ import org.springframework.data.redis.stream.Subscription;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("Redis Stream 메시지큐 consumer")
+@DisplayName("[유닛](Redis) RedisStreamMessageQueueConsumer 단위 테스트")
 class RedisStreamMessageQueueConsumerTest {
 
 	@Test

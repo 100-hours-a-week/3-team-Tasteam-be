@@ -27,7 +27,7 @@ import com.tasteam.infra.email.EmailSender;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 @UnitTest
-@DisplayName("GroupAuthService RateLimit 예외 매핑 단위 테스트")
+@DisplayName("[유닛](Group) GroupAuthServiceRateLimit 단위 테스트")
 class GroupAuthServiceRateLimitTest {
 
 	private GroupAuthService newService(RedisRateLimiter redisRateLimiter) {

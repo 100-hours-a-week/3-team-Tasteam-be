@@ -29,7 +29,7 @@ import com.tasteam.fixture.MemberFixture;
 import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
-@DisplayName("ReviewKeywordRepository 테스트")
+@DisplayName("[유닛](Review) ReviewKeywordRepository 단위 테스트")
 class ReviewKeywordRepositoryTest {
 
 	@Autowired

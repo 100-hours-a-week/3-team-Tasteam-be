@@ -19,6 +19,7 @@ HEALTH_INTERVAL_SECONDS="${HEALTH_INTERVAL_SECONDS:-2}"
 ECR_REGISTRY="${ECR_REGISTRY:-}"
 ECR_REPO_BACKEND="${ECR_REPO_BACKEND:-}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
+DOCKER_PRUNE_UNUSED_IMAGES="${DOCKER_PRUNE_UNUSED_IMAGES:-true}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_ENV_FILE="${BACKEND_ENV_FILE:-${APP_DIR}/backend.env}"
@@ -30,6 +31,20 @@ DEV_INFRA_REDIS_CONTAINER="${DEV_INFRA_REDIS_CONTAINER:-tasteam-dev-redis}"
 DEV_INFRA_COMPOSE_PROJECT_NAME="${DEV_INFRA_COMPOSE_PROJECT_NAME:-tasteam-dev-infra}"
 
 export AWS_PAGER=""
+
+prune_unused_docker_images() {
+  local phase="$1"
+
+  if [ "${DOCKER_PRUNE_UNUSED_IMAGES}" != "true" ]; then
+    log "skip docker image prune (${phase})"
+    return 0
+  fi
+
+  log "docker image prune (${phase})"
+  docker system df || true
+  docker image prune -af || true
+  docker system df || true
+}
 
 log() {
   echo "[deploy] $*"
@@ -264,6 +279,8 @@ deploy_backend() {
   local image
   image="${ECR_REGISTRY}/${ECR_REPO_BACKEND}:${IMAGE_TAG}"
 
+  prune_unused_docker_images "before-pull"
+
   log "ecr login"
   aws ecr get-login-password --region "${AWS_REGION}" \
     | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
@@ -278,6 +295,8 @@ deploy_backend() {
 
   log "run backend by docker compose (service=${BACKEND_SERVICE_NAME})"
   backend_compose up -d --remove-orphans "${BACKEND_SERVICE_NAME}"
+
+  prune_unused_docker_images "after-run"
 }
 
 health_check() {

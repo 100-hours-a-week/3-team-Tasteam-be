@@ -16,7 +16,7 @@ import com.tasteam.domain.analytics.resilience.UserActivitySourceOutboxSummary;
 import com.tasteam.global.dto.api.SuccessResponse;
 
 @UnitTest
-@DisplayName("사용자 이벤트 outbox 관리자 컨트롤러")
+@DisplayName("[유닛](UserActivity) UserActivityOutboxAdminController 단위 테스트")
 class UserActivityOutboxAdminControllerTest {
 
 	@Test

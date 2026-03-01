@@ -26,7 +26,7 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.analytics.api.ActivityEvent;
 
 @UnitTest
-@DisplayName("사용자 이벤트 dispatch outbox 디스패처")
+@DisplayName("[유닛](UserActivity) UserActivityDispatchOutboxDispatcher 단위 테스트")
 class UserActivityDispatchOutboxDispatcherTest {
 
 	private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();

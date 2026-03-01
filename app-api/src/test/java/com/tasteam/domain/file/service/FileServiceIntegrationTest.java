@@ -44,6 +44,7 @@ import jakarta.persistence.EntityManager;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](File) FileService 통합 테스트")
 class FileServiceIntegrationTest {
 
 	private static final UUID FILE_UUID = UUID.fromString("11111111-aaaa-bbbb-cccc-111111111111");

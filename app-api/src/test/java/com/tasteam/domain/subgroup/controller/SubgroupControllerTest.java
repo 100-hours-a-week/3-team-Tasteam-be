@@ -14,29 +14,15 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
-import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.dto.SubgroupDetailResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupMemberListItem;
-import com.tasteam.domain.subgroup.service.SubgroupFacade;
 
-@ControllerWebMvcTest(SubgroupController.class)
-class SubgroupControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private ReviewService reviewService;
-
-	@MockitoBean
-	private SubgroupFacade subgroupFacade;
+@DisplayName("[유닛](Subgroup) SubgroupController 단위 테스트")
+class SubgroupControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("서브그룹 리뷰 목록 조회")

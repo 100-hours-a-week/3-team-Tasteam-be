@@ -21,7 +21,7 @@ import com.tasteam.domain.search.entity.MemberSearchHistory;
 import com.tasteam.domain.search.repository.MemberSearchHistoryRepository;
 
 @UnitTest
-@DisplayName("SearchHistoryRecorder")
+@DisplayName("[유닛](Search) SearchHistoryRecorder 단위 테스트")
 class SearchHistoryRecorderTest {
 
 	@Mock

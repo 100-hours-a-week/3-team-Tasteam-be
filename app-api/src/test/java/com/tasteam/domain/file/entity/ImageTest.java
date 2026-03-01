@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("이미지 엔티티")
+@DisplayName("[유닛](Image) Image 단위 테스트")
 class ImageTest {
 
 	private static final FilePurpose DEFAULT_PURPOSE = FilePurpose.REVIEW_IMAGE;

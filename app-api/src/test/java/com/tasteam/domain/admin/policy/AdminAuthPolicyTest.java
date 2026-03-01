@@ -16,7 +16,7 @@ import com.tasteam.fixture.MemberFixture;
 import com.tasteam.global.exception.business.BusinessException;
 
 @UnitTest
-@DisplayName("관리자 권한 정책")
+@DisplayName("[유닛](Admin) AdminAuthPolicy 단위 테스트")
 class AdminAuthPolicyTest {
 
 	private final AdminAuthPolicy policy = new AdminAuthPolicy();

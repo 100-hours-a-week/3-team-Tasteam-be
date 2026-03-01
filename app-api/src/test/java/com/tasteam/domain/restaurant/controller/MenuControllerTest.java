@@ -11,28 +11,14 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.response.MenuCategoryResponse;
 import com.tasteam.domain.restaurant.dto.response.MenuItemResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantMenuResponse;
-import com.tasteam.domain.restaurant.service.MenuService;
 
-@ControllerWebMvcTest(MenuController.class)
-class MenuControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private MenuService menuService;
+@DisplayName("[유닛](Menu) MenuController 단위 테스트")
+class MenuControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("음식점 메뉴 조회")

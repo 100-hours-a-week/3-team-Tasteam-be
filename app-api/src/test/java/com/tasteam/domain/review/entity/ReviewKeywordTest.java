@@ -16,7 +16,7 @@ import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.fixture.MemberFixture;
 
 @UnitTest
-@DisplayName("리뷰-키워드 매핑 엔티티")
+@DisplayName("[유닛](Review) ReviewKeyword 단위 테스트")
 class ReviewKeywordTest {
 
 	private Review createReview() {

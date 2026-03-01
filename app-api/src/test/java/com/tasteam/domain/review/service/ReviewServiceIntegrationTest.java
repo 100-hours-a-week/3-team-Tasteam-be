@@ -46,6 +46,7 @@ import com.tasteam.global.exception.code.ReviewErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Review) ReviewService 통합 테스트")
 class ReviewServiceIntegrationTest {
 
 	@Autowired

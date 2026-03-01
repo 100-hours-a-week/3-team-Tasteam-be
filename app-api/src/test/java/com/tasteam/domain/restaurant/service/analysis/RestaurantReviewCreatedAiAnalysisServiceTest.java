@@ -16,6 +16,7 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.review.repository.ReviewRepository;
 
 @UnitTest
+@DisplayName("[유닛](Restaurant) RestaurantReviewCreatedAiAnalysisService 단위 테스트")
 class RestaurantReviewCreatedAiAnalysisServiceTest {
 
 	@Mock

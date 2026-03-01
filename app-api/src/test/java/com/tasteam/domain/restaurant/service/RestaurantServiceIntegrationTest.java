@@ -65,6 +65,7 @@ import com.tasteam.global.exception.code.FileErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Restaurant) RestaurantService 통합 테스트")
 class RestaurantServiceIntegrationTest {
 
 	private static final UUID RESTAURANT_IMAGE_UUID = UUID.fromString("11111111-1111-1111-1111-111111111111");

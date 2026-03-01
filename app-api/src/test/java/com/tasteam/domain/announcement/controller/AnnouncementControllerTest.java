@@ -13,25 +13,15 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.announcement.dto.response.AnnouncementDetailResponse;
 import com.tasteam.domain.announcement.dto.response.AnnouncementListResponse;
-import com.tasteam.domain.announcement.service.AnnouncementService;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.dto.pagination.OffsetPagination;
 
-@ControllerWebMvcTest(AnnouncementController.class)
-class AnnouncementControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private AnnouncementService announcementService;
+@DisplayName("[유닛](Announcement) AnnouncementController 단위 테스트")
+class AnnouncementControllerTest extends BaseControllerWebMvcTest {
 
 	private OffsetPageResponse<AnnouncementListResponse> createMockListResponse() {
 		AnnouncementListResponse item = new AnnouncementListResponse(

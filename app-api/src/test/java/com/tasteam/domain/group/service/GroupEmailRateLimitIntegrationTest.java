@@ -46,7 +46,7 @@ import com.tasteam.infra.email.EmailSender;
 	"NOTIFICATION_EMAIL_RATE_LIMIT_USER_1M_TTL_SECONDS=1",
 	"NOTIFICATION_EMAIL_RATE_LIMIT_BLOCK_TTL_SECONDS=2"
 })
-@DisplayName("그룹 이메일 발송 RateLimit 통합 테스트")
+@DisplayName("[통합](Group) GroupEmailRateLimit 통합 테스트")
 class GroupEmailRateLimitIntegrationTest {
 
 	@Autowired

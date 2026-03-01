@@ -32,6 +32,7 @@ import com.tasteam.domain.restaurant.repository.RestaurantReviewSummaryRepositor
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Main) MainService 통합 테스트")
 class MainServiceIntegrationTest {
 
 	@Autowired

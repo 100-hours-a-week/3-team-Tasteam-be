@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("RateLimitKeyFactory 단위 테스트")
+@DisplayName("[유닛](Rate) RateLimitKeyFactory 단위 테스트")
 class RateLimitKeyFactoryTest {
 
 	@Test
