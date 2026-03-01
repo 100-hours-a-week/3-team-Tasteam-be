@@ -23,7 +23,7 @@ import com.tasteam.domain.notification.entity.NotificationType;
 import com.tasteam.domain.notification.entity.PushNotificationTarget;
 import com.tasteam.domain.notification.repository.NotificationPreferenceRepository;
 import com.tasteam.domain.notification.repository.PushNotificationTargetRepository;
-import com.tasteam.global.notification.email.EmailSender;
+import com.tasteam.infra.email.EmailSender;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -82,7 +82,7 @@ public class NotificationBroadcastService {
 					.map(PushNotificationTarget::getFcmToken)
 					.toList();
 				try {
-					BatchResponse batchResponse = firebaseMessaging.sendAll(batch, false);
+					BatchResponse batchResponse = firebaseMessaging.sendEach(batch);
 					successCount += batchResponse.getSuccessCount();
 					failureCount += batchResponse.getFailureCount();
 					handlePushFailures(batchResponse, batchTokens);
