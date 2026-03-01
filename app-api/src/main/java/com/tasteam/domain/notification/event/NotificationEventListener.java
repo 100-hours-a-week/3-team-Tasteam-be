@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import com.tasteam.domain.group.event.GroupMemberJoinedEvent;
+import com.tasteam.domain.member.event.MemberRegisteredEvent;
 import com.tasteam.domain.notification.entity.NotificationType;
 import com.tasteam.domain.notification.service.NotificationService;
 
@@ -33,6 +34,22 @@ public class NotificationEventListener {
 			log.info("그룹 가입 알림 생성 완료. groupId={}, memberId={}", event.groupId(), event.memberId());
 		} catch (Exception e) {
 			log.error("그룹 가입 알림 생성 실패. groupId={}, memberId={}", event.groupId(), event.memberId(), e);
+		}
+	}
+
+	@Async("notificationExecutor")
+	@EventListener
+	public void onMemberRegistered(MemberRegisteredEvent event) {
+		try {
+			notificationService.createNotification(
+				event.memberId(),
+				NotificationType.SYSTEM,
+				"Tasteam에 오신 것을 환영합니다!",
+				event.nickname() + "님, 팀 식사 추천을 시작해보세요.",
+				"/home");
+			log.info("회원 가입 환영 알림 생성 완료. memberId={}", event.memberId());
+		} catch (Exception e) {
+			log.error("회원 가입 환영 알림 생성 실패. memberId={}", event.memberId(), e);
 		}
 	}
 }

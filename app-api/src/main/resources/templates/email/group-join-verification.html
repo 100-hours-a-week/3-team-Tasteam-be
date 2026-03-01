@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/_layout :: wrap(~{::section})}">
+<body>
+  <section>
+    <h2 style="margin:0 0 16px;color:#1a1a1a;font-size:22px;font-weight:700;">그룹 가입 이메일 인증</h2>
+    <p style="margin:0 0 32px;color:#555555;font-size:15px;line-height:1.7;">
+      아래 버튼을 클릭하여 그룹 가입 인증을 완료해 주세요.
+    </p>
+    <div style="text-align:center;margin-bottom:32px;">
+      <div th:insert="~{email/_fragments :: cta-button(${verificationUrl}, '이메일 확인')}"></div>
+    </div>
+    <p style="margin:0 0 8px;color:#999999;font-size:13px;text-align:center;">
+      링크 만료 시각: <strong th:text="${expiresAt}">잠시 후</strong>
+    </p>
+    <p style="margin:0;color:#999999;font-size:13px;text-align:center;">
+      버튼이 동작하지 않으면
+      <a th:href="${verificationUrl}" href="#" style="color:#FF6B35;text-decoration:underline;">여기를 클릭</a>하세요.
+    </p>
+  </section>
+</body>
+</html>

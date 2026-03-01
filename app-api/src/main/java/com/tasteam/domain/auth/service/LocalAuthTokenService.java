@@ -1,10 +1,14 @@
 package com.tasteam.domain.auth.service;
 
+import java.time.Instant;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.entity.oauth.MemberOAuthAccount;
+import com.tasteam.domain.member.event.MemberRegisteredEvent;
 import com.tasteam.domain.member.repository.MemberOAuthAccountRepository;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
@@ -21,14 +25,25 @@ public class LocalAuthTokenService {
 	private final MemberRepository memberRepository;
 	private final MemberOAuthAccountRepository memberOAuthAccountRepository;
 	private final JwtTokenProvider jwtTokenProvider;
+	private final ApplicationEventPublisher eventPublisher;
 
 	public TokenPair issueTokens(String email, String nickname) {
+		boolean[] isNew = {false};
 		Member member = memberRepository.findByEmail(email)
-			.orElseGet(() -> registerMember(email, nickname));
+			.orElseGet(() -> {
+				isNew[0] = true;
+				return registerMember(email, nickname);
+			});
 
 		ensureDevOAuthAccount(member, email);
 		member.loginSuccess();
 		memberRepository.save(member);
+
+		if (isNew[0]) {
+			eventPublisher.publishEvent(
+				new MemberRegisteredEvent(member.getId(), member.getEmail(),
+					member.getNickname(), Instant.now()));
+		}
 
 		String accessToken = jwtTokenProvider.generateAccessToken(member.getId(), member.getRole().name());
 		String refreshToken = jwtTokenProvider.generateRefreshToken(member.getId());

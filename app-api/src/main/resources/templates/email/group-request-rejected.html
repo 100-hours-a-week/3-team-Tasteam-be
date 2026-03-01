@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/_layout :: wrap(~{::section})}">
+<body>
+  <section>
+    <div th:insert="~{email/_fragments :: badge-rejected}"></div>
+    <h2 style="margin:0 0 16px;color:#1a1a1a;font-size:22px;font-weight:700;" th:text="${title}">가입 거절됨</h2>
+    <p style="margin:0 0 24px;color:#555555;font-size:15px;line-height:1.7;" th:text="${body}">그룹 가입이 거절되었습니다.</p>
+    <div th:insert="~{email/_fragments :: info-box('그룹명', ${groupName})}"></div>
+    <div th:if="${reason != null and !#strings.isEmpty(reason)}"
+         style="background-color:#fafafa;border:1px solid #eeeeee;padding:16px 20px;border-radius:8px;margin-bottom:32px;">
+      <p style="margin:0;color:#666666;font-size:13px;">거절 사유</p>
+      <p style="margin:4px 0 0;color:#555555;font-size:14px;line-height:1.6;" th:text="${reason}"></p>
+    </div>
+    <div th:unless="${reason != null and !#strings.isEmpty(reason)}" style="margin-bottom:32px;"></div>
+    <div th:insert="~{email/_fragments :: cta-button(${appUrl}, '다른 그룹 찾기')}"></div>
+  </section>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/_layout :: wrap(~{::section})}">
+<body>
+  <section>
+    <h2 style="margin:0 0 16px;color:#1a1a1a;font-size:22px;font-weight:700;">환영합니다, <span th:text="${nickname}">회원</span>님! 🎉</h2>
+    <p style="margin:0 0 24px;color:#555555;font-size:15px;line-height:1.7;">
+      Tasteam에 가입해 주셔서 감사합니다.<br/>
+      이제 팀원들과 함께 맛집을 찾고, 그룹을 만들어 즐거운 식사를 시작해보세요.
+    </p>
+    <ul style="margin:0 0 32px;padding-left:20px;color:#555555;font-size:15px;line-height:2;">
+      <li>📍 주변 맛집 추천받기</li>
+      <li>👥 팀 그룹 만들기</li>
+      <li>⭐ 리뷰 작성하고 공유하기</li>
+    </ul>
+    <div th:insert="~{email/_fragments :: cta-button(${appUrl}, 'Tasteam 시작하기')}"></div>
+  </section>
+</body>
+</html>

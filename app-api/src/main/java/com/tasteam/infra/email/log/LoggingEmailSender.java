@@ -1,24 +1,20 @@
-package com.tasteam.global.notification.email;
+package com.tasteam.infra.email.log;
 
-import java.time.Instant;
 import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+
+import com.tasteam.infra.email.EmailSender;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
+@Profile("!test")
 @ConditionalOnProperty(prefix = "tasteam.notification.email", name = "provider", havingValue = "log", matchIfMissing = true)
 public class LoggingEmailSender implements EmailSender {
-
-	@Override
-	public void sendGroupJoinVerificationLink(String email, String verificationUrl, Instant expiresAt) {
-		log.info("Group invite verification link sent. email={}, expiresAt={}",
-			email,
-			expiresAt);
-	}
 
 	@Override
 	public void sendTemplateEmail(String toEmail, String templateKey, Map<String, Object> variables) {

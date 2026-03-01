@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -13,6 +14,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import com.tasteam.domain.group.event.GroupMemberJoinedEvent;
 import com.tasteam.domain.group.event.GroupRequestReviewedEvent;
 import com.tasteam.domain.group.event.GroupRequestSubmittedEvent;
+import com.tasteam.domain.member.event.MemberRegisteredEvent;
 import com.tasteam.domain.notification.entity.NotificationChannel;
 import com.tasteam.domain.notification.entity.NotificationType;
 import com.tasteam.domain.notification.outbox.NotificationOutboxService;
@@ -28,6 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 public class NotificationDomainEventListener {
 
 	private final NotificationOutboxService outboxService;
+
+	@Value("${tasteam.email.app-url:https://tasteam.co.kr}")
+	private String appUrl;
 
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
 	public void onGroupMemberJoined(GroupMemberJoinedEvent event) {
@@ -89,11 +94,13 @@ public class NotificationDomainEventListener {
 				: event.groupName() + " 그룹 가입이 거절되었습니다.";
 
 			Map<String, Object> vars = new HashMap<>();
+			vars.put("subject", title);
 			vars.put("title", title);
 			vars.put("body", body);
 			vars.put("groupId", event.groupId());
 			vars.put("groupName", event.groupName());
 			vars.put("result", event.result().name());
+			vars.put("appUrl", appUrl);
 			if (event.reason() != null) {
 				vars.put("reason", event.reason());
 			}
@@ -112,6 +119,28 @@ public class NotificationDomainEventListener {
 		} catch (Exception ex) {
 			log.error("GroupRequestReviewedEvent 알림 아웃박스 등록 실패. groupId={}, applicantMemberId={}",
 				event.groupId(), event.applicantMemberId(), ex);
+		}
+	}
+
+	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+	public void onMemberRegistered(MemberRegisteredEvent event) {
+		try {
+			NotificationRequestedPayload payload = new NotificationRequestedPayload(
+				UUID.randomUUID().toString(),
+				"MemberRegisteredEvent",
+				event.memberId(),
+				NotificationType.SYSTEM,
+				List.of(NotificationChannel.EMAIL, NotificationChannel.PUSH),
+				"member-welcome",
+				Map.of(
+					"subject", "Tasteam에 오신 것을 환영합니다!",
+					"nickname", event.nickname(),
+					"appUrl", appUrl),
+				"/home",
+				event.registeredAt());
+			outboxService.enqueue(payload);
+		} catch (Exception ex) {
+			log.error("MemberRegisteredEvent 알림 아웃박스 등록 실패. memberId={}", event.memberId(), ex);
 		}
 	}
 }

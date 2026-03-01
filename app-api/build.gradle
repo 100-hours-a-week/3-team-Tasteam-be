@@ -66,6 +66,11 @@ dependencies {
     implementation "nl.martijndwars:web-push:5.1.2"
 
     /* ==================================================
+     * Email
+     * ================================================== */
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+    /* ==================================================
      * Observability / API Docs
      * ================================================== */
     implementation "org.springframework.boot:spring-boot-starter-actuator:3.5.9"
@@ -78,13 +83,9 @@ dependencies {
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
     /* ==================================================
-     * Storage (S3)
+     * Storage (S3) & Email (SES)
      * ================================================== */
     implementation "com.amazonaws:aws-java-sdk-s3:1.12.538"
-
-    /* ==================================================
-     * Email Sender (SES)
-     * ================================================== */
     implementation "com.amazonaws:aws-java-sdk-ses:1.12.538"
 
     /* ==================================================
@@ -141,11 +142,22 @@ def calculateTestForks() {
 tasks.withType(Test).configureEach {
     systemProperty "spring.profiles.active", "test"
     maxParallelForks = calculateTestForks()
+    // Gradle의 테스트 출력 스토어가 비정상 종료로 깨지면(EOF) XML 리포트 생성 단계에서 실패할 수 있다.
+    // 테스트 실행 전 결과/임시 디렉토리를 정리해 flaky한 실패를 방지한다.
+    doFirst {
+        delete file("$buildDir/test-results/$name")
+        delete file("$buildDir/tmp/$name")
+    }
 }
 
 tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'perf'
+    }
+    // 중단된 테스트로 인해 jacoco exec 파일이 깨지면(EOF) 이후 리포트 생성이 실패할 수 있다.
+    // 매 실행마다 exec를 초기화해서 flaky한 pre-push 실패를 방지한다.
+    doFirst {
+        delete file("$buildDir/jacoco/test.exec")
     }
     finalizedBy tasks.jacocoTestReport
 }
@@ -175,6 +187,10 @@ tasks.register('performanceTest', Test) {
 
 tasks.jacocoTestReport {
     dependsOn tasks.test
+    // test 실패 시에는 리포트를 만들지 않는다(실패 원인 노이즈 감소).
+    onlyIf {
+        tasks.test.state.failure == null
+    }
 
     reports {
         html.required = true

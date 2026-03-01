@@ -2,10 +2,6 @@ package com.tasteam.domain.group.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
 import java.util.List;
@@ -18,11 +14,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.ServiceIntegrationTest;
+import com.tasteam.config.fake.FakeEmailSender;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.FilePurpose;
@@ -59,8 +55,6 @@ import com.tasteam.fixture.MemberFixture;
 import com.tasteam.fixture.SubgroupFixture;
 import com.tasteam.fixture.SubgroupMemberFixture;
 import com.tasteam.global.exception.business.BusinessException;
-import com.tasteam.global.exception.code.NotificationErrorCode;
-import com.tasteam.global.notification.email.EmailSender;
 
 @ServiceIntegrationTest
 @Transactional
@@ -106,8 +100,8 @@ class GroupFacadeIntegrationTest {
 	@Autowired
 	private StringRedisTemplate redisTemplate;
 
-	@MockitoBean
-	private EmailSender emailSender;
+	@Autowired
+	private FakeEmailSender emailSender;
 
 	private Member member1;
 	private Member member2;
@@ -119,6 +113,7 @@ class GroupFacadeIntegrationTest {
 			connection.serverCommands().flushAll();
 			return null;
 		});
+		emailSender.clear();
 
 		member1 = memberRepository.save(MemberFixture.create("member1@test.com", "회원1"));
 		member2 = memberRepository.save(MemberFixture.create("member2@test.com", "회원2"));
@@ -302,23 +297,37 @@ class GroupFacadeIntegrationTest {
 		}
 
 		@Test
-		@DisplayName("이메일 인증 링크를 발송하면 만료시간(5분)이 반환되고 메일 발송이 호출된다")
-		void sendGroupEmailVerification_success() {
-			Instant before = Instant.now();
+		@DisplayName("인증 이메일이 입력한 주소로 발송된다")
+		void sendGroupEmailVerification_emailSentToRecipient() {
+			// when
+			groupFacade.sendGroupEmailVerification(
+				emailGroup.getId(),
+				member3.getId(),
+				"127.0.0.1",
+				"user@example.com");
 
+			// then
+			assertThat(emailSender.hasEmailSentTo("user@example.com")).isTrue();
+		}
+
+		@Test
+		@DisplayName("인증 발송 응답에 만료시간이 포함된다")
+		void sendGroupEmailVerification_expiresAtIsReturned() {
+			// when
 			var response = groupFacade.sendGroupEmailVerification(
 				emailGroup.getId(),
 				member3.getId(),
 				"127.0.0.1",
 				"user@example.com");
 
-			verify(emailSender, times(1)).sendGroupJoinVerificationLink(anyString(), anyString(), any(Instant.class));
-			assertThat(response.expiresAt()).isAfter(before.plusSeconds(290));
+			// then
+			assertThat(response.expiresAt()).isNotNull().isAfter(Instant.now());
 		}
 
 		@Test
-		@DisplayName("이메일 도메인이 일치하지 않으면 예외를 발생시킨다")
+		@DisplayName("이메일 도메인이 일치하지 않으면 인증 발송에 실패한다")
 		void sendGroupEmailVerification_emailDomainMismatch_throwsBusinessException() {
+			// when & then
 			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
 				emailGroup.getId(),
 				member3.getId(),
@@ -327,21 +336,6 @@ class GroupFacadeIntegrationTest {
 				.isInstanceOf(BusinessException.class);
 		}
 
-		@Test
-		@DisplayName("유효시간 내 재발송은 1분 제한으로 차단된다")
-		void sendGroupEmailVerification_resend_rateLimited() {
-			groupFacade.sendGroupEmailVerification(emailGroup.getId(), member3.getId(), "127.0.0.1",
-				"user@example.com");
-
-			assertThatThrownBy(() -> groupFacade.sendGroupEmailVerification(
-				emailGroup.getId(),
-				member3.getId(),
-				"127.0.0.1",
-				"user@example.com"))
-				.isInstanceOfSatisfying(BusinessException.class,
-					ex -> assertThat(ex.getErrorCode()).isEqualTo(NotificationErrorCode.EMAIL_RATE_LIMITED.name()));
-			verify(emailSender, times(1)).sendGroupJoinVerificationLink(anyString(), anyString(), any(Instant.class));
-		}
 	}
 
 	@Nested

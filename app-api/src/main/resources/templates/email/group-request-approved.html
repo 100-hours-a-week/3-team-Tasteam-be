@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/_layout :: wrap(~{::section})}">
+<body>
+  <section>
+    <div th:insert="~{email/_fragments :: badge-approved}"></div>
+    <h2 style="margin:0 0 16px;color:#1a1a1a;font-size:22px;font-weight:700;" th:text="${title}">가입 승인됨</h2>
+    <p style="margin:0 0 24px;color:#555555;font-size:15px;line-height:1.7;" th:text="${body}">그룹 가입이 승인되었습니다.</p>
+    <div th:insert="~{email/_fragments :: info-box('그룹명', ${groupName})}"></div>
+    <div th:insert="~{email/_fragments :: cta-button(${appUrl}, '그룹 확인하기')}"></div>
+  </section>
+</body>
+</html>
