@@ -3,14 +3,12 @@ package com.tasteam.domain.auth.service;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.auth.entity.RefreshToken;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.entity.oauth.MemberOAuthAccount;
-import com.tasteam.domain.member.event.MemberRegisteredEvent;
 import com.tasteam.domain.member.repository.MemberOAuthAccountRepository;
 import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.global.security.jwt.common.RefreshTokenHasher;
@@ -30,7 +28,6 @@ public class TestAuthTokenService {
 	private final MemberOAuthAccountRepository memberOAuthAccountRepository;
 	private final JwtTokenProvider jwtTokenProvider;
 	private final RefreshTokenStore refreshTokenStore;
-	private final ApplicationEventPublisher eventPublisher;
 
 	public TestTokenResult issueTokens(String identifier, String nickname) {
 		return memberOAuthAccountRepository.findByProviderAndProviderUserId(TEST_PROVIDER, identifier)
@@ -70,10 +67,6 @@ public class TestAuthTokenService {
 
 		MemberOAuthAccount oAuthAccount = MemberOAuthAccount.create(TEST_PROVIDER, identifier, email, member);
 		memberOAuthAccountRepository.save(oAuthAccount);
-
-		eventPublisher.publishEvent(
-			new MemberRegisteredEvent(member.getId(), member.getEmail(),
-				member.getNickname(), Instant.now()));
 
 		String accessToken = jwtTokenProvider.generateAccessToken(member.getId(), member.getRole().name());
 		String refreshToken = jwtTokenProvider.generateRefreshToken(member.getId());

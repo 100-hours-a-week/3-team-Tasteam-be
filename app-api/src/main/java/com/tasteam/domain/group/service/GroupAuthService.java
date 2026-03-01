@@ -2,9 +2,6 @@ package com.tasteam.domain.group.service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Map;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,11 +29,11 @@ import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.exception.code.NotificationErrorCode;
+import com.tasteam.global.notification.email.EmailSender;
 import com.tasteam.global.ratelimit.RateLimitReason;
 import com.tasteam.global.ratelimit.RateLimitRequest;
 import com.tasteam.global.ratelimit.RateLimitResult;
 import com.tasteam.global.ratelimit.RedisRateLimiter;
-import com.tasteam.infra.email.EmailSender;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -44,9 +41,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class GroupAuthService {
-
-	private static final DateTimeFormatter EXPIRES_AT_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z")
-		.withZone(ZoneId.of("Asia/Seoul"));
 
 	private final GroupAuthCodeRepository groupAuthCodeRepository;
 	private final GroupMemberRepository groupMemberRepository;
@@ -84,10 +78,7 @@ public class GroupAuthService {
 
 		InviteToken inviteToken = groupInviteTokenService.issue(group.getId(), email);
 		String verificationUrl = buildVerificationUrl(group.getId(), inviteToken.token());
-		emailSender.sendTemplateEmail(email, "group-join-verification", Map.of(
-			"subject", "[Tasteam] 그룹 가입 이메일 인증",
-			"verificationUrl", verificationUrl,
-			"expiresAt", EXPIRES_AT_FORMATTER.format(inviteToken.expiresAt())));
+		emailSender.sendGroupJoinVerificationLink(email, verificationUrl, inviteToken.expiresAt());
 		return new GroupEmailVerificationResponse(inviteToken.expiresAt());
 	}
 

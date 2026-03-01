@@ -15,7 +15,7 @@ import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
 import com.tasteam.domain.notification.repository.NotificationPreferenceRepository;
 import com.tasteam.domain.notification.service.FcmPushService;
 import com.tasteam.domain.notification.service.NotificationService;
-import com.tasteam.infra.email.EmailSender;
+import com.tasteam.global.notification.email.EmailSender;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
