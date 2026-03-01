@@ -104,7 +104,7 @@ tasteam:
         region: ${NOTIFICATION_EMAIL_SES_REGION:ap-northeast-2}
         access-key: ${NOTIFICATION_EMAIL_SES_ACCESS_KEY:}
         secret-key: ${NOTIFICATION_EMAIL_SES_SECRET_KEY:}
-        from-address: ${NOTIFICATION_EMAIL_SES_FROM_ADDRESS:}
+        from-address: ${NOTIFICATION_EMAIL_SES_FROM_ADDRESS:noreply@tasteam.kr}
         charset: ${NOTIFICATION_EMAIL_SES_CHARSET:UTF-8}
       rate-limit:
         # fixed-window policy

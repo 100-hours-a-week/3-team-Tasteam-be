@@ -3,6 +3,7 @@ package com.tasteam.domain.promotion.entity;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -62,8 +63,8 @@ class PromotionTest {
 				DEFAULT_TITLE,
 				DEFAULT_CONTENT,
 				DEFAULT_LANDING_URL,
-				now.plusSeconds(3600),
-				now.plusSeconds(3600 * 24),
+				now.plus(30, ChronoUnit.DAYS),
+				now.plus(60, ChronoUnit.DAYS),
 				DEFAULT_PUBLISH_STATUS);
 
 			assertThat(promotion.getPromotionStatus()).isEqualTo(PromotionStatus.UPCOMING);
@@ -77,8 +78,8 @@ class PromotionTest {
 				DEFAULT_TITLE,
 				DEFAULT_CONTENT,
 				DEFAULT_LANDING_URL,
-				now.minusSeconds(3600),
-				now.plusSeconds(3600),
+				now.minus(1, ChronoUnit.DAYS),
+				now.plus(1, ChronoUnit.DAYS),
 				DEFAULT_PUBLISH_STATUS);
 
 			assertThat(promotion.getPromotionStatus()).isEqualTo(PromotionStatus.ONGOING);
@@ -92,8 +93,8 @@ class PromotionTest {
 				DEFAULT_TITLE,
 				DEFAULT_CONTENT,
 				DEFAULT_LANDING_URL,
-				now.minusSeconds(3600 * 24 * 2),
-				now.minusSeconds(3600 * 24),
+				now.minus(60, ChronoUnit.DAYS),
+				now.minus(30, ChronoUnit.DAYS),
 				DEFAULT_PUBLISH_STATUS);
 
 			assertThat(promotion.getPromotionStatus()).isEqualTo(PromotionStatus.ENDED);
