@@ -28,6 +28,9 @@ DEV_INFRA_COMPOSE_FILE="${DEV_INFRA_COMPOSE_FILE:-${SCRIPT_DIR}/docker-compose.d
 DEV_INFRA_DB_CONTAINER="${DEV_INFRA_DB_CONTAINER:-tasteam-dev-db}"
 DEV_INFRA_REDIS_CONTAINER="${DEV_INFRA_REDIS_CONTAINER:-tasteam-dev-redis}"
 DEV_INFRA_COMPOSE_PROJECT_NAME="${DEV_INFRA_COMPOSE_PROJECT_NAME:-tasteam-dev-infra}"
+MONITORING_ENV_FILE="${MONITORING_ENV_FILE:-${APP_DIR}/monitoring.env}"
+ALLOY_COMPOSE_FILE="${ALLOY_COMPOSE_FILE:-${SCRIPT_DIR}/docker-compose.alloy.yml}"
+ALLOY_COMPOSE_PROJECT_NAME="${ALLOY_COMPOSE_PROJECT_NAME:-tasteam-alloy}"
 
 export AWS_PAGER=""
 
@@ -236,6 +239,48 @@ stop_container() {
   docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
 }
 
+stop_alloy() {
+  if [ -f "${ALLOY_COMPOSE_FILE}" ]; then
+    log "stop alloy"
+    compose_up --project-name "${ALLOY_COMPOSE_PROJECT_NAME}" -f "${ALLOY_COMPOSE_FILE}" rm -fsv alloy || true
+  fi
+  docker rm -f alloy 2>/dev/null || true
+}
+
+start_alloy() {
+  if [ ! -f "${ALLOY_COMPOSE_FILE}" ]; then
+    log "alloy compose file not found: ${ALLOY_COMPOSE_FILE} (skip)"
+    return 0
+  fi
+
+  log "fetch monitoring env from /${ENV_NAME}/tasteam/monitoring"
+  fetch_ssm_env "/${ENV_NAME}/tasteam/monitoring" "${MONITORING_ENV_FILE}"
+  printf 'ENVIRONMENT=%s\nHOSTNAME=%s\n' "${ENV_NAME}" "$(hostname)" >> "${MONITORING_ENV_FILE}"
+
+  # POSTGRES_DSN 조립 (dev postgres exporter용)
+  # prod RDS 메트릭은 shared 모니터링 서버의 Alloy에서 수집
+  if [ "${ENV_NAME}" = "dev" ]; then
+    local db_user db_pass
+    db_user="$(read_env_value "DB_USERNAME")"
+    db_pass="$(read_env_value "DB_PASSWORD")"
+    printf 'POSTGRES_DSN=postgresql://%s:%s@host.docker.internal:5432/tasteam?sslmode=disable\n' \
+      "${db_user}" "${db_pass}" >> "${MONITORING_ENV_FILE}"
+  fi
+
+  local alloy_config="${SCRIPT_DIR}/alloy/alloy-app.alloy"
+  if [ "${ENV_NAME}" = "dev" ]; then
+    alloy_config="${SCRIPT_DIR}/alloy/alloy-app-dev.alloy"
+  fi
+
+  log "start alloy (config=${alloy_config})"
+  ALLOY_CONFIG_FILE="${alloy_config}" \
+  compose_up \
+    --project-name "${ALLOY_COMPOSE_PROJECT_NAME}" \
+    --env-file "${MONITORING_ENV_FILE}" \
+    -f "${ALLOY_COMPOSE_FILE}" \
+    up -d alloy
+}
+
 deploy_backend() {
   require_cmd aws
   require_cmd docker
@@ -278,6 +323,7 @@ deploy_backend() {
 
   log "run backend by docker compose (service=${BACKEND_SERVICE_NAME})"
   backend_compose up -d --remove-orphans "${BACKEND_SERVICE_NAME}"
+  start_alloy
 }
 
 health_check() {
@@ -309,6 +355,7 @@ case "${MODE}" in
   stop)
     require_cmd docker
     stop_container
+    stop_alloy
     ;;
   deploy)
     deploy_backend
