@@ -208,6 +208,23 @@ async function createGroup(data) {
     });
 }
 
+async function seedDummyData(params = {}) {
+    return apiRequest('/admin/dummy/seed', {
+        method: 'POST',
+        body: JSON.stringify(params)
+    });
+}
+
+async function getDataCounts() {
+    return apiRequest('/admin/dummy/count');
+}
+
+async function deleteDummyData() {
+    return apiRequest('/admin/dummy', {
+        method: 'DELETE'
+    });
+}
+
 const api = {
     get: async (url) => {
         const result = await apiRequest(url, { method: 'GET' });

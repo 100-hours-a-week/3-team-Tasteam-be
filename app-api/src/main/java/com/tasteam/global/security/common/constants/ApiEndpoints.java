@@ -124,4 +124,6 @@ public final class ApiEndpoints {
 	// Admin
 	public static final String ADMIN = API_V1 + "/admin";
 	public static final String ADMIN_ALL = ADMIN + ALL;
+	public static final String ADMIN_DUMMY = ADMIN + "/dummy";
+	public static final String ADMIN_DUMMY_ALL = ADMIN_DUMMY + ALL;
 }
