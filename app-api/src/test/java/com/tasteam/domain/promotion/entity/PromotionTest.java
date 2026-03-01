@@ -57,12 +57,13 @@ class PromotionTest {
 		@Test
 		@DisplayName("현재 시간이 시작 전이면 UPCOMING을 반환한다")
 		void getPromotionStatus_returnsUpcoming_whenBeforeStart() {
+			Instant now = Instant.now();
 			Promotion promotion = Promotion.create(
 				DEFAULT_TITLE,
 				DEFAULT_CONTENT,
 				DEFAULT_LANDING_URL,
-				Instant.parse("2026-03-01T00:00:00Z"),
-				Instant.parse("2026-03-31T23:59:59Z"),
+				now.plusSeconds(3600),
+				now.plusSeconds(3600 * 24),
 				DEFAULT_PUBLISH_STATUS);
 
 			assertThat(promotion.getPromotionStatus()).isEqualTo(PromotionStatus.UPCOMING);
@@ -71,12 +72,13 @@ class PromotionTest {
 		@Test
 		@DisplayName("현재 시간이 진행 중이면 ONGOING을 반환한다")
 		void getPromotionStatus_returnsOngoing_whenInProgress() {
+			Instant now = Instant.now();
 			Promotion promotion = Promotion.create(
 				DEFAULT_TITLE,
 				DEFAULT_CONTENT,
 				DEFAULT_LANDING_URL,
-				Instant.parse("2026-01-01T00:00:00Z"),
-				Instant.parse("2026-12-31T23:59:59Z"),
+				now.minusSeconds(3600),
+				now.plusSeconds(3600),
 				DEFAULT_PUBLISH_STATUS);
 
 			assertThat(promotion.getPromotionStatus()).isEqualTo(PromotionStatus.ONGOING);
@@ -85,12 +87,13 @@ class PromotionTest {
 		@Test
 		@DisplayName("현재 시간이 종료 후면 ENDED를 반환한다")
 		void getPromotionStatus_returnsEnded_whenAfterEnd() {
+			Instant now = Instant.now();
 			Promotion promotion = Promotion.create(
 				DEFAULT_TITLE,
 				DEFAULT_CONTENT,
 				DEFAULT_LANDING_URL,
-				Instant.parse("2025-01-01T00:00:00Z"),
-				Instant.parse("2025-01-31T23:59:59Z"),
+				now.minusSeconds(3600 * 24 * 2),
+				now.minusSeconds(3600 * 24),
 				DEFAULT_PUBLISH_STATUS);
 
 			assertThat(promotion.getPromotionStatus()).isEqualTo(PromotionStatus.ENDED);
