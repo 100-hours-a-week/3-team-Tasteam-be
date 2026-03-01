@@ -201,6 +201,19 @@ public class SubgroupQueryService {
 			cursorId,
 			PageRequest.of(0, resolvedSize + 1));
 
+		Map<Long, String> imageUrlByMemberId = fileService.getPrimaryDomainImageUrlMap(
+			DomainType.MEMBER,
+			items.stream().map(SubgroupMemberListItem::memberId).toList());
+
+		items = items.stream()
+			.map(item -> new SubgroupMemberListItem(
+				item.cursorId(),
+				item.memberId(),
+				item.nickname(),
+				imageUrlByMemberId.getOrDefault(item.memberId(), item.profileImageUrl()),
+				item.createdAt()))
+			.toList();
+
 		boolean hasNext = items.size() > resolvedSize;
 		if (hasNext) {
 			items = items.subList(0, resolvedSize);
