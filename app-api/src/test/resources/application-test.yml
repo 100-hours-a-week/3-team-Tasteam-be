@@ -20,6 +20,10 @@ spring:
       accessTokenExpiration: 1800000
       refreshTokenExpiration: 1209600000
 
+logging:
+  level:
+    org.springframework.test.context.support: DEBUG
+
 tasteam:
   admin:
     username: admin
