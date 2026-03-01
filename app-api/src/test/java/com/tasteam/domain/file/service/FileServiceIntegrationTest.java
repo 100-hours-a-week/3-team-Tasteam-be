@@ -3,7 +3,6 @@ package com.tasteam.domain.file.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
 import java.time.Instant;
@@ -75,8 +74,6 @@ class FileServiceIntegrationTest {
 				"https://upload.test",
 				Map.of("key", "value"),
 				Instant.now().plusSeconds(300)));
-		given(storageClient.createPresignedGetUrl(anyString()))
-			.willReturn("https://cdn.test/image.png");
 	}
 
 	@Nested

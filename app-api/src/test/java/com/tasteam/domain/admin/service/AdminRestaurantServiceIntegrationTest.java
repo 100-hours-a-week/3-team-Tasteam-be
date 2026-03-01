@@ -91,7 +91,6 @@ class AdminRestaurantServiceIntegrationTest {
 	void setUp() {
 		given(naverGeocodingClient.geocode(anyString())).willReturn(
 			new GeocodingResult("서울특별시", "강남구", "역삼동", "06234", 127.0365, 37.4979));
-		given(storageClient.createPresignedGetUrl(anyString())).willReturn("https://cdn.test/restaurant.png");
 	}
 
 	@Nested
