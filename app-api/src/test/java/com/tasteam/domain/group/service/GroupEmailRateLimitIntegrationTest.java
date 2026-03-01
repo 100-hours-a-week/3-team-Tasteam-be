@@ -30,8 +30,8 @@ import com.tasteam.fixture.GroupRequestFixture;
 import com.tasteam.fixture.MemberFixture;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.NotificationErrorCode;
+import com.tasteam.global.notification.email.EmailSender;
 import com.tasteam.global.ratelimit.RateLimitKeyFactory;
-import com.tasteam.infra.email.EmailSender;
 
 @ServiceIntegrationTest
 @Transactional
