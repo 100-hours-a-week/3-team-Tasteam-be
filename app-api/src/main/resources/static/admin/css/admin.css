@@ -80,6 +80,19 @@ body {
     border-left: 3px solid #8aa2ff;
 }
 
+.nav-menu a.logout-btn {
+    margin-top: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    background: linear-gradient(135deg, #ff6b6b 0%, #e84141 100%);
+    color: #fff;
+}
+
+.nav-menu a.logout-btn:hover,
+.nav-menu a.logout-btn.active {
+    background: linear-gradient(135deg, #e84141 0%, #d63031 100%);
+    border-left-color: rgba(255, 255, 255, 0.24);
+}
+
 .content {
     margin-left: 250px;
     padding: 30px;
