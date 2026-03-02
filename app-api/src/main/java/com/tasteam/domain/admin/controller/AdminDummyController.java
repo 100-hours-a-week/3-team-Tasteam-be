@@ -17,6 +17,7 @@ import com.tasteam.domain.admin.dto.response.AdminDataCountResponse;
 import com.tasteam.domain.admin.dto.response.AdminDummySeedResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -31,7 +32,7 @@ public class AdminDummyController implements AdminDummyControllerDocs {
 	@PostMapping("/seed")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<AdminDummySeedResponse> seed(
-		@RequestBody
+		@RequestBody @Valid
 		AdminDummySeedRequest request) {
 
 		return SuccessResponse.success(dummyDataSeedService.seed(request));
