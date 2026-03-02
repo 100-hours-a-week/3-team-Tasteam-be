@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공지사항 수정 - Tasteam Admin</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Tasteam Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/admin/pages/dashboard.html">대시보드</a></li>
+                <li><a href="/admin/pages/restaurants.html">음식점 관리</a></li>
+                <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
+                <li><a href="/admin/pages/promotions.html">프로모션 관리</a></li>
+                <li><a href="/admin/pages/announcements.html" class="active">공지사항 관리</a></li>
+                <li><a href="/admin/pages/jobs.html">배치 작업</a></li>
+                <li><a href="#" id="logoutBtn">로그아웃</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <div class="content-header">
+                <h1>공지사항 수정</h1>
+                <button class="btn btn-secondary" onclick="location.href='/admin/pages/announcements.html'">목록으로</button>
+            </div>
+
+            <form id="announcementForm" class="form-container">
+                <section class="form-section">
+                    <h2>공지사항 정보</h2>
+                    <div class="form-group">
+                        <label for="title">제목 *</label>
+                        <input type="text" id="title" name="title" required maxlength="200" placeholder="공지사항 제목을 입력하세요">
+                    </div>
+                    <div class="form-group">
+                        <label for="content">내용 *</label>
+                        <textarea id="content" name="content" required rows="12" placeholder="공지사항 내용을 입력하세요"></textarea>
+                    </div>
+                </section>
+
+                <section class="form-section form-section--info">
+                    <h2>작성 가이드</h2>
+                    <ul class="guide-list">
+                        <li>제목은 명확하고 간결하게 작성해주세요.</li>
+                        <li>중요한 내용은 상단에 배치해주세요.</li>
+                        <li>수정 후 즉시 변경사항이 반영됩니다.</li>
+                    </ul>
+                </section>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">수정</button>
+                    <button type="button" class="btn btn-secondary" onclick="location.href='/admin/pages/announcements.html'">취소</button>
+                </div>
+            </form>
+        </main>
+    </div>
+    <script src="/admin/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script>
+        const isEditMode = true;
+        const announcementId = new URLSearchParams(window.location.search).get('id');
+    </script>
+    <script src="/admin/js/announcement-form.js"></script>
+</body>
+</html>
