@@ -32,12 +32,26 @@ public class JwtCookieProvider {
 			ApiEndpoints.AUTH, maxAgeInSeconds);
 	}
 
+	public void addAdminAccessTokenCookie(HttpServletResponse response, String accessToken) {
+		long maxAgeInSeconds = jwtProperties.getAccessTokenExpiration() / 1000;
+		addCookie(response, JwtCookieConstants.ADMIN_ACCESS_TOKEN_COOKIE_NAME, accessToken,
+			ApiEndpoints.ADMIN_SPA_ROOT, maxAgeInSeconds);
+	}
+
 	public Optional<String> getRefreshTokenFromCookie(HttpServletRequest request) {
 		return getCookie(request, JwtCookieConstants.REFRESH_TOKEN_COOKIE_NAME);
 	}
 
+	public Optional<String> getAdminAccessTokenFromCookie(HttpServletRequest request) {
+		return getCookie(request, JwtCookieConstants.ADMIN_ACCESS_TOKEN_COOKIE_NAME);
+	}
+
 	public void deleteRefreshTokenCookie(HttpServletResponse response) {
 		deleteCookie(response, JwtCookieConstants.REFRESH_TOKEN_COOKIE_NAME, ApiEndpoints.AUTH);
+	}
+
+	public void deleteAdminAccessTokenCookie(HttpServletResponse response) {
+		deleteCookie(response, JwtCookieConstants.ADMIN_ACCESS_TOKEN_COOKIE_NAME, ApiEndpoints.ADMIN_SPA_ROOT);
 	}
 
 	private void addCookie(HttpServletResponse response, String name, String value, String path, long maxAge) {

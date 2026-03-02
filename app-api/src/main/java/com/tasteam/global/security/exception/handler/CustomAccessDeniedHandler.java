@@ -29,9 +29,26 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 	public void handle(HttpServletRequest request, HttpServletResponse response,
 		AccessDeniedException accessDeniedException) throws IOException, ServletException {
 
+		if (isAdminSpaRequest(request)) {
+			response.sendRedirect("/admin/");
+			return;
+		}
+
 		securityErrorNotifier.notify(AuthErrorCode.ACCESS_DENIED, accessDeniedException, request);
 
 		// 403 Forbidden 응답 전송
 		securityResponseSender.sendError(response, AuthErrorCode.ACCESS_DENIED);
+	}
+
+	private boolean isAdminSpaRequest(HttpServletRequest request) {
+		String uri = request.getRequestURI();
+		String accept = request.getHeader("Accept");
+
+		return (uri.startsWith("/admin/") || "/admin".equals(uri))
+			&& accept != null
+			&& accept.contains("text/html")
+			&& !uri.startsWith("/admin/js/")
+			&& !uri.startsWith("/admin/css/")
+			&& !uri.equals("/admin/index.html");
 	}
 }

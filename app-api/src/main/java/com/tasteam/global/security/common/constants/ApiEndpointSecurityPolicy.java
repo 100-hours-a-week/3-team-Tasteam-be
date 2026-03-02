@@ -85,9 +85,11 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.ACTUATOR),
 			permit(GET, ApiEndpoints.HEALTH_CHECK),
 
-			// Admin Static Pages
-			permit(GET, ApiEndpoints.ADMIN_STATIC),
-			permit(GET, ApiEndpoints.ADMIN_STATIC_ROOT),
+			// Admin SPA
+			permit(GET, ApiEndpoints.ADMIN_SPA_ROOT),
+			permit(GET, ApiEndpoints.ADMIN_SPA_INDEX),
+			permit(GET, ApiEndpoints.ADMIN_SPA_JS),
+			permit(GET, ApiEndpoints.ADMIN_SPA_CSS),
 			permit(POST, ApiEndpoints.ADMIN_AUTH_LOGIN),
 
 			// Test
