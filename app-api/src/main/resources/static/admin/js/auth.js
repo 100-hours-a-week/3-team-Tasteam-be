@@ -28,6 +28,9 @@ function checkAuth() {
 
 function logout() {
     localStorage.removeItem('authToken');
+    if (typeof window.AdminUtils?.setFeatureFlag === 'function') {
+        window.AdminUtils.setFeatureFlag('dummyEnabled', false);
+    }
     goToLogin();
 }
 
@@ -63,6 +66,9 @@ async function handleLoginSubmit(event) {
         const result = await response.json();
         if (result.data && result.data.accessToken) {
             localStorage.setItem('authToken', result.data.accessToken);
+            if (typeof window.reloadAdminFeatureFlags === 'function') {
+                await window.reloadAdminFeatureFlags();
+            }
             if (typeof authNavigator === 'function') {
                 authNavigator('/admin/pages/dashboard.html');
                 return;

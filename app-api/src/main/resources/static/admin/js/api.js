@@ -33,11 +33,11 @@ async function apiRequest(url, options = {}) {
         throw new Error('인증이 필요합니다.');
     }
 
+    const responseContentType = response.headers.get('content-type') || '';
     if (!response.ok) {
         let errorMessage = '요청 처리 중 오류가 발생했습니다.';
         try {
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
+            if (responseContentType.includes('application/json')) {
                 const error = await response.json();
                 errorMessage = error.message || errorMessage;
             } else {
@@ -49,7 +49,10 @@ async function apiRequest(url, options = {}) {
         } catch (e) {
             // ignore parse errors and use default message
         }
-        throw new Error(errorMessage);
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.body = responseContentType.includes('application/json') ? null : errorMessage;
+        throw error;
     }
 
     if (response.status === 204) {

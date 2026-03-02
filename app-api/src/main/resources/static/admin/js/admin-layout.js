@@ -10,19 +10,26 @@ const MENU_ITEMS = [
     { route: 'dummy', label: '더미 데이터', href: '/admin/pages/dummy.html' }
 ];
 
-const PAGE_STYLES = `
-    body { min-height: 100vh; }
-`;
+function getMenuItems() {
+    const hasDummyFeature = typeof window.AdminUtils?.isFeatureEnabled === 'function'
+        ? window.AdminUtils.isFeatureEnabled('dummyEnabled')
+        : true;
+
+    if (hasDummyFeature) {
+        return MENU_ITEMS;
+    }
+
+    return MENU_ITEMS.filter((item) => item.route !== 'dummy');
+}
 
 function renderAdminLayout(container, activeRoute = '') {
     const normalizedActive = activeRoute || 'dashboard';
-    const menuHtml = MENU_ITEMS.map((menu) => {
+    const menuHtml = getMenuItems().map((menu) => {
         const isActive = menu.route === normalizedActive;
         return `<li><a href="${menu.href}" data-route="${menu.route}" class="${isActive ? 'active' : ''}">${menu.label}</a></li>`;
     }).join('');
 
     container.innerHTML = `
-        <style>${PAGE_STYLES}</style>
         <div class="admin-layout">
             <nav class="sidebar">
                 <div class="sidebar-header">

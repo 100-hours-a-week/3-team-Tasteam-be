@@ -1,6 +1,50 @@
 const EMPTY_NOOP = () => {};
 
 let routeNavigator = null;
+let featureFlags = {
+    dummyEnabled: true
+};
+
+function setFeatureFlag(name, enabled) {
+    if (!name) {
+        return;
+    }
+
+    featureFlags[name] = Boolean(enabled);
+}
+
+function setFeatureFlags(flags = {}) {
+    featureFlags = {
+        ...featureFlags,
+        ...flags
+    };
+}
+
+function isFeatureEnabled(name) {
+    return Boolean(featureFlags[name]);
+}
+
+async function refreshAdminFeatureFlags() {
+    const enabled = await isDummyEndpointAvailable();
+    setFeatureFlag('dummyEnabled', enabled);
+    return featureFlags;
+}
+
+async function isDummyEndpointAvailable() {
+    if (!window.getDataCounts || !isAuthed()) {
+        return false;
+    }
+
+    try {
+        await window.getDataCounts();
+        return true;
+    } catch (error) {
+        if (error && typeof error.status === 'number') {
+            return error.status !== 404;
+        }
+        return false;
+    }
+}
 
 function setRouteNavigator(navigate) {
     routeNavigator = typeof navigate === 'function' ? navigate : null;
@@ -115,6 +159,10 @@ function isAuthed() {
 
 window.AdminUtils = {
     setRouteNavigator,
+    setFeatureFlag,
+    setFeatureFlags,
+    isFeatureEnabled,
+    refreshAdminFeatureFlags,
     navigateTo,
     toKoreanDateTime,
     toKoreanDate,
