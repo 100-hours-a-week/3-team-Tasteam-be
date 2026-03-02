@@ -243,6 +243,7 @@ class RestaurantControllerTest extends BaseControllerWebMvcTest {
 			mockMvc.perform(get("/api/v1/restaurants/{restaurantId}", "abc"))
 				.andExpect(status().isBadRequest());
 		}
+
 	}
 
 	@Nested

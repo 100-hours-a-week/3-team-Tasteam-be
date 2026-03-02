@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>배치 작업 관리 - Tasteam Admin</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+    <style>
+        .pending-images { margin-top: 20px; }
+        .pending-images table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .pending-images th, .pending-images td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        .pending-images th { background: #f5f5f5; }
+        .pending-count { font-weight: bold; color: #1976d2; }
+        .file-size { color: #666; }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>Tasteam Admin</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/admin/pages/dashboard.html">대시보드</a></li>
+                <li><a href="/admin/pages/restaurants.html">음식점 관리</a></li>
+                <li><a href="/admin/pages/groups.html">그룹 관리</a></li>
+                <li><a href="/admin/pages/promotions.html">프로모션 관리</a></li>
+                <li><a href="/admin/pages/announcements.html">공지사항 관리</a></li>
+                <li><a href="/admin/pages/jobs.html">배치 작업</a></li>
+                <li><a href="#" id="logoutBtn">로그아웃</a></li>
+            </ul>
+        </nav>
+        <main class="content">
+            <div class="content-header">
+                <h1>배치 작업 관리</h1>
+            </div>
+            <div class="job-cards">
+                <div class="card job-card">
+                    <h3>이미지 최적화</h3>
+                    <p>S3에 저장된 이미지를 WebP 포맷으로 변환하고 정책에 맞게 리사이즈합니다.</p>
+                    <div class="job-config">
+                        <label for="batchSize">배치 크기:</label>
+                        <input type="number" id="batchSize" value="100" min="1" max="500">
+                    </div>
+                    <div class="button-group">
+                        <button id="loadPendingImages" class="btn btn-secondary">대기 이미지 조회</button>
+                        <button id="runImageOptimization" class="btn btn-primary">최적화 실행</button>
+                    </div>
+                    <div id="jobResult" class="job-result" style="display: none;">
+                        <h4>실행 결과</h4>
+                        <ul>
+                            <li>성공: <span id="successCount">0</span></li>
+                            <li>실패: <span id="failedCount">0</span></li>
+                            <li>건너뜀: <span id="skippedCount">0</span></li>
+                        </ul>
+                    </div>
+                    <div id="jobError" class="error-message" style="display: none;"></div>
+
+                    <div id="pendingImages" class="pending-images" style="display: none;">
+                        <h4>최적화 대기 이미지 (<span id="pendingCount" class="pending-count">0</span>개)</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>파일명</th>
+                                    <th>크기</th>
+                                    <th>타입</th>
+                                    <th>용도</th>
+                                    <th>도메인</th>
+                                    <th>생성일</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingImagesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card job-card">
+                    <h3>이미지 정리</h3>
+                    <p>PENDING 상태로 만료된 이미지와 삭제 예정 이미지를 S3에서 삭제합니다.</p>
+                    <div class="button-group">
+                        <button id="loadCleanupPending" class="btn btn-secondary">정리 대기 조회</button>
+                        <button id="runImageCleanup" class="btn btn-primary">정리 실행</button>
+                    </div>
+                    <div id="cleanupResult" class="job-result" style="display: none;">
+                        <h4>실행 결과</h4>
+                        <p>정리된 이미지: <span id="cleanedCount" class="pending-count">0</span>개</p>
+                    </div>
+                    <div id="cleanupError" class="error-message" style="display: none;"></div>
+
+                    <div id="cleanupPendingImages" class="pending-images" style="display: none;">
+                        <h4>정리 대기 이미지 (<span id="cleanupPendingCount" class="pending-count">0</span>개)</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>파일명</th>
+                                    <th>크기</th>
+                                    <th>타입</th>
+                                    <th>용도</th>
+                                    <th>상태</th>
+                                    <th>생성일</th>
+                                    <th>삭제예정일</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cleanupPendingBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/admin/js/auth.js"></script>
+    <script src="/admin/js/api.js"></script>
+    <script src="/admin/js/jobs.js"></script>
+</body>
+</html>
