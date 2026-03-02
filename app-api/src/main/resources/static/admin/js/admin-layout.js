@@ -37,7 +37,7 @@ function renderAdminLayout(container, activeRoute = '') {
                 </div>
                 <ul class="nav-menu">
                     ${menuHtml}
-                    <li><a href="#" id="logoutBtn">로그아웃</a></li>
+                    <li><a href="#" id="logoutBtn" class="logout-btn">로그아웃</a></li>
                 </ul>
             </nav>
             <main class="content">
