@@ -163,8 +163,14 @@ public class FavoriteService {
 		MemberFavoriteRestaurant favorite = memberFavoriteRestaurantRepository.findByMemberIdAndRestaurantId(memberId,
 			restaurantId)
 			.map(existing -> restoreMemberFavoriteIfDeleted(existing))
-			.orElseGet(() -> memberFavoriteRestaurantRepository.save(MemberFavoriteRestaurant.create(memberId,
-				restaurantId)));
+			.orElseGet(() -> {
+				try {
+					return memberFavoriteRestaurantRepository.save(
+						MemberFavoriteRestaurant.create(memberId, restaurantId));
+				} catch (org.springframework.dao.DataIntegrityViolationException ex) {
+					throw new BusinessException(FavoriteErrorCode.FAVORITE_ALREADY_EXISTS);
+				}
+			});
 
 		return favoriteAssembler.toCreateResponse(favorite);
 	}
@@ -291,7 +297,7 @@ public class FavoriteService {
 				entry -> entry.getValue().getFirst().url()));
 	}
 
-	private Map<Long, String> findCategories(List<Long> restaurantIds) {
+	private Map<Long, List<String>> findCategories(List<Long> restaurantIds) {
 		if (restaurantIds.isEmpty()) {
 			return Map.of();
 		}
@@ -302,9 +308,7 @@ public class FavoriteService {
 				RestaurantCategoryProjection::getRestaurantId,
 				Collectors.mapping(
 					RestaurantCategoryProjection::getCategoryName,
-					Collectors.collectingAndThen(
-						Collectors.toList(),
-						list -> String.join(", ", list)))));
+					Collectors.toList())));
 	}
 
 	private Map<Long, String> findAddresses(List<Long> restaurantIds) {

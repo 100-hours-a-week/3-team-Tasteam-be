@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -13,10 +12,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.ActiveProfiles;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.tasteam.config.annotation.MessageQueueFlowTest;
 import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.domain.analytics.api.ActivityEventMapper;
 import com.tasteam.domain.analytics.api.ActivitySink;
@@ -30,10 +29,9 @@ import com.tasteam.domain.review.event.ReviewCreatedEvent;
 
 import jakarta.annotation.Resource;
 
+@MessageQueueFlowTest
 @SpringBootTest(classes = UserActivityMessageQueueFlowIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@ActiveProfiles("test")
-@Tag("integration")
-@DisplayName("User Activity MQ 연동 통합 테스트")
+@DisplayName("[통합](UserActivity) UserActivityMessageQueueFlow 통합 테스트")
 class UserActivityMessageQueueFlowIntegrationTest {
 
 	@Resource

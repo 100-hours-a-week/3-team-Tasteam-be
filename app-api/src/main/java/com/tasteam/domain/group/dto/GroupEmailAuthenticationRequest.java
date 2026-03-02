@@ -4,5 +4,5 @@ import jakarta.validation.constraints.NotBlank;
 
 public record GroupEmailAuthenticationRequest(
 	@NotBlank
-	String code) {
+	String token) {
 }

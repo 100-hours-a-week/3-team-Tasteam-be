@@ -10,4 +10,4 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - /var/log/tasteam:/var/log/tasteam  # Alloy 로그 수집용 호스트 경로 공유
+      - /var/log/tasteam:/var/log/tasteam # Alloy 로그 수집용 호스트 경로 공유

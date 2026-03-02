@@ -5,8 +5,11 @@ import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.time.DateTimeException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -19,6 +22,8 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
@@ -33,18 +38,27 @@ import com.tasteam.infra.storage.StorageProperties;
 import com.tasteam.infra.storage.s3.policy.S3PresignPolicy;
 import com.tasteam.infra.storage.s3.policy.S3PresignPolicyBuilder;
 
-import lombok.RequiredArgsConstructor;
-
 @Component
 @Profile("!test")
 @ConditionalOnProperty(prefix = "tasteam.storage", name = "type", havingValue = "s3")
-@RequiredArgsConstructor
 public class S3StorageClient implements StorageClient {
 
 	private final AmazonS3 amazonS3;
 	private final AWSCredentialsProvider credentialsProvider;
 	private final StorageProperties properties;
 	private final S3PresignPolicyBuilder presignPolicyBuilder;
+
+	public S3StorageClient(
+		AmazonS3 amazonS3,
+		@Qualifier("s3AwsCredentialsProvider")
+		AWSCredentialsProvider credentialsProvider,
+		StorageProperties properties,
+		S3PresignPolicyBuilder presignPolicyBuilder) {
+		this.amazonS3 = amazonS3;
+		this.credentialsProvider = credentialsProvider;
+		this.properties = properties;
+		this.presignPolicyBuilder = presignPolicyBuilder;
+	}
 
 	@Override
 	public PresignedPostResponse createPresignedPost(PresignedPostRequest request) {
@@ -97,6 +111,26 @@ public class S3StorageClient implements StorageClient {
 			return IOUtils.toByteArray(s3Object.getObjectContent());
 		} catch (IOException ex) {
 			throw new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
+	}
+
+	@Override
+	public List<String> listObjects(String prefix) {
+		try {
+			List<String> keys = new ArrayList<>();
+			String continuationToken = null;
+			do {
+				ListObjectsV2Request req = new ListObjectsV2Request()
+					.withBucketName(resolveBucket())
+					.withPrefix(prefix)
+					.withContinuationToken(continuationToken);
+				ListObjectsV2Result result = amazonS3.listObjectsV2(req);
+				result.getObjectSummaries().forEach(s -> keys.add(s.getKey()));
+				continuationToken = result.isTruncated() ? result.getNextContinuationToken() : null;
+			} while (continuationToken != null);
+			return keys;
 		} catch (RuntimeException ex) {
 			throw mapStorageException(ex);
 		}

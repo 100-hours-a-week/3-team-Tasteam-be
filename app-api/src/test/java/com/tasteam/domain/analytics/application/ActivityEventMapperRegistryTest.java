@@ -15,7 +15,7 @@ import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.domain.analytics.api.ActivityEventMapper;
 
 @UnitTest
-@DisplayName("사용자 이벤트 매퍼 레지스트리")
+@DisplayName("[유닛](Activity) ActivityEventMapperRegistry 단위 테스트")
 class ActivityEventMapperRegistryTest {
 
 	@Test

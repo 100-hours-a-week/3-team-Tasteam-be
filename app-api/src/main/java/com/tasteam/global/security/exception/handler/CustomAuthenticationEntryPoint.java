@@ -29,9 +29,26 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
 	public void commence(HttpServletRequest request, HttpServletResponse response,
 		AuthenticationException authException) throws IOException, ServletException {
 
+		if (isAdminSpaRequest(request)) {
+			response.sendRedirect("/admin/");
+			return;
+		}
+
 		securityErrorNotifier.notify(AuthErrorCode.AUTHENTICATION_REQUIRED, authException, request);
 
 		// 401 Unauthorized 응답 전송
 		securityResponseSender.sendError(response, AuthErrorCode.AUTHENTICATION_REQUIRED);
+	}
+
+	private boolean isAdminSpaRequest(HttpServletRequest request) {
+		String uri = request.getRequestURI();
+		String accept = request.getHeader("Accept");
+
+		return (uri.startsWith("/admin/") || "/admin".equals(uri))
+			&& accept != null
+			&& accept.contains("text/html")
+			&& !uri.startsWith("/admin/js/")
+			&& !uri.startsWith("/admin/css/")
+			&& !uri.equals("/admin/index.html");
 	}
 }

@@ -6,10 +6,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.batch.ai.comparison.config.RestaurantComparisonBatchProperties;
+import com.tasteam.batch.ai.event.BatchExecutionFinishedEvent;
 import com.tasteam.batch.ai.review.config.ReviewAnalysisBatchProperties;
 import com.tasteam.batch.ai.vector.config.VectorUploadBatchProperties;
 import com.tasteam.domain.batch.dto.JobStatusCount;
@@ -37,6 +39,7 @@ public class AiBatchFinishService {
 	private final VectorUploadBatchProperties vectorUploadProperties;
 	private final ReviewAnalysisBatchProperties reviewAnalysisProperties;
 	private final RestaurantComparisonBatchProperties restaurantComparisonProperties;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Transactional
 	public boolean tryFinish(long batchExecutionId, Instant now) {
@@ -107,5 +110,16 @@ public class AiBatchFinishService {
 		log.info("Batch finished ({}): batchExecutionId={}, status={}, total={}, success={}, failed={}, stale={}",
 			execution.getBatchType(), batchExecutionId, finalStatus, counts.total(), counts.completed(), failed,
 			counts.stale());
+		eventPublisher.publishEvent(
+			new BatchExecutionFinishedEvent(
+				execution.getId(),
+				execution.getBatchType(),
+				execution.getStatus(),
+				execution.getStartedAt(),
+				execution.getFinishedAt(),
+				execution.getTotalJobs(),
+				execution.getSuccessCount(),
+				execution.getFailedCount(),
+				execution.getStaleCount()));
 	}
 }

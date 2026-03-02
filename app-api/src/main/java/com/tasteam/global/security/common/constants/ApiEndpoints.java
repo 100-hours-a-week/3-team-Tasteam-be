@@ -45,7 +45,10 @@ public final class ApiEndpoints {
 	public static final String ACTUATOR_HEALTH = "/actuator/health";
 
 	// Static Admin Pages
-	public static final String ADMIN_STATIC = "/admin" + ALL;
+	public static final String ADMIN_SPA_ROOT = "/admin";
+	public static final String ADMIN_SPA_INDEX = ADMIN_SPA_ROOT + "/index.html";
+	public static final String ADMIN_SPA_JS = ADMIN_SPA_ROOT + "/js/**";
+	public static final String ADMIN_SPA_CSS = ADMIN_SPA_ROOT + "/css/**";
 	public static final String ADMIN_AUTH = API_V1 + "/admin/auth";
 	public static final String ADMIN_AUTH_LOGIN = ADMIN_AUTH + "/login";
 
@@ -86,6 +89,7 @@ public final class ApiEndpoints {
 	public static final String GROUPS_REVIEWS_RESTAURANTS = GROUPS_REVIEWS + "/restaurants";
 	public static final String GROUPS_SUBGROUPS = GROUPS + "/*/subgroups";
 	public static final String GROUPS_SUBGROUPS_SEARCH = GROUPS + "/*/subgroups/search";
+	public static final String GROUPS_EMAIL_AUTHENTICATIONS = GROUPS + "/*/email-authentications";
 
 	// Subgroup
 	public static final String SUBGROUPS = API_V1 + "/subgroups";
@@ -116,7 +120,13 @@ public final class ApiEndpoints {
 	// WebSocket
 	public static final String WEBSOCKET = "/ws" + ALL;
 
+	// Report
+	public static final String REPORTS = API_V1 + "/reports";
+	public static final String REPORTS_ALL = REPORTS + ALL;
+
 	// Admin
 	public static final String ADMIN = API_V1 + "/admin";
 	public static final String ADMIN_ALL = ADMIN + ALL;
+	public static final String ADMIN_DUMMY = ADMIN + "/dummy";
+	public static final String ADMIN_DUMMY_ALL = ADMIN_DUMMY + ALL;
 }

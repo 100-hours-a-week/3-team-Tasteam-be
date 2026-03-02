@@ -35,6 +35,7 @@ import com.tasteam.fixture.MemberFixture;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](O) OAuthLoginService 통합 테스트")
 class OAuthLoginServiceIntegrationTest {
 
 	private static final String USER_INFO_URI = "https://oauth.test/userinfo";

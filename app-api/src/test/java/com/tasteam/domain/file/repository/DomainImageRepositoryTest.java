@@ -21,7 +21,7 @@ import com.tasteam.fixture.ImageFixture;
 import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
-@DisplayName("DomainImageRepository 테스트")
+@DisplayName("[유닛](Domain) DomainImageRepository 단위 테스트")
 class DomainImageRepositoryTest {
 
 	@Autowired

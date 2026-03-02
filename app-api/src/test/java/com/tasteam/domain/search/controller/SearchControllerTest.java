@@ -11,26 +11,16 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.search.dto.response.SearchGroupSummary;
 import com.tasteam.domain.search.dto.response.SearchResponse;
 import com.tasteam.domain.search.dto.response.SearchRestaurantItem;
-import com.tasteam.domain.search.service.SearchService;
 import com.tasteam.fixture.SearchRequestFixture;
 
-@ControllerWebMvcTest(SearchController.class)
-class SearchControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private SearchService searchService;
+@DisplayName("[유닛](Search) SearchController 단위 테스트")
+class SearchControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("통합 검색")
@@ -45,7 +35,8 @@ class SearchControllerTest {
 					new SearchGroupSummary(1L, "맛집모임", "https://example.com/logo.jpg", 10L)),
 				new CursorPageResponse<>(
 					List.of(
-						new SearchRestaurantItem(1L, "맛집식당", "서울시 강남구", "https://example.com/img.jpg")),
+						new SearchRestaurantItem(1L, "맛집식당", "서울시 강남구", "https://example.com/img.jpg",
+							List.of("한식", "국밥"))),
 					new CursorPageResponse.Pagination(null, false, 20)));
 
 			given(searchService.search(any(), any())).willReturn(response);
@@ -73,7 +64,8 @@ class SearchControllerTest {
 				List.of(),
 				new CursorPageResponse<>(
 					List.of(
-						new SearchRestaurantItem(2L, "다음맛집", "서울시 서초구", "https://example.com/img2.jpg")),
+						new SearchRestaurantItem(2L, "다음맛집", "서울시 서초구", "https://example.com/img2.jpg",
+							List.of("분식"))),
 					new CursorPageResponse.Pagination("next-cursor", true, 20)));
 
 			given(searchService.search(any(), any())).willReturn(response);

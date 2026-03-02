@@ -3,23 +3,13 @@ package com.tasteam.domain.favorite.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.config.annotation.ServiceIntegrationTest;
@@ -54,6 +44,7 @@ import com.tasteam.global.exception.code.FavoriteErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Favorite) FavoriteService 통합 테스트")
 class FavoriteServiceIntegrationTest {
 
 	@Autowired
@@ -81,13 +72,14 @@ class FavoriteServiceIntegrationTest {
 	private SubgroupFavoriteRestaurantRepository subgroupFavoriteRepository;
 
 	private Member member;
+	private Group group;
 	private Subgroup subgroup;
 	private Restaurant restaurant;
 
 	@BeforeEach
 	void setUp() {
 		member = memberRepository.save(MemberFixture.create());
-		Group group = groupRepository.save(GroupFixture.create());
+		group = groupRepository.save(GroupFixture.create());
 		subgroup = subgroupRepository.save(SubgroupFixture.create(group, "테스트 소모임"));
 		subgroupMemberRepository.save(SubgroupMemberFixture.create(subgroup.getId(), member));
 		restaurant = restaurantRepository.save(createRestaurant("테스트 식당"));
@@ -212,53 +204,43 @@ class FavoriteServiceIntegrationTest {
 	}
 
 	@Test
-	@Disabled("TODO: 트랜잭션 경계/DB 격리수준을 반영한 안정적인 동시성 테스트로 재작성 필요")
-	@DisplayName("동시에 같은 내 찜을 등록해도 최종 활성 상태는 1건으로 일관된다")
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	void concurrentCreateMyFavorite_keepsSingleActiveRow() throws Exception {
-		Member concurrentMember = memberRepository.save(MemberFixture.create("concurrent@example.com", "동시성유저"));
-		Restaurant concurrentRestaurant = restaurantRepository.save(createRestaurant("동시성식당"));
+	@DisplayName("소모임 찜 목록 조회는 같은 음식점을 restaurantId 기준으로 1건만 반환한다")
+	void getSubgroupFavorites_deduplicatesByRestaurantId() {
+		Member another = memberRepository.save(MemberFixture.create("duplicate@example.com", "중복유저"));
+		subgroupFavoriteRepository.save(SubgroupFavoriteRestaurant.create(member.getId(), subgroup.getId(),
+			restaurant.getId()));
+		subgroupFavoriteRepository.save(SubgroupFavoriteRestaurant.create(another.getId(), subgroup.getId(),
+			restaurant.getId()));
 
-		int threadCount = 2;
-		ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-		CountDownLatch ready = new CountDownLatch(threadCount);
-		CountDownLatch start = new CountDownLatch(1);
-		List<Callable<Boolean>> tasks = new ArrayList<>();
+		CursorPageResponse<SubgroupFavoriteRestaurantItem> response = favoriteService.getSubgroupFavoriteRestaurants(
+			member.getId(),
+			subgroup.getId(),
+			null);
 
-		for (int i = 0; i < threadCount; i++) {
-			tasks.add(() -> {
-				ready.countDown();
-				start.await();
-				try {
-					favoriteService.createMyFavorite(concurrentMember.getId(), concurrentRestaurant.getId());
-					return true;
-				} catch (BusinessException ex) {
-					return false;
-				}
-			});
-		}
+		assertThat(response.items()).hasSize(1);
+		assertThat(response.items().getFirst().restaurantId()).isEqualTo(restaurant.getId());
+	}
 
-		List<Future<Boolean>> futures = new ArrayList<>();
-		try {
-			for (Callable<Boolean> task : tasks) {
-				futures.add(executor.submit(task));
-			}
-			ready.await();
-			start.countDown();
-		} finally {
-			executor.shutdown();
-		}
+	@Test
+	@DisplayName("소모임 찜 목록은 같은 소모임의 찜 멤버 수를 restaurant별로 집계해 반환한다")
+	void getSubgroupFavorites_returnsGroupFavoriteMemberCount() {
+		Subgroup anotherSubgroupInSameGroup = subgroupRepository.save(SubgroupFixture.create(group, "같은 그룹 소모임"));
+		Member another = memberRepository.save(MemberFixture.create("count@example.com", "카운트유저"));
 
-		long successCount = 0;
-		for (Future<Boolean> future : futures) {
-			if (future.get()) {
-				successCount++;
-			}
-		}
+		subgroupFavoriteRepository.save(SubgroupFavoriteRestaurant.create(member.getId(), subgroup.getId(),
+			restaurant.getId()));
+		subgroupFavoriteRepository.save(SubgroupFavoriteRestaurant.create(member.getId(), anotherSubgroupInSameGroup
+			.getId(), restaurant.getId()));
+		subgroupFavoriteRepository.save(SubgroupFavoriteRestaurant.create(another.getId(), anotherSubgroupInSameGroup
+			.getId(), restaurant.getId()));
 
-		assertThat(successCount).isGreaterThanOrEqualTo(1L);
-		assertThat(memberFavoriteRepository.countByMemberIdAndRestaurantIdAndDeletedAtIsNull(concurrentMember.getId(),
-			concurrentRestaurant.getId())).isEqualTo(1L);
+		CursorPageResponse<SubgroupFavoriteRestaurantItem> response = favoriteService.getSubgroupFavoriteRestaurants(
+			member.getId(),
+			subgroup.getId(),
+			null);
+
+		assertThat(response.items()).hasSize(1);
+		assertThat(response.items().getFirst().groupFavoriteCount()).isEqualTo(1L);
 	}
 
 	private Restaurant createRestaurant(String name) {

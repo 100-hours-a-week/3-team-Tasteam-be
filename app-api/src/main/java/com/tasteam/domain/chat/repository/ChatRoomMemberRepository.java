@@ -1,6 +1,7 @@
 package com.tasteam.domain.chat.repository;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.tasteam.domain.chat.dto.ChatRoomMemberSnapshot;
 import com.tasteam.domain.chat.entity.ChatRoomMember;
 
 public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, Long> {
@@ -17,6 +19,18 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
 	Optional<ChatRoomMember> findByChatRoomIdAndMemberId(Long chatRoomId, Long memberId);
 
 	boolean existsByChatRoomIdAndMemberIdAndDeletedAtIsNull(Long chatRoomId, Long memberId);
+
+	@Query("""
+		select new com.tasteam.domain.chat.dto.ChatRoomMemberSnapshot(
+			m.memberId,
+			m.lastReadMessageId,
+			m.updatedAt
+		)
+		from ChatRoomMember m
+		where m.chatRoomId = :chatRoomId
+		and m.deletedAt is null
+		""")
+	List<ChatRoomMemberSnapshot> findActiveMemberSnapshots(Long chatRoomId);
 
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("""

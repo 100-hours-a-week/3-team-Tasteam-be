@@ -14,7 +14,7 @@ import com.tasteam.domain.favorite.entity.MemberFavoriteRestaurant;
 import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
-@DisplayName("MemberFavoriteRestaurantRepository 테스트")
+@DisplayName("[유닛](Member) MemberFavoriteRestaurantRepository 단위 테스트")
 class MemberFavoriteRestaurantRepositoryTest {
 
 	@Autowired

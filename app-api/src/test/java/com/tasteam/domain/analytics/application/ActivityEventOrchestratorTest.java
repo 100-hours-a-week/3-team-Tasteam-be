@@ -19,7 +19,7 @@ import com.tasteam.domain.analytics.api.ActivityEventMapper;
 import com.tasteam.domain.analytics.api.ActivitySink;
 
 @UnitTest
-@DisplayName("사용자 이벤트 오케스트레이터")
+@DisplayName("[유닛](Activity) ActivityEventOrchestrator 단위 테스트")
 class ActivityEventOrchestratorTest {
 
 	@Test

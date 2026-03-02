@@ -12,7 +12,7 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.fixture.MemberFixture;
 
 @UnitTest
-@DisplayName("하위그룹 회원 엔티티")
+@DisplayName("[유닛](Subgroup) SubgroupMember 단위 테스트")
 class SubgroupMemberTest {
 
 	@Nested

@@ -82,6 +82,14 @@ void failPaymentWhenUserHasInsufficientPoints() {
 - `@DisplayName("exception case")`
 - `@DisplayName("when status = 400")`
 
+### 4.1 클래스 @DisplayName 패턴
+
+- 형식: `[통합|유닛](도메인) 클래스베이스 통합|단위 테스트`
+- 도메인 추출: 패키지 `com.tasteam.<도메인>.` 바로 다음 세그먼트 사용 (예: `com.tasteam.domain.admin.service` → `Admin`, `com.tasteam.batch.ai.report` → `Batch`)
+- 분류: 클래스명/어노테이션에 `IntegrationTest|ServiceIntegrationTest|JobIntegrationTest` 포함 → `통합`, 그 외 → `유닛`
+- 클래스베이스: `*Test`, `*IntegrationTest`, `*ServiceIntegrationTest`, `*JobIntegrationTest` 접미사 제거 후 남은 이름
+- 예시: `ReviewServiceIntegrationTest` → `[통합](Review) ReviewService 통합 테스트`
+
 ---
 
 ## 5. 하나의 테스트가 검증해야 하는 것

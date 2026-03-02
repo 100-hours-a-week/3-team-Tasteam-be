@@ -3,7 +3,9 @@ package com.tasteam.domain.review.repository;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -29,6 +31,12 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 		where r.deletedAt is null
 		""")
 	List<Long> findDistinctRestaurantIdsByDeletedAtIsNull();
+
+	@EntityGraph(attributePaths = {"restaurant", "member"})
+	Page<Review> findAllByDeletedAtIsNull(Pageable pageable);
+
+	@EntityGraph(attributePaths = {"restaurant", "member"})
+	Page<Review> findAllByRestaurant_IdAndDeletedAtIsNull(Long restaurantId, Pageable pageable);
 
 	java.util.Optional<Review> findByIdAndDeletedAtIsNull(Long id);
 

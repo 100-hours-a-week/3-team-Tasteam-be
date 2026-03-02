@@ -1,10 +1,16 @@
 const API_BASE_URL = '/api/v1';
 
+let authFailureHandler = null;
+
+function setApiUnauthorizedHandler(handler) {
+    authFailureHandler = handler;
+}
+
 function getAuthHeaders() {
     const token = localStorage.getItem('authToken');
     return {
         'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
+        Authorization: token ? `Bearer ${token}` : ''
     };
 }
 
@@ -19,15 +25,19 @@ async function apiRequest(url, options = {}) {
 
     if (response.status === 401) {
         localStorage.removeItem('authToken');
-        window.location.href = '/admin/index.html';
+        if (typeof authFailureHandler === 'function') {
+            authFailureHandler();
+        } else {
+            window.location.href = '/admin/';
+        }
         throw new Error('인증이 필요합니다.');
     }
 
+    const responseContentType = response.headers.get('content-type') || '';
     if (!response.ok) {
         let errorMessage = '요청 처리 중 오류가 발생했습니다.';
         try {
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
+            if (responseContentType.includes('application/json')) {
                 const error = await response.json();
                 errorMessage = error.message || errorMessage;
             } else {
@@ -39,7 +49,10 @@ async function apiRequest(url, options = {}) {
         } catch (e) {
             // ignore parse errors and use default message
         }
-        throw new Error(errorMessage);
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.body = responseContentType.includes('application/json') ? null : errorMessage;
+        throw error;
     }
 
     if (response.status === 204) {
@@ -163,6 +176,33 @@ async function uploadToPresigned(presignedItem, file) {
     }
 }
 
+async function getReviews(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/reviews?${queryString}`);
+}
+
+async function adminDeleteReview(id) {
+    return apiRequest(`/admin/reviews/${id}`, {
+        method: 'DELETE'
+    });
+}
+
+async function getAdminReports(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/reports?${queryString}`);
+}
+
+async function getAdminReport(id) {
+    return apiRequest(`/admin/reports/${id}`);
+}
+
+async function updateReportStatus(id, status) {
+    return apiRequest(`/admin/reports/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+    });
+}
+
 async function geocodeAddress(query) {
     const params = new URLSearchParams({ query });
     return apiRequest(`/admin/geocoding?${params.toString()}`);
@@ -180,26 +220,71 @@ async function createGroup(data) {
     });
 }
 
+async function seedDummyData(params = {}) {
+    return apiRequest('/admin/dummy/seed', {
+        method: 'POST',
+        body: JSON.stringify(params)
+    });
+}
+
+async function getDataCounts() {
+    return apiRequest('/admin/dummy/count');
+}
+
+async function deleteDummyData() {
+    return apiRequest('/admin/dummy', {
+        method: 'DELETE'
+    });
+}
+
 const api = {
     get: async (url) => {
         const result = await apiRequest(url, { method: 'GET' });
-        return result.data || result;
+        return result?.data || result;
     },
     post: async (url, data) => {
         const result = await apiRequest(url, {
             method: 'POST',
             body: JSON.stringify(data)
         });
-        return result.data || result;
+        return result?.data || result;
     },
     patch: async (url, data) => {
         const result = await apiRequest(url, {
             method: 'PATCH',
             body: JSON.stringify(data)
         });
-        return result.data || result;
+        return result?.data || result;
     },
     delete: async (url) => {
         return await apiRequest(url, { method: 'DELETE' });
     }
 };
+
+window.setApiUnauthorizedHandler = setApiUnauthorizedHandler;
+window.apiRequest = apiRequest;
+window.api = api;
+window.login = login;
+window.getRestaurants = getRestaurants;
+window.getRestaurant = getRestaurant;
+window.createRestaurant = createRestaurant;
+window.updateRestaurant = updateRestaurant;
+window.deleteRestaurant = deleteRestaurant;
+window.getFoodCategories = getFoodCategories;
+window.createFoodCategory = createFoodCategory;
+window.getRestaurantMenus = getRestaurantMenus;
+window.createMenuCategory = createMenuCategory;
+window.createMenu = createMenu;
+window.createPresignedUploads = createPresignedUploads;
+window.uploadToPresigned = uploadToPresigned;
+window.getReviews = getReviews;
+window.adminDeleteReview = adminDeleteReview;
+window.getAdminReports = getAdminReports;
+window.getAdminReport = getAdminReport;
+window.updateReportStatus = updateReportStatus;
+window.geocodeAddress = geocodeAddress;
+window.getGroups = getGroups;
+window.createGroup = createGroup;
+window.seedDummyData = seedDummyData;
+window.getDataCounts = getDataCounts;
+window.deleteDummyData = deleteDummyData;

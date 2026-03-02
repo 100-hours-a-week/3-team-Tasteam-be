@@ -20,7 +20,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 
 @UnitTest
-@DisplayName("PostHog 클라이언트")
+@DisplayName("[유닛](Posthog) PosthogClient 단위 테스트")
 class PosthogClientTest {
 
 	private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();

@@ -27,6 +27,7 @@ public class WebhookProperties {
 	@Setter
 	public static class DiscordProperties {
 		private String url;
+		private String batchReportUrl;
 	}
 
 	@Getter

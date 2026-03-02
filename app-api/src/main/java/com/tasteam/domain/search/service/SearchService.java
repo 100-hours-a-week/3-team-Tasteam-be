@@ -18,6 +18,8 @@ import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.entity.Restaurant;
+import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
+import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 import com.tasteam.domain.search.dto.request.SearchRequest;
@@ -56,6 +58,7 @@ public class SearchService {
 	private final MemberSearchHistoryRepository memberSearchHistoryRepository;
 	private final MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository;
 	private final SearchQueryRepository searchQueryRepository;
+	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
 	private final CursorCodec cursorCodec;
 	private final SearchHistoryRecorder searchHistoryRecorder;
 
@@ -154,6 +157,7 @@ public class SearchService {
 			.toList();
 
 		Map<Long, List<RestaurantImageDto>> thumbnails = findRestaurantThumbnails(restaurantIds);
+		Map<Long, List<String>> categories = findCategories(restaurantIds);
 
 		List<SearchRestaurantItem> items = page.items().stream()
 			.map(SearchRestaurantCursorRow::restaurant)
@@ -161,7 +165,8 @@ public class SearchService {
 				restaurant.getId(),
 				restaurant.getName(),
 				restaurant.getFullAddress(),
-				thumbnailUrl(thumbnails.getOrDefault(restaurant.getId(), List.of()))))
+				thumbnailUrl(thumbnails.getOrDefault(restaurant.getId(), List.of())),
+				categories.getOrDefault(restaurant.getId(), List.of())))
 			.toList();
 
 		return new CursorPageResponse<>(
@@ -223,6 +228,16 @@ public class SearchService {
 						.map(img -> new RestaurantImageDto(img.imageId(), img.url()))
 						.toList();
 				}));
+	}
+
+	private Map<Long, List<String>> findCategories(List<Long> restaurantIds) {
+		if (restaurantIds.isEmpty()) {
+			return Map.of();
+		}
+		return restaurantFoodCategoryRepository.findCategoriesByRestaurantIds(restaurantIds).stream()
+			.collect(Collectors.groupingBy(
+				RestaurantCategoryProjection::getRestaurantId,
+				Collectors.mapping(RestaurantCategoryProjection::getCategoryName, Collectors.toList())));
 	}
 
 	private String thumbnailUrl(List<RestaurantImageDto> images) {

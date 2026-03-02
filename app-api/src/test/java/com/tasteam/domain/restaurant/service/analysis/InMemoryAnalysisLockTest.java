@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
+@DisplayName("[유닛](In) InMemoryAnalysisLock 단위 테스트")
 class InMemoryAnalysisLockTest {
 
 	private final InMemoryAnalysisLock lock = new InMemoryAnalysisLock();

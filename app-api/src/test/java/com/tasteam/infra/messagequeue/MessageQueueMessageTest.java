@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("메시지큐 메시지")
+@DisplayName("[유닛](Message) MessageQueueMessage 단위 테스트")
 class MessageQueueMessageTest {
 
 	@Test

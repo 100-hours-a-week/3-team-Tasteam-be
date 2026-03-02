@@ -27,6 +27,7 @@ import com.tasteam.domain.subgroup.dto.SubgroupJoinResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
 import com.tasteam.domain.subgroup.entity.Subgroup;
 import com.tasteam.domain.subgroup.entity.SubgroupMember;
+import com.tasteam.domain.subgroup.event.SubgroupEventPublisher;
 import com.tasteam.domain.subgroup.repository.SubgroupMemberRepository;
 import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.domain.subgroup.type.SubgroupJoinType;
@@ -55,6 +56,7 @@ public class SubgroupCommandService {
 	private final FileService fileService;
 	private final ChatRoomRepository chatRoomRepository;
 	private final ChatRoomMemberRepository chatRoomMemberRepository;
+	private final SubgroupEventPublisher subgroupEventPublisher;
 
 	@Transactional
 	public SubgroupCreateResponse createSubgroup(Long groupId, Long memberId, SubgroupCreateRequest request) {
@@ -102,12 +104,19 @@ public class SubgroupCommandService {
 
 		Member member = memberRepository.findByIdAndDeletedAtIsNull(memberId)
 			.orElseThrow(() -> new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
-		subgroupMemberRepository.save(SubgroupMember.create(subgroup.getId(), member));
+		SubgroupMember subgroupMember = subgroupMemberRepository.save(SubgroupMember.create(subgroup.getId(), member));
 		chatRoomMemberRepository.save(ChatRoomMember.builder()
 			.chatRoomId(chatRoom.getId())
 			.memberId(memberId)
 			.deletedAt(null)
 			.build());
+
+		subgroupEventPublisher.publishMemberJoined(
+			subgroup.getGroup().getId(),
+			subgroup.getId(),
+			memberId,
+			subgroup.getName(),
+			subgroupMember.getCreatedAt());
 
 		return SubgroupCreateResponse.from(subgroup);
 	}
@@ -158,6 +167,13 @@ public class SubgroupCommandService {
 		} else if (chatRoomMember.getDeletedAt() != null) {
 			chatRoomMember.restore();
 		}
+
+		subgroupEventPublisher.publishMemberJoined(
+			groupId,
+			subgroupId,
+			memberId,
+			subgroup.getName(),
+			joinedAt);
 
 		return new SubgroupJoinResponse(
 			new SubgroupJoinResponse.JoinData(

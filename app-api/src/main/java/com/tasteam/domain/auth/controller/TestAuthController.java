@@ -17,7 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@Profile({"dev", "test"})
+@Profile({"dev", "test", "local"})
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")

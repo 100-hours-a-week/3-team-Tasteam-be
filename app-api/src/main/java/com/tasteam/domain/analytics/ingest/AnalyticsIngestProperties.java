@@ -30,7 +30,8 @@ public class AnalyticsIngestProperties {
 		"ui.favorite.sheet_opened",
 		"ui.favorite.updated",
 		"ui.event.clicked",
-		"ui.tab.changed");
+		"ui.tab.changed",
+		"ui.restaurant.shared");
 	private RateLimit rateLimit = new RateLimit();
 
 	public int validatedMaxBatchSize() {

@@ -24,6 +24,7 @@ import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.service.DomainImageLinker;
+import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
@@ -44,8 +45,6 @@ import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryPro
 import com.tasteam.domain.restaurant.validator.RestaurantFoodCategoryValidator;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
-import com.tasteam.infra.storage.StorageClient;
-import com.tasteam.infra.storage.StorageProperties;
 
 import lombok.RequiredArgsConstructor;
 
@@ -64,8 +63,7 @@ public class AdminRestaurantService {
 	private final NaverGeocodingClient naverGeocodingClient;
 	private final RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
 	private final RestaurantEventPublisher eventPublisher;
-	private final StorageProperties storageProperties;
-	private final StorageClient storageClient;
+	private final FileService fileService;
 	private final DomainImageLinker domainImageLinker;
 
 	@Transactional(readOnly = true)
@@ -252,17 +250,6 @@ public class AdminRestaurantService {
 	}
 
 	private String buildPublicUrl(String storageKey) {
-		if (storageProperties.isPresignedAccess()) {
-			return storageClient.createPresignedGetUrl(storageKey);
-		}
-		String baseUrl = storageProperties.getBaseUrl();
-		if (baseUrl == null || baseUrl.isBlank()) {
-			baseUrl = String.format("https://%s.s3.%s.amazonaws.com",
-				storageProperties.getBucket(),
-				storageProperties.getRegion());
-		}
-		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-		String normalizedKey = storageKey.startsWith("/") ? storageKey.substring(1) : storageKey;
-		return normalizedBase + "/" + normalizedKey;
+		return fileService.getPublicUrl(storageKey);
 	}
 }

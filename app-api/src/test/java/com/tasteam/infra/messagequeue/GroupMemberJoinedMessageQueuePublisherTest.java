@@ -19,7 +19,7 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.group.event.GroupMemberJoinedEvent;
 
 @UnitTest
-@DisplayName("GroupMemberJoined MQ 퍼블리셔")
+@DisplayName("[유닛](Group) GroupMemberJoinedMessageQueuePublisher 단위 테스트")
 class GroupMemberJoinedMessageQueuePublisherTest {
 
 	@Test
