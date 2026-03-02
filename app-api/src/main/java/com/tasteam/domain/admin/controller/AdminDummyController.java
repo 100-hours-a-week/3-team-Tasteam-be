@@ -1,5 +1,6 @@
 package com.tasteam.domain.admin.controller;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
+@Profile("!prod")
 @RequestMapping("/api/v1/admin/dummy")
 public class AdminDummyController implements AdminDummyControllerDocs {
 
