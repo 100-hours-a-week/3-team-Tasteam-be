@@ -14,12 +14,14 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 필터 체인 내에서 발생하는 예외를 처리하는 필터
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class FilterChainExceptionFilter extends OncePerRequestFilter {
 
 	private final SecurityResponseSender securityResponseSender;
@@ -32,6 +34,8 @@ public class FilterChainExceptionFilter extends OncePerRequestFilter {
 		} catch (AuthenticationException | AccessDeniedException e) {
 			throw e;
 		} catch (Exception e) {
+			log.error("FilterChain exception. requestId={}, method={}, uri={}", request.getHeader("X-Request-Id"),
+				request.getMethod(), request.getRequestURI(), e);
 			securityResponseSender.sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
 				"서버 오류가 발생했습니다");
 		}
