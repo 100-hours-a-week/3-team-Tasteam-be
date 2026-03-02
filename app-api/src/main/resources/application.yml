@@ -251,6 +251,9 @@ tasteam:
 ## ====== 운영 & 관리 ======
 management:
   metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
     tags:
       application: tasteam-api
       environment: ${spring.profiles.active:local}
