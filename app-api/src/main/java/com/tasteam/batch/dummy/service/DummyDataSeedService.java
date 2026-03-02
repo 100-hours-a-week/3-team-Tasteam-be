@@ -9,23 +9,44 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import com.tasteam.batch.dummy.repository.DummyDataJdbcRepository;
 import com.tasteam.domain.admin.dto.request.AdminDummySeedRequest;
 import com.tasteam.domain.admin.dto.response.AdminDataCountResponse;
 import com.tasteam.domain.admin.dto.response.AdminDummySeedResponse;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.CommonErrorCode;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DummyDataSeedService {
 
 	private static final String DUMMY_EMAIL_SUFFIX = "@dummy.tasteam.kr";
 	private static final Random RANDOM = new Random();
+	private static final int DEFAULT_MEMBER_COUNT = 500;
+	private static final int DEFAULT_RESTAURANT_COUNT = 200;
+	private static final int DEFAULT_GROUP_COUNT = 20;
+	private static final int DEFAULT_SUBGROUP_PER_GROUP = 5;
+	private static final int DEFAULT_MEMBER_PER_GROUP = 30;
+	private static final int DEFAULT_REVIEW_COUNT = 1000;
+	private static final int DEFAULT_CHAT_MESSAGE_PER_ROOM = 50;
+	private static final int MAX_MEMBER_COUNT = 2000;
+	private static final int MAX_RESTAURANT_COUNT = 2000;
+	private static final int MAX_GROUP_COUNT = 200;
+	private static final int MAX_SUBGROUP_PER_GROUP = 50;
+	private static final int MAX_MEMBER_PER_GROUP = 500;
+	private static final int MAX_REVIEW_COUNT = 10000;
+	private static final int MAX_CHAT_MESSAGE_PER_ROOM = 200;
+	private static final long SLOW_STEP_THRESHOLD_MS = 2_000L;
 
 	private final DummyDataJdbcRepository dummyRepo;
 
@@ -33,13 +54,17 @@ public class DummyDataSeedService {
 	public AdminDummySeedResponse seed(AdminDummySeedRequest req) {
 		long start = System.currentTimeMillis();
 
-		int memberCount = req.memberCount() > 0 ? req.memberCount() : 500;
-		int restaurantCount = req.restaurantCount() > 0 ? req.restaurantCount() : 200;
-		int groupCount = req.groupCount() > 0 ? req.groupCount() : 20;
-		int subgroupPerGroup = req.subgroupPerGroup() > 0 ? req.subgroupPerGroup() : 5;
-		int memberPerGroup = req.memberPerGroup() > 0 ? req.memberPerGroup() : 30;
-		int reviewCount = req.reviewCount() > 0 ? req.reviewCount() : 1000;
-		int chatMessagePerRoom = req.chatMessagePerRoom() > 0 ? req.chatMessagePerRoom() : 50;
+		int memberCount = normalizeCount("memberCount", req.memberCount(), DEFAULT_MEMBER_COUNT, MAX_MEMBER_COUNT);
+		int restaurantCount = normalizeCount("restaurantCount", req.restaurantCount(), DEFAULT_RESTAURANT_COUNT,
+			MAX_RESTAURANT_COUNT);
+		int groupCount = normalizeCount("groupCount", req.groupCount(), DEFAULT_GROUP_COUNT, MAX_GROUP_COUNT);
+		int subgroupPerGroup = normalizeCount("subgroupPerGroup", req.subgroupPerGroup(), DEFAULT_SUBGROUP_PER_GROUP,
+			MAX_SUBGROUP_PER_GROUP);
+		int memberPerGroup = normalizeCount("memberPerGroup", req.memberPerGroup(), DEFAULT_MEMBER_PER_GROUP,
+			MAX_MEMBER_PER_GROUP);
+		int reviewCount = normalizeCount("reviewCount", req.reviewCount(), DEFAULT_REVIEW_COUNT, MAX_REVIEW_COUNT);
+		int chatMessagePerRoom = normalizeCount("chatMessagePerRoom", req.chatMessagePerRoom(),
+			DEFAULT_CHAT_MESSAGE_PER_ROOM, MAX_CHAT_MESSAGE_PER_ROOM);
 
 		// ── Step 1: Member 삽입 ──────────────────────────────────────────────
 		List<String> emails = new ArrayList<>(memberCount);
@@ -48,7 +73,8 @@ public class DummyDataSeedService {
 			emails.add(UUID.randomUUID() + DUMMY_EMAIL_SUFFIX);
 			nicknames.add("더미유저" + (i + 1));
 		}
-		List<Long> memberIds = dummyRepo.insertMembers(emails, nicknames);
+		List<Long> memberIds = executeStep("member insert", () -> dummyRepo.insertMembers(emails, nicknames));
+		validateStepResult("member insert", memberIds, memberCount);
 
 		// ── Step 2: Restaurant 삽입 ──────────────────────────────────────────
 		List<String> restaurantNames = new ArrayList<>(restaurantCount);
@@ -57,7 +83,9 @@ public class DummyDataSeedService {
 			restaurantNames.add("더미식당-" + (i + 1));
 			restaurantAddresses.add("서울시 강남구 더미로 " + (i + 1) + "번길 1");
 		}
-		List<Long> restaurantIds = dummyRepo.insertRestaurants(restaurantNames, restaurantAddresses);
+		List<Long> restaurantIds = executeStep("restaurant insert",
+			() -> dummyRepo.insertRestaurants(restaurantNames, restaurantAddresses));
+		validateStepResult("restaurant insert", restaurantIds, restaurantCount);
 
 		// ── Step 3: Group 삽입 ───────────────────────────────────────────────
 		List<String> groupNames = new ArrayList<>(groupCount);
@@ -66,7 +94,8 @@ public class DummyDataSeedService {
 			groupNames.add("더미그룹-" + (i + 1));
 			groupAddresses.add("서울시 강남구 테스트로 " + (i + 1));
 		}
-		List<Long> groupIds = dummyRepo.insertGroups(groupNames, groupAddresses);
+		List<Long> groupIds = executeStep("group insert", () -> dummyRepo.insertGroups(groupNames, groupAddresses));
+		validateStepResult("group insert", groupIds, groupCount);
 
 		// ── Step 4: GroupMember 삽입 ─────────────────────────────────────────
 		Map<Long, List<Long>> groupToMembers = new HashMap<>();
@@ -86,7 +115,10 @@ public class DummyDataSeedService {
 				}
 			}
 		}
-		dummyRepo.insertGroupMembers(groupMemberPairs);
+		executeStep("group_member insert", () -> {
+			dummyRepo.insertGroupMembers(groupMemberPairs);
+			return null;
+		});
 
 		// ── Step 5: Subgroup 삽입 ────────────────────────────────────────────
 		List<Long> subgroupGroupIds = new ArrayList<>();
@@ -97,7 +129,9 @@ public class DummyDataSeedService {
 				subgroupNames.add("더미팀-" + (g + 1) + "-" + (s + 1));
 			}
 		}
-		List<Long> subgroupIds = dummyRepo.insertSubgroups(subgroupGroupIds, subgroupNames);
+		List<Long> subgroupIds = executeStep("subgroup insert",
+			() -> dummyRepo.insertSubgroups(subgroupGroupIds, subgroupNames));
+		validateStepResult("subgroup insert", subgroupIds, subgroupGroupIds.size());
 
 		// subgroupId → groupId 역방향 맵
 		Map<Long, Long> subgroupToGroup = new HashMap<>();
@@ -105,11 +139,14 @@ public class DummyDataSeedService {
 			subgroupToGroup.put(subgroupIds.get(i), subgroupGroupIds.get(i));
 		}
 
-		// ── Step 6: ChatRoom 삽입 (subgroup 1:1) ────────────────────────────
-		List<Long> chatRoomIds = dummyRepo.insertChatRooms(subgroupIds);
-
 		Map<Long, Long> subgroupToChatRoom = new HashMap<>();
+		// ── Step 6: ChatRoom 삽입 (subgroup 1:1) ────────────────────────────
+		List<Long> chatRoomIds = executeStep("chat_room insert", () -> dummyRepo.insertChatRooms(subgroupIds));
+		validateStepResult("chat_room insert", chatRoomIds, subgroupIds.size());
 		for (int i = 0; i < subgroupIds.size(); i++) {
+			if (chatRoomIds.get(i) == null) {
+				throw new BusinessException(CommonErrorCode.INVALID_DOMAIN_STATE);
+			}
 			subgroupToChatRoom.put(subgroupIds.get(i), chatRoomIds.get(i));
 		}
 
@@ -135,6 +172,9 @@ public class DummyDataSeedService {
 			subgroupMemberCounts.put(subgroupId, selected.size());
 
 			Long chatRoomId = subgroupToChatRoom.get(subgroupId);
+			if (chatRoomId == null) {
+				throw new BusinessException(CommonErrorCode.INVALID_DOMAIN_STATE);
+			}
 			Set<String> sgSeen = new HashSet<>();
 			Set<String> crSeen = new HashSet<>();
 
@@ -147,11 +187,20 @@ public class DummyDataSeedService {
 				}
 			}
 		}
-		dummyRepo.insertSubgroupMembers(subgroupMemberPairs);
+		executeStep("subgroup_member insert", () -> {
+			dummyRepo.insertSubgroupMembers(subgroupMemberPairs);
+			return null;
+		});
 		if (!subgroupMemberCounts.isEmpty()) {
-			dummyRepo.updateSubgroupMemberCounts(subgroupMemberCounts);
+			executeStep("subgroup member count update", () -> {
+				dummyRepo.updateSubgroupMemberCounts(subgroupMemberCounts);
+				return null;
+			});
 		}
-		dummyRepo.insertChatRoomMembers(chatRoomMemberPairs);
+		executeStep("chat_room_member insert", () -> {
+			dummyRepo.insertChatRoomMembers(chatRoomMemberPairs);
+			return null;
+		});
 
 		// ── Step 8: Review 삽입 ──────────────────────────────────────────────
 		int actualMemberCount = Math.max(1, memberIds.size());
@@ -168,7 +217,9 @@ public class DummyDataSeedService {
 			reviewEntries.add(new long[] {memberId, restaurantId, groupId, recommended});
 			reviewContents.add("더미 리뷰 내용입니다. " + (r + 1));
 		}
-		List<Long> reviewIds = dummyRepo.insertReviews(reviewEntries, reviewContents);
+		List<Long> reviewIds = executeStep("review insert",
+			() -> dummyRepo.insertReviews(reviewEntries, reviewContents));
+		validateStepResult("review insert", reviewIds, reviewCount);
 
 		// ── Step 9: ReviewKeyword 삽입 ───────────────────────────────────────
 		List<Long> keywordIds = dummyRepo.queryKeywordIds();
@@ -186,7 +237,10 @@ public class DummyDataSeedService {
 					}
 				}
 			}
-			dummyRepo.insertReviewKeywords(reviewKeywordPairs);
+			executeStep("review_keyword insert", () -> {
+				dummyRepo.insertReviewKeywords(reviewKeywordPairs);
+				return null;
+			});
 		}
 
 		// ── Step 10: ChatMessage 삽입 ────────────────────────────────────────
@@ -205,9 +259,16 @@ public class DummyDataSeedService {
 				chatMessageContents.add("더미 채팅 메시지 " + (++msgCounter));
 			}
 		}
-		int chatMessagesInserted = dummyRepo.insertChatMessages(chatMessageEntries, chatMessageContents);
+		int chatMessagesInserted = executeStep("chat_message insert",
+			() -> dummyRepo.insertChatMessages(chatMessageEntries, chatMessageContents));
+		if (chatMessageEntries.size() != chatMessagesInserted) {
+			log.warn("[DummySeed] chat_message insert count mismatch. expected={} actual={}",
+				chatMessageEntries.size(),
+				chatMessagesInserted);
+		}
 
 		long elapsed = System.currentTimeMillis() - start;
+		log.info("[DummySeed] completed in {}ms", elapsed);
 		return new AdminDummySeedResponse(
 			memberIds.size(),
 			restaurantIds.size(),
@@ -232,5 +293,46 @@ public class DummyDataSeedService {
 	@Transactional
 	public void deleteDummyData() {
 		dummyRepo.deleteDummyData();
+	}
+
+	private int normalizeCount(String fieldName, int value, int defaultValue, int maxValue) {
+		if (value <= 0) {
+			return defaultValue;
+		}
+		if (value > maxValue) {
+			log.warn("[DummySeed] request value too large. field={} value={} max={}", fieldName, value, maxValue);
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+		return value;
+	}
+
+	private void validateStepResult(String stepName, List<?> values, int expectedSize) {
+		if (CollectionUtils.isEmpty(values)) {
+			throw new BusinessException(CommonErrorCode.INVALID_DOMAIN_STATE);
+		}
+		if (expectedSize > 0 && values.size() != expectedSize) {
+			log.error("[DummySeed] {} expected {} but got {}", stepName, expectedSize, values.size());
+			throw new BusinessException(CommonErrorCode.INVALID_DOMAIN_STATE);
+		}
+	}
+
+	private <T> T executeStep(String stepName, Supplier<T> step) {
+		long start = System.currentTimeMillis();
+		try {
+			T result = step.get();
+			long elapsed = System.currentTimeMillis() - start;
+			if (elapsed >= SLOW_STEP_THRESHOLD_MS) {
+				log.warn("[DummySeed] {} is slow: {}ms", stepName, elapsed);
+			} else {
+				log.info("[DummySeed] {} completed in {}ms", stepName, elapsed);
+			}
+			return result;
+		} catch (BusinessException e) {
+			log.error("[DummySeed] {} failed: {}", stepName, e.getErrorCode(), e);
+			throw e;
+		} catch (Exception e) {
+			log.error("[DummySeed] {} failed", stepName, e);
+			throw e;
+		}
 	}
 }
