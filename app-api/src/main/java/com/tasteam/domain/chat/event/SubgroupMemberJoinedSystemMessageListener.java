@@ -17,7 +17,9 @@ import com.tasteam.domain.member.repository.MemberRepository;
 import com.tasteam.domain.subgroup.event.SubgroupMemberJoinedEvent;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class SubgroupMemberJoinedSystemMessageListener {
@@ -32,10 +34,13 @@ public class SubgroupMemberJoinedSystemMessageListener {
 	@EventListener
 	@Transactional
 	public void onSubgroupMemberJoined(SubgroupMemberJoinedEvent event) {
+		log.info("Subgroup member joined event received. groupId={}, subgroupId={}, memberId={}",
+			event.groupId(), event.subgroupId(), event.memberId());
 		Long chatRoomId = chatRoomRepository.findBySubgroupIdAndDeletedAtIsNull(event.subgroupId())
 			.map(chatRoom -> chatRoom.getId())
 			.orElse(null);
 		if (chatRoomId == null) {
+			log.warn("Chat room not found for subgroup. subgroupId={}", event.subgroupId());
 			return;
 		}
 
@@ -63,6 +68,8 @@ public class SubgroupMemberJoinedSystemMessageListener {
 			message.getCreatedAt());
 
 		chatStreamPublisher.publish(chatRoomId, item);
+		log.info("Subgroup join system message published. subgroupId={}, chatRoomId={}, messageId={}",
+			event.subgroupId(), chatRoomId, message.getId());
 	}
 
 	private String buildMessage(String nickname) {
