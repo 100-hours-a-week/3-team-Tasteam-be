@@ -45,8 +45,10 @@ public final class ApiEndpoints {
 	public static final String ACTUATOR_HEALTH = "/actuator/health";
 
 	// Static Admin Pages
-	public static final String ADMIN_STATIC = "/admin" + ALL;
-	public static final String ADMIN_STATIC_ROOT = "/admin";
+	public static final String ADMIN_SPA_ROOT = "/admin";
+	public static final String ADMIN_SPA_INDEX = ADMIN_SPA_ROOT + "/index.html";
+	public static final String ADMIN_SPA_JS = ADMIN_SPA_ROOT + "/js/**";
+	public static final String ADMIN_SPA_CSS = ADMIN_SPA_ROOT + "/css/**";
 	public static final String ADMIN_AUTH = API_V1 + "/admin/auth";
 	public static final String ADMIN_AUTH_LOGIN = ADMIN_AUTH + "/login";
 
