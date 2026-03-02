@@ -59,9 +59,15 @@ public record ChatStreamPayload(
 		Map<String, String> map = new HashMap<>();
 		map.put("chatRoomId", String.valueOf(chatRoomId));
 		map.put("messageId", String.valueOf(messageId));
-		map.put("memberId", String.valueOf(memberId));
-		map.put("memberNickname", memberNickname);
-		map.put("memberProfileImageUrl", memberProfileImageUrl);
+		if (memberId != null) {
+			map.put("memberId", String.valueOf(memberId));
+		}
+		if (memberNickname != null) {
+			map.put("memberNickname", memberNickname);
+		}
+		if (memberProfileImageUrl != null) {
+			map.put("memberProfileImageUrl", memberProfileImageUrl);
+		}
 		map.put("content", content);
 		map.put("messageType", messageType.name());
 		if (fileType != null) {
@@ -90,7 +96,7 @@ public record ChatStreamPayload(
 	}
 
 	private static Long parseLong(String value) {
-		if (value == null) {
+		if (value == null || value.isBlank() || "null".equalsIgnoreCase(value)) {
 			return null;
 		}
 		return Long.valueOf(value);
