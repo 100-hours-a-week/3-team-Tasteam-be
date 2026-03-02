@@ -82,6 +82,18 @@ function normalizeRoute(pathname = window.location.pathname) {
 
 function resolveRoute(pathname = window.location.pathname) {
 	const routeKey = normalizeRoute(pathname);
+	if (routeKey === 'dummy') {
+		const isDummyEnabled = typeof window.AdminUtils?.isFeatureEnabled === 'function'
+			? window.AdminUtils.isFeatureEnabled('dummyEnabled')
+			: false;
+		if (!isDummyEnabled) {
+			return {
+				key: 'not-found',
+				route: ROUTE_DEFINITIONS['not-found'],
+				activeNav: 'dashboard'
+			};
+		}
+	}
 	const route = ROUTE_DEFINITIONS[routeKey];
 	if (route) {
 		return {
