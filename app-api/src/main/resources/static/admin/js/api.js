@@ -144,13 +144,46 @@ async function createMenu(restaurantId, data) {
 }
 
 async function createPresignedUploads(purpose, files) {
+    const allowedContentTypes = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
+
+    const getAllowedContentTypeFromFileName = (fileName) => {
+        const normalizedName = (fileName || '').trim().toLowerCase();
+        const lastDot = normalizedName.lastIndexOf('.');
+        const extension = lastDot >= 0 ? normalizedName.substring(lastDot + 1) : '';
+
+        const extensionMap = {
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            png: 'image/png',
+            webp: 'image/webp'
+        };
+
+        return extensionMap[extension];
+    };
+
+    const getFileContentType = (file) => {
+        const explicitType = (file.type || '').trim().toLowerCase();
+        if (explicitType && explicitType !== 'application/octet-stream') {
+            return explicitType;
+        }
+
+        return getAllowedContentTypeFromFileName(file.name);
+    };
+
+    const filesWithType = files.map(file => ({
+        fileName: file.name,
+        contentType: getFileContentType(file),
+        size: file.size
+    }));
+
+    const invalidType = filesWithType.find((item) => !item.contentType || !allowedContentTypes.has(item.contentType));
+    if (invalidType) {
+        throw new Error('지원하지 않는 이미지 파일 형식입니다.');
+    }
+
     const request = {
         purpose,
-        files: files.map(file => ({
-            fileName: file.name,
-            contentType: file.type || 'application/octet-stream',
-            size: file.size
-        }))
+        files: filesWithType
     };
 
     return apiRequest('/files/uploads/presigned', {
