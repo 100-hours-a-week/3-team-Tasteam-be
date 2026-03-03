@@ -51,7 +51,7 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 		@DisplayName("그룹을 생성하면 201과 생성된 ID를 반환한다")
 		void 그룹_생성_성공() throws Exception {
 			// given
-			GroupCreateResponse response = new GroupCreateResponse(1L, "ACTIVE", Instant.now());
+			GroupCreateResponse response = new GroupCreateResponse(1L, "ACTIVE", Instant.parse("2000-01-01T00:00:00Z"));
 			given(groupFacade.createGroup(any())).willReturn(response);
 
 			// when & then
@@ -77,7 +77,7 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 				new GroupGetResponse.GroupData(
 					1L, "테스트그룹", "https://example.com/logo.jpg",
 					"서울시 강남구", null, "test.com", 3L, "ACTIVE",
-					Instant.now(), Instant.now()));
+					Instant.parse("2000-01-01T00:00:00Z"), Instant.parse("2000-01-01T00:00:00Z")));
 
 			given(groupFacade.getGroup(1L)).willReturn(response);
 
@@ -156,7 +156,7 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 				.subgroupId(1L)
 				.name("서브그룹1")
 				.memberCount(10)
-				.createdAt(Instant.now())
+				.createdAt(Instant.parse("2000-01-01T00:00:00Z"))
 				.build();
 
 			CursorPageResponse<SubgroupListItem> response = new CursorPageResponse<>(
@@ -184,7 +184,7 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 		void 서브그룹_생성_성공() throws Exception {
 			// given
 			SubgroupCreateResponse response = new SubgroupCreateResponse(
-				new SubgroupCreateResponse.SubgroupCreateData(10L, Instant.now()));
+				new SubgroupCreateResponse.SubgroupCreateData(10L, Instant.parse("2000-01-01T00:00:00Z")));
 
 			given(subgroupFacade.createSubgroup(eq(1L), any(), any())).willReturn(response);
 
@@ -210,7 +210,7 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 		void 서브그룹_가입_성공() throws Exception {
 			// given
 			SubgroupJoinResponse response = new SubgroupJoinResponse(
-				new SubgroupJoinResponse.JoinData(10L, Instant.now()));
+				new SubgroupJoinResponse.JoinData(10L, Instant.parse("2000-01-01T00:00:00Z")));
 
 			given(subgroupFacade.joinSubgroup(eq(1L), eq(10L), any(), any())).willReturn(response);
 
@@ -254,7 +254,7 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 		void 이메일_인증_코드_발송_성공() throws Exception {
 			// given
 			GroupEmailVerificationResponse response = new GroupEmailVerificationResponse(
-				Instant.now().plusSeconds(300));
+				Instant.parse("2000-01-01T00:00:00Z").plusSeconds(300));
 
 			given(groupFacade.sendGroupEmailVerification(eq(1L), any(), any(), any())).willReturn(response);
 
@@ -275,7 +275,7 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 		@DisplayName("이메일 인증에 성공하면 200과 인증 결과를 반환한다")
 		void 이메일_인증_성공() throws Exception {
 			// given
-			GroupEmailAuthenticationResponse response = new GroupEmailAuthenticationResponse(true, Instant.now());
+			GroupEmailAuthenticationResponse response = new GroupEmailAuthenticationResponse(true, Instant.parse("2000-01-01T00:00:00Z"));
 
 			given(groupFacade.authenticateGroupByEmail(eq(1L), any(), any())).willReturn(response);
 
@@ -297,7 +297,7 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 		@DisplayName("비밀번호 인증에 성공하면 201과 인증 결과를 반환한다")
 		void 비밀번호_인증_성공() throws Exception {
 			// given
-			GroupPasswordAuthenticationResponse response = new GroupPasswordAuthenticationResponse(true, Instant.now());
+			GroupPasswordAuthenticationResponse response = new GroupPasswordAuthenticationResponse(true, Instant.parse("2000-01-01T00:00:00Z"));
 
 			given(groupFacade.authenticateGroupByPassword(eq(1L), any(), any())).willReturn(response);
 
@@ -320,7 +320,7 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 		void 그룹_멤버_목록_조회_성공() throws Exception {
 			// given
 			GroupMemberListResponse response = new GroupMemberListResponse(
-				List.of(new GroupMemberListItem(1L, 100L, "테스트유저", "https://example.com/profile.jpg", Instant.now())),
+				List.of(new GroupMemberListItem(1L, 100L, "테스트유저", "https://example.com/profile.jpg", Instant.parse("2000-01-01T00:00:00Z"))),
 				new GroupMemberListResponse.PageInfo(null, 20, false));
 
 			given(groupFacade.getGroupMembers(eq(1L), any(), any())).willReturn(response);
@@ -366,7 +366,7 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 					new ReviewResponse.AuthorResponse("테스트유저", "https://example.com/profile.jpg"),
 					"맛있어요", true, List.of("친절"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
-					Instant.now(), null, null, null, null, null, null)),
+					Instant.parse("2000-01-01T00:00:00Z"), null, null, null, null, null, null)),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(reviewService.getGroupReviews(eq(1L), any())).willReturn(response);

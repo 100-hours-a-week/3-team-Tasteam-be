@@ -65,21 +65,22 @@ class PromotionQueryRepositoryTest {
 	}
 
 	private Promotion saveDisplayingPromotion(String title) {
-		Instant now = Instant.now();
+		Instant activeStart = Instant.parse("2000-01-01T00:00:00Z");
+		Instant activeEnd = Instant.parse("2999-01-01T00:00:00Z");
 		Promotion promotion = promotionRepository.save(
 			Promotion.create(
 				title,
 				"본문",
 				"https://example.com/landing",
-				now.minusSeconds(3600),
-				now.plusSeconds(3600),
+				activeStart,
+				activeEnd,
 				PublishStatus.PUBLISHED));
 
 		PromotionDisplay display = PromotionDisplay.create(
 			promotion,
 			true,
-			now.minusSeconds(3600),
-			now.plusSeconds(3600),
+			activeStart,
+			activeEnd,
 			DisplayChannel.MAIN_BANNER,
 			-100);
 		promotionDisplayRepository.save(display);

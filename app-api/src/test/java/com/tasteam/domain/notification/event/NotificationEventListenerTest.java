@@ -31,7 +31,7 @@ class NotificationEventListenerTest {
 	@Test
 	@DisplayName("그룹 가입 이벤트 수신 시 올바른 파라미터로 알림을 생성한다")
 	void onGroupMemberJoined_createsNotificationWithCorrectParams() {
-		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(1L, 2L, "스터디", Instant.now());
+		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(1L, 2L, "스터디", Instant.parse("2000-01-01T00:00:00Z"));
 
 		notificationEventListener.onGroupMemberJoined(event);
 
@@ -46,7 +46,7 @@ class NotificationEventListenerTest {
 	@Test
 	@DisplayName("알림 생성 실패해도 예외가 전파되지 않는다")
 	void onGroupMemberJoined_whenServiceThrows_doesNotPropagate() {
-		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(1L, 2L, "스터디", Instant.now());
+		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(1L, 2L, "스터디", Instant.parse("2000-01-01T00:00:00Z"));
 		willThrow(new RuntimeException("알림 생성 실패"))
 			.given(notificationService)
 			.createNotification(anyLong(), any(), any(), any(), any());

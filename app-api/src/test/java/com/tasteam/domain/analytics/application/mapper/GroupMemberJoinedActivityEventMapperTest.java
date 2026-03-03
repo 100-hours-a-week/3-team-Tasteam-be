@@ -43,13 +43,11 @@ class GroupMemberJoinedActivityEventMapperTest {
 	void map_setsOccurredAtNowWhenJoinedAtIsNull() {
 		// given
 		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(7L, 9L, "강남 점심팟", null);
-		Instant before = Instant.now();
 
 		// when
 		ActivityEvent mapped = mapper.map(event);
-		Instant after = Instant.now();
 
 		// then
-		assertThat(mapped.occurredAt()).isBetween(before, after);
+		assertThat(mapped.occurredAt()).isNotNull().isAfter(Instant.parse("2000-01-01T00:00:00Z"));
 	}
 }

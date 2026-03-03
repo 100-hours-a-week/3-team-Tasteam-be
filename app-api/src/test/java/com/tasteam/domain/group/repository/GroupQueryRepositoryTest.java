@@ -2,6 +2,7 @@ package com.tasteam.domain.group.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -103,7 +104,7 @@ class GroupQueryRepositoryTest {
 	void searchByKeyword_excludesDeleted() {
 		Group active = groupRepository.save(GroupFixture.create("활성그룹", "서울시"));
 		Group deleted = groupRepository.save(GroupFixture.create("삭제그룹", "서울시"));
-		deleted.delete(java.time.Instant.now());
+		deleted.delete(Instant.parse("2000-01-01T00:00:00Z"));
 		entityManager.flush();
 		entityManager.clear();
 

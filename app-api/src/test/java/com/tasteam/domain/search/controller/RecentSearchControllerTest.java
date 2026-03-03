@@ -33,8 +33,8 @@ class RecentSearchControllerTest extends BaseControllerWebMvcTest {
 			// given
 			OffsetPageResponse<RecentSearchItem> response = new OffsetPageResponse<>(
 				List.of(
-					new RecentSearchItem(1L, "맛집", Instant.now()),
-					new RecentSearchItem(2L, "카페", Instant.now())),
+					new RecentSearchItem(1L, "맛집", Instant.parse("2000-01-01T00:00:00Z")),
+					new RecentSearchItem(2L, "카페", Instant.parse("2000-01-01T00:00:00Z"))),
 				new OffsetPagination(0, 10, 1, 2));
 
 			given(searchService.getRecentSearches(any())).willReturn(response);

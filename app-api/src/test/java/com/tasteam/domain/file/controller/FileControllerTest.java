@@ -48,7 +48,7 @@ class FileControllerTest extends BaseControllerWebMvcTest {
 			PresignedUploadResponse response = new PresignedUploadResponse(
 				List.of(new PresignedUploadItem(
 					fileUuid, "images/test.jpg", "https://s3.example.com/upload",
-					Map.of("key", "value"), Instant.now().plusSeconds(3600))));
+					Map.of("key", "value"), Instant.parse("2000-01-01T00:00:00Z").plusSeconds(3600))));
 
 			given(fileService.createPresignedUploads(any())).willReturn(response);
 
@@ -103,8 +103,8 @@ class FileControllerTest extends BaseControllerWebMvcTest {
 			// given
 			String fileUuid = UUID.randomUUID().toString();
 			ImageDetailResponse response = new ImageDetailResponse(
-				fileUuid, "UPLOADED", "REVIEW_IMAGE", Instant.now(),
-				List.of(new LinkedDomainResponse("RESTAURANT", 1L, 0, Instant.now())));
+				fileUuid, "UPLOADED", "REVIEW_IMAGE", Instant.parse("2000-01-01T00:00:00Z"),
+				List.of(new LinkedDomainResponse("RESTAURANT", 1L, 0, Instant.parse("2000-01-01T00:00:00Z"))));
 
 			given(fileService.getImageDetail(any())).willReturn(response);
 

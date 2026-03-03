@@ -109,7 +109,7 @@ class MainServiceIntegrationTest {
 	}
 
 	private void saveAiAnalysisFixtures(long restaurantId, String overallSummary, int positivePercent) {
-		Instant now = Instant.now();
+		Instant now = Instant.parse("2000-01-01T00:00:00Z");
 		restaurantReviewSummaryRepository.save(
 			RestaurantReviewSummary.create(
 				restaurantId, 0L, "1",

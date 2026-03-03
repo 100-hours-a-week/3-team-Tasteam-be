@@ -37,7 +37,7 @@ class SubgroupControllerTest extends BaseControllerWebMvcTest {
 					new ReviewResponse.AuthorResponse("테스트유저", "https://example.com/profile.jpg"),
 					"맛있어요", true, List.of("친절"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
-					Instant.now(), 10L, "테스트음식점", null, null, null, "서울시 강남구 테스트로 123")),
+					Instant.parse("2000-01-01T00:00:00Z"), 10L, "테스트음식점", null, null, null, "서울시 강남구 테스트로 123")),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(reviewService.getSubgroupReviews(eq(1L), any())).willReturn(response);
@@ -64,7 +64,7 @@ class SubgroupControllerTest extends BaseControllerWebMvcTest {
 			// given
 			CursorPageResponse<SubgroupMemberListItem> response = new CursorPageResponse<>(
 				List.of(new SubgroupMemberListItem(1L, 100L, "테스트유저",
-					"https://example.com/profile.jpg", Instant.now())),
+					"https://example.com/profile.jpg", Instant.parse("2000-01-01T00:00:00Z"))),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(subgroupFacade.getSubgroupMembers(eq(1L), anyLong(), any(), any())).willReturn(response);
@@ -91,7 +91,7 @@ class SubgroupControllerTest extends BaseControllerWebMvcTest {
 			SubgroupDetailResponse response = new SubgroupDetailResponse(
 				new SubgroupDetailResponse.SubgroupDetail(
 					1L, 10L, "서브그룹1", "설명", 5,
-					"https://example.com/img.jpg", Instant.now()));
+					"https://example.com/img.jpg", Instant.parse("2000-01-01T00:00:00Z")));
 
 			given(subgroupFacade.getSubgroup(eq(10L), any())).willReturn(response);
 

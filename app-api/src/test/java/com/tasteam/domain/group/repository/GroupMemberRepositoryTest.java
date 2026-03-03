@@ -50,7 +50,7 @@ class GroupMemberRepositoryTest {
 	void findByGroupIdAndMember_IdAndDeletedAtIsNull_excludesSoftDeleted() {
 		Member member = memberRepository.save(MemberFixture.create());
 		GroupMember groupMember = groupMemberRepository.save(GroupMember.create(200L, member));
-		groupMember.softDelete(Instant.now());
+		groupMember.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 		entityManager.flush();
 		entityManager.clear();
 
@@ -66,7 +66,7 @@ class GroupMemberRepositoryTest {
 		Member member2 = memberRepository.save(MemberFixture.create("deleted@test.com", "탈퇴회원"));
 		groupMemberRepository.save(GroupMember.create(300L, member1));
 		GroupMember deletedMember = groupMemberRepository.save(GroupMember.create(300L, member2));
-		deletedMember.softDelete(Instant.now());
+		deletedMember.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 		entityManager.flush();
 		entityManager.clear();
 

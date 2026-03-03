@@ -41,7 +41,7 @@ class BatchReportWebhookEventListenerTest {
 	void onBatchExecutionFinished_sendsReportWebhook() {
 		BatchExecutionFinishedEvent event = new BatchExecutionFinishedEvent(
 			1L, BatchType.REVIEW_ANALYSIS_DAILY, BatchExecutionStatus.COMPLETED,
-			Instant.now(), Instant.now(), 10, 8, 2, 0);
+			Instant.parse("2000-01-01T00:00:00Z"), Instant.parse("2000-01-01T00:00:00Z"), 10, 8, 2, 0);
 		given(aiJobRepository.countByBatchExecutionIdGroupByJobTypeAndStatus(1L)).willReturn(List.of());
 		DiscordMessage message = new DiscordMessage(List.of());
 		given(messageFactory.create(event, List.of())).willReturn(message);
@@ -56,7 +56,7 @@ class BatchReportWebhookEventListenerTest {
 	void onBatchExecutionFinished_whenExceptionOccurs_doesNotPropagate() {
 		BatchExecutionFinishedEvent event = new BatchExecutionFinishedEvent(
 			1L, BatchType.REVIEW_ANALYSIS_DAILY, BatchExecutionStatus.FAILED,
-			Instant.now(), Instant.now(), 10, 0, 10, 0);
+			Instant.parse("2000-01-01T00:00:00Z"), Instant.parse("2000-01-01T00:00:00Z"), 10, 0, 10, 0);
 		given(aiJobRepository.countByBatchExecutionIdGroupByJobTypeAndStatus(1L))
 			.willThrow(new RuntimeException("DB 오류"));
 
