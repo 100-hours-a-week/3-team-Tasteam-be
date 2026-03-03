@@ -14,6 +14,7 @@ const ADMIN_ROUTE_ALIASES = {
 	reports: 'reports',
 	reviews: 'reviews',
 	jobs: 'jobs',
+	notifications: 'notifications',
 	dummy: 'dummy'
 };
 
@@ -34,6 +35,7 @@ const ROUTE_DEFINITIONS = {
 	reports: { view: () => window.reportsView, requiresAuth: true, showLayout: true },
 	reviews: { view: () => window.reviewsView, requiresAuth: true, showLayout: true },
 	jobs: { view: () => window.jobsView, requiresAuth: true, showLayout: true },
+	notifications: { view: () => window.notificationsView, requiresAuth: true, showLayout: true },
 	dummy: { view: () => window.dummyView, requiresAuth: true, showLayout: true },
 	'not-found': { view: () => window.notFoundView, requiresAuth: true, showLayout: true }
 };

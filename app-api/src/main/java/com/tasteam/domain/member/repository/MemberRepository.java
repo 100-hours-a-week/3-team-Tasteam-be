@@ -27,4 +27,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
 	@Query("SELECT m FROM Member m WHERE m.email IS NOT NULL AND m.email <> '' AND m.deletedAt IS NULL")
 	Page<Member> findAllWithEmail(Pageable pageable);
+
+	@Query("SELECT m FROM Member m WHERE m.deletedAt IS NULL AND m.status = com.tasteam.domain.member.entity.MemberStatus.ACTIVE")
+	Page<Member> findAllActiveUsers(Pageable pageable);
 }

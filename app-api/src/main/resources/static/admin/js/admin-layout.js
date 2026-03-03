@@ -7,6 +7,7 @@ const MENU_ITEMS = [
     { route: 'reviews', label: '리뷰 관리', href: '/admin/pages/reviews.html' },
     { route: 'reports', label: '신고 관리', href: '/admin/pages/reports.html' },
     { route: 'jobs', label: '배치 작업', href: '/admin/pages/jobs.html' },
+    { route: 'notifications', label: '알림 발송', href: '/admin/pages/notifications.html' },
     { route: 'dummy', label: '더미 데이터', href: '/admin/pages/dummy.html' }
 ];
 

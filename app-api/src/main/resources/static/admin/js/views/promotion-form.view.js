@@ -452,6 +452,9 @@ function mountPromotionForm(state = {}) {
 	};
 }
 
+window.renderPromotionForm = renderPromotionForm;
+window.mountPromotionForm = mountPromotionForm;
+
 window.promotionFormView = {
 	render: renderPromotionForm,
 	mount: mountPromotionForm,
