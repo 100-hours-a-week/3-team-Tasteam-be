@@ -19,6 +19,7 @@ public record AdminPromotionUpdateRequest(
 	DisplayChannel displayChannel,
 	Integer displayPriority,
 	String bannerImageUrl,
+	String splashImageUrl,
 	String bannerImageAltText,
 	List<String> detailImageUrls) {
 }

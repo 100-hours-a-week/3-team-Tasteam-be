@@ -25,6 +25,7 @@ import com.tasteam.domain.promotion.entity.DisplayChannel;
 import com.tasteam.domain.promotion.entity.Promotion;
 import com.tasteam.domain.promotion.entity.PromotionStatus;
 import com.tasteam.domain.promotion.entity.PublishStatus;
+import com.tasteam.domain.promotion.entity.QPromotionAsset;
 
 @Repository
 public class PromotionQueryRepositoryImpl extends QueryDslSupport implements PromotionQueryRepository {
@@ -137,22 +138,29 @@ public class PromotionQueryRepositoryImpl extends QueryDslSupport implements Pro
 	@Override
 	public Optional<SplashPromotionDto> findSplashPromotion() {
 		Instant now = Instant.now();
+		QPromotionAsset splashAsset = new QPromotionAsset("splashAsset");
+		QPromotionAsset bannerAsset = new QPromotionAsset("bannerAsset");
 
 		SplashPromotionDto result = getQueryFactory()
 			.select(new QSplashPromotionDto(
 				promotion.id,
 				promotion.title,
 				promotion.content,
-				promotionAsset.imageUrl,
+				splashAsset.imageUrl.coalesce(bannerAsset.imageUrl),
 				promotion.promotionStartAt,
 				promotion.promotionEndAt))
 			.from(promotion)
 			.join(promotionDisplay).on(promotionDisplay.promotion.eq(promotion))
-			.leftJoin(promotionAsset).on(
-				promotionAsset.promotion.eq(promotion)
-					.and(promotionAsset.assetType.eq(AssetType.BANNER))
-					.and(promotionAsset.isPrimary.isTrue())
-					.and(promotionAsset.deletedAt.isNull()))
+			.leftJoin(splashAsset).on(
+				splashAsset.promotion.eq(promotion)
+					.and(splashAsset.assetType.eq(AssetType.SPLASH))
+					.and(splashAsset.isPrimary.isTrue())
+					.and(splashAsset.deletedAt.isNull()))
+			.leftJoin(bannerAsset).on(
+				bannerAsset.promotion.eq(promotion)
+					.and(bannerAsset.assetType.eq(AssetType.BANNER))
+					.and(bannerAsset.isPrimary.isTrue())
+					.and(bannerAsset.deletedAt.isNull()))
 			.where(
 				displayConditions(now),
 				splashChannelCondition())

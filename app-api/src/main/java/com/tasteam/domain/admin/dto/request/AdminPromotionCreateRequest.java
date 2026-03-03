@@ -45,6 +45,9 @@ public record AdminPromotionCreateRequest(
 	@NotBlank(message = "배너 이미지 URL은 필수입니다")
 	String bannerImageUrl,
 
+	@NotBlank(message = "스플래시 이미지 URL은 필수입니다")
+	String splashImageUrl,
+
 	String bannerImageAltText,
 
 	List<String> detailImageUrls) {

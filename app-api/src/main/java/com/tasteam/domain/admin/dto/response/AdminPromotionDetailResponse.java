@@ -56,6 +56,9 @@ public record AdminPromotionDetailResponse(
 	@Schema(description = "배너 이미지 URL")
 	String bannerImageUrl,
 
+	@Schema(description = "스플래시 이미지 URL")
+	String splashImageUrl,
+
 	@Schema(description = "배너 이미지 대체 텍스트")
 	String bannerImageAltText,
 

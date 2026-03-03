@@ -69,6 +69,15 @@ public class AdminPromotionService {
 			true);
 		promotionAssetRepository.save(banner);
 
+		PromotionAsset splash = PromotionAsset.create(
+			promotion,
+			AssetType.SPLASH,
+			request.splashImageUrl(),
+			null,
+			0,
+			true);
+		promotionAssetRepository.save(splash);
+
 		if (request.detailImageUrls() != null && !request.detailImageUrls().isEmpty()) {
 			List<PromotionAsset> detailAssets = new ArrayList<>();
 			for (int i = 0; i < request.detailImageUrls().size(); i++) {
@@ -156,6 +165,10 @@ public class AdminPromotionService {
 			.findByPromotionIdAndAssetTypeAndIsPrimaryTrueAndDeletedAtIsNull(
 				promotionId, AssetType.BANNER)
 			.orElse(null);
+		PromotionAsset splashAsset = promotionAssetRepository
+			.findByPromotionIdAndAssetTypeAndIsPrimaryTrueAndDeletedAtIsNull(
+				promotionId, AssetType.SPLASH)
+			.orElse(null);
 
 		List<String> detailImageUrls = promotionAssetRepository
 			.findByPromotionIdAndAssetTypeAndDeletedAtIsNullOrderBySortOrder(
@@ -180,6 +193,9 @@ public class AdminPromotionService {
 			display.getDisplayPriority(),
 			display.getDisplayStatus(),
 			bannerAsset != null ? bannerAsset.getImageUrl() : null,
+			splashAsset != null
+				? splashAsset.getImageUrl()
+				: (bannerAsset != null ? bannerAsset.getImageUrl() : null),
 			bannerAsset != null ? bannerAsset.getAltText() : null,
 			detailImageUrls,
 			promotion.getCreatedAt(),
@@ -228,11 +244,13 @@ public class AdminPromotionService {
 			request.displayChannel(),
 			request.displayPriority());
 
+		Instant now = Instant.now();
+
 		if (request.bannerImageUrl() != null) {
 			List<PromotionAsset> oldBanners = promotionAssetRepository
 				.findByPromotionIdAndAssetTypeAndDeletedAtIsNullOrderBySortOrder(
 					promotionId, AssetType.BANNER);
-			oldBanners.forEach(asset -> asset.delete(Instant.now()));
+			oldBanners.forEach(asset -> asset.delete(now));
 
 			PromotionAsset newBanner = PromotionAsset.create(
 				promotion,
@@ -244,11 +262,27 @@ public class AdminPromotionService {
 			promotionAssetRepository.save(newBanner);
 		}
 
+		if (request.splashImageUrl() != null) {
+			List<PromotionAsset> oldSplashes = promotionAssetRepository
+				.findByPromotionIdAndAssetTypeAndDeletedAtIsNullOrderBySortOrder(
+					promotionId, AssetType.SPLASH);
+			oldSplashes.forEach(asset -> asset.delete(now));
+
+			PromotionAsset newSplash = PromotionAsset.create(
+				promotion,
+				AssetType.SPLASH,
+				request.splashImageUrl(),
+				null,
+				0,
+				true);
+			promotionAssetRepository.save(newSplash);
+		}
+
 		if (request.detailImageUrls() != null) {
 			List<PromotionAsset> oldDetails = promotionAssetRepository
 				.findByPromotionIdAndAssetTypeAndDeletedAtIsNullOrderBySortOrder(
 					promotionId, AssetType.DETAIL);
-			oldDetails.forEach(asset -> asset.delete(Instant.now()));
+			oldDetails.forEach(asset -> asset.delete(now));
 
 			if (!request.detailImageUrls().isEmpty()) {
 				List<PromotionAsset> newDetails = new ArrayList<>();
