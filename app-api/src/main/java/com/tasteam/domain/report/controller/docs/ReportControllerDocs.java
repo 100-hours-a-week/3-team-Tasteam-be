@@ -3,6 +3,7 @@ package com.tasteam.domain.report.controller.docs;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import com.tasteam.domain.report.dto.request.ReportCreateRequest;
 import com.tasteam.domain.report.dto.response.ReportCreateResponse;
@@ -13,6 +14,7 @@ import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @SwaggerTagOrder(85)
 @Tag(name = "Report", description = "신고/피드백 API")
@@ -20,6 +22,7 @@ public interface ReportControllerDocs {
 
 	@Operation(summary = "신고 접수", description = "카테고리를 선택하고 신고를 접수합니다.")
 	ResponseEntity<SuccessResponse<ReportCreateResponse>> submit(
+		@RequestBody @Valid
 		ReportCreateRequest request,
 		@CurrentUser
 		Long memberId);
