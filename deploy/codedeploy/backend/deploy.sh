@@ -337,6 +337,7 @@ deploy_backend() {
 
   log "run backend by docker compose (service=${BACKEND_SERVICE_NAME})"
   backend_compose up -d --remove-orphans "${BACKEND_SERVICE_NAME}"
+  stop_alloy
   start_alloy
 
   prune_unused_docker_images "after-run"
