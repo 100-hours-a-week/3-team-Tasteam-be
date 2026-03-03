@@ -102,6 +102,30 @@ prometheus.scrape "cadvisor" {
   scrape_interval = "30s"
 }
 
+// ── Redis 로그 수집 (dev 전용) ──
+// Docker 소켓으로 Redis 컨테이너 로그 수집
+
+discovery.docker "redis_containers" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name   = "name"
+    values = ["redis"]
+  }
+}
+
+loki.source.docker "redis_container" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.redis_containers.targets
+  forward_to = [loki.process.redis_labels.receiver]
+}
+
+loki.process "redis_labels" {
+  stage.static_labels {
+    values = { job = "redis" }
+  }
+  forward_to = [loki.write.default.receiver]
+}
+
 // ── Redis 메트릭 (dev 전용) ──
 // Dev EC2에서는 Redis가 같은 호스트에 실행됨
 
