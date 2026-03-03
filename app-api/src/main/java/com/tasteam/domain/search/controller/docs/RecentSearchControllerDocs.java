@@ -7,6 +7,7 @@ import com.tasteam.domain.search.dto.response.RecentSearchItem;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+@SwaggerTagOrder(40)
 @Tag(name = "Search", description = "최근 검색어 API")
 public interface RecentSearchControllerDocs {
 

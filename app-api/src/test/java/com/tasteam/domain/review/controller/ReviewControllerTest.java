@@ -15,24 +15,14 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.review.dto.response.ReviewDetailResponse;
 import com.tasteam.domain.review.dto.response.ReviewKeywordItemResponse;
 import com.tasteam.domain.review.entity.KeywordType;
-import com.tasteam.domain.review.service.ReviewService;
 
-@ControllerWebMvcTest(ReviewController.class)
-class ReviewControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private ReviewService reviewService;
+@DisplayName("[유닛](Review) ReviewController 단위 테스트")
+class ReviewControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("리뷰 키워드 목록 조회")
@@ -91,7 +81,7 @@ class ReviewControllerTest {
 			ReviewDetailResponse response = new ReviewDetailResponse(
 				1L,
 				new ReviewDetailResponse.RestaurantResponse(10L, "맛집식당"),
-				new ReviewDetailResponse.AuthorResponse(100L, "테스트유저"),
+				new ReviewDetailResponse.AuthorResponse(100L, "테스트유저", "https://example.com/profile.jpg"),
 				"맛있어요",
 				true,
 				List.of("친절", "깨끗"),
@@ -109,6 +99,7 @@ class ReviewControllerTest {
 				.andExpect(jsonPath("$.data.restaurant.id").value(10))
 				.andExpect(jsonPath("$.data.restaurant.name").value("맛집식당"))
 				.andExpect(jsonPath("$.data.author.nickname").value("테스트유저"))
+				.andExpect(jsonPath("$.data.author.profileImageUrl").value("https://example.com/profile.jpg"))
 				.andExpect(jsonPath("$.data.content").value("맛있어요"))
 				.andExpect(jsonPath("$.data.isRecommended").value(true))
 				.andExpect(jsonPath("$.data.keywords[0]").value("친절"))

@@ -45,7 +45,9 @@ public record ReviewResponse(
 	@Schema(description = "작성자 요약")
 	public record AuthorResponse(
 		@Schema(description = "작성자 닉네임", example = "맛객123")
-		String nickname) {
+		String nickname,
+		@Schema(description = "작성자 프로필 이미지 URL", example = "https://cdn.example.com/profile/10.jpg")
+		String profileImageUrl) {
 	}
 
 	@Schema(description = "리뷰 이미지")

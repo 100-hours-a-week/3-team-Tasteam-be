@@ -2,19 +2,15 @@ package com.tasteam.domain.admin.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.BDDMockito.given;
 
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.config.annotation.ServiceIntegrationTest;
@@ -27,14 +23,11 @@ import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
-import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.entity.FoodCategory;
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.entity.RestaurantFoodCategory;
 import com.tasteam.domain.restaurant.entity.RestaurantWeeklySchedule;
-import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
-import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
 import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantAddressRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
@@ -44,10 +37,10 @@ import com.tasteam.fixture.ImageFixture;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
-import com.tasteam.infra.storage.StorageClient;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Admin) AdminRestaurantService 통합 테스트")
 class AdminRestaurantServiceIntegrationTest {
 
 	private static final UUID RESTAURANT_IMAGE_UUID = UUID.fromString("aaaaaaaa-1111-1111-1111-111111111111");
@@ -77,22 +70,6 @@ class AdminRestaurantServiceIntegrationTest {
 
 	@Autowired
 	private RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
-
-	@MockitoBean
-	private NaverGeocodingClient naverGeocodingClient;
-
-	@MockitoBean
-	private RestaurantEventPublisher restaurantEventPublisher;
-
-	@MockitoBean
-	private StorageClient storageClient;
-
-	@BeforeEach
-	void setUp() {
-		given(naverGeocodingClient.geocode(anyString())).willReturn(
-			new GeocodingResult("서울특별시", "강남구", "역삼동", "06234", 127.0365, 37.4979));
-		given(storageClient.createPresignedGetUrl(anyString())).willReturn("https://cdn.test/restaurant.png");
-	}
 
 	@Nested
 	@DisplayName("관리자 음식점 생성")

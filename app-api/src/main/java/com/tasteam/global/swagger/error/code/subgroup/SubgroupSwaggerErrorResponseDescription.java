@@ -4,6 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.tasteam.global.exception.ErrorCode;
+import com.tasteam.global.exception.code.ChatErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.swagger.error.code.SwaggerErrorResponseDescription;
@@ -17,6 +18,8 @@ public enum SubgroupSwaggerErrorResponseDescription implements SwaggerErrorRespo
 		GroupErrorCode.GROUP_NOT_FOUND))),
 	SUBGROUP_LIST_GROUP(new LinkedHashSet<>(Set.of(
 		GroupErrorCode.GROUP_NOT_FOUND))),
+	SUBGROUP_MEMBER_LIST(new LinkedHashSet<>(Set.of(
+		SubgroupErrorCode.SUBGROUP_NOT_FOUND))),
 	SUBGROUP_DETAIL(new LinkedHashSet<>(Set.of(
 		SubgroupErrorCode.SUBGROUP_NOT_FOUND))),
 	SUBGROUP_CREATE(new LinkedHashSet<>(Set.of(
@@ -27,6 +30,9 @@ public enum SubgroupSwaggerErrorResponseDescription implements SwaggerErrorRespo
 		SubgroupErrorCode.PASSWORD_MISMATCH))),
 	SUBGROUP_WITHDRAW(new LinkedHashSet<>(Set.of(
 		SubgroupErrorCode.SUBGROUP_NOT_FOUND))),
+	SUBGROUP_CHAT_ROOM(new LinkedHashSet<>(Set.of(
+		SubgroupErrorCode.SUBGROUP_NOT_FOUND,
+		ChatErrorCode.CHAT_ROOM_NOT_FOUND))),
 	SUBGROUP_UPDATE(new LinkedHashSet<>(Set.of(
 		GroupErrorCode.GROUP_NOT_FOUND,
 		SubgroupErrorCode.SUBGROUP_NOT_FOUND)));

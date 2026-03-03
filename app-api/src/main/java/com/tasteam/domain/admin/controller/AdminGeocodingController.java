@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.admin.controller.docs.AdminGeocodingControllerDocs;
 import com.tasteam.domain.admin.dto.response.AdminGeocodingResponse;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
@@ -17,10 +18,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/geocoding")
-public class AdminGeocodingController {
+public class AdminGeocodingController implements AdminGeocodingControllerDocs {
 
 	private final NaverGeocodingClient naverGeocodingClient;
 
+	@Override
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<AdminGeocodingResponse> geocode(

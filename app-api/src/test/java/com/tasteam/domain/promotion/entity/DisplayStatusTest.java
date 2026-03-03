@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("노출 상태")
+@DisplayName("[유닛](Display) DisplayStatus 단위 테스트")
 class DisplayStatusTest {
 
 	private static final Instant BASE_TIME = Instant.parse("2026-02-01T12:00:00Z");

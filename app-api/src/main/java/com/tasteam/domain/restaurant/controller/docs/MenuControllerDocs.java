@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import com.tasteam.domain.restaurant.dto.response.RestaurantMenuResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.restaurant.RestaurantSwaggerErrorResponseDescription;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+@SwaggerTagOrder(30)
 @Tag(name = "Restaurant", description = "음식점 메뉴 API")
 public interface MenuControllerDocs {
 

@@ -1,5 +1,6 @@
 package com.tasteam.domain.notification.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +15,8 @@ public interface PushNotificationTargetRepository extends JpaRepository<PushNoti
 	Optional<PushNotificationTarget> findByMemberIdAndDeviceId(Long memberId, String deviceId);
 
 	List<PushNotificationTarget> findAllByMemberId(Long memberId);
+
+	List<PushNotificationTarget> findAllByMemberIdIn(Collection<Long> memberIds);
 
 	void deleteByFcmToken(String fcmToken);
 }

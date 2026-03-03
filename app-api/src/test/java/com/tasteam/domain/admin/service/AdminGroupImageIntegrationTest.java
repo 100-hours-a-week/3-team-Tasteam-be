@@ -2,20 +2,16 @@ package com.tasteam.domain.admin.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.BDDMockito.given;
 
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.config.annotation.ServiceIntegrationTest;
@@ -27,8 +23,6 @@ import com.tasteam.domain.file.entity.Image;
 import com.tasteam.domain.file.entity.ImageStatus;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
-import com.tasteam.domain.restaurant.dto.GeocodingResult;
-import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
 import com.tasteam.fixture.AdminGroupRequestFixture;
 import com.tasteam.fixture.ImageFixture;
 import com.tasteam.global.exception.business.BusinessException;
@@ -36,6 +30,7 @@ import com.tasteam.global.exception.code.FileErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Admin) AdminGroupImage 통합 테스트")
 class AdminGroupImageIntegrationTest {
 
 	private static final String MISSING_FILE_UUID = "11111111-2222-3333-4444-555555555555";
@@ -48,15 +43,6 @@ class AdminGroupImageIntegrationTest {
 
 	@Autowired
 	private DomainImageRepository domainImageRepository;
-
-	@MockitoBean
-	private NaverGeocodingClient naverGeocodingClient;
-
-	@BeforeEach
-	void setUp() {
-		given(naverGeocodingClient.geocode(anyString())).willReturn(
-			new GeocodingResult("서울특별시", "강남구", "역삼동", "06234", 127.0365, 37.4979));
-	}
 
 	@Nested
 	@DisplayName("관리자 그룹 생성 시 이미지 처리")

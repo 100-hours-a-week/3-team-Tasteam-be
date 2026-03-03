@@ -6,5 +6,6 @@ public record SubgroupFavoriteRestaurantQueryDto(
 	Long subgroupFavoriteId,
 	Long restaurantId,
 	String restaurantName,
-	Instant createdAt) {
+	Instant createdAt,
+	Long groupFavoriteCount) {
 }

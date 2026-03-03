@@ -9,19 +9,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.admin.controller.docs.AdminAuthControllerDocs;
 import com.tasteam.domain.admin.dto.request.AdminLoginRequest;
 import com.tasteam.domain.admin.dto.response.AdminLoginResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.AuthErrorCode;
+import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
 import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/auth")
-public class AdminAuthController {
+public class AdminAuthController implements AdminAuthControllerDocs {
 
 	private final JwtTokenProvider jwtTokenProvider;
 
@@ -31,17 +34,22 @@ public class AdminAuthController {
 	@Value("${tasteam.admin.password}")
 	private String adminPassword;
 
+	private final JwtCookieProvider jwtCookieProvider;
+
+	@Override
 	@PostMapping("/login")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<AdminLoginResponse> login(
 		@Validated @RequestBody
-		AdminLoginRequest request) {
+		AdminLoginRequest request,
+		HttpServletResponse response) {
 
 		if (!adminUsername.equals(request.username()) || !adminPassword.equals(request.password())) {
 			throw new BusinessException(AuthErrorCode.INVALID_ADMIN_CREDENTIALS);
 		}
 
 		String accessToken = jwtTokenProvider.generateAccessToken(0L, "ADMIN");
+		jwtCookieProvider.addAdminAccessTokenCookie(response, accessToken);
 
 		return SuccessResponse.success(new AdminLoginResponse(accessToken));
 	}

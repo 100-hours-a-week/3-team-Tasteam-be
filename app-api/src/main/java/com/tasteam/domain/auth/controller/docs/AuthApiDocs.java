@@ -4,6 +4,7 @@ import com.tasteam.domain.auth.dto.response.RefreshTokenResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.RefreshToken;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.auth.AuthSwaggerErrorResponseDescription;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+@SwaggerTagOrder(5)
 @Tag(name = "Auth", description = "인증 관련 API")
 public interface AuthApiDocs {
 

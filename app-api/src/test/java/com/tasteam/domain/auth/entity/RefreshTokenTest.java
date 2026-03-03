@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("리프레쉬 토큰 엔티티")
+@DisplayName("[유닛](Refresh) RefreshToken 단위 테스트")
 class RefreshTokenTest {
 
 	private static final Long DEFAULT_MEMBER_ID = 1L;

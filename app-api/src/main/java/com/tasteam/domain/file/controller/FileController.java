@@ -1,5 +1,6 @@
 package com.tasteam.domain.file.controller;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +20,9 @@ import com.tasteam.domain.file.dto.response.ImageUrlResponse;
 import com.tasteam.domain.file.dto.response.PresignedUploadResponse;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.infra.storage.StorageProperties;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -29,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class FileController implements FileControllerDocs {
 
 	private final FileService fileService;
+	private final StorageProperties storageProperties;
 
 	@PostMapping("/uploads/presigned")
 	public SuccessResponse<PresignedUploadResponse> createPresignedUploads(
@@ -54,7 +58,12 @@ public class FileController implements FileControllerDocs {
 	@GetMapping("/{fileUuid}/url")
 	public SuccessResponse<ImageUrlResponse> getImageUrl(
 		@PathVariable
-		String fileUuid) {
+		String fileUuid,
+		HttpServletResponse response) {
+		if (storageProperties.isPresignedAccess()) {
+			long maxAge = Math.max(storageProperties.getPresignedExpirationSeconds() - 60, 0);
+			response.setHeader(HttpHeaders.CACHE_CONTROL, "private, max-age=" + maxAge);
+		}
 		return SuccessResponse.success(fileService.getImageUrl(fileUuid));
 	}
 

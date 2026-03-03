@@ -11,7 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * RestaurantReviewAnalysisService 실행 시간을 측정해 로깅하는 AOP 애스펙트.
+ * RestaurantAnalysisFacade 실행 시간을 측정해 로깅하는 AOP 애스펙트.
  */
 @Aspect
 @Component
@@ -22,7 +22,7 @@ public class AiAnalysisPerformanceAspect {
 	private static final Logger log = LoggerFactory.getLogger("spring.aop.AIAnalysis");
 	private static final AtomicLong EXEC_ID_COUNTER = new AtomicLong(0);
 
-	@Around("execution(* com.tasteam.domain.restaurant.service.analysis.RestaurantReviewAnalysisService.*(..))")
+	@Around("execution(* com.tasteam.domain.restaurant.service.analysis.RestaurantAnalysisFacade.*(..))")
 	public Object measureExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
 		String execId = String.format("%03d", EXEC_ID_COUNTER.incrementAndGet());
 		String className = joinPoint.getSignature().getDeclaringType().getSimpleName();

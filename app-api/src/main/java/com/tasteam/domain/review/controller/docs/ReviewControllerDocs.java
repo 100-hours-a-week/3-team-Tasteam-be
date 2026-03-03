@@ -10,6 +10,7 @@ import com.tasteam.domain.review.dto.response.ReviewKeywordItemResponse;
 import com.tasteam.domain.review.entity.KeywordType;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,6 +20,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 
+@SwaggerTagOrder(35)
 @Tag(name = "Review", description = "리뷰 조회/삭제 API")
 public interface ReviewControllerDocs {
 

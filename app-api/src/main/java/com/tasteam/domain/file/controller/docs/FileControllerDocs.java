@@ -13,6 +13,7 @@ import com.tasteam.domain.file.dto.request.ImageSummaryRequest;
 import com.tasteam.domain.file.dto.request.PresignedUploadRequest;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.file.FileSwaggerErrorResponseDescription;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,7 +24,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 
+@SwaggerTagOrder(45)
 @Tag(name = "File", description = "파일 업로드/연결/조회 API")
 public interface FileControllerDocs {
 
@@ -53,7 +56,8 @@ public interface FileControllerDocs {
 	@CustomErrorResponseDescription(value = FileSwaggerErrorResponseDescription.class, group = "IMAGE_DETAIL")
 	SuccessResponse<?> getImageUrl(
 		@Parameter(description = "파일 UUID", example = "c0a8012e-1e6f-4c0b-9f4f-1234567890ab") @PathVariable
-		String fileUuid);
+		String fileUuid,
+		HttpServletResponse response);
 
 	@Operation(summary = "도메인용 이미지 요약 조회", description = "fileUuid 목록으로 요약 정보를 조회합니다.")
 	@RequestBody(required = true, content = @Content(mediaType = "application/json", schema = @Schema(implementation = ImageSummaryRequest.class)))

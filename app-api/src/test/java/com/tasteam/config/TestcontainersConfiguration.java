@@ -3,6 +3,7 @@ package com.tasteam.config;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -17,6 +18,16 @@ public class TestcontainersConfiguration {
 			// 테스트 속도를 위해 컨테이너 재사용은 유지하되,
 			// max_connections를 넉넉히 올려 다중 컨텍스트 실행 시 커넥션 부족을 방지한다.
 			.withReuse(true)
-			.withCommand("postgres", "-c", "max_connections=200");
+			.withCommand("postgres", "-c", "max_connections=200")
+			// pg_trgm (similarity 함수) 익스텐션 활성화 — Flyway가 테스트에서 비활성화되어 있으므로 직접 초기화
+			.withInitScript("db/init-extensions.sql");
+	}
+
+	@Bean
+	@ServiceConnection(name = "redis")
+	GenericContainer<?> redisContainer() {
+		return new GenericContainer<>(DockerImageName.parse("redis:7.2-alpine"))
+			.withExposedPorts(6379)
+			.withReuse(true);
 	}
 }

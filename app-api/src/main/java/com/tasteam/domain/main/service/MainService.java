@@ -1,7 +1,5 @@
 package com.tasteam.domain.main.service;
 
-import static java.util.stream.Collectors.groupingBy;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -31,11 +29,11 @@ import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryRow;
 import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
 import com.tasteam.domain.promotion.service.PromotionService;
-import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
+import com.tasteam.domain.restaurant.entity.RestaurantReviewSummary;
 import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
-import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantReviewSummaryRepository;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 
@@ -49,7 +47,7 @@ public class MainService {
 
 	private final RestaurantRepository restaurantRepository;
 	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
-	private final AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
+	private final RestaurantReviewSummaryRepository restaurantReviewSummaryRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final GroupRepository groupRepository;
 	private final FileService fileService;
@@ -69,18 +67,18 @@ public class MainService {
 			.forEach(r -> allIdSet.add(r.getId()));
 		List<Long> allIds = new ArrayList<>(allIdSet);
 
-		Map<Long, String> categoryByRestaurant = fetchCategories(allIds);
+		Map<Long, List<String>> categoriesByRestaurant = fetchCategories(allIds);
 		Map<Long, String> thumbnailByRestaurant = fetchThumbnails(allIds);
 		Map<Long, String> summaryByRestaurant = fetchSummaries(allIds);
 
 		List<Section> sections = List.of(
 			new Section("SPONSORED", "Sponsored", List.of()),
 			new Section("HOT", "이번주 Hot",
-				toSectionItems(hotRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant)),
+				toSectionItems(hotRestaurants, categoriesByRestaurant, thumbnailByRestaurant, summaryByRestaurant)),
 			new Section("NEW", "신규 개장",
-				toSectionItems(newRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant)),
+				toSectionItems(newRestaurants, categoriesByRestaurant, thumbnailByRestaurant, summaryByRestaurant)),
 			new Section("AI_RECOMMEND", "AI 추천",
-				toSectionItems(aiRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant)));
+				toSectionItems(aiRestaurants, categoriesByRestaurant, thumbnailByRestaurant, summaryByRestaurant)));
 
 		Banners banners = fetchBanners();
 		SplashPromotionResponse splashPromotion = promotionService.getSplashPromotion().orElse(null);
@@ -120,15 +118,16 @@ public class MainService {
 			.forEach(r -> allIdSet.add(r.getId()));
 		List<Long> allIds = new ArrayList<>(allIdSet);
 
-		Map<Long, String> categoryByRestaurant = fetchCategories(allIds);
+		Map<Long, List<String>> categoriesByRestaurant = fetchCategories(allIds);
 		Map<Long, String> thumbnailByRestaurant = fetchThumbnails(allIds);
 		Map<Long, String> summaryByRestaurant = fetchSummaries(allIds);
 
 		List<HomePageResponse.Section> sections = List.of(
 			new HomePageResponse.Section("NEW", "신규 개장",
-				toHomeSectionItems(newRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant)),
+				toHomeSectionItems(newRestaurants, categoriesByRestaurant, thumbnailByRestaurant, summaryByRestaurant)),
 			new HomePageResponse.Section("HOT", "이번주 Hot",
-				toHomeSectionItems(hotRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant)));
+				toHomeSectionItems(hotRestaurants, categoriesByRestaurant, thumbnailByRestaurant,
+					summaryByRestaurant)));
 
 		return new HomePageResponse(sections);
 	}
@@ -143,14 +142,14 @@ public class MainService {
 			.map(MainRestaurantDistanceProjection::getId)
 			.toList();
 
-		Map<Long, String> categoryByRestaurant = fetchCategories(allIds);
+		Map<Long, List<String>> categoriesByRestaurant = fetchCategories(allIds);
 		Map<Long, String> thumbnailByRestaurant = fetchThumbnails(allIds);
 		Map<Long, String> summaryByRestaurant = fetchSummaries(allIds);
 
 		AiRecommendResponse.Section section = new AiRecommendResponse.Section(
 			"AI_RECOMMEND",
 			"AI 추천",
-			toAiSectionItems(aiRestaurants, categoryByRestaurant, thumbnailByRestaurant, summaryByRestaurant));
+			toAiSectionItems(aiRestaurants, categoriesByRestaurant, thumbnailByRestaurant, summaryByRestaurant));
 
 		return new AiRecommendResponse(section);
 	}
@@ -279,19 +278,18 @@ public class MainService {
 		return restaurantRepository.findAiRecommendRestaurantsAll(excludeIds, limit);
 	}
 
-	private Map<Long, String> fetchCategories(List<Long> restaurantIds) {
+	private Map<Long, List<String>> fetchCategories(List<Long> restaurantIds) {
 		if (restaurantIds.isEmpty()) {
 			return Map.of();
 		}
 		return restaurantFoodCategoryRepository
 			.findCategoriesByRestaurantIds(restaurantIds)
 			.stream()
-			.collect(groupingBy(
+			.collect(Collectors.groupingBy(
 				RestaurantCategoryProjection::getRestaurantId,
 				Collectors.mapping(
 					RestaurantCategoryProjection::getCategoryName,
-					Collectors.collectingAndThen(Collectors.toList(),
-						list -> list.isEmpty() ? null : list.getFirst()))));
+					Collectors.toList())));
 	}
 
 	private Map<Long, String> fetchThumbnails(List<Long> restaurantIds) {
@@ -312,17 +310,25 @@ public class MainService {
 		if (restaurantIds.isEmpty()) {
 			return Map.of();
 		}
-		return aiRestaurantReviewAnalysisRepository
+		return restaurantReviewSummaryRepository
 			.findByRestaurantIdIn(restaurantIds)
 			.stream()
 			.collect(Collectors.toMap(
-				AiRestaurantReviewAnalysis::getRestaurantId,
-				AiRestaurantReviewAnalysis::getSummary));
+				RestaurantReviewSummary::getRestaurantId,
+				s -> toSummaryString(s.getSummaryJson())));
+	}
+
+	private static String toSummaryString(Map<String, Object> summaryJson) {
+		if (summaryJson == null) {
+			return null;
+		}
+		Object overall = summaryJson.get("overall_summary");
+		return overall != null ? overall.toString() : null;
 	}
 
 	private List<SectionItem> toSectionItems(
 		List<MainRestaurantDistanceProjection> restaurants,
-		Map<Long, String> categoryByRestaurant,
+		Map<Long, List<String>> categoriesByRestaurant,
 		Map<Long, String> thumbnailByRestaurant,
 		Map<Long, String> summaryByRestaurant) {
 		return restaurants.stream()
@@ -330,7 +336,7 @@ public class MainService {
 				restaurant.getId(),
 				restaurant.getName(),
 				restaurant.getDistanceMeter(),
-				categoryByRestaurant.get(restaurant.getId()),
+				categoriesByRestaurant.getOrDefault(restaurant.getId(), List.of()),
 				thumbnailByRestaurant.get(restaurant.getId()),
 				false,
 				summaryByRestaurant.get(restaurant.getId())))
@@ -339,7 +345,7 @@ public class MainService {
 
 	private List<HomePageResponse.SectionItem> toHomeSectionItems(
 		List<MainRestaurantDistanceProjection> restaurants,
-		Map<Long, String> categoryByRestaurant,
+		Map<Long, List<String>> categoriesByRestaurant,
 		Map<Long, String> thumbnailByRestaurant,
 		Map<Long, String> summaryByRestaurant) {
 		return restaurants.stream()
@@ -347,7 +353,7 @@ public class MainService {
 				restaurant.getId(),
 				restaurant.getName(),
 				restaurant.getDistanceMeter(),
-				categoryByRestaurant.get(restaurant.getId()),
+				categoriesByRestaurant.getOrDefault(restaurant.getId(), List.of()),
 				thumbnailByRestaurant.get(restaurant.getId()),
 				summaryByRestaurant.get(restaurant.getId())))
 			.toList();
@@ -355,7 +361,7 @@ public class MainService {
 
 	private List<AiRecommendResponse.SectionItem> toAiSectionItems(
 		List<MainRestaurantDistanceProjection> restaurants,
-		Map<Long, String> categoryByRestaurant,
+		Map<Long, List<String>> categoriesByRestaurant,
 		Map<Long, String> thumbnailByRestaurant,
 		Map<Long, String> summaryByRestaurant) {
 		return restaurants.stream()
@@ -363,7 +369,7 @@ public class MainService {
 				restaurant.getId(),
 				restaurant.getName(),
 				restaurant.getDistanceMeter(),
-				categoryByRestaurant.get(restaurant.getId()),
+				categoriesByRestaurant.getOrDefault(restaurant.getId(), List.of()),
 				thumbnailByRestaurant.get(restaurant.getId()),
 				summaryByRestaurant.get(restaurant.getId())))
 			.toList();

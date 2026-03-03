@@ -14,6 +14,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -30,7 +31,8 @@ import lombok.NoArgsConstructor;
 public class Image extends BaseTimeEntity {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "image_seq_gen")
+	@SequenceGenerator(name = "image_seq_gen", sequenceName = "image_seq", allocationSize = 50)
 	private Long id;
 
 	@Column(name = "file_name", nullable = false, length = 256)

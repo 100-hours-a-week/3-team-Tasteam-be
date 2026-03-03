@@ -3904,6 +3904,7 @@ Authorization: Bearer {accessToken}
              .             
       ], "page": {
                "nextCursor": "opaque", 
+               "afterCursor": "opaque",
                "size": 20, 
                "hasNext": true
 }

@@ -10,11 +10,13 @@ import com.tasteam.domain.promotion.dto.response.PromotionDetailResponse;
 import com.tasteam.domain.promotion.dto.response.PromotionSummaryResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+@SwaggerTagOrder(65)
 @Tag(name = "Promotion", description = "프로모션 API")
 public interface PromotionControllerDocs {
 

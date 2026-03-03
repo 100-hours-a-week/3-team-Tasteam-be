@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import com.tasteam.domain.review.entity.Review;
 import com.tasteam.domain.review.repository.ReviewRepository;
 import com.tasteam.infra.ai.AiClient;
+import com.tasteam.infra.ai.dto.AiSentimentAnalysisResponse;
 import com.tasteam.infra.ai.dto.AiSentimentRequest;
 import com.tasteam.infra.ai.dto.AiStrengthsRequest;
 import com.tasteam.infra.ai.dto.AiStrengthsResponse;
@@ -139,20 +140,19 @@ public class RestaurantReviewAnalysisService {
 					restaurantId,
 					batchSize,
 					DEFAULT_SUMMARY_MIN_SCORE));
-			var sentiment = aiClient.analyzeSentiment(new AiSentimentRequest(restaurantId, reviewContents));
+			AiSentimentAnalysisResponse sentiment = aiClient
+				.analyzeSentimentDebug(new AiSentimentRequest(restaurantId, reviewContents));
 
-			Map<String, String> categorySummaries = extractCategorySummaries(summary);
-			BigDecimal positiveRatio = RatioConverter.percentageToRatio(sentiment.positiveRatio());
-			BigDecimal negativeRatio = RatioConverter.percentageToRatio(sentiment.negativeRatio());
-			Instant analyzedAt = Instant.now();
-
-			snapshotService.saveSummaryAndSentiment(
+			snapshotService.saveSummary(
 				restaurantId,
-				summary.overallSummary(),
-				categorySummaries,
-				positiveRatio,
-				negativeRatio,
-				analyzedAt);
+				0L,
+				summary,
+				Instant.now());
+			snapshotService.saveSentiment(
+				restaurantId,
+				0L,
+				sentiment,
+				Instant.now());
 			log.info("Summary/Sentiment analysis completed. restaurantId={}", restaurantId);
 
 		} catch (Exception e) {
@@ -166,7 +166,7 @@ public class RestaurantReviewAnalysisService {
 		stateService.markAnalyzingForComparison(restaurantId);
 		try {
 			AiStrengthsResponse response = aiClient.extractStrengths(
-				new AiStrengthsRequest(restaurantId, null, null, null, null, null, null));
+				new AiStrengthsRequest(restaurantId, Math.toIntExact(policyProperties.getComparisonBatchSize())));
 			Map<String, BigDecimal> categoryLift = toBigDecimalMap(response.categoryLift());
 			if (categoryLift.isEmpty()) {
 				categoryLift = toBigDecimalMapFromStrengths(response.strengths());
@@ -228,5 +228,4 @@ public class RestaurantReviewAnalysisService {
 				item -> BigDecimal.valueOf(item.liftPercentage()),
 				(first, second) -> second));
 	}
-
 }

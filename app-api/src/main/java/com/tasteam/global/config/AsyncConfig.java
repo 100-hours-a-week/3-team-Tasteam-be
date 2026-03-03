@@ -10,6 +10,8 @@ import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -28,24 +30,26 @@ public class AsyncConfig implements AsyncConfigurer {
 	}
 
 	@Bean(name = "searchHistoryExecutor")
-	public Executor searchHistoryExecutor() {
+	public Executor searchHistoryExecutor(MeterRegistry registry) {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 		executor.setCorePoolSize(5);
 		executor.setMaxPoolSize(10);
 		executor.setQueueCapacity(100);
 		executor.setThreadNamePrefix("search-history-");
 		executor.initialize();
+		ExecutorServiceMetrics.monitor(registry, executor.getThreadPoolExecutor(), "search_history");
 		return executor;
 	}
 
 	@Bean(name = "aiAnalysisExecutor")
-	public Executor aiAnalysisExecutor() {
+	public Executor aiAnalysisExecutor(MeterRegistry registry) {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 		executor.setCorePoolSize(1);
 		executor.setMaxPoolSize(1);
 		executor.setQueueCapacity(200);
 		executor.setThreadNamePrefix("ai-analysis-");
 		executor.initialize();
+		ExecutorServiceMetrics.monitor(registry, executor.getThreadPoolExecutor(), "ai_analysis");
 		return executor;
 	}
 

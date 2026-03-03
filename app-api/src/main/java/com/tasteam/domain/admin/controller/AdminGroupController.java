@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.admin.controller.docs.AdminGroupControllerDocs;
 import com.tasteam.domain.admin.dto.request.AdminGroupCreateRequest;
 import com.tasteam.domain.admin.dto.response.AdminGroupListItem;
 import com.tasteam.domain.admin.service.AdminGroupService;
@@ -23,10 +24,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/groups")
-public class AdminGroupController {
+public class AdminGroupController implements AdminGroupControllerDocs {
 
 	private final AdminGroupService adminGroupService;
 
+	@Override
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<Page<AdminGroupListItem>> getGroups(
@@ -37,6 +39,7 @@ public class AdminGroupController {
 		return SuccessResponse.success(result);
 	}
 
+	@Override
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<Long> createGroup(

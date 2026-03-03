@@ -18,6 +18,8 @@ import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.entity.Restaurant;
+import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
+import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 import com.tasteam.domain.search.dto.request.SearchRequest;
@@ -36,6 +38,7 @@ import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.SearchErrorCode;
 import com.tasteam.global.utils.CursorCodec;
 import com.tasteam.global.utils.CursorPageBuilder;
+import com.tasteam.global.validation.KeywordSecurityPolicy;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,12 +58,14 @@ public class SearchService {
 	private final MemberSearchHistoryRepository memberSearchHistoryRepository;
 	private final MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository;
 	private final SearchQueryRepository searchQueryRepository;
+	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
 	private final CursorCodec cursorCodec;
 	private final SearchHistoryRecorder searchHistoryRecorder;
 
 	@Transactional(readOnly = true)
 	public SearchResponse search(Long memberId, SearchRequest request) {
 		String keyword = request.keyword().trim();
+		validateSearchKeyword(keyword);
 		int pageSize = request.size() == null ? DEFAULT_PAGE_SIZE : request.size();
 		CursorPageBuilder<SearchCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, request.cursor(),
 			SearchCursor.class);
@@ -152,6 +157,7 @@ public class SearchService {
 			.toList();
 
 		Map<Long, List<RestaurantImageDto>> thumbnails = findRestaurantThumbnails(restaurantIds);
+		Map<Long, List<String>> categories = findCategories(restaurantIds);
 
 		List<SearchRestaurantItem> items = page.items().stream()
 			.map(SearchRestaurantCursorRow::restaurant)
@@ -159,7 +165,8 @@ public class SearchService {
 				restaurant.getId(),
 				restaurant.getName(),
 				restaurant.getFullAddress(),
-				thumbnailUrl(thumbnails.getOrDefault(restaurant.getId(), List.of()))))
+				thumbnailUrl(thumbnails.getOrDefault(restaurant.getId(), List.of())),
+				categories.getOrDefault(restaurant.getId(), List.of())))
 			.toList();
 
 		return new CursorPageResponse<>(
@@ -223,6 +230,16 @@ public class SearchService {
 				}));
 	}
 
+	private Map<Long, List<String>> findCategories(List<Long> restaurantIds) {
+		if (restaurantIds.isEmpty()) {
+			return Map.of();
+		}
+		return restaurantFoodCategoryRepository.findCategoriesByRestaurantIds(restaurantIds).stream()
+			.collect(Collectors.groupingBy(
+				RestaurantCategoryProjection::getRestaurantId,
+				Collectors.mapping(RestaurantCategoryProjection::getCategoryName, Collectors.toList())));
+	}
+
 	private String thumbnailUrl(List<RestaurantImageDto> images) {
 		if (images == null || images.isEmpty()) {
 			return null;
@@ -235,6 +252,12 @@ public class SearchService {
 			return null;
 		}
 		return images.getFirst().url();
+	}
+
+	private void validateSearchKeyword(String keyword) {
+		if (!KeywordSecurityPolicy.isSafeKeyword(keyword)) {
+			throw new BusinessException(SearchErrorCode.INVALID_SEARCH_KEYWORD);
+		}
 	}
 
 }

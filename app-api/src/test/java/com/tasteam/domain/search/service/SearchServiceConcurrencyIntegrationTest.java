@@ -34,6 +34,7 @@ import com.tasteam.fixture.GroupFixture;
 import com.tasteam.fixture.MemberFixture;
 
 @PerformanceTest
+@DisplayName("[통합](Search) SearchServiceConcurrency 통합 테스트")
 class SearchServiceConcurrencyIntegrationTest {
 
 	private static final int THREAD_COUNT = 100;

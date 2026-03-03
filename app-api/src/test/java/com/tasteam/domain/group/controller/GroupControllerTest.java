@@ -17,13 +17,9 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.group.dto.GroupCreateResponse;
 import com.tasteam.domain.group.dto.GroupEmailAuthenticationResponse;
 import com.tasteam.domain.group.dto.GroupEmailVerificationResponse;
@@ -31,43 +27,21 @@ import com.tasteam.domain.group.dto.GroupGetResponse;
 import com.tasteam.domain.group.dto.GroupMemberListItem;
 import com.tasteam.domain.group.dto.GroupMemberListResponse;
 import com.tasteam.domain.group.dto.GroupPasswordAuthenticationResponse;
-import com.tasteam.domain.group.service.GroupFacade;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
-import com.tasteam.domain.restaurant.service.RestaurantService;
-import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateRequest;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupJoinResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
-import com.tasteam.domain.subgroup.service.SubgroupFacade;
 import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.fixture.GroupRequestFixture;
 import com.tasteam.fixture.RestaurantRequestFixture;
 
-@ControllerWebMvcTest(GroupController.class)
-class GroupControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private GroupFacade groupFacade;
-
-	@MockitoBean
-	private RestaurantService restaurantService;
-
-	@MockitoBean
-	private ReviewService reviewService;
-
-	@MockitoBean
-	private SubgroupFacade subgroupFacade;
+@DisplayName("[유닛](Group) GroupController 단위 테스트")
+class GroupControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("그룹 생성")
@@ -280,17 +254,16 @@ class GroupControllerTest {
 		void 이메일_인증_코드_발송_성공() throws Exception {
 			// given
 			GroupEmailVerificationResponse response = new GroupEmailVerificationResponse(
-				1L, Instant.now(), Instant.now().plusSeconds(600));
+				Instant.now().plusSeconds(300));
 
-			given(groupFacade.sendGroupEmailVerification(eq(1L), any())).willReturn(response);
+			given(groupFacade.sendGroupEmailVerification(eq(1L), any(), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(post("/api/v1/groups/{groupId}/email-verifications", 1L)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(GroupRequestFixture.createEmailVerificationRequest())))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.id").value(1));
+				.andExpect(jsonPath("$.success").value(true));
 		}
 	}
 
@@ -299,7 +272,7 @@ class GroupControllerTest {
 	class AuthenticateByEmail {
 
 		@Test
-		@DisplayName("이메일 인증에 성공하면 201과 인증 결과를 반환한다")
+		@DisplayName("이메일 인증에 성공하면 200과 인증 결과를 반환한다")
 		void 이메일_인증_성공() throws Exception {
 			// given
 			GroupEmailAuthenticationResponse response = new GroupEmailAuthenticationResponse(true, Instant.now());
@@ -310,7 +283,7 @@ class GroupControllerTest {
 			mockMvc.perform(post("/api/v1/groups/{groupId}/email-authentications", 1L)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(GroupRequestFixture.createEmailAuthenticationRequest())))
-				.andExpect(status().isCreated())
+				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data.verified").value(true));
 		}
@@ -390,7 +363,7 @@ class GroupControllerTest {
 			// given
 			CursorPageResponse<ReviewResponse> response = new CursorPageResponse<>(
 				List.of(new ReviewResponse(1L, 2L, 3L, "테스트그룹", "테스트하위그룹",
-					new ReviewResponse.AuthorResponse("테스트유저"),
+					new ReviewResponse.AuthorResponse("테스트유저", "https://example.com/profile.jpg"),
 					"맛있어요", true, List.of("친절"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
 					Instant.now(), null, null, null, null, null, null)),
@@ -438,9 +411,9 @@ class GroupControllerTest {
 				.param("radius", String.valueOf(RestaurantRequestFixture.DEFAULT_RADIUS))
 				.param("size", String.valueOf(RestaurantRequestFixture.DEFAULT_SIZE)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.items[0].id").value(1))
-				.andExpect(jsonPath("$.items[0].name").value("맛집식당"))
-				.andExpect(jsonPath("$.pagination.hasNext").value(false));
+				.andExpect(jsonPath("$.data.items[0].id").value(1))
+				.andExpect(jsonPath("$.data.items[0].name").value("맛집식당"))
+				.andExpect(jsonPath("$.data.pagination.hasNext").value(false));
 		}
 	}
 }

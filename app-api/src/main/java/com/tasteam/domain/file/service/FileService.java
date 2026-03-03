@@ -43,6 +43,7 @@ import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.infra.storage.PresignedPostRequest;
 import com.tasteam.infra.storage.PresignedPostResponse;
+import com.tasteam.infra.storage.PresignedUrlCacheService;
 import com.tasteam.infra.storage.StorageClient;
 import com.tasteam.infra.storage.StorageProperties;
 
@@ -58,6 +59,7 @@ public class FileService {
 	private final StorageProperties storageProperties;
 	private final FileCleanupProperties cleanupProperties;
 	private final FileUploadPolicyProperties uploadPolicyProperties;
+	private final PresignedUrlCacheService presignedUrlCacheService;
 
 	public PresignedUploadResponse createPresignedUploads(PresignedUploadRequest request) {
 		List<PresignedUploadItem> uploads = new ArrayList<>();
@@ -152,13 +154,30 @@ public class FileService {
 		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
 			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
 
-		if (image.getStatus() != ImageStatus.ACTIVE) {
+		boolean isCommonAssetPending = image.getPurpose() == FilePurpose.COMMON_ASSET
+			&& image.getStatus() == ImageStatus.PENDING;
+		if (image.getStatus() != ImageStatus.ACTIVE && !isCommonAssetPending) {
 			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
 		}
 
 		return new ImageUrlResponse(
 			image.getFileUuid().toString(),
 			buildPublicUrl(image.getStorageKey()));
+	}
+
+	@Transactional
+	public void activateImage(String fileUuid) {
+		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() == ImageStatus.DELETED) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		if (image.getStatus() == ImageStatus.PENDING) {
+			image.activate();
+			imageRepository.save(image);
+		}
 	}
 
 	@Transactional(readOnly = true)
@@ -224,6 +243,33 @@ public class FileService {
 			.collect(Collectors.toMap(
 				Map.Entry::getKey,
 				entry -> entry.getValue().getFirst().url()));
+	}
+
+	@Transactional(readOnly = true)
+	public String getPrimaryDomainImageUrlStatic(DomainType domainType, Long domainId) {
+		return getPrimaryDomainImageUrlMapStatic(domainType, List.of(domainId)).get(domainId);
+	}
+
+	@Transactional(readOnly = true)
+	public Map<Long, String> getPrimaryDomainImageUrlMapStatic(DomainType domainType, List<Long> domainIds) {
+		if (domainIds == null || domainIds.isEmpty()) {
+			return Map.of();
+		}
+
+		List<DomainImage> domainImages = domainImageRepository.findAllByDomainTypeAndDomainIdIn(domainType, domainIds);
+		Map<Long, List<DomainImage>> grouped = domainImages.stream()
+			.collect(Collectors.groupingBy(DomainImage::getDomainId, LinkedHashMap::new, Collectors.toList()));
+
+		Map<Long, String> result = new LinkedHashMap<>();
+		for (Map.Entry<Long, List<DomainImage>> entry : grouped.entrySet()) {
+			List<DomainImage> images = entry.getValue();
+			if (images == null || images.isEmpty()) {
+				continue;
+			}
+			DomainImage first = images.getFirst();
+			result.put(entry.getKey(), buildStaticUrl(first.getImage().getStorageKey()));
+		}
+		return result;
 	}
 
 	@Transactional(readOnly = true)
@@ -355,6 +401,7 @@ public class FileService {
 			case MENU_IMAGE -> "uploads/menu/image";
 			case PROFILE_IMAGE -> "uploads/profile/image";
 			case GROUP_IMAGE -> "uploads/group/image";
+			case CHAT_IMAGE -> "uploads/chat/image";
 			case COMMON_ASSET -> "uploads/common/asset";
 		};
 	}
@@ -386,13 +433,25 @@ public class FileService {
 
 	private String buildPublicUrl(String storageKey) {
 		if (storageProperties.isPresignedAccess()) {
-			return storageClient.createPresignedGetUrl(storageKey);
+			return presignedUrlCacheService.getPresignedUrl(storageKey);
 		}
 		return buildStaticUrl(storageKey);
 	}
 
 	public String getPublicUrl(String storageKey) {
 		return buildPublicUrl(storageKey);
+	}
+
+	@Transactional(readOnly = true)
+	public String getImageStaticUrl(String fileUuid) {
+		Image image = imageRepository.findByFileUuid(parseUuid(fileUuid))
+			.orElseThrow(() -> new BusinessException(FileErrorCode.FILE_NOT_FOUND));
+
+		if (image.getStatus() != ImageStatus.ACTIVE) {
+			throw new BusinessException(FileErrorCode.FILE_NOT_ACTIVE);
+		}
+
+		return buildStaticUrl(image.getStorageKey());
 	}
 
 	private String buildStaticUrl(String storageKey) {

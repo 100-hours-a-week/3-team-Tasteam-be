@@ -89,10 +89,10 @@ public class RestaurantService {
 	public RestaurantDetailResponse getRestaurantDetail(long restaurantId) {
 		var readResult = restaurantReadService.readRestaurantDetail(restaurantId);
 		List<BusinessHourWeekItem> businessHoursWeek = restaurantScheduleService.getBusinessHoursWeek(restaurantId);
-		var aiSummaryResult = restaurantAiSummaryService.getRestaurantAiSummary(restaurantId);
+		var aiDetails = restaurantAiSummaryService.getRestaurantAiDetails(restaurantId);
 		var primaryImage = restaurantImageService.getPrimaryImage(restaurantId).orElse(null);
 
-		return restaurantDetailAssembler.assemble(readResult, businessHoursWeek, aiSummaryResult, primaryImage);
+		return restaurantDetailAssembler.assemble(readResult, businessHoursWeek, aiDetails, primaryImage);
 	}
 
 	@Transactional(readOnly = true)

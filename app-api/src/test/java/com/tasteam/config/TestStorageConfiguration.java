@@ -1,7 +1,9 @@
 package com.tasteam.config;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -55,6 +57,17 @@ public class TestStorageConfiguration {
 		@Override
 		public void uploadObject(String objectKey, byte[] data, String contentType) {
 			objects.put(objectKey, data == null ? new byte[0] : data);
+		}
+
+		@Override
+		public List<String> listObjects(String prefix) {
+			List<String> result = new ArrayList<>();
+			for (String key : objects.keySet()) {
+				if (key.startsWith(prefix)) {
+					result.add(key);
+				}
+			}
+			return result;
 		}
 	}
 }

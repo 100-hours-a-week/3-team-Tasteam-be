@@ -17,6 +17,9 @@ spring:
     ansi:
       enabled: ALWAYS
 
+  jpa:
+    open-in-view: false
+
   security:
     cors:
       allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
@@ -65,7 +68,14 @@ springdoc:
 ## ====== 커스텀 설정 ======
 ai:
   base-url: ${AI_BASE_URL:http://localhost:8001}
-  response-timeout: ${AI_RESPONSE_TIMEOUT:10s}
+  response-timeout: ${AI_RESPONSE_TIMEOUT:30s}
+
+chat:
+  websocket:
+    heartbeat:
+      enabled: ${CHAT_WEBSOCKET_HEARTBEAT_ENABLED:true}
+      server-to-client: ${CHAT_WEBSOCKET_HEARTBEAT_SERVER_TO_CLIENT:15000}
+      client-to-server: ${CHAT_WEBSOCKET_HEARTBEAT_CLIENT_TO_SERVER:15000}
 
 tasteam:
   admin:
@@ -109,6 +119,22 @@ tasteam:
       enabled: ${IMAGE_OPTIMIZATION_ENABLED:false}
       cron: ${IMAGE_OPTIMIZATION_CRON:0 0 3 * * ?}
       batch-size: ${IMAGE_OPTIMIZATION_BATCH_SIZE:100}
+      cleanup-cron: ${IMAGE_OPTIMIZATION_CLEANUP_CRON:0 0 4 * * ?}
+  batch:
+    vector-upload:
+      cron: ${TASTEAM_BATCH_VECTOR_UPLOAD_CRON:0 0 3 * * ?}
+      zone: ${TASTEAM_BATCH_VECTOR_UPLOAD_ZONE:Asia/Seoul}
+      worker-pool-size: ${TASTEAM_BATCH_VECTOR_UPLOAD_WORKER_POOL_SIZE:4}
+    review-analysis:
+      worker-pool-size: ${TASTEAM_BATCH_REVIEW_ANALYSIS_WORKER_POOL_SIZE:4}
+      finish-timeout: ${TASTEAM_BATCH_REVIEW_ANALYSIS_FINISH_TIMEOUT:10m}
+    restaurant-comparison:
+      # TODO: 임시 매일 4시. 원래는 매주 일요일 4시로 변경 — cron: 0 0 4 ? * SUN
+      cron: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_CRON:0 0 4 * * ?}
+      zone: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_ZONE:Asia/Seoul}
+      worker-pool-size: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_WORKER_POOL_SIZE:4}
+      finish-timeout: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_TIMEOUT:10m}
+      finish-check-interval: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_CHECK_INTERVAL:PT1M}
   aop:
     logging:
       enabled: ${TASTEAM_AOP_LOGGING_ENABLED:true}
@@ -124,12 +150,21 @@ tasteam:
         enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:true}
     webhook:
       enabled: ${TASTEAM_AOP_WEBHOOK_ENABLED:true}
+  local-cache:
+    caffeine:
+      maximum-size: ${LOCAL_CACHE_CAFFEINE_MAXIMUM_SIZE:1000}
+      expire-after-write: ${LOCAL_CACHE_CAFFEINE_EXPIRE_AFTER_WRITE:10m}
+      record-stats: ${LOCAL_CACHE_CAFFEINE_RECORD_STATS:true}
+    ttl:
+      presigned-url:
+        ttl: ${LOCAL_CACHE_PRESIGNED_URL_TTL:240s}
   webhook:
     enabled: ${WEBHOOK_ENABLED:false}
     provider: ${WEBHOOK_PROVIDER:discord}
     include-stack-trace: ${WEBHOOK_INCLUDE_STACK_TRACE:false}
     discord:
       url: ${DISCORD_WEBHOOK_URL:}
+      batch-report-url: ${DISCORD_BATCH_REPORT_WEBHOOK_URL:}
     slack:
       url: ${SLACK_WEBHOOK_URL:}
     retry:
@@ -138,15 +173,112 @@ tasteam:
     filters:
       min-http-status: ${WEBHOOK_MIN_HTTP_STATUS:500}
       exclude-error-codes: ${WEBHOOK_EXCLUDE_ERROR_CODES:}
+  message-queue:
+    enabled: ${MQ_ENABLED:false}
+    provider: ${MQ_PROVIDER:none}
+    topic-prefix: ${MQ_TOPIC_PREFIX:tasteam}
+    default-consumer-group: ${MQ_DEFAULT_CONSUMER_GROUP:tasteam-api}
+    poll-timeout-millis: ${MQ_POLL_TIMEOUT_MILLIS:1000}
+    max-retries: ${MQ_MAX_RETRIES:3}
+  notification:
+    email:
+      provider: ${NOTIFICATION_EMAIL_PROVIDER:log}
+      ses:
+        region: ${NOTIFICATION_EMAIL_SES_REGION:ap-northeast-2}
+        access-key: ${NOTIFICATION_EMAIL_SES_ACCESS_KEY:}
+        secret-key: ${NOTIFICATION_EMAIL_SES_SECRET_KEY:}
+        from-address: ${NOTIFICATION_EMAIL_SES_FROM_ADDRESS:noreply@tasteam.kr}
+        charset: ${NOTIFICATION_EMAIL_SES_CHARSET:UTF-8}
+      rate-limit:
+        # fixed-window policy
+        enabled: ${NOTIFICATION_EMAIL_RATE_LIMIT_ENABLED:true}
+        prefix: ${NOTIFICATION_EMAIL_RATE_LIMIT_PREFIX:rl:mail}
+        action: ${NOTIFICATION_EMAIL_RATE_LIMIT_ACTION:send}
+        timezone: ${NOTIFICATION_EMAIL_RATE_LIMIT_TIMEZONE:Asia/Seoul}
+        trusted-proxies: ${NOTIFICATION_EMAIL_RATE_LIMIT_TRUSTED_PROXIES:127.0.0.1,::1,0:0:0:0:0:0:0:1}
+        email1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1M_LIMIT:1}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1M_TTL_SECONDS:60}
+        ip1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_IP_1M_LIMIT:5}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_IP_1M_TTL_SECONDS:60}
+        user1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_USER_1M_LIMIT:5}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_USER_1M_TTL_SECONDS:60}
+        email1d:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1D_LIMIT:10}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1D_TTL_SECONDS:86400}
+        block-ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_BLOCK_TTL_SECONDS:86400}
+    outbox:
+      scan-delay: ${NOTIFICATION_OUTBOX_SCAN_DELAY:30000}
+      batch-size: ${NOTIFICATION_OUTBOX_BATCH_SIZE:100}
+    consumer:
+      group: ${NOTIFICATION_CONSUMER_GROUP:cg.notification.processor.v1}
+      dlq-topic: ${NOTIFICATION_DLQ_TOPIC:evt.notification.v1.dlq}
+    circuit-breaker:
+      fcm:
+        failure-threshold: ${NOTIFICATION_CB_FCM_FAILURE_THRESHOLD:5}
+        open-duration-seconds: ${NOTIFICATION_CB_FCM_OPEN_DURATION_SECONDS:60}
+      email:
+        failure-threshold: ${NOTIFICATION_CB_EMAIL_FAILURE_THRESHOLD:3}
+        open-duration-seconds: ${NOTIFICATION_CB_EMAIL_OPEN_DURATION_SECONDS:300}
+  analytics:
+    ingest:
+      enabled: ${ANALYTICS_INGEST_ENABLED:true}
+      max-batch-size: ${ANALYTICS_INGEST_MAX_BATCH_SIZE:50}
+      allowlist: ${ANALYTICS_INGEST_ALLOWLIST:ui.page.viewed,ui.page.dwelled,ui.restaurant.clicked,ui.restaurant.viewed,ui.review.write_started,ui.review.submitted,ui.search.executed,ui.group.clicked,ui.favorite.sheet_opened,ui.favorite.updated,ui.event.clicked,ui.tab.changed}
+      rate-limit:
+        max-requests: ${ANALYTICS_INGEST_RATE_LIMIT_MAX_REQUESTS:120}
+        window: ${ANALYTICS_INGEST_RATE_LIMIT_WINDOW:PT1M}
+    dispatch:
+      enabled: ${ANALYTICS_DISPATCH_ENABLED:true}
+      batch-size: ${ANALYTICS_DISPATCH_BATCH_SIZE:100}
+      fixed-delay: ${ANALYTICS_DISPATCH_FIXED_DELAY:PT1M}
+      retry:
+        base-delay: ${ANALYTICS_DISPATCH_RETRY_BASE_DELAY:PT10S}
+        max-delay: ${ANALYTICS_DISPATCH_RETRY_MAX_DELAY:PT10M}
+      circuit:
+        failure-threshold: ${ANALYTICS_DISPATCH_CIRCUIT_FAILURE_THRESHOLD:5}
+        open-duration: ${ANALYTICS_DISPATCH_CIRCUIT_OPEN_DURATION:PT1M}
+    posthog:
+      enabled: ${ANALYTICS_POSTHOG_ENABLED:false}
+      host: ${ANALYTICS_POSTHOG_HOST:https://app.posthog.com}
+      api-key: ${ANALYTICS_POSTHOG_API_KEY:}
+      connect-timeout: ${ANALYTICS_POSTHOG_CONNECT_TIMEOUT:2s}
+      read-timeout: ${ANALYTICS_POSTHOG_READ_TIMEOUT:3s}
 
 
 ## ====== 운영 & 관리 ======
 management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: tasteam-api
+      environment: ${spring.profiles.active:local}
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,caches
   endpoint:
     health:
       probes:
         enabled: true
+  tracing:
+    enabled: ${TRACING_ENABLED:false}
+    sampling:
+      probability: 0.1
+  otlp:
+    tracing:
+      endpoint: ${OTEL_ENDPOINT:http://localhost:4318/v1/traces}
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${spring.profiles.active:local}
+  traces-sample-rate: 0.1
+  send-default-pii: false
+
+logging:
+  level:
+    org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: OFF

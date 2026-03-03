@@ -2,12 +2,14 @@ package com.tasteam.domain.test.controller.docs;
 
 import com.tasteam.domain.test.dto.DevMemberResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 
+@SwaggerTagOrder(75)
 @Tag(name = "Test", description = "테스트용 예외 발생 API")
 public interface WebhookTestControllerDocs {
 

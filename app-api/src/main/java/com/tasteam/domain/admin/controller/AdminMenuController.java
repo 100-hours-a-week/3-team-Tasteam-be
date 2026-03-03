@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.domain.admin.controller.docs.AdminMenuControllerDocs;
 import com.tasteam.domain.restaurant.dto.request.MenuBulkCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.MenuCategoryCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.MenuCreateRequest;
@@ -23,10 +24,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/restaurants/{restaurantId}/menus")
-public class AdminMenuController {
+public class AdminMenuController implements AdminMenuControllerDocs {
 
 	private final MenuService menuService;
 
+	@Override
 	@GetMapping
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<RestaurantMenuResponse> getMenus(
@@ -44,6 +46,7 @@ public class AdminMenuController {
 		return SuccessResponse.success(result);
 	}
 
+	@Override
 	@PostMapping("/categories")
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<Long> createMenuCategory(
@@ -56,6 +59,7 @@ public class AdminMenuController {
 		return SuccessResponse.success(categoryId);
 	}
 
+	@Override
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<Long> createMenu(
@@ -68,6 +72,7 @@ public class AdminMenuController {
 		return SuccessResponse.success(menuId);
 	}
 
+	@Override
 	@PostMapping("/bulk")
 	@ResponseStatus(HttpStatus.CREATED)
 	public SuccessResponse<Void> createMenusBulk(

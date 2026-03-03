@@ -6,5 +6,6 @@ public enum FilePurpose {
 	MENU_IMAGE,
 	COMMON_ASSET,
 	PROFILE_IMAGE,
-	GROUP_IMAGE
+	GROUP_IMAGE,
+	CHAT_IMAGE
 }

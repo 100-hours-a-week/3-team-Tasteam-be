@@ -1,7 +1,6 @@
 package com.tasteam.domain.subgroup.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -15,29 +14,15 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
-import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.domain.subgroup.dto.SubgroupDetailResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupMemberListItem;
-import com.tasteam.domain.subgroup.service.SubgroupFacade;
 
-@ControllerWebMvcTest(SubgroupController.class)
-class SubgroupControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private ReviewService reviewService;
-
-	@MockitoBean
-	private SubgroupFacade subgroupFacade;
+@DisplayName("[유닛](Subgroup) SubgroupController 단위 테스트")
+class SubgroupControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("서브그룹 리뷰 목록 조회")
@@ -49,7 +34,7 @@ class SubgroupControllerTest {
 			// given
 			CursorPageResponse<ReviewResponse> response = new CursorPageResponse<>(
 				List.of(new ReviewResponse(1L, 2L, 3L, "테스트그룹", "테스트하위그룹",
-					new ReviewResponse.AuthorResponse("테스트유저"),
+					new ReviewResponse.AuthorResponse("테스트유저", "https://example.com/profile.jpg"),
 					"맛있어요", true, List.of("친절"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
 					Instant.now(), 10L, "테스트음식점", null, null, null, "서울시 강남구 테스트로 123")),
@@ -64,6 +49,7 @@ class SubgroupControllerTest {
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data.items[0].id").value(1))
 				.andExpect(jsonPath("$.data.items[0].author.nickname").value("테스트유저"))
+				.andExpect(jsonPath("$.data.items[0].author.profileImageUrl").value("https://example.com/profile.jpg"))
 				.andExpect(jsonPath("$.data.pagination.hasNext").value(false));
 		}
 	}
@@ -81,7 +67,7 @@ class SubgroupControllerTest {
 					"https://example.com/profile.jpg", Instant.now())),
 				new CursorPageResponse.Pagination(null, false, 20));
 
-			given(subgroupFacade.getSubgroupMembers(eq(1L), any(), any())).willReturn(response);
+			given(subgroupFacade.getSubgroupMembers(eq(1L), anyLong(), any(), any())).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/api/v1/subgroups/{subgroupId}/members", 1L)

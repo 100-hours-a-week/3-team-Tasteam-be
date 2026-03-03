@@ -17,7 +17,7 @@ public record ReviewDetailResponse(
 	public record RestaurantResponse(Long id, String name) {
 	}
 
-	public record AuthorResponse(Long id, String nickname) {
+	public record AuthorResponse(Long id, String nickname, String profileImageUrl) {
 	}
 
 	public record ReviewImageResponse(Long id, String url) {

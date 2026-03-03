@@ -13,5 +13,5 @@ import lombok.Setter;
 public class AiClientProperties {
 
 	private String baseUrl;
-	private Duration responseTimeout = Duration.ofSeconds(10);
+	private Duration responseTimeout = Duration.ofSeconds(30);
 }

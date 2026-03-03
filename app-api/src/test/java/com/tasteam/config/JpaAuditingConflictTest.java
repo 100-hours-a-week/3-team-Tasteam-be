@@ -10,6 +10,7 @@ import org.springframework.context.ApplicationContext;
 import com.tasteam.config.annotation.ServiceIntegrationTest;
 
 @ServiceIntegrationTest
+@DisplayName("[통합](Jpa) JpaAuditingConflict 통합 테스트")
 class JpaAuditingConflictTest {
 
 	@Autowired

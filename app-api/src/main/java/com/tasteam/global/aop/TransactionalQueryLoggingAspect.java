@@ -39,8 +39,8 @@ public class TransactionalQueryLoggingAspect {
 		String txId = String.format("%03d", TX_ID_COUNTER.incrementAndGet());
 		Session session = entityManager.unwrap(Session.class);
 		Statistics stats = session.getSessionFactory().getStatistics();
-		stats.clear();
-
+		// NOTE: SessionFactory-wide stats. 동시 요청 환경에서 카운트 오차 가능 (±N).
+		//       정확한 개별 쿼리 분석은 pg_stat_statements 사용.
 		long startQueryCount = stats.getPrepareStatementCount();
 		long startTime = System.currentTimeMillis();
 

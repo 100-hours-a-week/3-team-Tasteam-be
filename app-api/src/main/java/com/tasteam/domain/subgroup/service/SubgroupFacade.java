@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
+import com.tasteam.domain.subgroup.dto.SubgroupChatRoomResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateRequest;
 import com.tasteam.domain.subgroup.dto.SubgroupCreateResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupDetailResponse;
@@ -47,9 +48,14 @@ public class SubgroupFacade {
 	}
 
 	@Transactional(readOnly = true)
-	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, String cursor,
+	public SubgroupChatRoomResponse getChatRoom(Long subgroupId, Long memberId) {
+		return subgroupQueryService.getChatRoom(subgroupId, memberId);
+	}
+
+	@Transactional(readOnly = true)
+	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, Long memberId, String cursor,
 		Integer size) {
-		return subgroupQueryService.getSubgroupMembers(subgroupId, cursor, size);
+		return subgroupQueryService.getSubgroupMembers(subgroupId, memberId, cursor, size);
 	}
 
 	@Transactional

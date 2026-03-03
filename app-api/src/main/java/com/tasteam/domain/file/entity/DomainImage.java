@@ -16,6 +16,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
@@ -35,7 +36,8 @@ import lombok.NoArgsConstructor;
 public class DomainImage extends BaseCreatedAtEntity {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "domain_image_seq_gen")
+	@SequenceGenerator(name = "domain_image_seq_gen", sequenceName = "domain_image_seq", allocationSize = 50)
 	private Long id;
 
 	@Enumerated(EnumType.STRING)

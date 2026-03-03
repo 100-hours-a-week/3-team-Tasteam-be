@@ -2,16 +2,12 @@ package com.tasteam.domain.restaurant.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -19,11 +15,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.config.annotation.ServiceIntegrationTest;
+import com.tasteam.config.fake.FakeRestaurantEventPublisher;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.entity.FilePurpose;
@@ -33,25 +29,24 @@ import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
-import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
 import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.RestaurantCreateResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantUpdateResponse;
-import com.tasteam.domain.restaurant.entity.AiRestaurantComparison;
-import com.tasteam.domain.restaurant.entity.AiRestaurantReviewAnalysis;
 import com.tasteam.domain.restaurant.entity.FoodCategory;
 import com.tasteam.domain.restaurant.entity.Restaurant;
-import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
-import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
-import com.tasteam.domain.restaurant.repository.AiRestaurantComparisonRepository;
-import com.tasteam.domain.restaurant.repository.AiRestaurantReviewAnalysisRepository;
+import com.tasteam.domain.restaurant.entity.RestaurantComparison;
+import com.tasteam.domain.restaurant.entity.RestaurantReviewSentiment;
+import com.tasteam.domain.restaurant.entity.RestaurantReviewSummary;
 import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantAddressRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantComparisonRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantReviewSentimentRepository;
+import com.tasteam.domain.restaurant.repository.RestaurantReviewSummaryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantWeeklyScheduleRepository;
 import com.tasteam.domain.review.entity.Review;
 import com.tasteam.domain.review.repository.ReviewRepository;
@@ -63,6 +58,7 @@ import com.tasteam.global.exception.code.FileErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Restaurant) RestaurantService 통합 테스트")
 class RestaurantServiceIntegrationTest {
 
 	private static final UUID RESTAURANT_IMAGE_UUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
@@ -91,10 +87,13 @@ class RestaurantServiceIntegrationTest {
 	private FoodCategoryRepository foodCategoryRepository;
 
 	@Autowired
-	private AiRestaurantReviewAnalysisRepository aiRestaurantReviewAnalysisRepository;
+	private RestaurantReviewSummaryRepository restaurantReviewSummaryRepository;
 
 	@Autowired
-	private AiRestaurantComparisonRepository aiRestaurantComparisonRepository;
+	private RestaurantReviewSentimentRepository restaurantReviewSentimentRepository;
+
+	@Autowired
+	private RestaurantComparisonRepository restaurantComparisonRepository;
 
 	@Autowired
 	private ReviewRepository reviewRepository;
@@ -108,24 +107,12 @@ class RestaurantServiceIntegrationTest {
 	@Autowired
 	private DomainImageRepository domainImageRepository;
 
-	@MockitoBean
-	private RestaurantEventPublisher eventPublisher;
-
-	@MockitoBean
-	private NaverGeocodingClient naverGeocodingClient;
-
-	private GeocodingResult mockGeocodingResult;
+	@Autowired
+	private FakeRestaurantEventPublisher fakeEventPublisher;
 
 	@BeforeEach
 	void setUp() {
-		mockGeocodingResult = new GeocodingResult(
-			"서울특별시",
-			"강남구",
-			"역삼동",
-			"06234",
-			127.0365,
-			37.4979);
-		given(naverGeocodingClient.geocode(anyString())).willReturn(mockGeocodingResult);
+		fakeEventPublisher.clear();
 	}
 
 	@Nested
@@ -254,7 +241,7 @@ class RestaurantServiceIntegrationTest {
 
 			RestaurantCreateResponse response = restaurantService.createRestaurant(request);
 
-			verify(eventPublisher, times(1)).publishRestaurantCreated(response.id());
+			assertThat(fakeEventPublisher.getPublishedRestaurantIds()).contains(response.id());
 		}
 
 		@Test
@@ -306,9 +293,23 @@ class RestaurantServiceIntegrationTest {
 			reviewRepository.save(Review.create(restaurant, member, 1L, null, "추천2", true));
 			reviewRepository.save(Review.create(restaurant, member, 1L, null, "비추천", false));
 
-			aiRestaurantReviewAnalysisRepository.save(
-				AiRestaurantReviewAnalysis.create(created.id(), "AI 요약", BigDecimal.valueOf(0.75)));
-			aiRestaurantComparisonRepository.save(AiRestaurantComparison.create(restaurant, "AI 특징"));
+			Instant now = Instant.now();
+			restaurantReviewSummaryRepository.save(
+				RestaurantReviewSummary.create(created.id(), 0L, "1",
+					Map.of("overall_summary", "AI 요약"), now));
+			restaurantReviewSentimentRepository.save(
+				RestaurantReviewSentiment.create(created.id(), 0L, "1",
+					75, 10, 15, 75, 10, 15, now));
+			restaurantComparisonRepository.save(
+				RestaurantComparison.create(
+					restaurant.getId(),
+					null,
+					Map.of(
+						"comparison_display", List.of("서비스 만족도는 평균과 비슷합니다.", "가격 만족도는 평균보다 높은 편입니다."),
+						"category_lift", Map.of("service", -45.0, "price", 450.0),
+						"total_candidates", 10,
+						"validated_count", 1),
+					Instant.now()));
 
 			RestaurantDetailResponse detail = restaurantService.getRestaurantDetail(created.id());
 
@@ -317,12 +318,19 @@ class RestaurantServiceIntegrationTest {
 			assertThat(detail.foodCategories()).isNotEmpty();
 			assertThat(detail.businessHoursWeek()).hasSize(7);
 			assertThat(detail.image()).isNotNull();
-			assertThat(detail.recommendStat()).isNotNull();
-			assertThat(detail.recommendStat().recommendedCount()).isEqualTo(2L);
-			assertThat(detail.recommendStat().notRecommendedCount()).isEqualTo(1L);
-			assertThat(detail.recommendStat().positiveRatio()).isNotNull();
-			assertThat(detail.aiSummary()).isNotNull();
-			assertThat(detail.aiFeatures()).isNotNull();
+			assertThat(detail.recommendedCount()).isEqualTo(2L);
+			assertThat(detail.aiDetails()).isNotNull();
+			assertThat(detail.aiDetails().sentiment()).isNotNull();
+			assertThat(detail.aiDetails().sentiment().positivePercent()).isEqualTo(75);
+			assertThat(detail.aiDetails().summary()).isNotNull();
+			assertThat(detail.aiDetails().summary().overallSummary()).isEqualTo("AI 요약");
+			assertThat(detail.aiDetails().comparison()).isNotNull();
+			assertThat(detail.aiDetails().comparison().categoryDetails())
+				.containsKeys("SERVICE", "PRICE");
+			assertThat(detail.aiDetails().comparison().categoryDetails().get("SERVICE").summary())
+				.isEqualTo("서비스 만족도는 평균과 비슷합니다.");
+			assertThat(detail.aiDetails().comparison().categoryDetails().get("PRICE").summary())
+				.isEqualTo("가격 만족도는 평균보다 높은 편입니다.");
 		}
 
 		@Test
@@ -343,10 +351,11 @@ class RestaurantServiceIntegrationTest {
 			assertThat(detail.id()).isEqualTo(created.id());
 			assertThat(detail.businessHoursWeek()).hasSize(7);
 			assertThat(detail.image()).isNull();
-			assertThat(detail.aiSummary()).isNull();
-			assertThat(detail.aiFeatures()).isNull();
-			assertThat(detail.recommendStat()).isNotNull();
-			assertThat(detail.recommendStat().positiveRatio()).isNull();
+			assertThat(detail.recommendedCount()).isNotNull();
+			assertThat(detail.aiDetails()).isNotNull();
+			assertThat(detail.aiDetails().sentiment()).isNull();
+			assertThat(detail.aiDetails().summary()).isNull();
+			assertThat(detail.aiDetails().comparison()).isNull();
 		}
 
 		@Test

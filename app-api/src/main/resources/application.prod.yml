@@ -31,6 +31,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        generate_statistics: true
+        session:
+          events:
+            log:
+              LOG_QUERIES_SLOWER_THAN_MS: 2000
 
   flyway:
     enabled: true
@@ -38,6 +45,7 @@ spring:
     user: ${FLYWAY_USER:${DB_USERNAME}}
     password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
     baseline-on-migrate: true
+    out-of-order: true
 
   security:
     cors:
@@ -81,13 +89,47 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+chat:
+  websocket:
+    heartbeat:
+      enabled: ${CHAT_WEBSOCKET_HEARTBEAT_ENABLED:true}
+      server-to-client: ${CHAT_WEBSOCKET_HEARTBEAT_SERVER_TO_CLIENT:15000}
+      client-to-server: ${CHAT_WEBSOCKET_HEARTBEAT_CLIENT_TO_SERVER:15000}
+
 tasteam:
+  notification:
+    email:
+      provider: ${NOTIFICATION_EMAIL_PROVIDER:ses}
+      ses:
+        region: ${NOTIFICATION_EMAIL_SES_REGION:ap-northeast-2}
+        access-key: ${NOTIFICATION_EMAIL_SES_ACCESS_KEY:}
+        secret-key: ${NOTIFICATION_EMAIL_SES_SECRET_KEY:}
+        from-address: ${NOTIFICATION_EMAIL_SES_FROM_ADDRESS:noreply@tasteam.kr}
+        charset: ${NOTIFICATION_EMAIL_SES_CHARSET:UTF-8}
+      rate-limit:
+        # fixed-window policy
+        enabled: ${NOTIFICATION_EMAIL_RATE_LIMIT_ENABLED:true}
+        timezone: ${NOTIFICATION_EMAIL_RATE_LIMIT_TIMEZONE:Asia/Seoul}
+        trusted-proxies: ${NOTIFICATION_EMAIL_RATE_LIMIT_TRUSTED_PROXIES:127.0.0.1,::1,0:0:0:0:0:0:0:1}
+        email1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1M_LIMIT:1}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1M_TTL_SECONDS:60}
+        ip1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_IP_1M_LIMIT:5}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_IP_1M_TTL_SECONDS:60}
+        user1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_USER_1M_LIMIT:5}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_USER_1M_TTL_SECONDS:60}
+        email1d:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1D_LIMIT:10}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1D_TTL_SECONDS:86400}
+        block-ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_BLOCK_TTL_SECONDS:86400}
   storage:
     type: s3
     region: ${STORAGE_REGION:}
     bucket: ${STORAGE_BUCKET:}
     base-url: ${STORAGE_BASE_URL:}
-    access-mode: ${STORAGE_ACCESS_MODE:presigned}
+    access-mode: ${STORAGE_ACCESS_MODE:public}
     access-key: ${STORAGE_ACCESS_KEY:}
     secret-key: ${STORAGE_SECRET_KEY:}
     presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:}
@@ -98,17 +140,17 @@ tasteam:
       fixed-delay-ms: ${FILE_CLEANUP_FIXED_DELAY_MS:}
   aop:
     logging:
-      enabled: ${TASTEAM_AOP_LOGGING_ENABLED:false}
+      enabled: true
       api-logging:
-        enabled: ${TASTEAM_AOP_LOGGING_API_LOGGING_ENABLED:false}
+        enabled: false
       exception-logging:
-        enabled: ${TASTEAM_AOP_LOGGING_EXCEPTION_LOGGING_ENABLED:false}
+        enabled: true
       transactional-query-logging:
-        enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:false}
+        enabled: true
       service-performance:
-        enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:false}
+        enabled: false
       ai-analysis-performance:
-        enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:false}
+        enabled: false
   webhook:
     enabled: false
   firebase:
@@ -122,7 +164,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,caches
   endpoint:
     health:
       probes:

@@ -30,6 +30,7 @@ import com.tasteam.domain.subgroup.dto.SubgroupUpdateRequest;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.group.GroupSwaggerErrorResponseDescription;
 import com.tasteam.global.swagger.error.code.subgroup.SubgroupSwaggerErrorResponseDescription;
 
@@ -40,8 +41,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Positive;
 
+@SwaggerTagOrder(15)
 @Tag(name = "Group", description = "그룹 관리 API")
 public interface GroupControllerDocs {
 
@@ -152,19 +155,22 @@ public interface GroupControllerDocs {
 		@Parameter(description = "대상 사용자 ID", example = "2001") @PathVariable @Positive
 		Long userId);
 
-	@Operation(summary = "그룹 이메일 인증 코드 발송", description = "그룹 가입 이메일 인증 코드를 발송합니다.")
+	@Operation(summary = "그룹 이메일 인증 링크 발송", description = "그룹 가입 이메일 인증 링크를 발송합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = GroupEmailVerificationRequest.class)))
-	@ApiResponse(responseCode = "200", description = "이메일 인증 코드 발송 성공", content = @Content(schema = @Schema(implementation = GroupEmailVerificationResponse.class)))
+	@ApiResponse(responseCode = "200", description = "이메일 인증 링크 발송 성공", content = @Content(schema = @Schema(implementation = GroupEmailVerificationResponse.class)))
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_EMAIL_VERIFICATION")
 	SuccessResponse<GroupEmailVerificationResponse> sendGroupEmailVerification(
 		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
+		@CurrentUser
+		Long memberId,
+		HttpServletRequest servletRequest,
 		@Validated
 		GroupEmailVerificationRequest request);
 
-	@Operation(summary = "그룹 이메일 인증", description = "이메일 인증 코드를 검증하여 그룹에 가입합니다.")
+	@Operation(summary = "그룹 이메일 인증", description = "이메일 인증 토큰을 검증하여 그룹에 가입합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = GroupEmailAuthenticationRequest.class)))
-	@ApiResponse(responseCode = "201", description = "이메일 인증 성공", content = @Content(schema = @Schema(implementation = GroupEmailAuthenticationResponse.class)))
+	@ApiResponse(responseCode = "200", description = "이메일 인증 성공", content = @Content(schema = @Schema(implementation = GroupEmailAuthenticationResponse.class)))
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_EMAIL_AUTHENTICATION")
 	SuccessResponse<GroupEmailAuthenticationResponse> authenticateGroupByEmail(
 		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
@@ -173,6 +179,17 @@ public interface GroupControllerDocs {
 		Long memberId,
 		@Validated
 		GroupEmailAuthenticationRequest request);
+
+	@Operation(summary = "그룹 이메일 인증 링크 처리", description = "이메일 인증 링크의 토큰을 검증하여 그룹에 가입합니다.")
+	@ApiResponse(responseCode = "200", description = "이메일 인증 성공", content = @Content(schema = @Schema(implementation = GroupEmailAuthenticationResponse.class)))
+	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_EMAIL_AUTHENTICATION")
+	SuccessResponse<GroupEmailAuthenticationResponse> authenticateGroupByEmailByLink(
+		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
+		Long groupId,
+		@CurrentUser
+		Long memberId,
+		@Parameter(description = "이메일 인증 토큰", required = true) @RequestParam
+		String token);
 
 	@Operation(summary = "그룹 비밀번호 인증", description = "그룹 비밀번호 코드를 검증하여 그룹에 가입합니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = GroupPasswordAuthenticationRequest.class)))
@@ -189,7 +206,7 @@ public interface GroupControllerDocs {
 	@Operation(summary = "그룹 리뷰 음식점 목록 조회", description = "그룹 리뷰가 존재하는 음식점 목록을 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공")
 	@CustomErrorResponseDescription(value = GroupSwaggerErrorResponseDescription.class, group = "GROUP_REVIEW_RESTAURANTS")
-	CursorPageResponse<RestaurantListItem> getGroupReviewRestaurants(
+	SuccessResponse<CursorPageResponse<RestaurantListItem>> getGroupReviewRestaurants(
 		@Parameter(description = "그룹 ID", example = "101") @PathVariable @Positive
 		Long groupId,
 		@Validated @ParameterObject

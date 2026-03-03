@@ -16,7 +16,7 @@ import com.tasteam.domain.auth.entity.RefreshToken;
 import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
-@DisplayName("RefreshTokenRepository 테스트")
+@DisplayName("[유닛](Refresh) RefreshTokenRepository 단위 테스트")
 class RefreshTokenRepositoryTest {
 
 	private static final Instant FUTURE_TIME = Instant.parse("2027-01-01T00:00:00Z");

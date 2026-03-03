@@ -4,6 +4,7 @@ os: linux
 files:
   - source: /
     destination: /opt/tasteam/revision
+    overwrite: yes
 
 permissions:
   - object: /opt/tasteam/revision

@@ -50,12 +50,27 @@ public class Notification extends BaseCreatedAtEntity {
 	@Column(name = "deep_link", length = 500)
 	private String deepLink;
 
+	@Column(name = "event_id", length = 64, unique = true)
+	private String eventId;
+
 	@Column(name = "read_at")
 	private Instant readAt;
 
 	public static Notification create(Long memberId, NotificationType type, String title, String body,
 		String deepLink) {
 		return Notification.builder()
+			.memberId(memberId)
+			.notificationType(type)
+			.title(title)
+			.body(body)
+			.deepLink(deepLink)
+			.build();
+	}
+
+	public static Notification create(String eventId, Long memberId, NotificationType type, String title, String body,
+		String deepLink) {
+		return Notification.builder()
+			.eventId(eventId)
 			.memberId(memberId)
 			.notificationType(type)
 			.title(title)

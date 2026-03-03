@@ -8,8 +8,8 @@ spring:
       ddl-auto: create-drop
     properties:
       hibernate:
-        format_sql: true
-        generate_statistics: true
+        format_sql: false
+        generate_statistics: false
 
   flyway:
     enabled: false 
@@ -20,6 +20,10 @@ spring:
       accessTokenExpiration: 1800000
       refreshTokenExpiration: 1209600000
 
+logging:
+  level:
+    org.springframework.test.context.support: DEBUG
+
 tasteam:
   admin:
     username: admin
@@ -28,4 +32,4 @@ tasteam:
     logging:
       enabled: true
       transactional-query-logging:
-        enabled: true
+        enabled: false

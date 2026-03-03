@@ -13,11 +13,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ReviewCreatedAiAnalysisEventListener {
 
-	private final RestaurantReviewAnalysisService restaurantReviewAnalysisService;
+	private final RestaurantAnalysisFacade restaurantAnalysisFacade;
 
 	@Async("aiAnalysisExecutor")
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	public void onReviewCreated(ReviewCreatedEvent event) {
-		restaurantReviewAnalysisService.onReviewCreated(event.restaurantId());
+		restaurantAnalysisFacade.onReviewCreated(event.restaurantId());
 	}
 }

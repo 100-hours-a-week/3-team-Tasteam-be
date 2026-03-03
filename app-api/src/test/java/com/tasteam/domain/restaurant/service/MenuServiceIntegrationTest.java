@@ -29,6 +29,7 @@ import com.tasteam.global.exception.code.RestaurantErrorCode;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](Menu) MenuService 통합 테스트")
 class MenuServiceIntegrationTest {
 
 	@Autowired

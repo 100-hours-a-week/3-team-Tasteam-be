@@ -3,6 +3,7 @@ package com.tasteam.domain.review.service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
@@ -110,7 +111,8 @@ public class ReviewService {
 				review.restaurantName()),
 			new ReviewDetailResponse.AuthorResponse(
 				review.memberId(),
-				review.memberNickname()),
+				review.memberNickname(),
+				resolveMemberProfileImageUrl(review.memberId())),
 			review.content(),
 			review.isRecommended(),
 			keywords,
@@ -132,6 +134,12 @@ public class ReviewService {
 		}
 		if (!groupRepository.existsByIdAndDeletedAtIsNull(request.groupId())) {
 			throw new BusinessException(GroupErrorCode.GROUP_NOT_FOUND);
+		}
+		// 서브그룹 리뷰인 경우, 해당 서브그룹이 요청한 그룹에 소속되는지 검증 (group_id 정상 저장 보장)
+		if (request.subgroupId() != null
+			&& subgroupRepository.findByIdAndGroup_IdAndStatusAndDeletedAtIsNull(
+				request.subgroupId(), request.groupId(), SubgroupStatus.ACTIVE).isEmpty()) {
+			throw new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND);
 		}
 
 		List<Keyword> keywords = keywordRepository.findAllById(request.keywordIds());
@@ -285,9 +293,10 @@ public class ReviewService {
 			DomainType.REVIEW,
 			reviewIds);
 		Map<Long, String> restaurantIdToFirstImageUrl = resolveRestaurantFirstImageUrls(page.items());
+		Map<Long, String> memberProfileImageUrls = resolveMemberProfileImageUrls(page.items());
 
 		List<ReviewResponse> items = buildReviewResponses(
-			page.items(), reviewKeywords, reviewThumbnails, restaurantIdToFirstImageUrl);
+			page.items(), reviewKeywords, reviewThumbnails, restaurantIdToFirstImageUrl, memberProfileImageUrls);
 
 		return new CursorPageResponse<>(
 			items,
@@ -319,11 +328,31 @@ public class ReviewService {
 			.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getFirst().url()));
 	}
 
+	private Map<Long, String> resolveMemberProfileImageUrls(List<ReviewQueryDto> pageContent) {
+		List<Long> memberIds = pageContent.stream()
+			.map(ReviewQueryDto::memberId)
+			.filter(Objects::nonNull)
+			.distinct()
+			.toList();
+		if (memberIds.isEmpty()) {
+			return Map.of();
+		}
+		return fileService.getPrimaryDomainImageUrlMap(DomainType.MEMBER, memberIds);
+	}
+
+	private String resolveMemberProfileImageUrl(Long memberId) {
+		if (memberId == null) {
+			return null;
+		}
+		return fileService.getPrimaryDomainImageUrl(DomainType.MEMBER, memberId);
+	}
+
 	private List<ReviewResponse> buildReviewResponses(
 		List<ReviewQueryDto> pageContent,
 		Map<Long, List<String>> reviewKeywords,
 		Map<Long, List<DomainImageItem>> reviewThumbnails,
-		Map<Long, String> restaurantIdToFirstImageUrl) {
+		Map<Long, String> restaurantIdToFirstImageUrl,
+		Map<Long, String> memberProfileImageUrls) {
 		return pageContent.stream()
 			.map(review -> new ReviewResponse(
 				review.reviewId(),
@@ -331,7 +360,9 @@ public class ReviewService {
 				review.subgroupId(),
 				review.groupName(),
 				review.subgroupName(),
-				new ReviewResponse.AuthorResponse(review.memberName()),
+				new ReviewResponse.AuthorResponse(
+					review.memberName(),
+					memberProfileImageUrls.get(review.memberId())),
 				review.content(),
 				review.isRecommended(),
 				reviewKeywords.getOrDefault(review.reviewId(), List.of()),

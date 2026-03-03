@@ -2,21 +2,15 @@ package com.tasteam.domain.file.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.BDDMockito.given;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.config.annotation.ServiceIntegrationTest;
@@ -38,13 +32,12 @@ import com.tasteam.fixture.ImageFixture;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.FileErrorCode;
-import com.tasteam.infra.storage.PresignedPostResponse;
-import com.tasteam.infra.storage.StorageClient;
 
 import jakarta.persistence.EntityManager;
 
 @ServiceIntegrationTest
 @Transactional
+@DisplayName("[통합](File) FileService 통합 테스트")
 class FileServiceIntegrationTest {
 
 	private static final UUID FILE_UUID = UUID.fromString("11111111-aaaa-bbbb-cccc-111111111111");
@@ -59,25 +52,11 @@ class FileServiceIntegrationTest {
 	@Autowired
 	private DomainImageRepository domainImageRepository;
 
-	@MockitoBean
-	private StorageClient storageClient;
-
 	@Autowired
 	private FileCleanupProperties cleanupProperties;
 
 	@Autowired
 	private EntityManager entityManager;
-
-	@BeforeEach
-	void setUp() {
-		given(storageClient.createPresignedPost(any()))
-			.willReturn(new PresignedPostResponse(
-				"https://upload.test",
-				Map.of("key", "value"),
-				Instant.now().plusSeconds(300)));
-		given(storageClient.createPresignedGetUrl(anyString()))
-			.willReturn("https://cdn.test/image.png");
-	}
 
 	@Nested
 	@DisplayName("Presigned 업로드 생성")
@@ -93,7 +72,7 @@ class FileServiceIntegrationTest {
 			PresignedUploadResponse response = fileService.createPresignedUploads(request);
 
 			assertThat(response.uploads()).hasSize(1);
-			assertThat(response.uploads().getFirst().url()).isEqualTo("https://upload.test");
+			assertThat(response.uploads().getFirst().url()).isEqualTo("https://fake-storage.local");
 			assertThat(imageRepository.findAll()).hasSize(1);
 		}
 
@@ -216,6 +195,30 @@ class FileServiceIntegrationTest {
 			ImageUrlResponse response = fileService.getImageUrl(FILE_UUID.toString());
 
 			assertThat(response.url()).contains("uploads/test/url.png");
+		}
+
+		@Test
+		@DisplayName("COMMON_ASSET 용도의 PENDING 이미지도 URL 조회가 가능하다")
+		void getImageUrlPendingCommonAssetSuccess() {
+			imageRepository.save(ImageFixture.create(
+				FilePurpose.COMMON_ASSET,
+				"uploads/common/asset/promo-banner.png",
+				FILE_UUID));
+
+			ImageUrlResponse response = fileService.getImageUrl(FILE_UUID.toString());
+
+			assertThat(response.url()).contains("uploads/common/asset/promo-banner.png");
+		}
+
+		@Test
+		@DisplayName("COMMON_ASSET가 아닌 PENDING 이미지는 URL 조회에 실패한다")
+		void getImageUrlPendingNonCommonAssetFails() {
+			createAndSaveImage(FILE_UUID, "uploads/test/pending-url.png");
+
+			assertThatThrownBy(() -> fileService.getImageUrl(FILE_UUID.toString()))
+				.isInstanceOf(BusinessException.class)
+				.extracting(ex -> ((BusinessException)ex).getErrorCode())
+				.isEqualTo(FileErrorCode.FILE_NOT_ACTIVE.name());
 		}
 
 		@Test

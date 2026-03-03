@@ -19,6 +19,7 @@ HEALTH_INTERVAL_SECONDS="${HEALTH_INTERVAL_SECONDS:-2}"
 ECR_REGISTRY="${ECR_REGISTRY:-}"
 ECR_REPO_BACKEND="${ECR_REPO_BACKEND:-}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
+DOCKER_PRUNE_UNUSED_IMAGES="${DOCKER_PRUNE_UNUSED_IMAGES:-true}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_ENV_FILE="${BACKEND_ENV_FILE:-${APP_DIR}/backend.env}"
@@ -33,6 +34,20 @@ ALLOY_COMPOSE_FILE="${ALLOY_COMPOSE_FILE:-${SCRIPT_DIR}/docker-compose.alloy.yml
 ALLOY_COMPOSE_PROJECT_NAME="${ALLOY_COMPOSE_PROJECT_NAME:-tasteam-alloy}"
 
 export AWS_PAGER=""
+
+prune_unused_docker_images() {
+  local phase="$1"
+
+  if [ "${DOCKER_PRUNE_UNUSED_IMAGES}" != "true" ]; then
+    log "skip docker image prune (${phase})"
+    return 0
+  fi
+
+  log "docker image prune (${phase})"
+  docker system df || true
+  docker image prune -af || true
+  docker system df || true
+}
 
 log() {
   echo "[deploy] $*"
@@ -268,9 +283,6 @@ start_alloy() {
   fi
 
   local alloy_config="${SCRIPT_DIR}/alloy/alloy-app.alloy"
-  if [ "${ENV_NAME}" = "dev" ]; then
-    alloy_config="${SCRIPT_DIR}/alloy/alloy-app-dev.alloy"
-  fi
 
   log "start alloy (config=${alloy_config})"
   ALLOY_CONFIG_FILE="${alloy_config}" \
@@ -309,6 +321,8 @@ deploy_backend() {
   local image
   image="${ECR_REGISTRY}/${ECR_REPO_BACKEND}:${IMAGE_TAG}"
 
+  prune_unused_docker_images "before-pull"
+
   log "ecr login"
   aws ecr get-login-password --region "${AWS_REGION}" \
     | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
@@ -323,7 +337,10 @@ deploy_backend() {
 
   log "run backend by docker compose (service=${BACKEND_SERVICE_NAME})"
   backend_compose up -d --remove-orphans "${BACKEND_SERVICE_NAME}"
+  stop_alloy
   start_alloy
+
+  prune_unused_docker_images "after-run"
 }
 
 health_check() {

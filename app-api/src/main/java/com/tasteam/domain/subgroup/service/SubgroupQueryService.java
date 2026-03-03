@@ -7,12 +7,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.chat.repository.ChatRoomRepository;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
+import com.tasteam.domain.subgroup.dto.SubgroupChatRoomResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupDetailResponse;
 import com.tasteam.domain.subgroup.dto.SubgroupListItem;
 import com.tasteam.domain.subgroup.dto.SubgroupListResponse;
@@ -25,12 +27,15 @@ import com.tasteam.domain.subgroup.repository.SubgroupRepository;
 import com.tasteam.domain.subgroup.type.SubgroupJoinType;
 import com.tasteam.domain.subgroup.type.SubgroupStatus;
 import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.ChatErrorCode;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.GroupErrorCode;
+import com.tasteam.global.exception.code.SearchErrorCode;
 import com.tasteam.global.exception.code.SubgroupErrorCode;
 import com.tasteam.global.utils.CursorCodec;
 import com.tasteam.global.utils.CursorPageBuilder;
 import com.tasteam.global.utils.PaginationParamUtils;
+import com.tasteam.global.validation.KeywordSecurityPolicy;
 
 import lombok.RequiredArgsConstructor;
 
@@ -44,6 +49,7 @@ public class SubgroupQueryService {
 	private final GroupMemberRepository groupMemberRepository;
 	private final SubgroupRepository subgroupRepository;
 	private final SubgroupMemberRepository subgroupMemberRepository;
+	private final ChatRoomRepository chatRoomRepository;
 	private final CursorCodec cursorCodec;
 	private final FileService fileService;
 
@@ -165,11 +171,27 @@ public class SubgroupQueryService {
 	}
 
 	@Transactional(readOnly = true)
-	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, String cursor,
+	public SubgroupChatRoomResponse getChatRoom(Long subgroupId, Long memberId) {
+		validateAuthenticated(memberId);
+		subgroupRepository.findByIdAndDeletedAtIsNull(subgroupId)
+			.orElseThrow(() -> new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND));
+		subgroupMemberRepository.findBySubgroupIdAndMember_IdAndDeletedAtIsNull(subgroupId, memberId)
+			.orElseThrow(() -> new BusinessException(CommonErrorCode.NO_PERMISSION));
+		Long chatRoomId = chatRoomRepository.findBySubgroupIdAndDeletedAtIsNull(subgroupId)
+			.orElseThrow(() -> new BusinessException(ChatErrorCode.CHAT_ROOM_NOT_FOUND))
+			.getId();
+		return new SubgroupChatRoomResponse(chatRoomId);
+	}
+
+	@Transactional(readOnly = true)
+	public CursorPageResponse<SubgroupMemberListItem> getSubgroupMembers(Long subgroupId, Long memberId, String cursor,
 		Integer size) {
+		validateAuthenticated(memberId);
 		if (!subgroupRepository.existsByIdAndStatus(subgroupId, SubgroupStatus.ACTIVE)) {
 			throw new BusinessException(SubgroupErrorCode.SUBGROUP_NOT_FOUND);
 		}
+		subgroupMemberRepository.findBySubgroupIdAndMember_IdAndDeletedAtIsNull(subgroupId, memberId)
+			.orElseThrow(() -> new BusinessException(CommonErrorCode.NO_PERMISSION));
 
 		int resolvedSize = PaginationParamUtils.resolveSize(size);
 		Long cursorId = PaginationParamUtils.parseLongCursor(cursor);
@@ -178,6 +200,19 @@ public class SubgroupQueryService {
 			subgroupId,
 			cursorId,
 			PageRequest.of(0, resolvedSize + 1));
+
+		Map<Long, String> imageUrlByMemberId = fileService.getPrimaryDomainImageUrlMap(
+			DomainType.MEMBER,
+			items.stream().map(SubgroupMemberListItem::memberId).toList());
+
+		items = items.stream()
+			.map(item -> new SubgroupMemberListItem(
+				item.cursorId(),
+				item.memberId(),
+				item.nickname(),
+				imageUrlByMemberId.getOrDefault(item.memberId(), item.profileImageUrl()),
+				item.createdAt()))
+			.toList();
 
 		boolean hasNext = items.size() > resolvedSize;
 		if (hasNext) {
@@ -242,7 +277,13 @@ public class SubgroupQueryService {
 			return null;
 		}
 		String trimmed = keyword.trim();
-		return trimmed.isBlank() ? null : trimmed;
+		if (trimmed.isBlank()) {
+			return null;
+		}
+		if (!KeywordSecurityPolicy.isSafeKeyword(trimmed)) {
+			throw new BusinessException(SearchErrorCode.INVALID_SEARCH_KEYWORD);
+		}
+		return trimmed;
 	}
 
 	private List<SubgroupListItem> applyResolvedImageUrls(List<SubgroupListItem> items) {

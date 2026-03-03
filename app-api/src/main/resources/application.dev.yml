@@ -48,6 +48,8 @@ spring:
     user: ${FLYWAY_USER:${DB_USERNAME}}
     password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
     baseline-on-migrate: true
+    out-of-order: true
+
 
   security:
     cookie:
@@ -91,12 +93,21 @@ naver:
     api-key: ${NAVER_MAPS_API_KEY:dummy}
 
 tasteam:
+  notification:
+    email:
+      provider: ${NOTIFICATION_EMAIL_PROVIDER:ses}
+      ses:
+        region: ${NOTIFICATION_EMAIL_SES_REGION:ap-northeast-2}
+        access-key: ${NOTIFICATION_EMAIL_SES_ACCESS_KEY:}
+        secret-key: ${NOTIFICATION_EMAIL_SES_SECRET_KEY:}
+        from-address: ${NOTIFICATION_EMAIL_SES_FROM_ADDRESS:noreply@tasteam.kr}
+        charset: ${NOTIFICATION_EMAIL_SES_CHARSET:UTF-8}
   storage:
     type: s3
     region: ${STORAGE_REGION:ap-northeast-2}
     bucket: ${STORAGE_BUCKET:}
     base-url: ${STORAGE_BASE_URL:https://tasteam.kr}
-    access-mode: ${STORAGE_ACCESS_MODE:presigned}
+    access-mode: ${STORAGE_ACCESS_MODE:public}
     presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:300}
   webhook:
     enabled: false

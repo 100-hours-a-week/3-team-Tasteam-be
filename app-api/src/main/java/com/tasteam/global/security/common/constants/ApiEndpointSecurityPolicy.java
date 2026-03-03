@@ -64,8 +64,14 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.GROUPS_SUBGROUPS),
 			permit(GET, ApiEndpoints.GROUPS_SUBGROUPS_SEARCH),
 
+			// 역지오코딩 (토큰 유무 무관)
+			permit(GET, ApiEndpoints.GEOCODE_REVERSE),
+
 			// 검색 (토큰 유무 무관)
 			permit(POST, ApiEndpoints.SEARCH),
+
+			// Analytics Ingest (토큰 유무 무관)
+			permit(POST, ApiEndpoints.ANALYTICS_EVENTS),
 
 			// Swagger
 			permit(GET, ApiEndpoints.SWAGGER_UI),
@@ -79,12 +85,18 @@ public final class ApiEndpointSecurityPolicy {
 			permit(GET, ApiEndpoints.ACTUATOR),
 			permit(GET, ApiEndpoints.HEALTH_CHECK),
 
-			// Admin Static Pages
-			permit(GET, ApiEndpoints.ADMIN_STATIC),
+			// Admin SPA
+			permit(GET, ApiEndpoints.ADMIN_SPA_ROOT),
+			permit(GET, ApiEndpoints.ADMIN_SPA_INDEX),
+			permit(GET, ApiEndpoints.ADMIN_SPA_JS),
+			permit(GET, ApiEndpoints.ADMIN_SPA_CSS),
 			permit(POST, ApiEndpoints.ADMIN_AUTH_LOGIN),
 
 			// Test
-			permit(GET, ApiEndpoints.TEST));
+			permit(GET, ApiEndpoints.TEST),
+
+			// WebSocket
+			permit(GET, ApiEndpoints.WEBSOCKET));
 	}
 
 	/**
@@ -95,7 +107,9 @@ public final class ApiEndpointSecurityPolicy {
 			ApiEndpoints.FILES_ALL,
 			ApiEndpoints.GROUPS_ALL,
 			ApiEndpoints.SUBGROUPS_ALL,
-			ApiEndpoints.MEMBERS_ALL
+			ApiEndpoints.CHAT_ROOMS_ALL,
+			ApiEndpoints.MEMBERS_ALL,
+			ApiEndpoints.REPORTS_ALL
 		};
 	}
 

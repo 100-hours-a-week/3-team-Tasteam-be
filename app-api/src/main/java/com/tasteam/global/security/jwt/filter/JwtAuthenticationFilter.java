@@ -11,6 +11,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.tasteam.global.security.common.constants.SecurityConstants;
+import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
 import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
 import com.tasteam.global.security.user.dto.CustomUserDetails;
 
@@ -31,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	private final JwtTokenProvider jwtTokenProvider;
+	private final JwtCookieProvider jwtCookieProvider;
 
 	/**
 	 * 요청에서 JWT를 추출하고 유효성을 검사한 후, 인증 정보를 SecurityContext에 설정합니다.
@@ -69,6 +71,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 		if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(SecurityConstants.BEARER_PREFIX)) {
 			return bearerToken.substring(SecurityConstants.BEARER_PREFIX.length());
+		}
+
+		if (request.getRequestURI().startsWith("/admin/")) {
+			return jwtCookieProvider.getAdminAccessTokenFromCookie(request).orElse(null);
 		}
 
 		return null;

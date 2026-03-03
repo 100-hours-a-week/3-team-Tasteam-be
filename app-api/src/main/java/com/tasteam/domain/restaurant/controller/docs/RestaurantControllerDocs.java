@@ -15,6 +15,7 @@ import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 import com.tasteam.global.swagger.annotation.CustomErrorResponseDescription;
+import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import com.tasteam.global.swagger.error.code.restaurant.RestaurantSwaggerErrorResponseDescription;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,6 +26,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+@SwaggerTagOrder(30)
 @Tag(name = "Restaurant", description = "음식점 조회/관리 API")
 public interface RestaurantControllerDocs {
 
