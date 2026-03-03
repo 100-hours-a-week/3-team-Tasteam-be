@@ -275,7 +275,8 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 		@DisplayName("이메일 인증에 성공하면 200과 인증 결과를 반환한다")
 		void 이메일_인증_성공() throws Exception {
 			// given
-			GroupEmailAuthenticationResponse response = new GroupEmailAuthenticationResponse(true, Instant.parse("2000-01-01T00:00:00Z"));
+			GroupEmailAuthenticationResponse response = new GroupEmailAuthenticationResponse(true,
+				Instant.parse("2000-01-01T00:00:00Z"));
 
 			given(groupFacade.authenticateGroupByEmail(eq(1L), any(), any())).willReturn(response);
 
@@ -297,7 +298,8 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 		@DisplayName("비밀번호 인증에 성공하면 201과 인증 결과를 반환한다")
 		void 비밀번호_인증_성공() throws Exception {
 			// given
-			GroupPasswordAuthenticationResponse response = new GroupPasswordAuthenticationResponse(true, Instant.parse("2000-01-01T00:00:00Z"));
+			GroupPasswordAuthenticationResponse response = new GroupPasswordAuthenticationResponse(true,
+				Instant.parse("2000-01-01T00:00:00Z"));
 
 			given(groupFacade.authenticateGroupByPassword(eq(1L), any(), any())).willReturn(response);
 
@@ -320,7 +322,8 @@ class GroupControllerTest extends BaseControllerWebMvcTest {
 		void 그룹_멤버_목록_조회_성공() throws Exception {
 			// given
 			GroupMemberListResponse response = new GroupMemberListResponse(
-				List.of(new GroupMemberListItem(1L, 100L, "테스트유저", "https://example.com/profile.jpg", Instant.parse("2000-01-01T00:00:00Z"))),
+				List.of(new GroupMemberListItem(1L, 100L, "테스트유저", "https://example.com/profile.jpg",
+					Instant.parse("2000-01-01T00:00:00Z"))),
 				new GroupMemberListResponse.PageInfo(null, 20, false));
 
 			given(groupFacade.getGroupMembers(eq(1L), any(), any())).willReturn(response);

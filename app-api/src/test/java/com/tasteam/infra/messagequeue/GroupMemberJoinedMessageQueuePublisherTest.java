@@ -34,7 +34,8 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 			producer,
 			properties,
 			objectMapper);
-		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(10L, 20L, "테스트 그룹", Instant.parse("2000-01-01T00:00:00Z"));
+		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(10L, 20L, "테스트 그룹",
+			Instant.parse("2000-01-01T00:00:00Z"));
 
 		// when
 		publisher.onGroupMemberJoined(event);
@@ -94,7 +95,8 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 			producer,
 			properties,
 			objectMapper);
-		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(10L, 20L, "테스트 그룹", Instant.parse("2000-01-01T00:00:00Z"));
+		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(10L, 20L, "테스트 그룹",
+			Instant.parse("2000-01-01T00:00:00Z"));
 
 		// when & then
 		assertThatThrownBy(() -> publisher.onGroupMemberJoined(event))
