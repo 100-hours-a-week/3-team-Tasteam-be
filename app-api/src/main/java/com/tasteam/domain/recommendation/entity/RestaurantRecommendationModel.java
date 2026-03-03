@@ -51,6 +51,10 @@ public class RestaurantRecommendationModel extends BaseCreatedAtEntity {
 		this.status = RestaurantRecommendationModelStatus.READY;
 	}
 
+	public void markLoading() {
+		this.status = RestaurantRecommendationModelStatus.LOADING;
+	}
+
 	public void markFailed() {
 		this.status = RestaurantRecommendationModelStatus.FAILED;
 	}
