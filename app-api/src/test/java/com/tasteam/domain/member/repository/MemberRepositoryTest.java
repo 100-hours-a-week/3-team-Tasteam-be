@@ -77,8 +77,21 @@ class MemberRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("existsByEmailAndIdNot - 다른 회원이 동일 이메일 사용 시 true")
-	void existsByEmailAndIdNot_differentMember() {
+	@DisplayName("existsByEmailAndIdNot - 다른 회원 기준으로 기존 이메일을 조회하면 true")
+	void existsByEmailAndIdNot_returnsTrue_whenEmailBelongsToAnotherMember() {
+		Member member1 = memberRepository.save(MemberFixture.create("shared@test.com", "회원1"));
+		Member member2 = memberRepository.save(MemberFixture.create("other@test.com", "회원2"));
+		entityManager.flush();
+		entityManager.clear();
+
+		boolean exists = memberRepository.existsByEmailAndIdNot("shared@test.com", member2.getId());
+
+		assertThat(exists).isTrue();
+	}
+
+	@Test
+	@DisplayName("existsByEmailAndIdNot - 본인 ID를 제외하면 false")
+	void existsByEmailAndIdNot_returnsFalse_whenOnlySameMemberHasEmail() {
 		Member member1 = memberRepository.save(MemberFixture.create("shared@test.com", "회원1"));
 		memberRepository.save(MemberFixture.create("other@test.com", "회원2"));
 		entityManager.flush();

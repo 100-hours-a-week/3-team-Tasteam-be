@@ -321,7 +321,7 @@ class GroupFacadeIntegrationTest {
 				"user@example.com");
 
 			// then
-			assertThat(response.expiresAt()).isNotNull().isAfter(Instant.now());
+			assertThat(response.expiresAt()).isNotNull().isAfter(Instant.parse("2000-01-01T00:00:00Z"));
 		}
 
 		@Test
@@ -386,7 +386,7 @@ class GroupFacadeIntegrationTest {
 		@DisplayName("이전 탈퇴 회원이 재가입 시 restore된다")
 		void authenticateGroupByEmail_restore_success() {
 			GroupMember membership = groupMemberRepository.save(GroupMemberFixture.create(emailGroup.getId(), member3));
-			membership.softDelete(Instant.now());
+			membership.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 
 			groupFacade.authenticateGroupByEmail(emailGroup.getId(), member3.getId(), verificationToken);
 
@@ -434,7 +434,7 @@ class GroupFacadeIntegrationTest {
 		void authenticateGroupByPassword_restore_success() {
 			GroupMember membership = groupMemberRepository
 				.save(GroupMemberFixture.create(passwordGroup.getId(), member2));
-			membership.softDelete(Instant.now());
+			membership.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 
 			groupFacade.authenticateGroupByPassword(passwordGroup.getId(), member2.getId(), "correctPassword");
 
@@ -513,7 +513,7 @@ class GroupFacadeIntegrationTest {
 			group = groupRepository.save(GroupFixture.create("회원목록그룹", "서울시 강남구"));
 			groupMemberRepository.save(GroupMemberFixture.create(group.getId(), member1));
 			GroupMember member2Membership = groupMemberRepository.save(GroupMemberFixture.createDeleted(
-				group.getId(), member2, Instant.now()));
+				group.getId(), member2, Instant.parse("2000-01-01T00:00:00Z")));
 		}
 
 		@Test

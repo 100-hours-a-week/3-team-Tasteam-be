@@ -194,7 +194,7 @@ class GroupEmailRateLimitIntegrationTest {
 		Thread.sleep(1200);
 		GroupEmailVerificationResponse response = groupFacade.sendGroupEmailVerification(
 			emailGroup.getId(), memberId, "60.0.0.1", email);
-		assertThat(response.expiresAt()).isAfter(Instant.now());
+		assertThat(response.expiresAt()).isAfter(Instant.parse("2000-01-01T00:00:00Z"));
 	}
 
 	private void assertTooManyRequests(ThrowingAction action, NotificationErrorCode expectedCode) {

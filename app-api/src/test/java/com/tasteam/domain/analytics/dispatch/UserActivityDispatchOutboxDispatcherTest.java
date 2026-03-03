@@ -103,7 +103,7 @@ class UserActivityDispatchOutboxDispatcherTest {
 			"{\"eventId\":\"missing-required-fields\"}",
 			UserActivityDispatchOutboxStatus.FAILED,
 			3,
-			Instant.now());
+			Instant.parse("2000-01-01T00:00:00Z"));
 		when(outboxService.findDispatchCandidates(UserActivityDispatchTarget.POSTHOG, 100)).thenReturn(List.of(entry));
 
 		// when

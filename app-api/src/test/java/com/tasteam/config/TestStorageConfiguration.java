@@ -19,6 +19,9 @@ import com.tasteam.infra.storage.StorageClient;
 @Profile("test")
 public class TestStorageConfiguration {
 
+	private static final Instant FIXED_NOW = Instant.parse("2099-01-01T00:00:00Z");
+	private static final Instant FIXED_EXPIRES_AT = FIXED_NOW.plusSeconds(300);
+
 	@Bean
 	StorageClient storageClient() {
 		return new FakeStorageClient();
@@ -34,9 +37,9 @@ public class TestStorageConfiguration {
 			fields.put("key", request.objectKey());
 			fields.put("Content-Type", request.contentType());
 			fields.put("x-amz-algorithm", "FAKE");
-			fields.put("x-amz-date", Instant.now().toString());
+			fields.put("x-amz-date", FIXED_NOW.toString());
 			return new PresignedPostResponse("https://fake-storage.local", Map.copyOf(fields),
-				Instant.now().plusSeconds(300));
+				FIXED_EXPIRES_AT);
 		}
 
 		@Override

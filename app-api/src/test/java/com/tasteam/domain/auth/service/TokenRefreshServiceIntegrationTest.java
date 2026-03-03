@@ -131,8 +131,8 @@ class TokenRefreshServiceIntegrationTest {
 
 	private String createExpiredRefreshToken(Long memberId) {
 		SecretKey secretKey = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
-		Instant issuedAt = Instant.now().minusSeconds(120);
-		Instant expiredAt = Instant.now().minusSeconds(60);
+		Instant issuedAt = Instant.parse("2000-01-01T00:00:00Z").minusSeconds(120);
+		Instant expiredAt = Instant.parse("2000-01-01T00:00:00Z").minusSeconds(60);
 		return Jwts.builder()
 			.subject(String.valueOf(memberId))
 			.id("expired-token-id")

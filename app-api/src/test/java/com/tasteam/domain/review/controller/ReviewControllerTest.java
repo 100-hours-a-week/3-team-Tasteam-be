@@ -86,8 +86,8 @@ class ReviewControllerTest extends BaseControllerWebMvcTest {
 				true,
 				List.of("친절", "깨끗"),
 				List.of(new ReviewDetailResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
-				Instant.now(),
-				Instant.now());
+				Instant.parse("2000-01-01T00:00:00Z"),
+				Instant.parse("2000-01-01T00:00:00Z"));
 
 			given(reviewService.getReviewDetail(1L)).willReturn(response);
 
