@@ -85,7 +85,7 @@ function renderGroups(container) {
                             <option value="PASSWORD">비밀번호</option>
                         </select>
                     </div>
-                    <div class="form-group" id="emailDomainGroup" style="display:none;">
+                    <div class="form-group is-hidden" id="emailDomainGroup">
                         <label for="groupEmailDomain">이메일 도메인</label>
                         <input type="text" id="groupEmailDomain" maxlength="100" placeholder="example.com">
                     </div>

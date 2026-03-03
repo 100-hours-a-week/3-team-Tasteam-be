@@ -118,7 +118,7 @@ function renderPromotionRows(promotions) {
             <td>${formatDateTime(promotion.promotionEndAt)}</td>
             <td>${getDisplayChannelText(promotion.displayChannel)}</td>
             <td class="actions">
-                <button class="btn btn-sm" data-action="edit" data-id="${promotion.id}">편집</button>
+                <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${promotion.id}">편집</button>
                 <button class="btn btn-sm btn-danger" data-action="delete" data-id="${promotion.id}">삭제</button>
             </td>
         </tr>
