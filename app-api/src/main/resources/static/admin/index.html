@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tasteam Admin</title>
     <link rel="stylesheet" href="/admin/css/admin.css">
+    <script>
+        (function () {
+            var token = localStorage.getItem('authToken');
+            var path = window.location.pathname;
+            var isLoginPage = path === '/admin' || path === '/admin/' || path === '/admin/index.html';
+            if (!token && !isLoginPage) {
+                window.location.replace('/admin/');
+            }
+        }());
+    </script>
 </head>
 <body>
     <div id="admin-app-root"></div>
