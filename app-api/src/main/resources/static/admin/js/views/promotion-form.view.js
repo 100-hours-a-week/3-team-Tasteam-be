@@ -1,4 +1,5 @@
 let selectedPromotionBanner = null;
+let selectedPromotionSplash = null;
 let detailImageUrls = [];
 
 function renderPromotionForm(container, state = {}) {
@@ -84,9 +85,23 @@ function renderPromotionForm(container, state = {}) {
                 <div class="form-group">
                     <label for="bannerImageFile">이미지 파일 업로드</label>
                     <input type="file" id="bannerImageFile" accept="image/*">
-                    <p class="help-text">이미지 파일을 업로드하면 URL이 반영됩니다.</p>
+                    <p class="help-text">업로드 시 홈 배너 노출 비율(약 3.55:1)로 편집 후 저장됩니다.</p>
                 </div>
-                <div id="bannerPreview" class="image-preview"></div>
+                <div id="bannerPreview" class="promotion-image-preview-box"></div>
+            </section>
+
+            <section class="form-section">
+                <h2>스플래시 이미지</h2>
+                <div class="form-group">
+                    <label for="splashImageUrl">이미지 URL *</label>
+                    <input type="url" id="splashImageUrl" name="splashImageUrl" required maxlength="500">
+                </div>
+                <div class="form-group">
+                    <label for="splashImageFile">이미지 파일 업로드</label>
+                    <input type="file" id="splashImageFile" accept="image/*">
+                    <p class="help-text">업로드 시 스플래시 노출 비율(4:3)로 편집 후 저장됩니다.</p>
+                </div>
+                <div id="splashPreview" class="promotion-image-preview-box promotion-image-preview-box--splash"></div>
             </section>
 
             <section class="form-section">
@@ -102,6 +117,7 @@ function renderPromotionForm(container, state = {}) {
                 <div class="form-group">
                     <label for="detailImagesFile">이미지 업로드 (여러 개 가능)</label>
                     <input type="file" id="detailImagesFile" accept="image/*" multiple>
+                    <p class="help-text">상세 이미지는 자유 비율로 편집 후 등록할 수 있습니다.</p>
                 </div>
                 <div id="detailImagesList" class="detail-images-list"></div>
             </section>
@@ -151,6 +167,34 @@ async function uploadImageToS3(file) {
 	return urlResponse.url;
 }
 
+async function editImageIfNeeded(file, type) {
+	if (!window.PromotionImageEditor || typeof window.PromotionImageEditor.editImage !== 'function') {
+		return file;
+	}
+	return window.PromotionImageEditor.editImage({ file, type });
+}
+
+async function editAndUploadImage(file, type) {
+	const editedFile = await editImageIfNeeded(file, type);
+	if (!editedFile) {
+		return null;
+	}
+	return uploadImageToS3(editedFile);
+}
+
+function renderSingleImagePreview(containerId, url, altText) {
+	const preview = document.getElementById(containerId);
+	if (!preview) {
+		return;
+	}
+	if (!url) {
+		preview.innerHTML = '';
+		return;
+	}
+
+	preview.innerHTML = `<img src="${url}" alt="${altText}" class="promotion-image-preview-image">`;
+}
+
 function renderDetailImages() {
 	const list = document.getElementById('detailImagesList');
 	if (!list) {
@@ -159,7 +203,7 @@ function renderDetailImages() {
 
 	list.innerHTML = detailImageUrls.map((url, index) => `
         <div class="detail-image-item">
-            <img class="image-preview" src="${url}" alt="상세 이미지 ${index + 1}">
+            <img src="${url}" alt="상세 이미지 ${index + 1}">
             <button type="button" class="btn btn-sm btn-danger" data-action="remove-detail-image" data-index="${index}">삭제</button>
         </div>
     `).join('');
@@ -169,6 +213,11 @@ function collectPromotionPayload() {
 	const bannerImageUrl = document.getElementById('bannerImageUrl')?.value?.trim();
 	if (!bannerImageUrl) {
 		throw new Error('배너 이미지 URL은 필수입니다.');
+	}
+
+	const splashImageUrl = document.getElementById('splashImageUrl')?.value?.trim();
+	if (!splashImageUrl) {
+		throw new Error('스플래시 이미지 URL은 필수입니다.');
 	}
 
 	const startAt = parseDatetimeLocal(document.getElementById('promotionStartAt')?.value);
@@ -188,11 +237,12 @@ function collectPromotionPayload() {
 		promotionEndAt: endAt,
 		publishStatus: document.getElementById('publishStatus')?.value || 'DRAFT',
 		displayEnabled: document.getElementById('displayEnabled')?.checked || false,
-		displayStartAt: displayStartAt,
-		displayEndAt: displayEndAt,
+		displayStartAt,
+		displayEndAt,
 		displayChannel: document.getElementById('displayChannel')?.value || 'PROMOTION_LIST',
 		displayPriority: parseInt(document.getElementById('displayPriority')?.value, 10) || 1,
 		bannerImageUrl,
+		splashImageUrl,
 		bannerImageAltText: document.getElementById('bannerImageAltText')?.value?.trim() || null,
 		detailImageUrls: detailImageUrls.length > 0 ? detailImageUrls : null
 	};
@@ -230,27 +280,55 @@ function mountPromotionForm(state = {}) {
 			if (!file) {
 				return;
 			}
-			const preview = document.getElementById('bannerPreview');
-			if (preview) {
-				preview.innerHTML = '';
-			}
 
 			try {
-				const url = await uploadImageToS3(file);
+				const url = await editAndUploadImage(file, 'banner');
+				if (!url) {
+					return;
+				}
 				const bannerUrlInput = document.getElementById('bannerImageUrl');
 				selectedPromotionBanner = url;
 				if (bannerUrlInput) {
 					bannerUrlInput.value = url;
 				}
-				if (preview) {
-					preview.innerHTML = `<img src="${url}" alt="배너 미리보기" style="max-width: 320px;">`;
-				}
+				renderSingleImagePreview('bannerPreview', url, '배너 미리보기');
 			} catch (error) {
-				alert(`이미지 업로드 실패: ${error.message}`);
+				alert(`배너 이미지 업로드 실패: ${error.message || '알 수 없는 오류'}`);
+			} finally {
+				event.target.value = '';
 			}
 		};
 		bannerInput.addEventListener('change', handleBannerUpload);
 		cleanups.push(() => bannerInput.removeEventListener('change', handleBannerUpload));
+	}
+
+	const splashInput = document.getElementById('splashImageFile');
+	if (splashInput) {
+		const handleSplashUpload = async (event) => {
+			const file = event.target.files?.[0];
+			if (!file) {
+				return;
+			}
+
+			try {
+				const url = await editAndUploadImage(file, 'splash');
+				if (!url) {
+					return;
+				}
+				const splashUrlInput = document.getElementById('splashImageUrl');
+				selectedPromotionSplash = url;
+				if (splashUrlInput) {
+					splashUrlInput.value = url;
+				}
+				renderSingleImagePreview('splashPreview', url, '스플래시 미리보기');
+			} catch (error) {
+				alert(`스플래시 이미지 업로드 실패: ${error.message || '알 수 없는 오류'}`);
+			} finally {
+				event.target.value = '';
+			}
+		};
+		splashInput.addEventListener('change', handleSplashUpload);
+		cleanups.push(() => splashInput.removeEventListener('change', handleSplashUpload));
 	}
 
 	const detailInput = document.getElementById('detailImagesFile');
@@ -262,11 +340,21 @@ function mountPromotionForm(state = {}) {
 			}
 
 			try {
-				const urls = await Promise.all(files.map((file) => uploadImageToS3(file)));
-				detailImageUrls = urls.concat(detailImageUrls);
-				renderDetailImages();
+				const uploadedUrls = [];
+				for (const file of files) {
+					const url = await editAndUploadImage(file, 'detail');
+					if (url) {
+						uploadedUrls.push(url);
+					}
+				}
+				if (uploadedUrls.length > 0) {
+					detailImageUrls = uploadedUrls.concat(detailImageUrls);
+					renderDetailImages();
+				}
 			} catch (error) {
-				alert(`상세 이미지 업로드 실패: ${error.message}`);
+				alert(`상세 이미지 업로드 실패: ${error.message || '알 수 없는 오류'}`);
+			} finally {
+				event.target.value = '';
 			}
 		};
 		detailInput.addEventListener('change', handleDetailUpload);
@@ -336,15 +424,13 @@ function mountPromotionForm(state = {}) {
 			document.getElementById('displayChannel').value = promotion.displayChannel || 'PROMOTION_LIST';
 			document.getElementById('displayPriority').value = promotion.displayPriority || 1;
 			document.getElementById('bannerImageUrl').value = promotion.bannerImageUrl || '';
+			document.getElementById('splashImageUrl').value = promotion.splashImageUrl || promotion.bannerImageUrl || '';
 			document.getElementById('bannerImageAltText').value = promotion.bannerImageAltText || '';
 			selectedPromotionBanner = promotion.bannerImageUrl || null;
+			selectedPromotionSplash = promotion.splashImageUrl || promotion.bannerImageUrl || null;
 
-			if (promotion.bannerImageUrl) {
-				const bannerPreview = document.getElementById('bannerPreview');
-				if (bannerPreview) {
-					bannerPreview.innerHTML = `<img src="${promotion.bannerImageUrl}" alt="배너" style="max-width: 320px;">`;
-				}
-			}
+			renderSingleImagePreview('bannerPreview', selectedPromotionBanner, '배너 미리보기');
+			renderSingleImagePreview('splashPreview', selectedPromotionSplash, '스플래시 미리보기');
 
 			detailImageUrls = Array.isArray(promotion.detailImageUrls)
 				? [...promotion.detailImageUrls]
@@ -362,6 +448,7 @@ function mountPromotionForm(state = {}) {
 		cleanups.forEach((remove) => remove());
 		detailImageUrls = [];
 		selectedPromotionBanner = null;
+		selectedPromotionSplash = null;
 	};
 }
 
