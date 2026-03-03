@@ -236,7 +236,8 @@ public class DummyDataSeedService {
 					if (subgroupMemberCount == 0) {
 						break;
 					}
-					long memberId = selectedGroupMembers[(memberOffset + (m % subgroupMemberCount)) % subgroupMemberCount];
+					long memberId = selectedGroupMembers[(memberOffset + (m % subgroupMemberCount))
+						% subgroupMemberCount];
 					chatMessageEntries.add(new long[] {chatRoomId, memberId});
 					chatMessageContents.add("더미 채팅 메시지 " + (++messageSerial));
 					if (chatMessageEntries.size() >= RELATION_FLUSH_SIZE) {

@@ -268,7 +268,7 @@ jobs:
         if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            TITLE="백엔드 ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버 배포 성공 ❤️"
+            TITLE="백엔드 ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버 배포 성공 💗️"
             COLOR=65280
           else
             TITLE="백엔드 ${{ github.ref == 'refs/heads/main' && '운영' || '개발' }} 서버 배포 실패 💔💀"

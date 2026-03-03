@@ -60,6 +60,66 @@ require_cmd() {
   }
 }
 
+cloud_map_required() {
+  [ "${ENV_NAME}" = "prod" ] || [ "${ENV_NAME}" = "stg" ]
+}
+
+fetch_imds_token() {
+  curl -fsS -X PUT "http://169.254.169.254/latest/api/token" \
+    -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"
+}
+
+get_instance_id() {
+  local token
+  token="$(fetch_imds_token)"
+
+  curl -fsS -H "X-aws-ec2-metadata-token: ${token}" \
+    http://169.254.169.254/latest/meta-data/instance-id
+}
+
+resolve_cloud_map_service_id() {
+  if [ -n "${CLOUD_MAP_SERVICE_ID:-}" ]; then
+    printf '%s\n' "${CLOUD_MAP_SERVICE_ID}"
+    return 0
+  fi
+
+  if [ -f "${BACKEND_ENV_FILE}" ]; then
+    sed -n 's/^CLOUD_MAP_SERVICE_ID=//p' "${BACKEND_ENV_FILE}" | head -n 1
+  fi
+}
+
+update_cloud_map_instance_health() {
+  local status="$1"
+  local service_id instance_id
+
+  service_id="$(resolve_cloud_map_service_id)"
+  if [ -z "${service_id}" ]; then
+    if cloud_map_required; then
+      log "missing CLOUD_MAP_SERVICE_ID for ${ENV_NAME} deployment"
+      return 1
+    fi
+
+    log "Cloud Map service id not configured; skip health update (${status})"
+    return 0
+  fi
+
+  instance_id="$(get_instance_id)"
+  log "update Cloud Map custom health: service=${service_id}, instance=${instance_id}, status=${status}"
+  aws servicediscovery update-instance-custom-health-status \
+    --region "${AWS_REGION}" \
+    --service-id "${service_id}" \
+    --instance-id "${instance_id}" \
+    --status "${status}" >/dev/null
+}
+
+mark_cloud_map_instance_unhealthy() {
+  update_cloud_map_instance_health UNHEALTHY
+}
+
+mark_cloud_map_instance_healthy() {
+  update_cloud_map_instance_health HEALTHY
+}
+
 load_deploy_env_file() {
   if [ -f "${DEPLOY_ENV_FILE}" ]; then
     log "load deploy env file: ${DEPLOY_ENV_FILE}"
@@ -344,12 +404,14 @@ deploy_backend() {
 }
 
 health_check() {
+  require_cmd aws
   require_cmd curl
 
   local i
   for i in $(seq 1 "${HEALTH_RETRIES}"); do
     if curl -fsS "${HEALTH_URL}" >/dev/null; then
       log "health check passed"
+      mark_cloud_map_instance_healthy
       return 0
     fi
     sleep "${HEALTH_INTERVAL_SECONDS}"
@@ -370,7 +432,9 @@ load_deploy_env_file
 
 case "${MODE}" in
   stop)
+    require_cmd aws
     require_cmd docker
+    mark_cloud_map_instance_unhealthy || true
     stop_container
     stop_alloy
     ;;
