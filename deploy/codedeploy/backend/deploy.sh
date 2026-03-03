@@ -343,6 +343,9 @@ start_alloy() {
   fi
 
   local alloy_config="${SCRIPT_DIR}/alloy/alloy-app.alloy"
+  if [ "${ENV_NAME}" = "dev" ] && [ -f "${SCRIPT_DIR}/alloy/alloy-app-dev.alloy" ]; then
+    alloy_config="${SCRIPT_DIR}/alloy/alloy-app-dev.alloy"
+  fi
 
   log "start alloy (config=${alloy_config})"
   ALLOY_CONFIG_FILE="${alloy_config}" \
