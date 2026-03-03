@@ -21,11 +21,11 @@ function renderJobs(container) {
                     <button id="resetOptimizationJobs" class="btn btn-danger">잡 초기화</button>
                 </div>
 
-                <div id="discoverResult" class="job-result" style="display: none;">
+                <div id="discoverResult" class="job-result is-hidden">
                     <h4>탐색 결과</h4>
                     <p>등록된 PENDING 잡: <span id="discoveredCount" class="pending-count">0</span>개</p>
                 </div>
-                <div id="jobResult" class="job-result" style="display: none;">
+                <div id="jobResult" class="job-result is-hidden">
                     <h4>실행 결과</h4>
                     <ul>
                         <li>성공: <span id="successCount">0</span></li>
@@ -33,9 +33,9 @@ function renderJobs(container) {
                         <li>건너뜀: <span id="skippedCount">0</span></li>
                     </ul>
                 </div>
-                <div id="jobError" class="error-message" style="display: none;"></div>
+                <div id="jobError" class="error-message is-hidden"></div>
 
-                <div id="pendingImages" class="pending-images" style="display: none;">
+                <div id="pendingImages" class="pending-images is-hidden">
                     <h4>최적화 대기 잡 (<span id="pendingCount" class="pending-count">0</span>개)</h4>
                     <table>
                         <thead>
@@ -61,12 +61,12 @@ function renderJobs(container) {
                     <button id="loadCleanupPending" class="btn btn-secondary">정리 대기 조회</button>
                     <button id="runImageCleanup" class="btn btn-primary">정리 실행</button>
                 </div>
-                <div id="cleanupResult" class="job-result" style="display: none;">
+                <div id="cleanupResult" class="job-result is-hidden">
                     <h4>실행 결과</h4>
                     <p>정리된 이미지: <span id="cleanedCount" class="pending-count">0</span>개</p>
                 </div>
-                <div id="cleanupError" class="error-message" style="display: none;"></div>
-                <div id="cleanupPendingImages" class="pending-images" style="display: none;">
+                <div id="cleanupError" class="error-message is-hidden"></div>
+                <div id="cleanupPendingImages" class="pending-images is-hidden">
                     <h4>정리 대기 이미지 (<span id="cleanupPendingCount" class="pending-count">0</span>개)</h4>
                     <table>
                         <thead>

@@ -54,7 +54,7 @@ function renderAnnouncementsTable(announcements = []) {
             <td>${window.AdminUtils.toKoreanDateTime(announcement.createdAt)}</td>
             <td>${window.AdminUtils.toKoreanDateTime(announcement.updatedAt)}</td>
             <td class="actions">
-                <button class="btn btn-sm" data-action="edit" data-id="${announcement.id}">편집</button>
+                <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${announcement.id}">편집</button>
                 <button class="btn btn-sm btn-danger" data-action="delete" data-id="${announcement.id}">삭제</button>
             </td>
         </tr>
