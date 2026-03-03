@@ -361,7 +361,7 @@ function mountGroups(state = {}) {
 			}
 
 			try {
-				groupLogoFile = await ImageOptimizer.optimizeGroupLogo(file);
+				groupLogoFile = await window.ImageOptimizer.optimizeGroupLogo(file);
 				const img = document.createElement('img');
 				img.className = 'image-preview';
 				img.alt = groupLogoFile.name;
