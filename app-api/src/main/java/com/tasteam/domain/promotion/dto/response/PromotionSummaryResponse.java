@@ -1,6 +1,7 @@
 package com.tasteam.domain.promotion.dto.response;
 
 import java.time.Instant;
+import java.util.List;
 
 import com.tasteam.domain.promotion.dto.PromotionSummaryDto;
 import com.tasteam.domain.promotion.entity.PromotionStatus;
@@ -36,8 +37,11 @@ public record PromotionSummaryResponse(
 	Instant displayStartAt,
 
 	@Schema(description = "노출 종료 시각")
-	Instant displayEndAt) {
-	public static PromotionSummaryResponse fromDto(PromotionSummaryDto dto) {
+	Instant displayEndAt,
+
+	@Schema(description = "상세 이미지 URL 목록")
+	List<String> detailImageUrls) {
+	public static PromotionSummaryResponse fromDto(PromotionSummaryDto dto, List<String> detailImageUrls) {
 		Instant now = Instant.now();
 		PromotionStatus promotionStatus = PromotionStatus.calculate(dto.promotionStartAt(), dto.promotionEndAt(), now);
 
@@ -51,6 +55,7 @@ public record PromotionSummaryResponse(
 			dto.promotionEndAt(),
 			promotionStatus,
 			dto.displayStartAt(),
-			dto.displayEndAt());
+			dto.displayEndAt(),
+			detailImageUrls);
 	}
 }
