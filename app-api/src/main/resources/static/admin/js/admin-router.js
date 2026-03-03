@@ -164,8 +164,8 @@ async function renderCurrentView(pathname = window.location.pathname, search = w
 
 	let contentRoot = appRoot;
 	if (route.showLayout) {
-		contentRoot = renderAdminLayout(appRoot, resolved.activeNav || '');
-		unbindLayout = bindAdminLayout(appRoot, navigate, window.logout);
+		contentRoot = window.renderAdminLayout(appRoot, resolved.activeNav || '');
+		unbindLayout = window.bindAdminLayout(appRoot, navigate, window.logout);
 	}
 
 	const view = getView(route);
@@ -178,8 +178,8 @@ async function renderCurrentView(pathname = window.location.pathname, search = w
 			return;
 		}
 		if (route.showLayout) {
-			contentRoot = renderAdminLayout(appRoot, resolved.activeNav || '');
-			unbindLayout = bindAdminLayout(appRoot, navigate, window.logout);
+			contentRoot = window.renderAdminLayout(appRoot, resolved.activeNav || '');
+			unbindLayout = window.bindAdminLayout(appRoot, navigate, window.logout);
 		}
 		fallbackView.render(contentRoot, state);
 		const fallbackMount = await Promise.resolve(fallbackView.mount({
