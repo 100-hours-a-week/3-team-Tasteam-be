@@ -1,6 +1,7 @@
 package com.tasteam.domain.promotion.dto.response;
 
 import java.time.Instant;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tasteam.domain.promotion.dto.SplashPromotionDto;
@@ -25,14 +26,18 @@ public record SplashPromotionResponse(
 	Instant startAt,
 
 	@Schema(description = "이벤트 종료 시각")
-	Instant endAt) {
-	public static SplashPromotionResponse fromDto(SplashPromotionDto dto) {
+	Instant endAt,
+
+	@Schema(description = "상세 이미지 URL 목록")
+	List<String> detailImageUrls) {
+	public static SplashPromotionResponse fromDto(SplashPromotionDto dto, List<String> detailImageUrls) {
 		return new SplashPromotionResponse(
 			dto.promotionId(),
 			dto.title(),
 			dto.content(),
 			dto.thumbnailImageUrl(),
 			dto.startAt(),
-			dto.endAt());
+			dto.endAt(),
+			detailImageUrls);
 	}
 }

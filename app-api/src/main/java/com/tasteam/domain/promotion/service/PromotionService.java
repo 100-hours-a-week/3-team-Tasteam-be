@@ -30,7 +30,8 @@ public class PromotionService {
 		Pageable pageable) {
 		Page<PromotionSummaryResponse> result = promotionRepository
 			.findDisplayingPromotions(pageable, request.promotionStatus())
-			.map(PromotionSummaryResponse::fromDto);
+			.map(dto -> PromotionSummaryResponse.fromDto(dto,
+				promotionRepository.findDetailImageUrls(dto.promotionId())));
 
 		return new OffsetPageResponse<>(
 			result.getContent(),
@@ -54,14 +55,16 @@ public class PromotionService {
 	public Optional<SplashPromotionResponse> getSplashPromotion() {
 		return promotionRepository
 			.findSplashPromotion()
-			.map(SplashPromotionResponse::fromDto);
+			.map(dto -> SplashPromotionResponse.fromDto(dto,
+				promotionRepository.findDetailImageUrls(dto.promotionId())));
 	}
 
 	@Transactional(readOnly = true)
 	public OffsetPageResponse<PromotionSummaryResponse> getBannerPromotions(Pageable pageable) {
 		Page<PromotionSummaryResponse> result = promotionRepository
 			.findBannerPromotions(pageable)
-			.map(PromotionSummaryResponse::fromDto);
+			.map(dto -> PromotionSummaryResponse.fromDto(dto,
+				promotionRepository.findDetailImageUrls(dto.promotionId())));
 
 		return new OffsetPageResponse<>(
 			result.getContent(),
