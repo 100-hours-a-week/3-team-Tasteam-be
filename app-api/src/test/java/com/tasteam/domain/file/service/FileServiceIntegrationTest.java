@@ -244,7 +244,8 @@ class FileServiceIntegrationTest {
 		void cleanupPendingDeletedImagesSuccess() {
 			createAndSaveImage(FILE_UUID_CLEANUP_1, "uploads/test/cleanup.png");
 			Image image = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_1).orElseThrow();
-			Instant expiredDeletedAt = Instant.now().minus(cleanupProperties.ttlDuration()).minusSeconds(100);
+			Instant expiredDeletedAt = Instant.parse("2000-01-01T00:00:00Z").minus(cleanupProperties.ttlDuration())
+				.minusSeconds(100);
 			image.markDeletedAt(expiredDeletedAt);
 			imageRepository.save(image);
 
@@ -260,7 +261,7 @@ class FileServiceIntegrationTest {
 		void cleanupPendingDeletedImagesWithinTtlNotDeleted() {
 			createAndSaveImage(FILE_UUID_CLEANUP_2, "uploads/test/recent.png");
 			Image image = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_2).orElseThrow();
-			image.markDeletedAt(Instant.now().minusSeconds(10));
+			image.markDeletedAt(Instant.parse("2999-01-01T00:00:00Z").minusSeconds(10));
 			imageRepository.save(image);
 
 			int cleaned = fileService.cleanupPendingDeletedImages();
@@ -274,7 +275,8 @@ class FileServiceIntegrationTest {
 		@DisplayName("createdAt이 TTL보다 오래된 PENDING 이미지(deletedAt 없음)는 deletedAt이 마킹된다")
 		void cleanupPendingImagesCreatedBeforeTtlMarksDeletedAt() {
 			createAndSaveImage(FILE_UUID_CLEANUP_3, "uploads/test/old-pending.png");
-			Instant expiredCreatedAt = Instant.now().minus(cleanupProperties.ttlDuration()).minusSeconds(100);
+			Instant expiredCreatedAt = Instant.parse("2000-01-01T00:00:00Z").minus(cleanupProperties.ttlDuration())
+				.minusSeconds(100);
 			updateCreatedAt(FILE_UUID_CLEANUP_3, expiredCreatedAt);
 
 			fileService.cleanupPendingDeletedImages();
@@ -287,7 +289,8 @@ class FileServiceIntegrationTest {
 		@Test
 		@DisplayName("findCleanupPendingImages는 TTL이 지난 대기 이미지 목록을 반환한다")
 		void findCleanupPendingImagesReturnsExpiredImages() {
-			Instant expiredTime = Instant.now().minus(cleanupProperties.ttlDuration()).minusSeconds(100);
+			Instant expiredTime = Instant.parse("2000-01-01T00:00:00Z").minus(cleanupProperties.ttlDuration())
+				.minusSeconds(100);
 
 			createAndSaveImage(FILE_UUID_CLEANUP_1, "uploads/test/expired1.png");
 			Image expiredWithDeletedAt = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_1).orElseThrow();
@@ -299,7 +302,7 @@ class FileServiceIntegrationTest {
 
 			createAndSaveImage(FILE_UUID_CLEANUP_3, "uploads/test/recent.png");
 			Image recentImage = imageRepository.findByFileUuid(FILE_UUID_CLEANUP_3).orElseThrow();
-			recentImage.markDeletedAt(Instant.now().minusSeconds(10));
+			recentImage.markDeletedAt(Instant.parse("2999-01-01T00:00:00Z").minusSeconds(10));
 			imageRepository.save(recentImage);
 
 			List<Image> pendingImages = fileService.findCleanupPendingImages();

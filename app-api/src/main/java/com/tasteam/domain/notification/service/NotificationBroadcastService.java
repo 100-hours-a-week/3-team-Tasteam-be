@@ -22,6 +22,7 @@ import com.tasteam.domain.notification.entity.NotificationChannel;
 import com.tasteam.domain.notification.entity.NotificationType;
 import com.tasteam.domain.notification.entity.PushNotificationTarget;
 import com.tasteam.domain.notification.repository.NotificationPreferenceRepository;
+import com.tasteam.domain.notification.repository.NotificationRepository;
 import com.tasteam.domain.notification.repository.PushNotificationTargetRepository;
 import com.tasteam.infra.email.EmailSender;
 
@@ -35,11 +36,13 @@ public class NotificationBroadcastService {
 
 	private static final int FCM_BATCH_SIZE = 500;
 	private static final int EMAIL_PAGE_SIZE = 200;
+	private static final int WEB_PAGE_SIZE = 500;
 
 	private final ObjectProvider<FirebaseMessaging> firebaseMessagingProvider;
 	private final PushNotificationTargetRepository pushTargetRepository;
 	private final MemberRepository memberRepository;
 	private final NotificationPreferenceRepository preferenceRepository;
+	private final NotificationRepository notificationRepository;
 	private final EmailSender emailSender;
 
 	@Transactional
@@ -127,6 +130,38 @@ public class NotificationBroadcastService {
 			}
 		}
 		return new AdminBroadcastResultResponse(totalTargets, successCount, failureCount, skippedCount);
+	}
+
+	@Transactional
+	public AdminBroadcastResultResponse broadcastWeb(
+		NotificationType notificationType, String title, String body, String deepLink) {
+
+		Set<Long> disabledMemberIds = preferenceRepository.findDisabledMemberIds(NotificationChannel.WEB,
+			notificationType);
+
+		int page = 0;
+		int totalTargets = 0, successCount = 0, skippedCount = 0;
+
+		while (true) {
+			List<Member> members = memberRepository.findAllActiveUsers(PageRequest.of(page++, WEB_PAGE_SIZE))
+				.getContent();
+			if (members.isEmpty()) {
+				break;
+			}
+
+			List<com.tasteam.domain.notification.entity.Notification> toSave = members.stream()
+				.filter(m -> !disabledMemberIds.contains(m.getId()))
+				.map(m -> com.tasteam.domain.notification.entity.Notification.create(
+					m.getId(), notificationType, title, body, deepLink))
+				.toList();
+
+			skippedCount += members.size() - toSave.size();
+			totalTargets += toSave.size();
+
+			notificationRepository.saveAll(toSave);
+			successCount += toSave.size();
+		}
+		return new AdminBroadcastResultResponse(totalTargets, successCount, 0, skippedCount);
 	}
 
 	private Message buildMessage(String token, String title, String body, String deepLink) {

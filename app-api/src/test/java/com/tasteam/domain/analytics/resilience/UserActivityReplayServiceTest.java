@@ -77,7 +77,7 @@ class UserActivityReplayServiceTest {
 			objectMapper.writeValueAsString(event),
 			UserActivitySourceOutboxStatus.FAILED,
 			2,
-			Instant.now());
+			Instant.parse("2000-01-01T00:00:00Z"));
 		when(outboxService.findReplayCandidates(100)).thenReturn(List.of(candidate));
 
 		// when
@@ -114,7 +114,7 @@ class UserActivityReplayServiceTest {
 			"{\"eventId\":\"missing-required-fields\"}",
 			UserActivitySourceOutboxStatus.FAILED,
 			3,
-			Instant.now());
+			Instant.parse("2000-01-01T00:00:00Z"));
 		when(outboxService.findReplayCandidates(100)).thenReturn(List.of(candidate));
 
 		// when

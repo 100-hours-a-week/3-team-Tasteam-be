@@ -110,7 +110,7 @@ function getRestaurantIdFromQuery() {
 
 async function loadFoodCategories() {
     try {
-        const result = await getFoodCategories();
+        const result = await window.getFoodCategories();
         foodCategories = result.data || [];
         displayFoodCategories();
     } catch (error) {
@@ -164,7 +164,7 @@ async function loadRestaurant() {
     }
 
     try {
-        const result = await getRestaurant(restaurantId);
+        const result = await window.getRestaurant(restaurantId);
         const restaurant = result.data;
 
         const restaurantIdInput = document.getElementById('restaurantId');
@@ -388,7 +388,7 @@ function mountRestaurantEdit() {
 
             setImageStatus('이미지 최적화 중...', 'saving');
             try {
-                const optimized = await ImageOptimizer.optimizeImages(files, 'restaurant');
+                const optimized = await window.ImageOptimizer.optimizeImages(files, 'restaurant');
                 selectedFiles = optimized.optimized;
                 if (optimized.errors && optimized.errors.length > 0) {
                     alert(`일부 이미지 최적화 실패:\\n${optimized.errors.map((error) => `- ${error.file}: ${error.error}`).join('\n')}`);
@@ -426,13 +426,13 @@ function mountRestaurantEdit() {
             saveImagesBtn.disabled = true;
             setImageStatus('이미지 저장 중...', 'saving');
             try {
-                const presigned = await createPresignedUploads('RESTAURANT_IMAGE', selectedFiles);
+                const presigned = await window.createPresignedUploads('RESTAURANT_IMAGE', selectedFiles);
                 const uploads = presigned.data?.uploads || [];
                 await Promise.all(
-                    uploads.map((item, index) => uploadToPresigned(item, selectedFiles[index]))
+                    uploads.map((item, index) => window.uploadToPresigned(item, selectedFiles[index]))
                 );
                 const imageIds = uploads.map((item) => item.fileUuid);
-                await updateRestaurant(restaurantId, { imageIds });
+                await window.updateRestaurant(restaurantId, { imageIds });
                 await loadRestaurant();
                 setImageStatus('이미지 저장 완료', 'success');
             } catch (error) {
@@ -474,7 +474,7 @@ function mountRestaurantEdit() {
             }
 
             try {
-                await updateRestaurant(restaurantId, data);
+                await window.updateRestaurant(restaurantId, data);
                 alert('음식점이 수정되었습니다.');
                 AdminUtils?.navigateTo('/admin/pages/restaurants.html');
             } catch (error) {

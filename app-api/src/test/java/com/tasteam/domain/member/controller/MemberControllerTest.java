@@ -122,7 +122,7 @@ class MemberControllerTest extends BaseControllerWebMvcTest {
 				.description("설명")
 				.memberCount(5)
 				.profileImageUrl("https://example.com/img.jpg")
-				.createdAt(Instant.now())
+				.createdAt(Instant.parse("2000-01-01T00:00:00Z"))
 				.build();
 
 			SubgroupListResponse response = new SubgroupListResponse(
@@ -211,7 +211,7 @@ class MemberControllerTest extends BaseControllerWebMvcTest {
 		@DisplayName("내 찜 음식점을 조회하면 커서 페이징 결과를 반환한다")
 		void 내_찜_음식점_조회_성공() throws Exception {
 			// given
-			Instant now = Instant.now();
+			Instant now = Instant.parse("2000-01-01T00:00:00Z");
 			CursorPageResponse<FavoriteRestaurantItem> response = new CursorPageResponse<>(
 				List.of(new FavoriteRestaurantItem(101L, "국밥집", "https://cdn.example.com/restaurants/101.jpg",
 					List.of("한식", "국밥"), "서울시 강남구", now)),
@@ -270,7 +270,7 @@ class MemberControllerTest extends BaseControllerWebMvcTest {
 		@Test
 		@DisplayName("내 찜 등록에 성공하면 생성 응답을 반환한다")
 		void 내_찜_등록_성공() throws Exception {
-			Instant now = Instant.now();
+			Instant now = Instant.parse("2000-01-01T00:00:00Z");
 			given(favoriteService.createMyFavorite(anyLong(), anyLong()))
 				.willReturn(new FavoriteCreateResponse(10L, 101L, now));
 

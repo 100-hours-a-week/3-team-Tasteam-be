@@ -83,6 +83,15 @@ class MemberTest {
 		}
 
 		@Test
+		@DisplayName("닉네임이 최대 길이를 초과하면 수정에 실패한다")
+		void changeNickname_tooLong_throwsIllegalArgumentException() {
+			Member member = Member.create("test@example.com", "테스트유저");
+
+			assertThatThrownBy(() -> member.changeNickname("a".repeat(31)))
+				.isInstanceOf(IllegalArgumentException.class);
+		}
+
+		@Test
 		@DisplayName("유효한 이메일로 수정하면 이메일이 변경된다")
 		void changeEmail_validEmail_updatesEmail() {
 			Member member = Member.create("old@example.com", "테스트유저");
@@ -112,6 +121,15 @@ class MemberTest {
 		}
 
 		@Test
+		@DisplayName("이메일이 최대 길이를 초과하면 수정에 실패한다")
+		void changeEmail_tooLong_throwsIllegalArgumentException() {
+			Member member = Member.create("old@example.com", "테스트유저");
+
+			assertThatThrownBy(() -> member.changeEmail("a".repeat(256)))
+				.isInstanceOf(IllegalArgumentException.class);
+		}
+
+		@Test
 		@DisplayName("프로필 이미지 URL을 null로 수정하면 null로 변경된다")
 		void changeProfileImageUrl_nullUrl_updatesToNull() {
 			Member member = Member.create("test@example.com", "테스트유저");
@@ -128,6 +146,16 @@ class MemberTest {
 
 			assertThatThrownBy(() -> member.changeProfileImageUrl("  "))
 				.isInstanceOf(IllegalArgumentException.class);
+		}
+
+		@Test
+		@DisplayName("유효한 프로필 이미지 URL로 수정하면 URL이 변경된다")
+		void changeProfileImageUrl_validUrl_updatesUrl() {
+			Member member = Member.create("test@example.com", "테스트유저");
+
+			member.changeProfileImageUrl("https://example.com/new-profile.jpg");
+
+			assertThat(member.getProfileImageUrl()).isEqualTo("https://example.com/new-profile.jpg");
 		}
 
 		@Test
@@ -176,7 +204,7 @@ class MemberTest {
 		}
 
 		@Test
-		@DisplayName("탈퇴한 회원을 복활하면 상태가 ACTIVE이고 deletedAt이 초기화된다")
+		@DisplayName("탈퇴한 회원을 복구하면 상태가 ACTIVE이고 deletedAt이 초기화된다")
 		void activate_changesStatusToActiveAndClearsDeletedAt() {
 			Member member = Member.create("test@example.com", "테스트유저");
 			member.withdraw();

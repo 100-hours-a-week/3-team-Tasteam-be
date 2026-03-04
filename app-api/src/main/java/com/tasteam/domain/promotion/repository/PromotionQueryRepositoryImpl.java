@@ -109,16 +109,6 @@ public class PromotionQueryRepositoryImpl extends QueryDslSupport implements Pro
 			return Optional.empty();
 		}
 
-		List<String> detailImages = getQueryFactory()
-			.select(promotionAsset.imageUrl)
-			.from(promotionAsset)
-			.where(
-				promotionAsset.promotion.id.eq(promotionId),
-				promotionAsset.assetType.eq(AssetType.DETAIL),
-				promotionAsset.deletedAt.isNull())
-			.orderBy(promotionAsset.sortOrder.asc())
-			.fetch();
-
 		return Optional.of(new PromotionDetailDto(
 			summary.promotionId(),
 			summary.title(),
@@ -132,7 +122,24 @@ public class PromotionQueryRepositoryImpl extends QueryDslSupport implements Pro
 			summary.displayEndAt(),
 			summary.displayChannel(),
 			summary.bannerImageUrl(),
-			detailImages));
+			fetchDetailImages(promotionId)));
+	}
+
+	@Override
+	public List<String> findDetailImageUrls(Long promotionId) {
+		return fetchDetailImages(promotionId);
+	}
+
+	private List<String> fetchDetailImages(Long promotionId) {
+		return getQueryFactory()
+			.select(promotionAsset.imageUrl)
+			.from(promotionAsset)
+			.where(
+				promotionAsset.promotion.id.eq(promotionId),
+				promotionAsset.assetType.eq(AssetType.DETAIL),
+				promotionAsset.deletedAt.isNull())
+			.orderBy(promotionAsset.sortOrder.asc())
+			.fetch();
 	}
 
 	@Override

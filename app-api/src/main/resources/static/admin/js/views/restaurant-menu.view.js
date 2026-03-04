@@ -99,7 +99,7 @@ async function loadRestaurantInfo() {
     }
 
     try {
-        const result = await getRestaurant(restaurantId);
+        const result = await window.getRestaurant(restaurantId);
         const restaurantName = document.getElementById('restaurantName');
         if (restaurantName) {
             restaurantName.textContent = result.data.name;
@@ -115,7 +115,7 @@ async function loadMenus() {
     }
 
     try {
-        const result = await getRestaurantMenus(restaurantId);
+        const result = await window.getRestaurantMenus(restaurantId);
         menuCategories = result.data.categories || [];
         displayCategories();
         displayMenus();
@@ -238,7 +238,7 @@ function mountRestaurantMenu() {
             }
 
             try {
-                menuImageFile = await ImageOptimizer.optimizeRestaurantImage(file);
+                menuImageFile = await window.ImageOptimizer.optimizeRestaurantImage(file);
                 if (menuImageFileName) {
                     menuImageFileName.textContent = menuImageFile.name;
                 }
@@ -270,7 +270,7 @@ function mountRestaurantMenu() {
             };
 
             try {
-                await createMenuCategory(restaurantId, data);
+                await window.createMenuCategory(restaurantId, data);
                 alert('카테고리가 추가되었습니다.');
                 categoryForm.reset();
                 await loadMenus();
@@ -297,10 +297,10 @@ function mountRestaurantMenu() {
             let imageFileUuid = null;
             if (menuImageFile) {
                 try {
-                    const presigned = await createPresignedUploads('MENU_IMAGE', [menuImageFile]);
+                    const presigned = await window.createPresignedUploads('MENU_IMAGE', [menuImageFile]);
                     const upload = presigned.data?.uploads?.[0];
                     if (upload) {
-                        await uploadToPresigned(upload, menuImageFile);
+                        await window.uploadToPresigned(upload, menuImageFile);
                         imageFileUuid = upload.fileUuid;
                     }
                 } catch (error) {
@@ -323,7 +323,7 @@ function mountRestaurantMenu() {
             }
 
             try {
-                await createMenu(restaurantId, data);
+                await window.createMenu(restaurantId, data);
                 alert('메뉴가 추가되었습니다.');
                 menuForm.reset();
                 menuImageFile = null;

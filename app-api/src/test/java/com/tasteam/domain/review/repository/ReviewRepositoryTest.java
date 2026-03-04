@@ -74,7 +74,7 @@ class ReviewRepositoryTest {
 		saveReview(restaurant, member, true);
 		saveReview(restaurant, member, false);
 		Review deleted = saveReview(restaurant, member, true);
-		deleted.softDelete(Instant.now());
+		deleted.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 		entityManager.flush();
 		entityManager.clear();
 
@@ -92,7 +92,7 @@ class ReviewRepositoryTest {
 		Restaurant restaurant = saveRestaurant("삭제테스트식당");
 		Member member = memberRepository.save(MemberFixture.create());
 		Review review = saveReview(restaurant, member, true);
-		review.softDelete(Instant.now());
+		review.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 		entityManager.flush();
 		entityManager.clear();
 
@@ -108,7 +108,7 @@ class ReviewRepositoryTest {
 		Member member = memberRepository.save(MemberFixture.create());
 		saveReview(restaurant, member, true);
 		Review deleted = saveReview(restaurant, member, false);
-		deleted.softDelete(Instant.now());
+		deleted.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 		entityManager.flush();
 		entityManager.clear();
 

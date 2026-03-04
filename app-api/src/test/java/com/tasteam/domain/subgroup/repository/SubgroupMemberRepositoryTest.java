@@ -50,7 +50,7 @@ class SubgroupMemberRepositoryTest {
 	void findBySubgroupIdAndMember_IdAndDeletedAtIsNull_excludesSoftDeleted() {
 		Member member = memberRepository.save(MemberFixture.create());
 		SubgroupMember subgroupMember = subgroupMemberRepository.save(SubgroupMember.create(200L, member));
-		subgroupMember.softDelete(Instant.now());
+		subgroupMember.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 		entityManager.flush();
 		entityManager.clear();
 
@@ -64,7 +64,7 @@ class SubgroupMemberRepositoryTest {
 	void findBySubgroupIdAndMember_Id_includesDeleted() {
 		Member member = memberRepository.save(MemberFixture.create());
 		SubgroupMember subgroupMember = subgroupMemberRepository.save(SubgroupMember.create(300L, member));
-		subgroupMember.softDelete(Instant.now());
+		subgroupMember.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 		entityManager.flush();
 		entityManager.clear();
 

@@ -1,5 +1,6 @@
 package com.tasteam.domain.notification.controller;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -9,11 +10,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tasteam.domain.notification.controller.docs.AdminNotificationControllerDocs;
+import com.tasteam.domain.notification.dto.request.AdminBroadcastAllRequest;
 import com.tasteam.domain.notification.dto.request.AdminBroadcastEmailRequest;
 import com.tasteam.domain.notification.dto.request.AdminBroadcastPushRequest;
 import com.tasteam.domain.notification.dto.request.AdminPushNotificationRequest;
 import com.tasteam.domain.notification.dto.response.AdminBroadcastResultResponse;
 import com.tasteam.domain.notification.dto.response.AdminPushNotificationResponse;
+import com.tasteam.domain.notification.event.AdminBroadcastRequestedEvent;
 import com.tasteam.domain.notification.service.FcmPushService;
 import com.tasteam.domain.notification.service.NotificationBroadcastService;
 import com.tasteam.global.dto.api.SuccessResponse;
@@ -30,6 +33,7 @@ public class AdminNotificationController implements AdminNotificationControllerD
 
 	private final FcmPushService fcmPushService;
 	private final NotificationBroadcastService notificationBroadcastService;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Override
 	@PostMapping("/push/test")
@@ -62,5 +66,20 @@ public class AdminNotificationController implements AdminNotificationControllerD
 		AdminBroadcastResultResponse response = notificationBroadcastService.broadcastEmail(
 			request.notificationType(), request.templateKey(), request.variables());
 		return ResponseEntity.ok(SuccessResponse.success(response));
+	}
+
+	@Override
+	@PostMapping("/broadcast")
+	public ResponseEntity<Void> broadcastAll(@RequestBody @Valid
+	AdminBroadcastAllRequest request) {
+		eventPublisher.publishEvent(new AdminBroadcastRequestedEvent(
+			request.notificationType(),
+			request.title(),
+			request.body(),
+			request.deepLink(),
+			request.channels(),
+			request.templateKey(),
+			request.templateVariables()));
+		return ResponseEntity.accepted().build();
 	}
 }

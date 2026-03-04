@@ -9,7 +9,7 @@ function renderNotFound(container) {
         </div>
         <div class="card">
             <p>요청하신 관리자 페이지가 존재하지 않습니다.</p>
-            <a href="/admin/pages/dashboard.html" class="btn btn-primary" style="margin-top: 12px;">대시보드로 이동</a>
+            <a href="/admin/pages/dashboard.html" class="btn btn-primary not-found-link">대시보드로 이동</a>
         </div>
     `;
 }
