@@ -198,7 +198,7 @@ class RestaurantControllerTest extends BaseControllerWebMvcTest {
 				false,
 				10L,
 				aiDetails,
-				Instant.now(), Instant.now());
+				Instant.parse("2000-01-01T00:00:00Z"), Instant.parse("2000-01-01T00:00:00Z"));
 
 			given(restaurantService.getRestaurantDetail(1L)).willReturn(response);
 
@@ -223,7 +223,7 @@ class RestaurantControllerTest extends BaseControllerWebMvcTest {
 				false,
 				10L,
 				aiDetails,
-				Instant.now(), Instant.now());
+				Instant.parse("2000-01-01T00:00:00Z"), Instant.parse("2000-01-01T00:00:00Z"));
 
 			given(restaurantService.getRestaurantDetail(1L)).willReturn(response);
 
@@ -259,7 +259,7 @@ class RestaurantControllerTest extends BaseControllerWebMvcTest {
 					new ReviewResponse.AuthorResponse("테스트유저", "https://example.com/profile.jpg"),
 					"맛있어요", true, List.of("친절", "깨끗"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
-					Instant.now(), null, null, null, null, null, null)),
+					Instant.parse("2000-01-01T00:00:00Z"), null, null, null, null, null, null)),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(reviewService.getRestaurantReviews(eq(1L), any())).willReturn(response);
@@ -283,7 +283,7 @@ class RestaurantControllerTest extends BaseControllerWebMvcTest {
 					new ReviewResponse.AuthorResponse("테스트유저", "https://example.com/profile.jpg"),
 					"맛있어요", true, List.of("친절", "깨끗"),
 					List.of(new ReviewResponse.ReviewImageResponse(1L, "https://example.com/review.jpg")),
-					Instant.now(), null, null, null, null, null, null)),
+					Instant.parse("2000-01-01T00:00:00Z"), null, null, null, null, null, null)),
 				new CursorPageResponse.Pagination(null, false, 20));
 
 			given(reviewService.getRestaurantReviews(eq(1L), any())).willReturn(response);
@@ -311,7 +311,7 @@ class RestaurantControllerTest extends BaseControllerWebMvcTest {
 		@DisplayName("리뷰를 작성하면 201과 생성된 ID를 반환한다")
 		void 리뷰_작성_성공() throws Exception {
 			// given
-			ReviewCreateResponse response = new ReviewCreateResponse(1L, Instant.now());
+			ReviewCreateResponse response = new ReviewCreateResponse(1L, Instant.parse("2000-01-01T00:00:00Z"));
 			given(reviewService.createReview(anyLong(), eq(1L), any())).willReturn(response);
 
 			var request = new com.tasteam.domain.review.dto.request.ReviewCreateRequest(

@@ -156,11 +156,12 @@ class OAuthLoginServiceIntegrationTest {
 			.scope("profile", "email")
 			.clientName("test-client");
 
+		Instant issuedAt = Instant.parse("2099-01-01T00:00:00Z");
 		OAuth2AccessToken accessToken = new OAuth2AccessToken(
 			TokenType.BEARER,
 			"access-token",
-			Instant.now(),
-			Instant.now().plusSeconds(60));
+			issuedAt,
+			issuedAt.plusSeconds(60));
 
 		return new OAuth2UserRequest(builder.build(), accessToken);
 	}

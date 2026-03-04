@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -35,5 +36,11 @@ public interface DomainImageRepository extends JpaRepository<DomainImage, Long> 
 
 	long countByDomainTypeAndDomainId(DomainType domainType, Long domainId);
 
-	void deleteAllByDomainTypeAndDomainId(DomainType domainType, Long domainId);
+	@Modifying
+	@Query("DELETE FROM DomainImage d WHERE d.domainType = :domainType AND d.domainId = :domainId")
+	void deleteAllByDomainTypeAndDomainId(
+		@Param("domainType")
+		DomainType domainType,
+		@Param("domainId")
+		Long domainId);
 }

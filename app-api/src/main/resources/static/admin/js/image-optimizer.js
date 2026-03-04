@@ -113,3 +113,5 @@ const ImageOptimizer = {
         return { optimized, errors };
     }
 };
+
+window.ImageOptimizer = ImageOptimizer;

@@ -54,7 +54,7 @@ class SearchQueryRepositoryTest {
 		Restaurant other = createRestaurant("피자", point(LON, LAT));
 		Restaurant outside = createRestaurant("치킨먼곳", point(LON + 0.5, LAT + 0.5));
 		Restaurant deleted = createRestaurant("치킨삭제", point(LON, LAT));
-		deleted.softDelete(Instant.now());
+		deleted.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 
 		restaurantRepository.saveAll(List.of(exact, similar, other, outside, deleted));
 		restaurantRepository.flush();

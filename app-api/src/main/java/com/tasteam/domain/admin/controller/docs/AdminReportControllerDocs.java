@@ -3,6 +3,7 @@ package com.tasteam.domain.admin.controller.docs;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.tasteam.domain.admin.dto.request.AdminReportStatusUpdateRequest;
@@ -16,6 +17,7 @@ import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @SwaggerTagOrder(140)
 @Tag(name = "Admin - Report", description = "어드민 신고 관리 API")
@@ -38,5 +40,6 @@ public interface AdminReportControllerDocs {
 	void updateStatus(
 		@Parameter(description = "신고 ID", example = "1") @PathVariable
 		Long reportId,
+		@RequestBody @Valid
 		AdminReportStatusUpdateRequest request);
 }

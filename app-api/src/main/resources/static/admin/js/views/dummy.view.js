@@ -4,14 +4,14 @@ function renderDummy(container) {
 	container.innerHTML = `
         <div class="content-header">
             <h1>더미 데이터 관리</h1>
-            <p style="color:#666;margin-top:4px;">부하테스트용 더미 데이터를 빠르게 삽입·조회·삭제합니다.</p>
+            <p class="content-subtitle">부하테스트용 더미 데이터를 빠르게 삽입·조회·삭제합니다.</p>
         </div>
 
         <div class="dummy-cards">
             <div class="card">
                 <h3>현재 데이터 현황</h3>
-                <button class="btn btn-secondary" id="countBtn" style="margin-top:8px;">현황 조회</button>
-                <div id="countResult" style="display:none;">
+                <button class="btn btn-secondary count-button" id="countBtn">현황 조회</button>
+                <div id="countResult" class="is-hidden">
                     <table class="count-table">
                         <thead>
                             <tr><th>테이블</th><th>레코드 수</th></tr>
@@ -19,7 +19,7 @@ function renderDummy(container) {
                         <tbody id="countTableBody"></tbody>
                     </table>
                 </div>
-                <div id="countError" class="status-msg error" style="display:none;"></div>
+                <div id="countError" class="status-msg error is-hidden"></div>
             </div>
 
             <div class="card">
@@ -49,13 +49,13 @@ function renderDummy(container) {
                         <label>리뷰 수 (기본 1000)</label>
                         <input type="number" id="reviewCount" placeholder="1000" min="0">
                     </div>
-                    <div class="form-field" style="grid-column: span 2;">
+                    <div class="form-field form-field-full">
                         <label>채팅방당 메시지 수 (기본 50)</label>
                         <input type="number" id="chatMessagePerRoom" placeholder="50" min="0">
                     </div>
                 </div>
-                <button class="btn btn-primary" id="seedBtn" style="margin-top:16px;">삽입 실행</button>
-                <div id="seedResult" class="seed-result" style="display:none;">
+                <button class="btn btn-primary seed-button" id="seedBtn">삽입 실행</button>
+                <div id="seedResult" class="seed-result is-hidden">
                     <table>
                         <tr><td>멤버 삽입</td><td id="r-members">-</td></tr>
                         <tr><td>음식점 삽입</td><td id="r-restaurants">-</td></tr>
@@ -66,18 +66,18 @@ function renderDummy(container) {
                     </table>
                     <p class="elapsed" id="r-elapsed"></p>
                 </div>
-                <div id="seedError" class="status-msg error" style="display:none;"></div>
-                <div id="seedLoading" style="display:none;color:#1976d2;margin-top:12px;">⏳ 삽입 중...</div>
+                <div id="seedError" class="status-msg error is-hidden"></div>
+                <div id="seedLoading" class="seed-loading is-hidden">삽입 중...</div>
             </div>
 
             <div class="card">
                 <h3>더미 데이터 삭제</h3>
                 <div class="delete-zone">
-                    <p style="margin-bottom:16px;">
+                    <p class="delete-zone-text">
                         <strong>주의:</strong> email LIKE <code>%@dummy.tasteam.kr</code> 등 패턴 데이터가 삭제됩니다.
                     </p>
-                    <button class="btn-danger" id="deleteBtn">더미 데이터 전체 삭제</button>
-                    <div id="deleteMsg" class="status-msg" style="display:none;"></div>
+                    <button class="btn btn-danger" id="deleteBtn">더미 데이터 전체 삭제</button>
+                    <div id="deleteMsg" class="status-msg is-hidden"></div>
                 </div>
             </div>
         </div>

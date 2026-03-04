@@ -3,6 +3,7 @@ package com.tasteam.domain.subgroup.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -222,7 +223,7 @@ class SubgroupFacadeIntegrationTest {
 			SubgroupMember membership = subgroupMemberRepository.save(
 				SubgroupMember.create(openSubgroup.getId(), member2));
 			openSubgroup.increaseMemberCount();
-			membership.softDelete(java.time.Instant.now());
+			membership.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 			openSubgroup.decreaseMemberCount();
 
 			subgroupFacade.joinSubgroup(group.getId(), openSubgroup.getId(), member2.getId(), null);
@@ -453,7 +454,7 @@ class SubgroupFacadeIntegrationTest {
 			subgroupMemberRepository.save(SubgroupMemberFixture.create(subgroup.getId(), member1));
 			SubgroupMember member2Membership = subgroupMemberRepository.save(
 				SubgroupMemberFixture.create(subgroup.getId(), member2));
-			member2Membership.softDelete(java.time.Instant.now());
+			member2Membership.softDelete(Instant.parse("2000-01-01T00:00:00Z"));
 		}
 
 		@Test

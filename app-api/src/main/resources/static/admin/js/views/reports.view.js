@@ -53,22 +53,22 @@ function renderReports(container) {
 
         <div class="pagination" id="reportsPagination"></div>
 
-        <div id="reportModal" class="modal" style="display:none;">
+        <div id="reportModal" class="modal is-hidden">
             <div class="modal-content">
                 <span class="close" id="modalCloseBtn">&times;</span>
                 <h2>신고 상세</h2>
                 <table class="data-table" id="modalDetailTable">
                     <tbody></tbody>
                 </table>
-                <div style="margin-top:16px;">
+                <div class="modal-actions">
                     <label for="modalStatus"><strong>처리 상태 변경:</strong></label>
-                    <select id="modalStatus" style="margin-left:8px;">
+                    <select id="modalStatus" class="modal-status-select">
                         <option value="PENDING">접수됨</option>
                         <option value="IN_PROGRESS">처리 중</option>
                         <option value="RESOLVED">해결됨</option>
                         <option value="REJECTED">반려</option>
                     </select>
-                    <button class="btn btn-primary" id="saveStatusBtn" style="margin-left:8px;">저장</button>
+                    <button class="btn btn-primary" id="saveStatusBtn">저장</button>
                 </div>
             </div>
         </div>
@@ -264,7 +264,7 @@ async function openReportDetail(reportId) {
                 <tr><th>상태</th><td>${statusLabels[report.status] || report.status}</td></tr>
                 <tr><th>접수일</th><td>${formatReportDate(report.createdAt)}</td></tr>
                 <tr><th>수정일</th><td>${formatReportDate(report.updatedAt)}</td></tr>
-                <tr><th>상세 내용</th><td style="white-space:pre-wrap;">${window.AdminUtils.escapeHtml(report.content || '-')}</td></tr>
+                <tr><th>상세 내용</th><td class="detail-content-cell">${window.AdminUtils.escapeHtml(report.content || '-')}</td></tr>
             `;
 		}
 

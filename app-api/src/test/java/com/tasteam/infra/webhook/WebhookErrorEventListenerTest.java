@@ -86,7 +86,8 @@ class WebhookErrorEventListenerTest {
 		given(webhookClient.isEnabled()).willReturn(true);
 		webhookProperties.getFilters().setMinHttpStatus(400);
 		ErrorOccurredEvent event = errorEvent("BUSINESS", "SOME_ERROR", HttpStatus.BAD_REQUEST);
-		WebhookMessage message = new WebhookMessage("title", "desc", null, null, Instant.now(), null);
+		WebhookMessage message = new WebhookMessage("title", "desc", null, null, Instant.parse("2000-01-01T00:00:00Z"),
+			null);
 		given(businessExceptionTemplate.build(event.context())).willReturn(message);
 
 		listener.onErrorOccurred(event);
@@ -101,7 +102,8 @@ class WebhookErrorEventListenerTest {
 		given(webhookClient.isEnabled()).willReturn(true);
 		webhookProperties.getFilters().setMinHttpStatus(500);
 		ErrorOccurredEvent event = errorEvent("SYSTEM", "INTERNAL_SERVER_ERROR", HttpStatus.INTERNAL_SERVER_ERROR);
-		WebhookMessage message = new WebhookMessage("title", "desc", null, null, Instant.now(), null);
+		WebhookMessage message = new WebhookMessage("title", "desc", null, null, Instant.parse("2000-01-01T00:00:00Z"),
+			null);
 		given(systemExceptionTemplate.build(event.context())).willReturn(message);
 
 		listener.onErrorOccurred(event);
@@ -116,7 +118,8 @@ class WebhookErrorEventListenerTest {
 		given(webhookClient.isEnabled()).willReturn(true);
 		webhookProperties.getFilters().setMinHttpStatus(500);
 		ErrorOccurredEvent event = errorEvent("SYSTEM", "INTERNAL_SERVER_ERROR", HttpStatus.INTERNAL_SERVER_ERROR);
-		WebhookMessage message = new WebhookMessage("title", "desc", null, null, Instant.now(), null);
+		WebhookMessage message = new WebhookMessage("title", "desc", null, null, Instant.parse("2000-01-01T00:00:00Z"),
+			null);
 		given(systemExceptionTemplate.build(event.context())).willReturn(message);
 		willThrow(new RuntimeException("전송 실패")).given(webhookClient).send(message);
 
@@ -127,7 +130,7 @@ class WebhookErrorEventListenerTest {
 	private ErrorOccurredEvent errorEvent(String errorType, String errorCode, HttpStatus httpStatus) {
 		ErrorContext context = new ErrorContext(
 			errorType, errorCode, "테스트 에러 메시지", httpStatus,
-			"GET", "/api/test", "JUnit", Instant.now(), "RuntimeException", null);
+			"GET", "/api/test", "JUnit", Instant.parse("2000-01-01T00:00:00Z"), "RuntimeException", null);
 		return new ErrorOccurredEvent(context);
 	}
 }

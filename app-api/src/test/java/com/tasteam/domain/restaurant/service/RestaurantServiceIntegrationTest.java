@@ -293,7 +293,7 @@ class RestaurantServiceIntegrationTest {
 			reviewRepository.save(Review.create(restaurant, member, 1L, null, "추천2", true));
 			reviewRepository.save(Review.create(restaurant, member, 1L, null, "비추천", false));
 
-			Instant now = Instant.now();
+			Instant now = Instant.parse("2000-01-01T00:00:00Z");
 			restaurantReviewSummaryRepository.save(
 				RestaurantReviewSummary.create(created.id(), 0L, "1",
 					Map.of("overall_summary", "AI 요약"), now));
@@ -309,7 +309,7 @@ class RestaurantServiceIntegrationTest {
 						"category_lift", Map.of("service", -45.0, "price", 450.0),
 						"total_candidates", 10,
 						"validated_count", 1),
-					Instant.now()));
+					Instant.parse("2000-01-01T00:00:00Z")));
 
 			RestaurantDetailResponse detail = restaurantService.getRestaurantDetail(created.id());
 

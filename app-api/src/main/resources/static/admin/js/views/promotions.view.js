@@ -9,7 +9,7 @@ function renderPromotions(container) {
 	container.innerHTML = `
         <div class="content-header">
             <h1>프로모션 관리</h1>
-            <a class="btn btn-primary" href="/admin/pages/promotion-create.html">프로모션 등록</a>
+            <button class="btn btn-primary" id="promotionCreateBtn">프로모션 등록</button>
         </div>
 
         <div class="filter-bar">
@@ -41,6 +41,7 @@ function renderPromotions(container) {
                     <tr>
                         <th>ID</th>
                         <th>제목</th>
+                        <th>배너</th>
                         <th>프로모션 상태</th>
                         <th>노출 상태</th>
                         <th>발행 상태</th>
@@ -52,7 +53,7 @@ function renderPromotions(container) {
                 </thead>
                 <tbody id="promotionList">
                     <tr>
-                        <td colspan="9" class="loading">로딩 중...</td>
+                        <td colspan="10" class="loading">로딩 중...</td>
                     </tr>
                 </tbody>
             </table>
@@ -103,7 +104,7 @@ function renderPromotionRows(promotions) {
 		return;
 	}
 	if (!promotions || promotions.length === 0) {
-		tbody.innerHTML = '<tr><td colspan="9" class="empty">등록된 프로모션이 없습니다.</td></tr>';
+		tbody.innerHTML = '<tr><td colspan="10" class="empty">등록된 프로모션이 없습니다.</td></tr>';
 		return;
 	}
 
@@ -111,6 +112,7 @@ function renderPromotionRows(promotions) {
         <tr>
             <td>${promotion.id}</td>
             <td>${window.AdminUtils.escapeHtml(promotion.title)}</td>
+            <td>${promotion.bannerImageUrl ? `<img src="${promotion.bannerImageUrl}" style="width:60px;height:30px;object-fit:cover;" alt="배너">` : '-'}</td>
             <td><span class="badge badge-${getPromotionStatusClass(promotion.promotionStatus)}">${getPromotionStatusText(promotion.promotionStatus)}</span></td>
             <td><span class="badge badge-${getDisplayStatusClass(promotion.displayStatus)}">${getDisplayStatusText(promotion.displayStatus)}</span></td>
             <td><span class="badge badge-${getPublishStatusClass(promotion.publishStatus)}">${getPublishStatusText(promotion.publishStatus)}</span></td>
@@ -118,7 +120,7 @@ function renderPromotionRows(promotions) {
             <td>${formatDateTime(promotion.promotionEndAt)}</td>
             <td>${getDisplayChannelText(promotion.displayChannel)}</td>
             <td class="actions">
-                <button class="btn btn-sm" data-action="edit" data-id="${promotion.id}">편집</button>
+                <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${promotion.id}">편집</button>
                 <button class="btn btn-sm btn-danger" data-action="delete" data-id="${promotion.id}">삭제</button>
             </td>
         </tr>
@@ -307,6 +309,15 @@ function mountPromotions(state = {}) {
 	const initialFilters = getPromotionFilterState(state);
 	applyFiltersFromState(initialFilters);
 	loadPromotions(initialFilters.page, initialFilters);
+
+	const createButton = document.getElementById('promotionCreateBtn');
+	if (createButton) {
+		const createHandler = () => {
+			window.AdminUtils.navigateTo('/admin/pages/promotion-create.html');
+		};
+		createButton.addEventListener('click', createHandler);
+		promotionsCleanup.push(() => createButton.removeEventListener('click', createHandler));
+	}
 
 	const applyButton = document.getElementById('applyPromotionFilterBtn');
 	if (applyButton) {
