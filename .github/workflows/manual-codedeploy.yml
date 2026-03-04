@@ -3,6 +3,21 @@ name: Backend Manual Deploy (CodeDeploy)
 on:
   workflow_dispatch:
     inputs:
+      source_branch:
+        description: '배포할 소스 브랜치'
+        required: true
+        type: choice
+        default: main
+        options:
+          - main
+      target_environment:
+        description: '배포 대상 환경'
+        required: true
+        type: choice
+        default: stg
+        options:
+          - stg
+          - prod
       run_tests:
         description: '배포 전 테스트 실행 여부'
         required: true
@@ -14,41 +29,60 @@ permissions:
   contents: read
 
 concurrency:
-  group: codedeploy-${{ github.ref_name }}
+  group: codedeploy-${{ inputs.target_environment }}
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+    environment: ${{ inputs.target_environment == 'prod' && 'production' || 'staging' }}
     timeout-minutes: 30
 
     env:
       AWS_REGION: ap-northeast-2
       DEPLOY_DIR: deploy/codedeploy/backend
-      ARTIFACT_FILE: codedeploy-backend-${{ github.sha }}.zip
-      IMAGE_TAG_SHA: ${{ github.sha }}
       IMAGE_TAG_LATEST: latest
-      DEPLOY_ENV_NAME: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
-      DEPLOYMENT_CONFIG_NAME: ${{ github.ref_name == 'main' && 'CodeDeployDefault.OneAtATime' || 'CodeDeployDefault.AllAtOnce' }}
-      GHA_CACHE_SCOPE: ${{ github.ref_name == 'main' && 'backend-codedeploy-prod' || 'backend-codedeploy-dev' }}
+      DEPLOY_ENV_NAME: ${{ inputs.target_environment }}
+      DEPLOYMENT_CONFIG_NAME: ${{ inputs.target_environment == 'prod' && 'CodeDeployDefault.OneAtATime' || 'CodeDeployDefault.AllAtOnce' }}
+      GHA_CACHE_SCOPE: backend-codedeploy-${{ inputs.target_environment }}
+      TARGET_ENV_LABEL: ${{ inputs.target_environment == 'prod' && '운영' || '스테이징' }}
 
     steps:
-      - name: Validate target branch
+      - name: Validate deploy request
         run: |
           set -euo pipefail
-          case "${GITHUB_REF_NAME}" in
-            main|develop)
-              echo "target branch: ${GITHUB_REF_NAME}"
+          case "${{ inputs.source_branch }}" in
+            main)
+              echo "source branch: ${{ inputs.source_branch }}"
               ;;
             *)
-              echo "manual deploy is only supported on main or develop. current=${GITHUB_REF_NAME}" >&2
+              echo "manual deploy is only supported on main. current=${{ inputs.source_branch }}" >&2
+              exit 1
+              ;;
+          esac
+
+          case "${{ inputs.target_environment }}" in
+            stg|prod)
+              echo "target environment: ${{ inputs.target_environment }}"
+              ;;
+            *)
+              echo "manual deploy is only supported on stg or prod. current=${{ inputs.target_environment }}" >&2
               exit 1
               ;;
           esac
 
       - name: Checkout source code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_branch }}
+
+      - name: Resolve source metadata
+        id: source
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          echo "source_sha=${SOURCE_SHA}" >> "$GITHUB_OUTPUT"
+          echo "artifact_file=codedeploy-backend-${SOURCE_SHA}.zip" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 21
         if: ${{ inputs.run_tests }}
@@ -85,7 +119,7 @@ jobs:
           file: app-api/Dockerfile
           push: true
           tags: |
-            ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ env.IMAGE_TAG_SHA }}
+            ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ steps.source.outputs.source_sha }}
             ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ env.IMAGE_TAG_LATEST }}
           cache-from: type=gha,scope=${{ env.GHA_CACHE_SCOPE }}
           cache-to: type=gha,mode=max,scope=${{ env.GHA_CACHE_SCOPE }}
@@ -103,11 +137,11 @@ jobs:
           AWS_REGION=${AWS_REGION}
           ECR_REGISTRY=${ECR_REGISTRY}
           ECR_REPO_BACKEND=${ECR_REPO_BACKEND}
-          IMAGE_TAG=${IMAGE_TAG_SHA}
+          IMAGE_TAG=${{ steps.source.outputs.source_sha }}
           EODEPLOY
 
           chmod +x deploy.sh stop.sh health.sh traffic.sh switch.sh rollback.sh
-          zip -r "${GITHUB_WORKSPACE}/${ARTIFACT_FILE}" \
+          zip -r "${GITHUB_WORKSPACE}/${{ steps.source.outputs.artifact_file }}" \
             appspec.yml \
             deploy.sh \
             stop.sh \
@@ -127,7 +161,7 @@ jobs:
           CODEDEPLOY_BUCKET: ${{ secrets.CODEDEPLOY_ARTIFACT_BUCKET }}
         run: |
           set -euo pipefail
-          aws s3 cp "${ARTIFACT_FILE}" "s3://${CODEDEPLOY_BUCKET}/backend/${ARTIFACT_FILE}"
+          aws s3 cp "${{ steps.source.outputs.artifact_file }}" "s3://${CODEDEPLOY_BUCKET}/backend/${{ steps.source.outputs.artifact_file }}"
 
       - name: Trigger CodeDeploy deployment
         id: trigger
@@ -141,18 +175,20 @@ jobs:
             --application-name "${CODEDEPLOY_APP_NAME}" \
             --deployment-group-name "${CODEDEPLOY_DEPLOYMENT_GROUP}" \
             --deployment-config-name "${DEPLOYMENT_CONFIG_NAME}" \
-            --description "Manual deploy ${GITHUB_SHA}" \
-            --s3-location bucket="${CODEDEPLOY_BUCKET}",key="backend/${ARTIFACT_FILE}",bundleType=zip \
+            --description "Manual deploy ${{ inputs.source_branch }}@${{ steps.source.outputs.source_sha }} to ${DEPLOY_ENV_NAME}" \
+            --s3-location bucket="${CODEDEPLOY_BUCKET}",key="backend/${{ steps.source.outputs.artifact_file }}",bundleType=zip \
             --query deploymentId \
             --output text)
 
           echo "deployment_id=${DEPLOYMENT_ID}" >> "$GITHUB_OUTPUT"
           {
             echo "### Manual CodeDeploy"
-            echo "- branch: \`${GITHUB_REF_NAME}\`"
+            echo "- source branch: \`${{ inputs.source_branch }}\`"
             echo "- environment: \`${DEPLOY_ENV_NAME}\`"
+            echo "- application: \`${CODEDEPLOY_APP_NAME}\`"
+            echo "- deployment group: \`${CODEDEPLOY_DEPLOYMENT_GROUP}\`"
             echo "- tests: \`${{ inputs.run_tests }}\`"
-            echo "- commit: \`${GITHUB_SHA}\`"
+            echo "- commit: \`${{ steps.source.outputs.source_sha }}\`"
             echo "- deployment id: \`${DEPLOYMENT_ID}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -166,12 +202,14 @@ jobs:
 
       - name: Notify deployment result
         if: always()
+        env:
+          CODEDEPLOY_DEPLOYMENT_GROUP: ${{ secrets.CODEDEPLOY_DEPLOYMENT_GROUP }}
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            TITLE="백엔드 수동 배포 성공 💗"
+            TITLE="백엔드 ${TARGET_ENV_LABEL} 수동 배포 성공 💗"
             COLOR=65280
           else
-            TITLE="백엔드 수동 배포 실패 💔💀"
+            TITLE="백엔드 ${TARGET_ENV_LABEL} 수동 배포 실패 💔💀"
             COLOR=16711680
           fi
 
@@ -184,11 +222,12 @@ jobs:
                    \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
                    \"fields\": [
                      {\"name\": \"결과\", \"value\": \"${{ job.status }}\", \"inline\": true},
-                     {\"name\": \"브랜치\", \"value\": \"${{ github.ref_name }}\", \"inline\": true},
+                     {\"name\": \"소스 브랜치\", \"value\": \"${{ inputs.source_branch }}\", \"inline\": true},
                      {\"name\": \"실행자\", \"value\": \"${{ github.actor }}\", \"inline\": true},
                      {\"name\": \"테스트 실행\", \"value\": \"${{ inputs.run_tests }}\", \"inline\": true},
-                     {\"name\": \"커밋\", \"value\": \"\`${{ github.sha }}\`\", \"inline\": false},
-                     {\"name\": \"서버 환경\", \"value\": \"${{ github.ref_name == 'main' && '운영' || '개발' }} 서버\", \"inline\": false},
+                     {\"name\": \"커밋\", \"value\": \"\`${{ steps.source.outputs.source_sha }}\`\", \"inline\": false},
+                     {\"name\": \"서버 환경\", \"value\": \"${TARGET_ENV_LABEL} 서버\", \"inline\": false},
+                     {\"name\": \"Deployment Group\", \"value\": \"\`${CODEDEPLOY_DEPLOYMENT_GROUP}\`\", \"inline\": false},
                      {\"name\": \"워크플로우\", \"value\": \"[실행 로그 보기](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\", \"inline\": false}
                    ]
                  }]
