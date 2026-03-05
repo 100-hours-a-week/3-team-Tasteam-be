@@ -6,5 +6,7 @@ public record AdminDataCountResponse(
 	long groupCount,
 	long subgroupCount,
 	long reviewCount,
-	long chatMessageCount) {
+	long chatMessageCount,
+	long notificationCount,
+	long favoriteCount) {
 }
