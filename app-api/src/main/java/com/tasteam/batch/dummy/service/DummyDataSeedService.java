@@ -79,6 +79,7 @@ public class DummyDataSeedService {
 		int favoriteCount = normalizeCount("favoriteCount", req.favoriteCount(),
 			DEFAULT_FAVORITE_COUNT, MAX_FAVORITE_COUNT);
 
+		// 순차 실행: 병렬 대량 INSERT는 DB WAL/connection pool 경합을 유발하므로 직렬화
 		LongIdBuffer memberIds = executeStep("member insert", () -> insertMembers(memberCount, runToken));
 		LongIdBuffer restaurantIds = executeStep("restaurant insert",
 			() -> insertRestaurants(restaurantCount, runToken));
@@ -210,7 +211,37 @@ public class DummyDataSeedService {
 		int memberPerGroup,
 		int chatMessagePerRoom) {
 
-		long subgroupsInserted = 0L;
+		int totalSubgroups = groupIds.size() * subgroupPerGroup;
+
+		// Phase 1: 모든 그룹의 subgroup을 한 번에 batch INSERT (그룹별 루프 왕복 제거)
+		List<Long> allSubgroupGroupIds = new ArrayList<>(totalSubgroups);
+		List<String> allSubgroupNames = new ArrayList<>(totalSubgroups);
+		for (int groupIndex = 0; groupIndex < groupIds.size(); groupIndex++) {
+			long groupId = groupIds.get(groupIndex);
+			for (int s = 0; s < subgroupPerGroup; s++) {
+				allSubgroupGroupIds.add(groupId);
+				allSubgroupNames.add("더미팀-" + (groupIndex + 1) + "-" + (s + 1));
+			}
+		}
+
+		List<Long> allSubgroupIds = new ArrayList<>(totalSubgroups);
+		for (int start = 0; start < totalSubgroups; start += SERVICE_CHUNK_SIZE) {
+			int end = Math.min(start + SERVICE_CHUNK_SIZE, totalSubgroups);
+			allSubgroupIds.addAll(
+				dummyRepo.insertSubgroups(allSubgroupGroupIds.subList(start, end),
+					allSubgroupNames.subList(start, end)));
+		}
+		validateStepResult("subgroup batch insert", allSubgroupIds, totalSubgroups);
+
+		// Phase 2: 모든 subgroup에 대한 chatroom을 한 번에 batch INSERT
+		List<Long> allChatRoomIds = new ArrayList<>(totalSubgroups);
+		for (int start = 0; start < totalSubgroups; start += SERVICE_CHUNK_SIZE) {
+			int end = Math.min(start + SERVICE_CHUNK_SIZE, totalSubgroups);
+			allChatRoomIds.addAll(dummyRepo.insertChatRooms(allSubgroupIds.subList(start, end)));
+		}
+		validateStepResult("chatroom batch insert", allChatRoomIds, totalSubgroups);
+
+		// Phase 3: 관계 데이터는 메모리에 누적 후 flush (DB 왕복 없이 루프)
 		long chatMessagesInserted = 0L;
 		long messageSerial = 0L;
 
@@ -230,23 +261,10 @@ public class DummyDataSeedService {
 				flushGroupMemberPairs(groupMemberPairs);
 			}
 
-			List<Long> subgroupGroupIds = new ArrayList<>(subgroupPerGroup);
-			List<String> subgroupNames = new ArrayList<>(subgroupPerGroup);
+			int subgroupBase = groupIndex * subgroupPerGroup;
 			for (int s = 0; s < subgroupPerGroup; s++) {
-				subgroupGroupIds.add(groupId);
-				subgroupNames.add("더미팀-" + (groupIndex + 1) + "-" + (s + 1));
-			}
-
-			List<Long> subgroupIds = dummyRepo.insertSubgroups(subgroupGroupIds, subgroupNames);
-			validateStepResult("subgroup insert", subgroupIds, subgroupPerGroup);
-			subgroupsInserted += subgroupIds.size();
-
-			List<Long> chatRoomIds = dummyRepo.insertChatRooms(subgroupIds);
-			validateStepResult("chat_room insert", chatRoomIds, subgroupIds.size());
-
-			for (int s = 0; s < subgroupIds.size(); s++) {
-				Long subgroupId = subgroupIds.get(s);
-				Long chatRoomId = chatRoomIds.get(s);
+				Long subgroupId = allSubgroupIds.get(subgroupBase + s);
+				Long chatRoomId = allChatRoomIds.get(subgroupBase + s);
 				if (chatRoomId == null) {
 					throw new BusinessException(CommonErrorCode.INVALID_DOMAIN_STATE);
 				}
@@ -296,7 +314,7 @@ public class DummyDataSeedService {
 		flushSubgroupMemberCounts(subgroupMemberCounts);
 		chatMessagesInserted += flushChatMessages(chatMessageEntries, chatMessageContents);
 
-		return new GroupSeedResult(subgroupsInserted, chatMessagesInserted);
+		return new GroupSeedResult(allSubgroupIds.size(), chatMessagesInserted);
 	}
 
 	private int insertReviewsWithKeywords(
@@ -526,14 +544,28 @@ public class DummyDataSeedService {
 			return result;
 		} catch (BusinessException e) {
 			log.error("[DummySeed] {} failed: {}", stepName, e.getErrorCode(), e);
-			throw e;
+			throw new DummySeedStepException(stepName, e.getErrorMessage(), e);
 		} catch (Exception e) {
 			log.error("[DummySeed] {} failed", stepName, e);
-			throw e;
+			throw new DummySeedStepException(stepName, e.getMessage(), e);
 		}
 	}
 
 	private record GroupSeedResult(long subgroupsInserted, long chatMessagesInserted) {
+	}
+
+	public static final class DummySeedStepException extends RuntimeException {
+
+		private final String stepName;
+
+		public DummySeedStepException(String stepName, String cause, Throwable original) {
+			super("[" + stepName + "] 단계 실패: " + cause, original);
+			this.stepName = stepName;
+		}
+
+		public String getStepName() {
+			return stepName;
+		}
 	}
 
 	private static final class LongIdBuffer {
