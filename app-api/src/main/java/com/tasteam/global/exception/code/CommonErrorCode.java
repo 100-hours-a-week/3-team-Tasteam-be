@@ -22,7 +22,10 @@ public enum CommonErrorCode implements ErrorCode {
 	INVALID_DOMAIN_STATE(HttpStatus.INTERNAL_SERVER_ERROR, "도메인 상태가 유효하지 않습니다"),
 
 	// 권한 에러 (403 - Forbidden)
-	NO_PERMISSION(HttpStatus.FORBIDDEN, "해당 리소스에 대한 권한이 없습니다");
+	NO_PERMISSION(HttpStatus.FORBIDDEN, "해당 리소스에 대한 권한이 없습니다"),
+
+	// 충돌 에러 (409 - Conflict)
+	SEED_ALREADY_RUNNING(HttpStatus.CONFLICT, "이미 시딩이 진행 중입니다");
 
 	private final HttpStatus httpStatus;
 	private final String message;

@@ -10,12 +10,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tasteam.batch.dummy.DummySeedJobTracker;
 import com.tasteam.batch.dummy.service.DummyDataSeedService;
 import com.tasteam.domain.admin.controller.docs.AdminDummyControllerDocs;
 import com.tasteam.domain.admin.dto.request.AdminDummySeedRequest;
 import com.tasteam.domain.admin.dto.response.AdminDataCountResponse;
-import com.tasteam.domain.admin.dto.response.AdminDummySeedResponse;
+import com.tasteam.domain.admin.dto.response.DummySeedStatusResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.CommonErrorCode;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,15 +30,26 @@ import lombok.RequiredArgsConstructor;
 public class AdminDummyController implements AdminDummyControllerDocs {
 
 	private final DummyDataSeedService dummyDataSeedService;
+	private final DummySeedJobTracker jobTracker;
 
 	@Override
 	@PostMapping("/seed")
-	@ResponseStatus(HttpStatus.OK)
-	public SuccessResponse<AdminDummySeedResponse> seed(
+	@ResponseStatus(HttpStatus.ACCEPTED)
+	public void startSeed(
 		@RequestBody @Valid
 		AdminDummySeedRequest request) {
 
-		return SuccessResponse.success(dummyDataSeedService.seed(request));
+		if (jobTracker.isRunning()) {
+			throw new BusinessException(CommonErrorCode.SEED_ALREADY_RUNNING);
+		}
+		dummyDataSeedService.seedAsync(request);
+	}
+
+	@Override
+	@GetMapping("/seed/status")
+	@ResponseStatus(HttpStatus.OK)
+	public SuccessResponse<DummySeedStatusResponse> getSeedStatus() {
+		return SuccessResponse.success(jobTracker.getSnapshot());
 	}
 
 	@Override

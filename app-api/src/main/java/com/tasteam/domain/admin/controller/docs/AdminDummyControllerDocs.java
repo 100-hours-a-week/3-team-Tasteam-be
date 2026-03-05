@@ -2,7 +2,7 @@ package com.tasteam.domain.admin.controller.docs;
 
 import com.tasteam.domain.admin.dto.request.AdminDummySeedRequest;
 import com.tasteam.domain.admin.dto.response.AdminDataCountResponse;
-import com.tasteam.domain.admin.dto.response.AdminDummySeedResponse;
+import com.tasteam.domain.admin.dto.response.DummySeedStatusResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
@@ -13,8 +13,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Admin - Dummy", description = "어드민 더미 데이터 관리 API (부하테스트용)")
 public interface AdminDummyControllerDocs {
 
-	@Operation(summary = "더미 데이터 삽입", description = "지정한 수량만큼 더미 멤버/음식점/그룹/하위그룹/리뷰/채팅 메시지를 JDBC batch INSERT로 삽입합니다.")
-	SuccessResponse<AdminDummySeedResponse> seed(AdminDummySeedRequest request);
+	@Operation(summary = "더미 데이터 삽입 시작", description = "비동기로 더미 데이터 삽입 작업을 시작합니다. 이미 진행 중이면 409를 반환합니다.")
+	void startSeed(AdminDummySeedRequest request);
+
+	@Operation(summary = "시딩 진행 상태 조회", description = "현재 시딩 작업의 진행 상태(IDLE/RUNNING/COMPLETED/FAILED)와 단계별 진행도를 반환합니다.")
+	SuccessResponse<DummySeedStatusResponse> getSeedStatus();
 
 	@Operation(summary = "현재 데이터 개수 조회", description = "각 테이블의 soft-delete 제외 총 레코드 수를 반환합니다.")
 	SuccessResponse<AdminDataCountResponse> count();

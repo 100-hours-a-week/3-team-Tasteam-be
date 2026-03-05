@@ -7,12 +7,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import com.tasteam.batch.dummy.DummySeedJobTracker;
 import com.tasteam.batch.dummy.repository.DummyDataJdbcRepository;
 import com.tasteam.domain.admin.dto.request.AdminDummySeedRequest;
 import com.tasteam.domain.admin.dto.response.AdminDataCountResponse;
@@ -54,6 +57,7 @@ public class DummyDataSeedService {
 	private static final long SLOW_STEP_THRESHOLD_MS = 2_000L;
 
 	private final DummyDataJdbcRepository dummyRepo;
+	private final DummySeedJobTracker tracker;
 
 	public AdminDummySeedResponse seed(AdminDummySeedRequest req) {
 		long start = System.currentTimeMillis();
@@ -104,6 +108,18 @@ public class DummyDataSeedService {
 			notificationsInserted,
 			favoritesInserted,
 			elapsed);
+	}
+
+	@Async("dummySeedExecutor")
+	public CompletableFuture<Void> seedAsync(AdminDummySeedRequest req) {
+		try {
+			tracker.start();
+			AdminDummySeedResponse result = seed(req);
+			tracker.complete(result);
+		} catch (Exception e) {
+			tracker.fail(e.getMessage());
+		}
+		return CompletableFuture.completedFuture(null);
 	}
 
 	@Transactional(readOnly = true)
@@ -497,6 +513,7 @@ public class DummyDataSeedService {
 	}
 
 	private <T> T executeStep(String stepName, Supplier<T> step) {
+		tracker.updateStep(stepName);
 		long start = System.currentTimeMillis();
 		try {
 			T result = step.get();

@@ -260,6 +260,10 @@ async function seedDummyData(params = {}) {
     });
 }
 
+async function getSeedStatus() {
+    return apiRequest('/admin/dummy/seed/status');
+}
+
 async function getDataCounts() {
     return apiRequest('/admin/dummy/count');
 }
@@ -319,5 +323,6 @@ window.geocodeAddress = geocodeAddress;
 window.getGroups = getGroups;
 window.createGroup = createGroup;
 window.seedDummyData = seedDummyData;
+window.getSeedStatus = getSeedStatus;
 window.getDataCounts = getDataCounts;
 window.deleteDummyData = deleteDummyData;
