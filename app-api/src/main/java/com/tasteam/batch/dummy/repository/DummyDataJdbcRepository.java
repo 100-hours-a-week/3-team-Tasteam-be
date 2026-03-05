@@ -385,7 +385,7 @@ public class DummyDataJdbcRepository {
 	}
 
 	private static final String[] NOTIFICATION_TYPES = {
-		"REVIEW_COMMENT", "REVIEW_LIKE", "GROUP_JOIN", "ANNOUNCEMENT", "PROMOTION"
+		"CHAT", "SYSTEM", "NOTICE"
 	};
 
 	/**
@@ -418,7 +418,8 @@ public class DummyDataJdbcRepository {
 			p.add(eventId);
 			p.add(now);
 		}
-		sql.append(" ON CONFLICT (event_id) DO NOTHING");
+		// event_id는 partial unique index (WHERE event_id IS NOT NULL) 이므로 조건 명시 필요
+		sql.append(" ON CONFLICT (event_id) WHERE event_id IS NOT NULL DO NOTHING");
 		return jdbcTemplate.update(sql.toString(), p.toArray());
 	}
 
