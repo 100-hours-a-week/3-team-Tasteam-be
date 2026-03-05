@@ -422,7 +422,7 @@ public class DummyDataJdbcRepository {
 	}
 
 	private static final String[] NOTIFICATION_TYPES = {
-		"REVIEW_COMMENT", "REVIEW_LIKE", "GROUP_JOIN", "ANNOUNCEMENT", "PROMOTION"
+		"CHAT", "SYSTEM", "NOTICE"
 	};
 
 	/**
