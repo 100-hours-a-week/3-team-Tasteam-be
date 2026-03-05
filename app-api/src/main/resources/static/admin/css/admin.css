@@ -1700,6 +1700,12 @@ body {
     width: 0%;
 }
 
+.btn-cancel-seed {
+    margin-top: var(--admin-space-3);
+    font-size: 13px;
+    padding: 6px 14px;
+}
+
 .seed-result {
     margin-top: var(--admin-space-3);
 }

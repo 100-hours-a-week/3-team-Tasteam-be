@@ -25,7 +25,8 @@ public enum CommonErrorCode implements ErrorCode {
 	NO_PERMISSION(HttpStatus.FORBIDDEN, "해당 리소스에 대한 권한이 없습니다"),
 
 	// 충돌 에러 (409 - Conflict)
-	SEED_ALREADY_RUNNING(HttpStatus.CONFLICT, "이미 시딩이 진행 중입니다");
+	SEED_ALREADY_RUNNING(HttpStatus.CONFLICT, "이미 시딩이 진행 중입니다"),
+	SEED_NOT_RUNNING(HttpStatus.CONFLICT, "진행 중인 시딩 작업이 없습니다");
 
 	private final HttpStatus httpStatus;
 	private final String message;

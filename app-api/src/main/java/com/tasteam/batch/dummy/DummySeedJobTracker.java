@@ -11,7 +11,7 @@ import com.tasteam.domain.admin.dto.response.DummySeedStatusResponse;
 public class DummySeedJobTracker {
 
 	public enum Status {
-		IDLE, RUNNING, COMPLETED, FAILED
+		IDLE, RUNNING, COMPLETED, FAILED, CANCELLED
 	}
 
 	private static final int TOTAL_STEPS = 7;
@@ -22,6 +22,7 @@ public class DummySeedJobTracker {
 	private volatile String errorMessage = null;
 	private volatile AdminDummySeedResponse lastResult = null;
 	private volatile Instant startedAt = null;
+	private volatile boolean cancelRequested = false;
 
 	public synchronized void start() {
 		this.status = Status.RUNNING;
@@ -30,6 +31,7 @@ public class DummySeedJobTracker {
 		this.errorMessage = null;
 		this.lastResult = null;
 		this.startedAt = Instant.now();
+		this.cancelRequested = false;
 	}
 
 	public void updateStep(String stepName) {
@@ -47,8 +49,21 @@ public class DummySeedJobTracker {
 		this.status = Status.FAILED;
 	}
 
+	public void cancel() {
+		this.cancelRequested = true;
+	}
+
+	public void cancelled() {
+		this.errorMessage = "사용자에 의해 시딩이 중단되었습니다";
+		this.status = Status.CANCELLED;
+	}
+
 	public boolean isRunning() {
 		return this.status == Status.RUNNING;
+	}
+
+	public boolean isCancelRequested() {
+		return this.cancelRequested;
 	}
 
 	public DummySeedStatusResponse getSnapshot() {

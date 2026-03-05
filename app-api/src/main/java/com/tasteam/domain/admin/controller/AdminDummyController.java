@@ -48,6 +48,16 @@ public class AdminDummyController implements AdminDummyControllerDocs {
 	}
 
 	@Override
+	@PostMapping("/seed/cancel")
+	@ResponseStatus(HttpStatus.OK)
+	public void cancelSeed() {
+		if (!jobTracker.isRunning()) {
+			throw new BusinessException(CommonErrorCode.SEED_NOT_RUNNING);
+		}
+		jobTracker.cancel();
+	}
+
+	@Override
 	@GetMapping("/seed/status")
 	@ResponseStatus(HttpStatus.OK)
 	public SuccessResponse<DummySeedStatusResponse> getSeedStatus() {

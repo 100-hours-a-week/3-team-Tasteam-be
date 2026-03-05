@@ -16,7 +16,10 @@ public interface AdminDummyControllerDocs {
 	@Operation(summary = "더미 데이터 삽입 시작", description = "비동기로 더미 데이터 삽입 작업을 시작합니다. 이미 진행 중이면 409를 반환합니다.")
 	void startSeed(AdminDummySeedRequest request);
 
-	@Operation(summary = "시딩 진행 상태 조회", description = "현재 시딩 작업의 진행 상태(IDLE/RUNNING/COMPLETED/FAILED)와 단계별 진행도를 반환합니다.")
+	@Operation(summary = "시딩 강제 종료", description = "진행 중인 시딩 작업을 현재 스텝 완료 후 중단합니다. 진행 중이 아니면 409를 반환합니다.")
+	void cancelSeed();
+
+	@Operation(summary = "시딩 진행 상태 조회", description = "현재 시딩 작업의 진행 상태(IDLE/RUNNING/COMPLETED/FAILED/CANCELLED)와 단계별 진행도를 반환합니다.")
 	SuccessResponse<DummySeedStatusResponse> getSeedStatus();
 
 	@Operation(summary = "현재 데이터 개수 조회", description = "각 테이블의 soft-delete 제외 총 레코드 수를 반환합니다.")

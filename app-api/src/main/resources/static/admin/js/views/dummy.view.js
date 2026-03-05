@@ -121,6 +121,7 @@ function renderDummy(container) {
                     <div class="progress-bar">
                         <div class="progress-fill" id="seedProgressFill"></div>
                     </div>
+                    <button class="btn btn-danger btn-cancel-seed" id="cancelSeedBtn">강제 종료</button>
                 </div>
                 <div id="seedResult" class="seed-result is-hidden">
                     <table>
@@ -263,6 +264,16 @@ function updateProgressUI(status) {
 			errorEl.classList.remove('is-hidden');
 		}
 		refreshCountResult();
+	} else if (status.status === 'CANCELLED') {
+		stopSeedPolling();
+		progressEl.classList.add('is-hidden');
+		if (seedBtn) seedBtn.disabled = false;
+
+		if (errorEl) {
+			errorEl.textContent = `시딩이 중단되었습니다 (완료된 스텝: ${status.completedSteps}/${status.totalSteps})`;
+			errorEl.classList.remove('is-hidden');
+		}
+		refreshCountResult();
 	}
 }
 
@@ -379,6 +390,20 @@ function mountDummy() {
 		};
 		seedBtn.addEventListener('click', seedHandler);
 		dummyCleanup.push(() => seedBtn.removeEventListener('click', seedHandler));
+	}
+
+	const cancelSeedBtn = document.getElementById('cancelSeedBtn');
+	if (cancelSeedBtn) {
+		const cancelHandler = async () => {
+			cancelSeedBtn.disabled = true;
+			try {
+				await cancelSeed();
+			} catch (err) {
+				cancelSeedBtn.disabled = false;
+			}
+		};
+		cancelSeedBtn.addEventListener('click', cancelHandler);
+		dummyCleanup.push(() => cancelSeedBtn.removeEventListener('click', cancelHandler));
 	}
 
 	const deleteBtn = document.getElementById('deleteBtn');

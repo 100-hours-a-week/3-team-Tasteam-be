@@ -117,10 +117,18 @@ public class DummyDataSeedService {
 			tracker.start();
 			AdminDummySeedResponse result = seed(req);
 			tracker.complete(result);
+		} catch (SeedCancelledException e) {
+			tracker.cancelled();
 		} catch (Exception e) {
 			tracker.fail(e.getMessage());
 		}
 		return CompletableFuture.completedFuture(null);
+	}
+
+	public static final class SeedCancelledException extends RuntimeException {
+		public SeedCancelledException() {
+			super("시딩이 취소되었습니다");
+		}
 	}
 
 	@Transactional(readOnly = true)
@@ -531,6 +539,9 @@ public class DummyDataSeedService {
 	}
 
 	private <T> T executeStep(String stepName, Supplier<T> step) {
+		if (tracker.isCancelRequested()) {
+			throw new SeedCancelledException();
+		}
 		tracker.updateStep(stepName);
 		long start = System.currentTimeMillis();
 		try {

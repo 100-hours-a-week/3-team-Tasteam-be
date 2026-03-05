@@ -264,6 +264,10 @@ async function getSeedStatus() {
     return apiRequest('/admin/dummy/seed/status');
 }
 
+async function cancelSeed() {
+    return apiRequest('/admin/dummy/seed/cancel', { method: 'POST' });
+}
+
 async function getDataCounts() {
     return apiRequest('/admin/dummy/count');
 }
@@ -324,5 +328,6 @@ window.getGroups = getGroups;
 window.createGroup = createGroup;
 window.seedDummyData = seedDummyData;
 window.getSeedStatus = getSeedStatus;
+window.cancelSeed = cancelSeed;
 window.getDataCounts = getDataCounts;
 window.deleteDummyData = deleteDummyData;
