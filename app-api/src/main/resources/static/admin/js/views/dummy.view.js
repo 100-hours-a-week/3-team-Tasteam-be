@@ -1,3 +1,45 @@
+const SEED_PRESETS = {
+	low: {
+		label: 'Low',
+		description: '빠른 기능 검증용',
+		memberCount: 500,
+		restaurantCount: 200,
+		groupCount: 20,
+		subgroupPerGroup: 5,
+		memberPerGroup: 30,
+		reviewCount: 1000,
+		chatMessagePerRoom: 50,
+		notificationCount: 5000,
+		favoriteCount: 1000
+	},
+	medium: {
+		label: 'Medium',
+		description: '통합 기능 테스트용',
+		memberCount: 5000,
+		restaurantCount: 10000,
+		groupCount: 50,
+		subgroupPerGroup: 5,
+		memberPerGroup: 30,
+		reviewCount: 50000,
+		chatMessagePerRoom: 200,
+		notificationCount: 100000,
+		favoriteCount: 20000
+	},
+	high: {
+		label: 'High',
+		description: '부하 테스트 설계 목표 (수십 분 소요)',
+		memberCount: 100000,
+		restaurantCount: 500000,
+		groupCount: 200,
+		subgroupPerGroup: 10,
+		memberPerGroup: 100,
+		reviewCount: 1000000,
+		chatMessagePerRoom: 1000,
+		notificationCount: 1500000,
+		favoriteCount: 400000
+	}
+};
+
 let dummyCleanup = [];
 
 function renderDummy(container) {
@@ -24,34 +66,52 @@ function renderDummy(container) {
 
             <div class="card">
                 <h3>더미 데이터 삽입</h3>
+
+                <div class="preset-section">
+                    <p class="preset-label">빠른 프리셋</p>
+                    <div class="preset-buttons">
+                        <button class="btn btn-preset btn-preset-low" data-preset="low">Low<span>빠른 검증</span></button>
+                        <button class="btn btn-preset btn-preset-medium" data-preset="medium">Medium<span>기능 테스트</span></button>
+                        <button class="btn btn-preset btn-preset-high" data-preset="high">High<span>부하 테스트 목표</span></button>
+                    </div>
+                </div>
+
                 <div class="seed-form">
                     <div class="form-field">
-                        <label>멤버 수 (기본 500)</label>
-                        <input type="number" id="memberCount" placeholder="500" min="0">
+                        <label>멤버 수 (기본 500, 최대 100,000)</label>
+                        <input type="number" id="memberCount" placeholder="500" min="0" max="100000">
                     </div>
                     <div class="form-field">
-                        <label>음식점 수 (기본 200)</label>
-                        <input type="number" id="restaurantCount" placeholder="200" min="0">
+                        <label>음식점 수 (기본 200, 최대 50,000,000)</label>
+                        <input type="number" id="restaurantCount" placeholder="200" min="0" max="50000000">
                     </div>
                     <div class="form-field">
-                        <label>그룹 수 (기본 20)</label>
-                        <input type="number" id="groupCount" placeholder="20" min="0">
+                        <label>그룹 수 (기본 20, 최대 1,000)</label>
+                        <input type="number" id="groupCount" placeholder="20" min="0" max="1000">
                     </div>
                     <div class="form-field">
-                        <label>그룹당 하위그룹 수 (기본 5)</label>
-                        <input type="number" id="subgroupPerGroup" placeholder="5" min="0">
+                        <label>그룹당 하위그룹 수 (기본 5, 최대 1,000)</label>
+                        <input type="number" id="subgroupPerGroup" placeholder="5" min="0" max="1000">
                     </div>
                     <div class="form-field">
-                        <label>그룹당 멤버 수 (기본 30)</label>
-                        <input type="number" id="memberPerGroup" placeholder="30" min="0">
+                        <label>그룹당 멤버 수 (기본 30, 최대 1,000)</label>
+                        <input type="number" id="memberPerGroup" placeholder="30" min="0" max="1000">
                     </div>
                     <div class="form-field">
-                        <label>리뷰 수 (기본 1000)</label>
-                        <input type="number" id="reviewCount" placeholder="1000" min="0">
+                        <label>리뷰 수 (기본 1,000, 최대 100,000,000)</label>
+                        <input type="number" id="reviewCount" placeholder="1000" min="0" max="100000000">
+                    </div>
+                    <div class="form-field">
+                        <label>채팅방당 메시지 수 (기본 50, 최대 1,000,000,000)</label>
+                        <input type="number" id="chatMessagePerRoom" placeholder="50" min="0" max="1000000000">
+                    </div>
+                    <div class="form-field">
+                        <label>알림 수 (기본 5,000, 최대 2,000,000)</label>
+                        <input type="number" id="notificationCount" placeholder="5000" min="0" max="2000000">
                     </div>
                     <div class="form-field form-field-full">
-                        <label>채팅방당 메시지 수 (기본 50)</label>
-                        <input type="number" id="chatMessagePerRoom" placeholder="50" min="0">
+                        <label>즐겨찾기 수 (기본 1,000, 최대 500,000) — 조건: 멤버 수 × 음식점 수 ≥ 즐겨찾기 수</label>
+                        <input type="number" id="favoriteCount" placeholder="1000" min="0" max="500000">
                     </div>
                 </div>
                 <button class="btn btn-primary seed-button" id="seedBtn">삽입 실행</button>
@@ -63,11 +123,13 @@ function renderDummy(container) {
                         <tr><td>하위그룹 삽입</td><td id="r-subgroups">-</td></tr>
                         <tr><td>리뷰 삽입</td><td id="r-reviews">-</td></tr>
                         <tr><td>채팅 메시지 삽입</td><td id="r-chat">-</td></tr>
+                        <tr><td>알림 삽입</td><td id="r-notifications">-</td></tr>
+                        <tr><td>즐겨찾기 삽입</td><td id="r-favorites">-</td></tr>
                     </table>
                     <p class="elapsed" id="r-elapsed"></p>
                 </div>
                 <div id="seedError" class="status-msg error is-hidden"></div>
-                <div id="seedLoading" class="seed-loading is-hidden">삽입 중...</div>
+                <div id="seedLoading" class="seed-loading is-hidden">삽입 중... (대용량 데이터는 수십 분이 소요될 수 있습니다)</div>
             </div>
 
             <div class="card">
@@ -93,6 +155,38 @@ function toIntOrDefault(id, fallback) {
 	return Number.isNaN(value) || value < 0 ? fallback : value;
 }
 
+async function refreshCountResult() {
+	const errorEl = document.getElementById('countError');
+	const resultEl = document.getElementById('countResult');
+	const tableBody = document.getElementById('countTableBody');
+	if (!errorEl || !resultEl || !tableBody) {
+		return;
+	}
+
+	try {
+		const response = await getDataCounts();
+		const data = response?.data || response;
+		const rows = [
+			['member', data.memberCount],
+			['restaurant', data.restaurantCount],
+			['group', data.groupCount],
+			['subgroup', data.subgroupCount],
+			['review', data.reviewCount],
+			['chat_message', data.chatMessageCount],
+			['notification', data.notificationCount],
+			['favorite', data.favoriteCount]
+		];
+		tableBody.innerHTML = rows
+			.map(([name, count]) => `<tr><td>${name}</td><td class="count-value">${(count ?? 0).toLocaleString()}</td></tr>`)
+			.join('');
+		resultEl.classList.remove('is-hidden');
+		errorEl.classList.add('is-hidden');
+	} catch (error) {
+		errorEl.textContent = `현황 조회 실패: ${error.message}`;
+		errorEl.classList.remove('is-hidden');
+	}
+}
+
 function mountDummy() {
 	dummyCleanup = [];
 
@@ -101,33 +195,42 @@ function mountDummy() {
 		const countHandler = async () => {
 			const errorEl = document.getElementById('countError');
 			const resultEl = document.getElementById('countResult');
-			const tableBody = document.getElementById('countTableBody');
-			if (!errorEl || !resultEl || !tableBody) {
-				return;
+			if (errorEl) {
+				errorEl.classList.add('is-hidden');
 			}
-			errorEl.style.display = 'none';
-			resultEl.style.display = 'none';
-
-			try {
-				const response = await getDataCounts();
-				const data = response?.data || response;
-				const rows = [
-					['member', data.memberCount],
-					['restaurant', data.restaurantCount],
-					['group', data.groupCount],
-					['subgroup', data.subgroupCount],
-					['review', data.reviewCount],
-					['chat_message', data.chatMessageCount]
-				];
-				tableBody.innerHTML = rows.map(([name, count]) => `<tr><td>${name}</td><td class="count-value">${count.toLocaleString()}</td></tr>`).join('');
-				resultEl.style.display = 'block';
-			} catch (error) {
-				errorEl.textContent = error.message;
-				errorEl.style.display = 'block';
+			if (resultEl) {
+				resultEl.classList.add('is-hidden');
 			}
+			await refreshCountResult();
 		};
 		countBtn.addEventListener('click', countHandler);
 		dummyCleanup.push(() => countBtn.removeEventListener('click', countHandler));
+	}
+
+	const presetContainer = document.querySelector('.preset-buttons');
+	if (presetContainer) {
+		const presetHandler = (event) => {
+			const btn = event.target.closest('[data-preset]');
+			if (!btn) {
+				return;
+			}
+			const preset = SEED_PRESETS[btn.dataset.preset];
+			if (!preset) {
+				return;
+			}
+			const fields = [
+				'memberCount', 'restaurantCount', 'groupCount', 'subgroupPerGroup',
+				'memberPerGroup', 'reviewCount', 'chatMessagePerRoom', 'notificationCount', 'favoriteCount'
+			];
+			fields.forEach((id) => {
+				const el = document.getElementById(id);
+				if (el) {
+					el.value = preset[id];
+				}
+			});
+		};
+		presetContainer.addEventListener('click', presetHandler);
+		dummyCleanup.push(() => presetContainer.removeEventListener('click', presetHandler));
 	}
 
 	const seedBtn = document.getElementById('seedBtn');
@@ -143,13 +246,20 @@ function mountDummy() {
 				subgroups: document.getElementById('r-subgroups'),
 				reviews: document.getElementById('r-reviews'),
 				chats: document.getElementById('r-chat'),
+				notifications: document.getElementById('r-notifications'),
+				favorites: document.getElementById('r-favorites'),
 				elapsed: document.getElementById('r-elapsed')
 			};
-			errorEl.style.display = 'none';
-			if (resultEl) {
-				resultEl.style.display = 'none';
+
+			if (errorEl) {
+				errorEl.classList.add('is-hidden');
 			}
-			loading.style.display = 'block';
+			if (resultEl) {
+				resultEl.classList.add('is-hidden');
+			}
+			if (loading) {
+				loading.classList.remove('is-hidden');
+			}
 			seedBtn.disabled = true;
 
 			try {
@@ -160,40 +270,54 @@ function mountDummy() {
 					subgroupPerGroup: toIntOrDefault('subgroupPerGroup', 5),
 					memberPerGroup: toIntOrDefault('memberPerGroup', 30),
 					reviewCount: toIntOrDefault('reviewCount', 1000),
-					chatMessagePerRoom: toIntOrDefault('chatMessagePerRoom', 50)
+					chatMessagePerRoom: toIntOrDefault('chatMessagePerRoom', 50),
+					notificationCount: toIntOrDefault('notificationCount', 5000),
+					favoriteCount: toIntOrDefault('favoriteCount', 1000)
 				};
 				const response = await seedDummyData(payload);
 				const result = response?.data || response;
 				if (msgRows.members) {
-					msgRows.members.textContent = result.membersInserted.toLocaleString();
+					msgRows.members.textContent = (result.membersInserted ?? 0).toLocaleString();
 				}
 				if (msgRows.restaurants) {
-					msgRows.restaurants.textContent = result.restaurantsInserted.toLocaleString();
+					msgRows.restaurants.textContent = (result.restaurantsInserted ?? 0).toLocaleString();
 				}
 				if (msgRows.groups) {
-					msgRows.groups.textContent = result.groupsInserted.toLocaleString();
+					msgRows.groups.textContent = (result.groupsInserted ?? 0).toLocaleString();
 				}
 				if (msgRows.subgroups) {
-					msgRows.subgroups.textContent = result.subgroupsInserted.toLocaleString();
+					msgRows.subgroups.textContent = (result.subgroupsInserted ?? 0).toLocaleString();
 				}
 				if (msgRows.reviews) {
-					msgRows.reviews.textContent = result.reviewsInserted.toLocaleString();
+					msgRows.reviews.textContent = (result.reviewsInserted ?? 0).toLocaleString();
 				}
 				if (msgRows.chats) {
-					msgRows.chats.textContent = result.chatMessagesInserted.toLocaleString();
+					msgRows.chats.textContent = (result.chatMessagesInserted ?? 0).toLocaleString();
+				}
+				if (msgRows.notifications) {
+					msgRows.notifications.textContent = (result.notificationsInserted ?? 0).toLocaleString();
+				}
+				if (msgRows.favorites) {
+					msgRows.favorites.textContent = (result.favoritesInserted ?? 0).toLocaleString();
 				}
 				if (msgRows.elapsed) {
-					msgRows.elapsed.textContent = `소요 시간: ${result.elapsedMs.toLocaleString()} ms`;
+					msgRows.elapsed.textContent = `소요 시간: ${(result.elapsedMs ?? 0).toLocaleString()} ms`;
 				}
 				if (resultEl) {
-					resultEl.style.display = 'block';
+					resultEl.classList.remove('is-hidden');
 				}
 			} catch (error) {
-				errorEl.textContent = error.message;
-				errorEl.style.display = 'block';
+				if (errorEl) {
+					errorEl.textContent = `삽입 실패: ${error.message}`;
+					errorEl.classList.remove('is-hidden');
+				}
 			} finally {
-				loading.style.display = 'none';
+				if (loading) {
+					loading.classList.add('is-hidden');
+				}
 				seedBtn.disabled = false;
+				// 성공/실패 무관하게 현황 자동 갱신
+				await refreshCountResult();
 			}
 		};
 		seedBtn.addEventListener('click', seedHandler);
@@ -209,13 +333,20 @@ function mountDummy() {
 			const msg = document.getElementById('deleteMsg');
 			try {
 				await deleteDummyData();
-				msg.textContent = '더미 데이터가 모두 삭제되었습니다.';
-				msg.className = 'status-msg success';
+				if (msg) {
+					msg.textContent = '더미 데이터가 모두 삭제되었습니다.';
+					msg.className = 'status-msg success';
+					msg.classList.remove('is-hidden');
+				}
 			} catch (error) {
-				msg.textContent = `삭제 중 오류: ${error.message}`;
-				msg.className = 'status-msg error';
+				if (msg) {
+					msg.textContent = `삭제 중 오류: ${error.message}`;
+					msg.className = 'status-msg error';
+					msg.classList.remove('is-hidden');
+				}
 			}
-			msg.style.display = 'block';
+			// 삭제 후 현황 자동 갱신
+			await refreshCountResult();
 		};
 		deleteBtn.addEventListener('click', deleteHandler);
 		dummyCleanup.push(() => deleteBtn.removeEventListener('click', deleteHandler));

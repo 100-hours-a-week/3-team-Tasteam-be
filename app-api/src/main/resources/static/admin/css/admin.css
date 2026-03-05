@@ -1544,6 +1544,68 @@ body {
     gap: var(--admin-space-5);
 }
 
+.preset-section {
+    margin-top: var(--admin-space-4);
+    margin-bottom: var(--admin-space-2);
+}
+
+.preset-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--admin-color-text-muted);
+    margin-bottom: var(--admin-space-2);
+}
+
+.preset-buttons {
+    display: flex;
+    gap: var(--admin-space-3);
+    flex-wrap: wrap;
+}
+
+.btn-preset {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 20px;
+    min-width: 100px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: var(--admin-radius-md);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn-preset span {
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.85;
+}
+
+.btn-preset:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+}
+
+.btn-preset-low {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-color: #a5d6a7;
+}
+
+.btn-preset-medium {
+    background: #fff3e0;
+    color: #e65100;
+    border-color: #ffcc80;
+}
+
+.btn-preset-high {
+    background: #fce4ec;
+    color: #c62828;
+    border-color: #f48fb1;
+}
+
 .seed-form {
     margin-top: var(--admin-space-3);
     display: grid;
