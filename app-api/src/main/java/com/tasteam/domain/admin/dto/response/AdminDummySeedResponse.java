@@ -7,5 +7,7 @@ public record AdminDummySeedResponse(
 	long subgroupsInserted,
 	long reviewsInserted,
 	long chatMessagesInserted,
+	long notificationsInserted,
+	long favoritesInserted,
 	long elapsedMs) {
 }

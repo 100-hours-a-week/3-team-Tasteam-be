@@ -45,10 +45,12 @@ class AdminDummyControllerTest {
 		@DisplayName("요청한 양의 수량이 유효하면 더미 생성 결과를 반환한다")
 		void 더미_시드_성공() throws Exception {
 			// given
-			var request = new AdminDummySeedRequest(1, 2, 0, 0, 0, 0, 0);
+			var request = new AdminDummySeedRequest(1, 2, 0, 0, 0, 0, 0, 0, 0);
 			given(dummyDataSeedService.seed(request)).willReturn(new AdminDummySeedResponse(
 				1,
 				2,
+				0,
+				0,
 				0,
 				0,
 				0,
@@ -69,7 +71,7 @@ class AdminDummyControllerTest {
 		@DisplayName("음수 값이 들어오면 400으로 실패한다")
 		void 더미_시드_음수값_실패() throws Exception {
 			// given
-			var request = new AdminDummySeedRequest(-1, 0, 0, 0, 0, 0, 0);
+			var request = new AdminDummySeedRequest(-1, 0, 0, 0, 0, 0, 0, 0, 0);
 
 			// when & then
 			mockMvc.perform(post("/api/v1/admin/dummy/seed")
@@ -88,7 +90,7 @@ class AdminDummyControllerTest {
 		@DisplayName("현재 더미 데이터 집계를 정상 조회한다")
 		void 더미_카운트_성공() throws Exception {
 			// given
-			given(dummyDataSeedService.count()).willReturn(new AdminDataCountResponse(1, 2, 3, 4, 5, 6));
+			given(dummyDataSeedService.count()).willReturn(new AdminDataCountResponse(1, 2, 3, 4, 5, 6, 7, 8));
 
 			// when & then
 			mockMvc.perform(get("/api/v1/admin/dummy/count"))
