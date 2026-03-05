@@ -67,7 +67,7 @@ function renderDummy(container) {
                     <p class="elapsed" id="r-elapsed"></p>
                 </div>
                 <div id="seedError" class="status-msg error is-hidden"></div>
-                <div id="seedLoading" class="seed-loading is-hidden">삽입 중...</div>
+                <div id="seedLoading" class="seed-loading is-hidden">삽입 중... (대용량 데이터는 수 분이 소요될 수 있습니다)</div>
             </div>
 
             <div class="card">
@@ -93,6 +93,36 @@ function toIntOrDefault(id, fallback) {
 	return Number.isNaN(value) || value < 0 ? fallback : value;
 }
 
+async function refreshCountResult() {
+	const errorEl = document.getElementById('countError');
+	const resultEl = document.getElementById('countResult');
+	const tableBody = document.getElementById('countTableBody');
+	if (!errorEl || !resultEl || !tableBody) {
+		return;
+	}
+
+	try {
+		const response = await getDataCounts();
+		const data = response?.data || response;
+		const rows = [
+			['member', data.memberCount],
+			['restaurant', data.restaurantCount],
+			['group', data.groupCount],
+			['subgroup', data.subgroupCount],
+			['review', data.reviewCount],
+			['chat_message', data.chatMessageCount]
+		];
+		tableBody.innerHTML = rows
+			.map(([name, count]) => `<tr><td>${name}</td><td class="count-value">${count.toLocaleString()}</td></tr>`)
+			.join('');
+		resultEl.classList.remove('is-hidden');
+		errorEl.classList.add('is-hidden');
+	} catch (error) {
+		errorEl.textContent = `현황 조회 실패: ${error.message}`;
+		errorEl.classList.remove('is-hidden');
+	}
+}
+
 function mountDummy() {
 	dummyCleanup = [];
 
@@ -101,30 +131,13 @@ function mountDummy() {
 		const countHandler = async () => {
 			const errorEl = document.getElementById('countError');
 			const resultEl = document.getElementById('countResult');
-			const tableBody = document.getElementById('countTableBody');
-			if (!errorEl || !resultEl || !tableBody) {
-				return;
+			if (errorEl) {
+				errorEl.classList.add('is-hidden');
 			}
-			errorEl.style.display = 'none';
-			resultEl.style.display = 'none';
-
-			try {
-				const response = await getDataCounts();
-				const data = response?.data || response;
-				const rows = [
-					['member', data.memberCount],
-					['restaurant', data.restaurantCount],
-					['group', data.groupCount],
-					['subgroup', data.subgroupCount],
-					['review', data.reviewCount],
-					['chat_message', data.chatMessageCount]
-				];
-				tableBody.innerHTML = rows.map(([name, count]) => `<tr><td>${name}</td><td class="count-value">${count.toLocaleString()}</td></tr>`).join('');
-				resultEl.style.display = 'block';
-			} catch (error) {
-				errorEl.textContent = error.message;
-				errorEl.style.display = 'block';
+			if (resultEl) {
+				resultEl.classList.add('is-hidden');
 			}
+			await refreshCountResult();
 		};
 		countBtn.addEventListener('click', countHandler);
 		dummyCleanup.push(() => countBtn.removeEventListener('click', countHandler));
@@ -145,11 +158,16 @@ function mountDummy() {
 				chats: document.getElementById('r-chat'),
 				elapsed: document.getElementById('r-elapsed')
 			};
-			errorEl.style.display = 'none';
-			if (resultEl) {
-				resultEl.style.display = 'none';
+
+			if (errorEl) {
+				errorEl.classList.add('is-hidden');
 			}
-			loading.style.display = 'block';
+			if (resultEl) {
+				resultEl.classList.add('is-hidden');
+			}
+			if (loading) {
+				loading.classList.remove('is-hidden');
+			}
 			seedBtn.disabled = true;
 
 			try {
@@ -186,14 +204,20 @@ function mountDummy() {
 					msgRows.elapsed.textContent = `소요 시간: ${result.elapsedMs.toLocaleString()} ms`;
 				}
 				if (resultEl) {
-					resultEl.style.display = 'block';
+					resultEl.classList.remove('is-hidden');
 				}
 			} catch (error) {
-				errorEl.textContent = error.message;
-				errorEl.style.display = 'block';
+				if (errorEl) {
+					errorEl.textContent = `삽입 실패: ${error.message}`;
+					errorEl.classList.remove('is-hidden');
+				}
 			} finally {
-				loading.style.display = 'none';
+				if (loading) {
+					loading.classList.add('is-hidden');
+				}
 				seedBtn.disabled = false;
+				// 성공/실패 무관하게 현황 자동 갱신
+				await refreshCountResult();
 			}
 		};
 		seedBtn.addEventListener('click', seedHandler);
@@ -209,13 +233,20 @@ function mountDummy() {
 			const msg = document.getElementById('deleteMsg');
 			try {
 				await deleteDummyData();
-				msg.textContent = '더미 데이터가 모두 삭제되었습니다.';
-				msg.className = 'status-msg success';
+				if (msg) {
+					msg.textContent = '더미 데이터가 모두 삭제되었습니다.';
+					msg.className = 'status-msg success';
+					msg.classList.remove('is-hidden');
+				}
 			} catch (error) {
-				msg.textContent = `삭제 중 오류: ${error.message}`;
-				msg.className = 'status-msg error';
+				if (msg) {
+					msg.textContent = `삭제 중 오류: ${error.message}`;
+					msg.className = 'status-msg error';
+					msg.classList.remove('is-hidden');
+				}
 			}
-			msg.style.display = 'block';
+			// 삭제 후 현황 자동 갱신
+			await refreshCountResult();
 		};
 		deleteBtn.addEventListener('click', deleteHandler);
 		dummyCleanup.push(() => deleteBtn.removeEventListener('click', deleteHandler));
