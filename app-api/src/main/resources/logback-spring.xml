@@ -70,6 +70,8 @@
 
         <!-- 자신의 애플리케이션만 DEBUG 허용 -->
         <logger name="com.tasteam" level="DEBUG" />
+        <!-- 더미 시딩 패키지: 대량 삽입 중 로그 폭증 및 디스크 I/O 방지 -->
+        <logger name="com.tasteam.batch.dummy" level="WARN" />
 
         <!-- Root 레벨을 INFO로 변경하여 불필요한 DEBUG 로그 차단 -->
         <root level="INFO">
