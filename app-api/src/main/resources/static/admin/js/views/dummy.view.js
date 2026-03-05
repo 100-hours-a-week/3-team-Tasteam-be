@@ -41,6 +41,7 @@ const SEED_PRESETS = {
 };
 
 let dummyCleanup = [];
+let seedPollInterval = null;
 
 function renderDummy(container) {
 	container.innerHTML = `
@@ -115,6 +116,13 @@ function renderDummy(container) {
                     </div>
                 </div>
                 <button class="btn btn-primary seed-button" id="seedBtn">삽입 실행</button>
+                <div id="seedProgress" class="seed-progress is-hidden">
+                    <p id="seedProgressText" class="seed-progress-text"></p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="seedProgressFill"></div>
+                    </div>
+                    <button class="btn btn-danger btn-cancel-seed" id="cancelSeedBtn">강제 종료</button>
+                </div>
                 <div id="seedResult" class="seed-result is-hidden">
                     <table>
                         <tr><td>멤버 삽입</td><td id="r-members">-</td></tr>
@@ -129,7 +137,6 @@ function renderDummy(container) {
                     <p class="elapsed" id="r-elapsed"></p>
                 </div>
                 <div id="seedError" class="status-msg error is-hidden"></div>
-                <div id="seedLoading" class="seed-loading is-hidden">삽입 중... (대용량 데이터는 수십 분이 소요될 수 있습니다)</div>
             </div>
 
             <div class="card">
@@ -187,6 +194,89 @@ async function refreshCountResult() {
 	}
 }
 
+function stopSeedPolling() {
+	if (seedPollInterval !== null) {
+		clearInterval(seedPollInterval);
+		seedPollInterval = null;
+	}
+}
+
+function updateProgressUI(status) {
+	const progressEl = document.getElementById('seedProgress');
+	const progressText = document.getElementById('seedProgressText');
+	const progressFill = document.getElementById('seedProgressFill');
+	const resultEl = document.getElementById('seedResult');
+	const errorEl = document.getElementById('seedError');
+	const seedBtn = document.getElementById('seedBtn');
+
+	if (!progressEl) return;
+
+	if (status === 'IDLE') {
+		return;
+	}
+
+	if (status.status === 'RUNNING') {
+		progressEl.classList.remove('is-hidden');
+		if (resultEl) resultEl.classList.add('is-hidden');
+		if (errorEl) errorEl.classList.add('is-hidden');
+
+		const pct = Math.round((status.completedSteps / status.totalSteps) * 100);
+		const stepLabel = status.currentStep || '준비 중...';
+		if (progressText) {
+			progressText.textContent = `step ${status.completedSteps}/${status.totalSteps} — ${stepLabel}`;
+		}
+		if (progressFill) {
+			progressFill.style.width = `${pct}%`;
+		}
+	} else if (status.status === 'COMPLETED') {
+		stopSeedPolling();
+		progressEl.classList.add('is-hidden');
+		if (seedBtn) seedBtn.disabled = false;
+
+		const result = status.result;
+		if (result && resultEl) {
+			const set = (id, val) => {
+				const el = document.getElementById(id);
+				if (el) el.textContent = (val ?? 0).toLocaleString();
+			};
+			set('r-members', result.membersInserted);
+			set('r-restaurants', result.restaurantsInserted);
+			set('r-groups', result.groupsInserted);
+			set('r-subgroups', result.subgroupsInserted);
+			set('r-reviews', result.reviewsInserted);
+			set('r-chat', result.chatMessagesInserted);
+			set('r-notifications', result.notificationsInserted);
+			set('r-favorites', result.favoritesInserted);
+			const elapsedEl = document.getElementById('r-elapsed');
+			if (elapsedEl) {
+				elapsedEl.textContent = `소요 시간: ${(result.elapsedMs ?? 0).toLocaleString()} ms`;
+			}
+			resultEl.classList.remove('is-hidden');
+		}
+		refreshCountResult();
+	} else if (status.status === 'FAILED') {
+		stopSeedPolling();
+		progressEl.classList.add('is-hidden');
+		if (seedBtn) seedBtn.disabled = false;
+
+		if (errorEl) {
+			errorEl.textContent = `삽입 실패: ${status.errorMessage || '알 수 없는 오류'}`;
+			errorEl.classList.remove('is-hidden');
+		}
+		refreshCountResult();
+	} else if (status.status === 'CANCELLED') {
+		stopSeedPolling();
+		progressEl.classList.add('is-hidden');
+		if (seedBtn) seedBtn.disabled = false;
+
+		if (errorEl) {
+			errorEl.textContent = `시딩이 중단되었습니다 (완료된 스텝: ${status.completedSteps}/${status.totalSteps})`;
+			errorEl.classList.remove('is-hidden');
+		}
+		refreshCountResult();
+	}
+}
+
 function mountDummy() {
 	dummyCleanup = [];
 
@@ -238,18 +328,9 @@ function mountDummy() {
 		const seedHandler = async () => {
 			const errorEl = document.getElementById('seedError');
 			const resultEl = document.getElementById('seedResult');
-			const loading = document.getElementById('seedLoading');
-			const msgRows = {
-				members: document.getElementById('r-members'),
-				restaurants: document.getElementById('r-restaurants'),
-				groups: document.getElementById('r-groups'),
-				subgroups: document.getElementById('r-subgroups'),
-				reviews: document.getElementById('r-reviews'),
-				chats: document.getElementById('r-chat'),
-				notifications: document.getElementById('r-notifications'),
-				favorites: document.getElementById('r-favorites'),
-				elapsed: document.getElementById('r-elapsed')
-			};
+			const progressEl = document.getElementById('seedProgress');
+			const progressFill = document.getElementById('seedProgressFill');
+			const progressText = document.getElementById('seedProgressText');
 
 			if (errorEl) {
 				errorEl.classList.add('is-hidden');
@@ -257,8 +338,14 @@ function mountDummy() {
 			if (resultEl) {
 				resultEl.classList.add('is-hidden');
 			}
-			if (loading) {
-				loading.classList.remove('is-hidden');
+			if (progressEl) {
+				progressEl.classList.remove('is-hidden');
+			}
+			if (progressFill) {
+				progressFill.style.width = '0%';
+			}
+			if (progressText) {
+				progressText.textContent = '시작 중...';
 			}
 			seedBtn.disabled = true;
 
@@ -274,54 +361,49 @@ function mountDummy() {
 					notificationCount: toIntOrDefault('notificationCount', 5000),
 					favoriteCount: toIntOrDefault('favoriteCount', 1000)
 				};
-				const response = await seedDummyData(payload);
-				const result = response?.data || response;
-				if (msgRows.members) {
-					msgRows.members.textContent = (result.membersInserted ?? 0).toLocaleString();
-				}
-				if (msgRows.restaurants) {
-					msgRows.restaurants.textContent = (result.restaurantsInserted ?? 0).toLocaleString();
-				}
-				if (msgRows.groups) {
-					msgRows.groups.textContent = (result.groupsInserted ?? 0).toLocaleString();
-				}
-				if (msgRows.subgroups) {
-					msgRows.subgroups.textContent = (result.subgroupsInserted ?? 0).toLocaleString();
-				}
-				if (msgRows.reviews) {
-					msgRows.reviews.textContent = (result.reviewsInserted ?? 0).toLocaleString();
-				}
-				if (msgRows.chats) {
-					msgRows.chats.textContent = (result.chatMessagesInserted ?? 0).toLocaleString();
-				}
-				if (msgRows.notifications) {
-					msgRows.notifications.textContent = (result.notificationsInserted ?? 0).toLocaleString();
-				}
-				if (msgRows.favorites) {
-					msgRows.favorites.textContent = (result.favoritesInserted ?? 0).toLocaleString();
-				}
-				if (msgRows.elapsed) {
-					msgRows.elapsed.textContent = `소요 시간: ${(result.elapsedMs ?? 0).toLocaleString()} ms`;
-				}
-				if (resultEl) {
-					resultEl.classList.remove('is-hidden');
-				}
+				await seedDummyData(payload);
+
+				stopSeedPolling();
+				seedPollInterval = setInterval(async () => {
+					try {
+						const resp = await getSeedStatus();
+						const status = resp?.data || resp;
+						updateProgressUI(status);
+					} catch (err) {
+						stopSeedPolling();
+						if (seedBtn) seedBtn.disabled = false;
+						if (progressEl) progressEl.classList.add('is-hidden');
+						if (errorEl) {
+							errorEl.textContent = `상태 조회 실패: ${err.message}`;
+							errorEl.classList.remove('is-hidden');
+						}
+					}
+				}, 1000);
 			} catch (error) {
+				if (progressEl) progressEl.classList.add('is-hidden');
+				seedBtn.disabled = false;
 				if (errorEl) {
-					errorEl.textContent = `삽입 실패: ${error.message}`;
+					errorEl.textContent = `삽입 요청 실패: ${error.message}`;
 					errorEl.classList.remove('is-hidden');
 				}
-			} finally {
-				if (loading) {
-					loading.classList.add('is-hidden');
-				}
-				seedBtn.disabled = false;
-				// 성공/실패 무관하게 현황 자동 갱신
-				await refreshCountResult();
 			}
 		};
 		seedBtn.addEventListener('click', seedHandler);
 		dummyCleanup.push(() => seedBtn.removeEventListener('click', seedHandler));
+	}
+
+	const cancelSeedBtn = document.getElementById('cancelSeedBtn');
+	if (cancelSeedBtn) {
+		const cancelHandler = async () => {
+			cancelSeedBtn.disabled = true;
+			try {
+				await cancelSeed();
+			} catch (err) {
+				cancelSeedBtn.disabled = false;
+			}
+		};
+		cancelSeedBtn.addEventListener('click', cancelHandler);
+		dummyCleanup.push(() => cancelSeedBtn.removeEventListener('click', cancelHandler));
 	}
 
 	const deleteBtn = document.getElementById('deleteBtn');
@@ -353,6 +435,7 @@ function mountDummy() {
 	}
 
 	return () => {
+		stopSeedPolling();
 		dummyCleanup.forEach((remove) => remove());
 		dummyCleanup = [];
 	};
@@ -362,6 +445,7 @@ window.dummyView = {
 	render: renderDummy,
 	mount: mountDummy,
 	unmount: () => {
+		stopSeedPolling();
 		dummyCleanup.forEach((remove) => remove());
 		dummyCleanup = [];
 	}

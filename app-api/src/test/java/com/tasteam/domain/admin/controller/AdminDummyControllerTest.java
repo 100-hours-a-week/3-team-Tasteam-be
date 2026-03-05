@@ -1,5 +1,6 @@
 package com.tasteam.domain.admin.controller;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -10,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,11 +21,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tasteam.batch.dummy.DummySeedJobTracker;
 import com.tasteam.batch.dummy.service.DummyDataSeedService;
 import com.tasteam.config.annotation.ControllerWebMvcTest;
 import com.tasteam.domain.admin.dto.request.AdminDummySeedRequest;
 import com.tasteam.domain.admin.dto.response.AdminDataCountResponse;
-import com.tasteam.domain.admin.dto.response.AdminDummySeedResponse;
+import com.tasteam.domain.admin.dto.response.DummySeedStatusResponse;
 
 @ControllerWebMvcTest(AdminDummyController.class)
 @DisplayName("[유닛](Admin) AdminDummyController 단위 테스트")
@@ -37,34 +41,41 @@ class AdminDummyControllerTest {
 	@MockitoBean
 	private DummyDataSeedService dummyDataSeedService;
 
+	@MockitoBean
+	private DummySeedJobTracker jobTracker;
+
 	@Nested
 	@DisplayName("더미 데이터 생성")
 	class Seed {
 
 		@Test
-		@DisplayName("요청한 양의 수량이 유효하면 더미 생성 결과를 반환한다")
+		@DisplayName("시딩이 진행 중이지 않으면 202를 반환한다")
 		void 더미_시드_성공() throws Exception {
 			// given
 			var request = new AdminDummySeedRequest(1, 2, 0, 0, 0, 0, 0, 0, 0);
-			given(dummyDataSeedService.seed(request)).willReturn(new AdminDummySeedResponse(
-				1,
-				2,
-				0,
-				0,
-				0,
-				0,
-				0,
-				0,
-				120L));
+			given(jobTracker.isRunning()).willReturn(false);
+			given(dummyDataSeedService.seedAsync(any())).willReturn(CompletableFuture.completedFuture(null));
 
 			// when & then
 			mockMvc.perform(post("/api/v1/admin/dummy/seed")
 				.contentType(APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.membersInserted").value(1))
-				.andExpect(jsonPath("$.data.restaurantsInserted").value(2));
+				.andExpect(status().isAccepted());
+		}
+
+		@Test
+		@DisplayName("이미 시딩이 진행 중이면 409를 반환한다")
+		void 더미_시드_중복_실패() throws Exception {
+			// given
+			var request = new AdminDummySeedRequest(1, 2, 0, 0, 0, 0, 0, 0, 0);
+			given(jobTracker.isRunning()).willReturn(true);
+
+			// when & then
+			mockMvc.perform(post("/api/v1/admin/dummy/seed")
+				.contentType(APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("SEED_ALREADY_RUNNING"));
 		}
 
 		@Test
@@ -79,6 +90,27 @@ class AdminDummyControllerTest {
 				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+		}
+	}
+
+	@Nested
+	@DisplayName("시딩 진행 상태 조회")
+	class SeedStatus {
+
+		@Test
+		@DisplayName("현재 시딩 상태를 정상 조회한다")
+		void 시딩_상태_조회_성공() throws Exception {
+			// given
+			var snapshot = new DummySeedStatusResponse("RUNNING", "member insert", 1, 7, null, null, 1500L);
+			given(jobTracker.getSnapshot()).willReturn(snapshot);
+
+			// when & then
+			mockMvc.perform(get("/api/v1/admin/dummy/seed/status"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.status").value("RUNNING"))
+				.andExpect(jsonPath("$.data.completedSteps").value(1))
+				.andExpect(jsonPath("$.data.totalSteps").value(7));
 		}
 	}
 

@@ -1,6 +1,7 @@
 package com.tasteam.global.config;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
@@ -51,6 +52,18 @@ public class AsyncConfig implements AsyncConfigurer {
 		executor.initialize();
 		ExecutorServiceMetrics.monitor(registry, executor.getThreadPoolExecutor(), "ai_analysis");
 		return executor;
+	}
+
+	@Bean("dummySeedExecutor")
+	public Executor dummySeedExecutor() {
+		ThreadPoolTaskExecutor exec = new ThreadPoolTaskExecutor();
+		exec.setCorePoolSize(1);
+		exec.setMaxPoolSize(1);
+		exec.setQueueCapacity(0);
+		exec.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+		exec.setThreadNamePrefix("dummy-seed-");
+		exec.initialize();
+		return exec;
 	}
 
 	@Override
