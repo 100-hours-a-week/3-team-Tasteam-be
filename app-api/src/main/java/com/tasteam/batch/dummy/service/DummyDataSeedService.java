@@ -37,6 +37,8 @@ public class DummyDataSeedService {
 	private static final int DEFAULT_MEMBER_PER_GROUP = 30;
 	private static final int DEFAULT_REVIEW_COUNT = 1000;
 	private static final int DEFAULT_CHAT_MESSAGE_PER_ROOM = 50;
+	private static final int DEFAULT_NOTIFICATION_COUNT = 5_000;
+	private static final int DEFAULT_FAVORITE_COUNT = 1_000;
 	private static final int MAX_MEMBER_COUNT = 100_000;
 	private static final int MAX_RESTAURANT_COUNT = 50_000_000;
 	private static final int MAX_GROUP_COUNT = 1_000;
@@ -44,6 +46,8 @@ public class DummyDataSeedService {
 	private static final int MAX_MEMBER_PER_GROUP = 1_000;
 	private static final int MAX_REVIEW_COUNT = 100_000_000;
 	private static final int MAX_CHAT_MESSAGE_PER_ROOM = 1_000_000_000;
+	private static final int MAX_NOTIFICATION_COUNT = 2_000_000;
+	private static final int MAX_FAVORITE_COUNT = 500_000;
 	private static final int SERVICE_CHUNK_SIZE = 5_000;
 	private static final int RELATION_FLUSH_SIZE = 5_000;
 	private static final int MAX_KEYWORDS_PER_REVIEW = 3;
@@ -66,6 +70,10 @@ public class DummyDataSeedService {
 		int reviewCount = normalizeCount("reviewCount", req.reviewCount(), DEFAULT_REVIEW_COUNT, MAX_REVIEW_COUNT);
 		int chatMessagePerRoom = normalizeCount("chatMessagePerRoom", req.chatMessagePerRoom(),
 			DEFAULT_CHAT_MESSAGE_PER_ROOM, MAX_CHAT_MESSAGE_PER_ROOM);
+		int notificationCount = normalizeCount("notificationCount", req.notificationCount(),
+			DEFAULT_NOTIFICATION_COUNT, MAX_NOTIFICATION_COUNT);
+		int favoriteCount = normalizeCount("favoriteCount", req.favoriteCount(),
+			DEFAULT_FAVORITE_COUNT, MAX_FAVORITE_COUNT);
 
 		LongIdBuffer memberIds = executeStep("member insert", () -> insertMembers(memberCount, runToken));
 		LongIdBuffer restaurantIds = executeStep("restaurant insert",
@@ -79,6 +87,11 @@ public class DummyDataSeedService {
 		int reviewsInserted = executeStep("review/review_keyword insert",
 			() -> insertReviewsWithKeywords(reviewCount, memberIds, restaurantIds, groupIds));
 
+		long notificationsInserted = executeStep("notification insert",
+			() -> insertNotificationsInChunks(notificationCount, memberIds));
+		long favoritesInserted = executeStep("favorite insert",
+			() -> insertFavoritesInChunks(favoriteCount, memberIds, restaurantIds));
+
 		long elapsed = System.currentTimeMillis() - start;
 		log.info("[DummySeed] completed in {}ms", elapsed);
 		return new AdminDummySeedResponse(
@@ -88,6 +101,8 @@ public class DummyDataSeedService {
 			groupSeedResult.subgroupsInserted(),
 			reviewsInserted,
 			groupSeedResult.chatMessagesInserted(),
+			notificationsInserted,
+			favoritesInserted,
 			elapsed);
 	}
 
@@ -99,7 +114,9 @@ public class DummyDataSeedService {
 			dummyRepo.countGroups(),
 			dummyRepo.countSubgroups(),
 			dummyRepo.countReviews(),
-			dummyRepo.countChatMessages());
+			dummyRepo.countChatMessages(),
+			dummyRepo.countNotifications(),
+			dummyRepo.countFavorites());
 	}
 
 	@Transactional
@@ -275,6 +292,8 @@ public class DummyDataSeedService {
 		List<Long> keywordIds = dummyRepo.queryKeywordIds();
 		int reviewsInserted = 0;
 
+		int hotspotSize = Math.max(1, restaurantIds.size() / 10);
+
 		for (int start = 0; start < reviewCount; start += SERVICE_CHUNK_SIZE) {
 			int end = Math.min(start + SERVICE_CHUNK_SIZE, reviewCount);
 			int size = end - start;
@@ -284,7 +303,7 @@ public class DummyDataSeedService {
 			for (int i = 0; i < size; i++) {
 				int seq = start + i;
 				long memberId = memberIds.get(seq % memberIds.size());
-				long restaurantId = restaurantIds.get(seq % restaurantIds.size());
+				long restaurantId = selectRestaurantIdWithHotspot(restaurantIds, seq, hotspotSize);
 				long groupId = groupIds.get(seq % groupIds.size());
 				int recommended = RANDOM.nextBoolean() ? 1 : 0;
 				reviewEntries.add(new long[] {memberId, restaurantId, groupId, recommended});
@@ -317,6 +336,53 @@ public class DummyDataSeedService {
 
 		validateInsertedCount("review insert", reviewsInserted, reviewCount);
 		return reviewsInserted;
+	}
+
+	/**
+	 * notification을 SERVICE_CHUNK_SIZE 단위로 분할 삽입한다.
+	 * 각 청크가 별도 트랜잭션 → 장시간 단일 TX의 WAL 급증/커넥션 독점 방지.
+	 */
+	private long insertNotificationsInChunks(int notificationCount, LongIdBuffer memberIds) {
+		List<Long> memberList = memberIds.toList();
+		long inserted = 0;
+		for (int start = 0; start < notificationCount; start += SERVICE_CHUNK_SIZE) {
+			int size = Math.min(SERVICE_CHUNK_SIZE, notificationCount - start);
+			inserted += dummyRepo.insertNotificationBatch(memberList, start, size);
+		}
+		return inserted;
+	}
+
+	/**
+	 * 즐겨찾기를 SERVICE_CHUNK_SIZE 단위로 분할 삽입한다.
+	 * seq를 2차원 좌표(memberIdx × restaurantIdx)로 전개하므로
+	 * 최대 고유 행 수 = memberCount × restaurantCount.
+	 * 이 값이 favoriteCount보다 작으면 ON CONFLICT DO NOTHING으로 일부 누락되므로
+	 * memberCount × restaurantCount >= favoriteCount 조건을 충족하도록 요청값을 설정해야 한다.
+	 */
+	private long insertFavoritesInChunks(int favoriteCount, LongIdBuffer memberIds, LongIdBuffer restaurantIds) {
+		List<Long> memberList = memberIds.toList();
+		List<Long> restaurantList = restaurantIds.toList();
+		long inserted = 0;
+		for (int start = 0; start < favoriteCount; start += SERVICE_CHUNK_SIZE) {
+			int size = Math.min(SERVICE_CHUNK_SIZE, favoriteCount - start);
+			inserted += dummyRepo.insertFavoriteBatch(memberList, restaurantList, start, size);
+		}
+		return inserted;
+	}
+
+	/**
+	 * 상위 10% 레스토랑(핫스팟)에 60%, 나머지 40%에 40% 분포로 레스토랑 ID를 선택한다.
+	 */
+	private long selectRestaurantIdWithHotspot(LongIdBuffer restaurantIds, int seq, int hotspotSize) {
+		int totalSize = restaurantIds.size();
+		if (RANDOM.nextDouble() < 0.6) {
+			return restaurantIds.get(seq % hotspotSize);
+		}
+		int tailSize = totalSize - hotspotSize;
+		if (tailSize <= 0) {
+			return restaurantIds.get(seq % totalSize);
+		}
+		return restaurantIds.get(hotspotSize + (seq % tailSize));
 	}
 
 	private long[] selectCyclicMembers(LongIdBuffer pool, int requestedCount, int seed) {
@@ -478,6 +544,14 @@ public class DummyDataSeedService {
 				throw new IndexOutOfBoundsException("index=" + index + ", size=" + size);
 			}
 			return values[index];
+		}
+
+		private List<Long> toList() {
+			List<Long> list = new ArrayList<>(size);
+			for (int i = 0; i < size; i++) {
+				list.add(values[i]);
+			}
+			return list;
 		}
 
 		private void ensureCapacity(int required) {

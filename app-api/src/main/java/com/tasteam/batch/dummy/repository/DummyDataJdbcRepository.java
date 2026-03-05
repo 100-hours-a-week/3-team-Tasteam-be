@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -382,6 +383,76 @@ public class DummyDataJdbcRepository {
 		return n;
 	}
 
+	private static final String[] NOTIFICATION_TYPES = {
+		"REVIEW_COMMENT", "REVIEW_LIKE", "GROUP_JOIN", "ANNOUNCEMENT", "PROMOTION"
+	};
+
+	/**
+	 * notification 테이블에 더미 알림을 단일 배치 삽입한다. (서비스 청크 단위로 호출)
+	 * startSeq ~ startSeq+batchSize-1 범위의 seq를 사용해 event_id를 생성한다.
+	 * ON CONFLICT (event_id) DO NOTHING으로 중복 삽입 방지.
+	 */
+	@Transactional
+	public long insertNotificationBatch(List<Long> memberIds, int startSeq, int batchSize) {
+		Timestamp now = ts();
+		int memberSize = memberIds.size();
+
+		StringBuilder sql = new StringBuilder(
+			"INSERT INTO notification (member_id, notification_type, title, body, event_id, created_at)"
+				+ " VALUES ");
+		List<Object> p = new ArrayList<>(batchSize * 6);
+
+		for (int i = 0; i < batchSize; i++) {
+			if (i > 0)
+				sql.append(',');
+			int seq = startSeq + i;
+			long memberId = memberIds.get(seq % memberSize);
+			String type = NOTIFICATION_TYPES[seq % NOTIFICATION_TYPES.length];
+			String eventId = "dummy-" + seq + "-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+			sql.append("(?,?,?,?,?,?)");
+			p.add(memberId);
+			p.add(type);
+			p.add("더미 알림 제목 " + (seq + 1));
+			p.add("더미 알림 내용입니다. " + (seq + 1));
+			p.add(eventId);
+			p.add(now);
+		}
+		sql.append(" ON CONFLICT (event_id) DO NOTHING");
+		return jdbcTemplate.update(sql.toString(), p.toArray());
+	}
+
+	/**
+	 * member_favorite_restaurant 테이블에 더미 즐겨찾기를 단일 배치 삽입한다. (서비스 청크 단위로 호출)
+	 * seq를 (memberIdx, restaurantIdx) 2차원 좌표로 전개해 (member_id, restaurant_id) 중복을 최소화한다.
+	 * 최대 고유 행 수 = memberCount × restaurantCount.
+	 * (member_id, restaurant_id) 중복 방지: ON CONFLICT DO NOTHING.
+	 */
+	@Transactional
+	public long insertFavoriteBatch(List<Long> memberIds, List<Long> restaurantIds, int startSeq, int batchSize) {
+		Timestamp now = ts();
+		int memberSize = memberIds.size();
+		int restaurantSize = restaurantIds.size();
+
+		StringBuilder sql = new StringBuilder(
+			"INSERT INTO member_favorite_restaurant (member_id, restaurant_id, created_at) VALUES ");
+		List<Object> p = new ArrayList<>(batchSize * 3);
+
+		for (int i = 0; i < batchSize; i++) {
+			if (i > 0)
+				sql.append(',');
+			int seq = startSeq + i;
+			// seq를 2차원으로 전개: memberIdx × restaurantIdx 매트릭스 순회
+			int memberIdx = seq % memberSize;
+			int restaurantIdx = (seq / memberSize) % restaurantSize;
+			sql.append("(?,?,?)");
+			p.add(memberIds.get(memberIdx));
+			p.add(restaurantIds.get(restaurantIdx));
+			p.add(now);
+		}
+		sql.append(" ON CONFLICT DO NOTHING");
+		return jdbcTemplate.update(sql.toString(), p.toArray());
+	}
+
 	// ── DELETE ────────────────────────────────────────────────────────────────
 
 	/**
@@ -390,6 +461,18 @@ public class DummyDataJdbcRepository {
 	 * 더미 음식점은 name LIKE '더미식당-%' 로 식별한다.
 	 */
 	public void deleteDummyData() {
+		// 0-a. 더미 멤버의 즐겨찾기 삭제
+		jdbcTemplate.update("""
+			DELETE FROM member_favorite_restaurant
+			WHERE member_id IN (SELECT id FROM member WHERE email LIKE '%@dummy.tasteam.kr')
+			""");
+
+		// 0-b. 더미 멤버의 알림 삭제
+		jdbcTemplate.update("""
+			DELETE FROM notification
+			WHERE member_id IN (SELECT id FROM member WHERE email LIKE '%@dummy.tasteam.kr')
+			""");
+
 		// 1. 더미 멤버가 작성한 리뷰의 키워드 삭제
 		jdbcTemplate.update("""
 			DELETE FROM review_keyword
@@ -522,6 +605,14 @@ public class DummyDataJdbcRepository {
 
 	public long countChatMessages() {
 		return query("SELECT COUNT(*) FROM chat_message WHERE deleted_at IS NULL");
+	}
+
+	public long countNotifications() {
+		return query("SELECT COUNT(*) FROM notification");
+	}
+
+	public long countFavorites() {
+		return query("SELECT COUNT(*) FROM member_favorite_restaurant WHERE deleted_at IS NULL");
 	}
 
 	// ── helpers ───────────────────────────────────────────────────────────────
