@@ -1,8 +1,9 @@
 package com.tasteam.domain.admin.controller.docs;
 
+import org.springframework.http.ResponseEntity;
+
 import com.tasteam.domain.admin.dto.request.AdminDummySeedRequest;
 import com.tasteam.domain.admin.dto.response.AdminDataCountResponse;
-import com.tasteam.domain.admin.dto.response.AdminDummySeedResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
 import com.tasteam.global.swagger.annotation.SwaggerTagOrder;
 
@@ -14,7 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public interface AdminDummyControllerDocs {
 
 	@Operation(summary = "더미 데이터 삽입", description = "지정한 수량만큼 더미 멤버/음식점/그룹/하위그룹/리뷰/채팅 메시지를 JDBC batch INSERT로 삽입합니다.")
-	SuccessResponse<AdminDummySeedResponse> seed(AdminDummySeedRequest request);
+	ResponseEntity<?> seed(AdminDummySeedRequest request);
 
 	@Operation(summary = "현재 데이터 개수 조회", description = "각 테이블의 soft-delete 제외 총 레코드 수를 반환합니다.")
 	SuccessResponse<AdminDataCountResponse> count();
