@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.analytics.api.ActivityEvent;
+import com.tasteam.global.aop.ObservedOutbox;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +59,12 @@ public class UserActivityDispatchOutboxService {
 		outboxRepository.markFailed(id, ex == null ? null : ex.getMessage(), baseDelay, maxDelay);
 		incrementCounter("analytics.user-activity.dispatch.execute", "fail", dispatchTarget);
 		incrementCounter("analytics.user-activity.dispatch.retry", "scheduled", dispatchTarget);
+	}
+
+	@ObservedOutbox(name = "analytics_dispatch")
+	@Transactional(readOnly = true)
+	public List<UserActivityDispatchOutboxSummary> summarizeByTarget() {
+		return outboxRepository.summarizeByTarget();
 	}
 
 	private void incrementCounter(String metricName, String result, UserActivityDispatchTarget dispatchTarget) {

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.analytics.api.ActivityEvent;
+import com.tasteam.global.aop.ObservedOutbox;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +55,7 @@ public class UserActivitySourceOutboxService {
 	}
 
 	@Transactional(readOnly = true)
+	@ObservedOutbox(name = "analytics_source")
 	public UserActivitySourceOutboxSummary summarize() {
 		return outboxRepository.summarize();
 	}

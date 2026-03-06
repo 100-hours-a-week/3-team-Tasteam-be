@@ -5,14 +5,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.notification.dispatch.NotificationDispatcher;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
+import com.tasteam.global.metrics.MetricLabelPolicy;
 import com.tasteam.infra.messagequeue.MessageQueueConsumer;
 import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProducer;
@@ -21,6 +24,8 @@ import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 import com.tasteam.infra.messagequeue.MessageQueueSubscription;
 import com.tasteam.infra.messagequeue.MessageQueueTopics;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +49,8 @@ public class NotificationMessageQueueConsumer {
 	private final MessageQueueProducer messageQueueProducer;
 	private final NotificationDispatcher dispatcher;
 	private final ObjectMapper objectMapper;
+	@Nullable
+	private final MeterRegistry meterRegistry;
 
 	private MessageQueueSubscription subscription;
 
@@ -73,22 +80,30 @@ public class NotificationMessageQueueConsumer {
 
 	private void handleMessage(MessageQueueMessage message) {
 		NotificationRequestedPayload payload = deserializePayload(message.payload());
+		long startedAtNanos = System.nanoTime();
+		String result = "success";
 		try {
 			dispatcher.dispatch(payload);
+			incrementProcessCounter("success");
 			retryCountMap.remove(message.messageId());
 		} catch (Exception ex) {
+			result = "fail";
+			incrementProcessCounter("fail");
 			int count = retryCountMap.merge(message.messageId(), 1, Integer::sum);
 			log.warn("알림 처리 실패. eventId={}, retryCount={}/{}", payload.eventId(), count, maxRetries, ex);
 			if (count >= maxRetries) {
-				publishToDlq(message);
+				boolean dlqPublished = publishToDlq(message);
+				incrementDlqCounter(dlqPublished ? "success" : "fail");
 				retryCountMap.remove(message.messageId());
 			} else {
 				throw ex;
 			}
+		} finally {
+			recordProcessLatency(result, startedAtNanos);
 		}
 	}
 
-	private void publishToDlq(MessageQueueMessage message) {
+	private boolean publishToDlq(MessageQueueMessage message) {
 		try {
 			MessageQueueMessage dlqMessage = MessageQueueMessage.of(
 				MessageQueueTopics.NOTIFICATION_REQUESTED_DLQ,
@@ -96,8 +111,10 @@ public class NotificationMessageQueueConsumer {
 				message.payload());
 			messageQueueProducer.publish(dlqMessage);
 			log.info("알림 DLQ 발행 완료. messageId={}", message.messageId());
+			return true;
 		} catch (Exception ex) {
 			log.error("알림 DLQ 발행 실패. messageId={}", message.messageId(), ex);
+			return false;
 		}
 	}
 
@@ -108,5 +125,33 @@ public class NotificationMessageQueueConsumer {
 			String payloadAsString = new String(payload, StandardCharsets.UTF_8);
 			throw new IllegalArgumentException("알림 메시지 역직렬화 실패. payload=" + payloadAsString, ex);
 		}
+	}
+
+	private void incrementProcessCounter(String result) {
+		if (meterRegistry == null) {
+			return;
+		}
+		MetricLabelPolicy.validate("notification.consumer.process", "result", result);
+		meterRegistry.counter("notification.consumer.process", "result", result).increment();
+	}
+
+	private void recordProcessLatency(String result, long startedAtNanos) {
+		if (meterRegistry == null) {
+			return;
+		}
+		MetricLabelPolicy.validate("notification.consumer.process.latency", "result", result);
+		Timer.builder("notification.consumer.process.latency")
+			.publishPercentileHistogram()
+			.tag("result", result)
+			.register(meterRegistry)
+			.record(System.nanoTime() - startedAtNanos, TimeUnit.NANOSECONDS);
+	}
+
+	private void incrementDlqCounter(String result) {
+		if (meterRegistry == null) {
+			return;
+		}
+		MetricLabelPolicy.validate("notification.consumer.dlq", "result", result);
+		meterRegistry.counter("notification.consumer.dlq", "result", result).increment();
 	}
 }
