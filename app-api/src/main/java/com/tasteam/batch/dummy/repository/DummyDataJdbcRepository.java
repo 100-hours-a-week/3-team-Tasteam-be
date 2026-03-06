@@ -116,16 +116,21 @@ public class DummyDataJdbcRepository {
 			int size = end - start;
 
 			StringBuilder sql = new StringBuilder(
-				"INSERT INTO \"group\" (id, name, type, address, join_type, status, created_at, updated_at) VALUES ");
-			List<Object> p = new ArrayList<>(size * 8);
+				"INSERT INTO \"group\" (id, name, type, address, location, join_type, status, created_at, updated_at)"
+					+ " VALUES ");
+			List<Object> p = new ArrayList<>(size * 9);
 
 			for (int i = 0; i < size; i++) {
 				if (i > 0)
 					sql.append(',');
-				sql.append("(?,?,'UNOFFICIAL',?,'PASSWORD','ACTIVE',?,?)");
+				double lon = 126.0 + ThreadLocalRandom.current().nextDouble() * 3.6;
+				double lat = 33.1 + ThreadLocalRandom.current().nextDouble() * 5.5;
+				sql.append("(?,?,'UNOFFICIAL',?,ST_SetSRID(ST_MakePoint(?,?),4326),'PASSWORD','ACTIVE',?,?)");
 				p.add(allIds.get(start + i));
 				p.add(names.get(start + i));
 				p.add(addresses.get(start + i));
+				p.add(lon);
+				p.add(lat);
 				p.add(now);
 				p.add(now);
 			}
