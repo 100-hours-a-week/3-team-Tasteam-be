@@ -160,16 +160,16 @@ function mountJobs() {
 					batchResult.textContent = response?.data?.successCount || 0;
 				}
 				if (listBox) {
-					listBox.style.display = 'block';
+					listBox.classList.remove('is-hidden');
 				}
 				if (errorBox) {
-					errorBox.style.display = 'none';
+					errorBox.classList.add('is-hidden');
 				}
 				document.getElementById('loadPendingImages')?.click();
 			} catch (error) {
 				if (errorBox) {
 					errorBox.textContent = error.message;
-					errorBox.style.display = 'block';
+					errorBox.classList.remove('is-hidden');
 				}
 			} finally {
 				clearLoading(discoverBtn);
@@ -190,7 +190,7 @@ function mountJobs() {
 
 			setLoading(pendingBtn, '조회 중...');
 			if (errorBox) {
-				errorBox.style.display = 'none';
+				errorBox.classList.add('is-hidden');
 			}
 			try {
 				const response = await window.apiRequest(`/admin/jobs/image-optimization/pending?limit=${limit}`);
@@ -212,12 +212,12 @@ function mountJobs() {
                     `).join('');
 				}
 				if (list) {
-					list.style.display = 'block';
+					list.classList.remove('is-hidden');
 				}
 			} catch (error) {
 				if (errorBox) {
 					errorBox.textContent = error.message;
-					errorBox.style.display = 'block';
+					errorBox.classList.remove('is-hidden');
 				}
 			} finally {
 				clearLoading(pendingBtn);
@@ -238,7 +238,7 @@ function mountJobs() {
 			const batchSize = parseInt(document.getElementById('batchSize')?.value || '100', 10);
 			setLoading(runOptBtn, '실행 중...');
 			if (resultBox) {
-				resultBox.style.display = 'none';
+				resultBox.classList.add('is-hidden');
 			}
 			try {
 				const response = await window.apiRequest(`/admin/jobs/image-optimization?batchSize=${batchSize}`, { method: 'POST' });
@@ -252,13 +252,13 @@ function mountJobs() {
 					skipped.textContent = response?.data?.skippedCount || 0;
 				}
 				if (resultBox) {
-					resultBox.style.display = 'block';
+					resultBox.classList.remove('is-hidden');
 				}
 				document.getElementById('loadPendingImages')?.click();
 			} catch (error) {
 				if (errorBox) {
 					errorBox.textContent = error.message;
-					errorBox.style.display = 'block';
+					errorBox.classList.remove('is-hidden');
 				}
 			} finally {
 				clearLoading(runOptBtn);
@@ -280,7 +280,7 @@ function mountJobs() {
 				const pendingBody = document.getElementById('pendingImagesBody');
 				const count = document.getElementById('pendingCount');
 				if (pending) {
-					pending.style.display = 'none';
+					pending.classList.add('is-hidden');
 				}
 				if (pendingBody) {
 					pendingBody.innerHTML = '';
@@ -289,15 +289,15 @@ function mountJobs() {
 					count.textContent = '0';
 				}
 				if (resultBox) {
-					resultBox.style.display = 'none';
+					resultBox.classList.add('is-hidden');
 				}
 				if (errorBox) {
-					errorBox.style.display = 'none';
+					errorBox.classList.add('is-hidden');
 				}
 			} catch (error) {
 				if (errorBox) {
 					errorBox.textContent = error.message;
-					errorBox.style.display = 'block';
+					errorBox.classList.remove('is-hidden');
 				}
 			} finally {
 				clearLoading(resetBtn);
@@ -336,15 +336,15 @@ function mountJobs() {
                     `).join('');
 				}
 				if (list) {
-					list.style.display = 'block';
+					list.classList.remove('is-hidden');
 				}
 				if (errorBox) {
-					errorBox.style.display = 'none';
+					errorBox.classList.add('is-hidden');
 				}
 			} catch (error) {
 				if (errorBox) {
 					errorBox.textContent = error.message;
-					errorBox.style.display = 'block';
+					errorBox.classList.remove('is-hidden');
 				}
 			} finally {
 				clearLoading(loadCleanupBtn);
@@ -362,7 +362,7 @@ function mountJobs() {
 			const count = document.getElementById('cleanedCount');
 			setLoading(runCleanupBtn, '실행 중...');
 			if (result) {
-				result.style.display = 'none';
+				result.classList.add('is-hidden');
 			}
 			try {
 				const response = await window.apiRequest('/admin/jobs/image-cleanup', { method: 'POST' });
@@ -370,13 +370,13 @@ function mountJobs() {
 					count.textContent = response?.data?.successCount || 0;
 				}
 				if (result) {
-					result.style.display = 'block';
+					result.classList.remove('is-hidden');
 				}
 				document.getElementById('loadCleanupPending')?.click();
 			} catch (error) {
 				if (errorBox) {
 					errorBox.textContent = error.message;
-					errorBox.style.display = 'block';
+					errorBox.classList.remove('is-hidden');
 				}
 			} finally {
 				clearLoading(runCleanupBtn);

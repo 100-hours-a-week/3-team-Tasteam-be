@@ -199,7 +199,7 @@ function resetCreateForm() {
 	}
 	const emailDomainGroup = document.getElementById('emailDomainGroup');
 	if (emailDomainGroup) {
-		emailDomainGroup.style.display = 'none';
+		emailDomainGroup.classList.add('is-hidden');
 	}
 	const lat = document.getElementById('groupLatitude');
 	const lng = document.getElementById('groupLongitude');
@@ -289,9 +289,9 @@ function mountGroups(state = {}) {
 				return;
 			}
 			if (event.target.value === 'EMAIL') {
-				emailDomainGroup.style.display = 'block';
+				emailDomainGroup.classList.remove('is-hidden');
 			} else {
-				emailDomainGroup.style.display = 'none';
+				emailDomainGroup.classList.add('is-hidden');
 			}
 		};
 		joinType.addEventListener('change', changeJoinType);

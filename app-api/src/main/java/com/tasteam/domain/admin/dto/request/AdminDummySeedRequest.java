@@ -17,5 +17,9 @@ public record AdminDummySeedRequest(
 	@Min(value = 0) @Max(value = 100000000)
 	int reviewCount,
 	@Min(value = 0) @Max(value = 1000000000)
-	int chatMessagePerRoom) {
+	int chatMessagePerRoom,
+	@Min(value = 0) @Max(value = 2000000)
+	int notificationCount,
+	@Min(value = 0) @Max(value = 500000)
+	int favoriteCount) {
 }
