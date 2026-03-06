@@ -145,7 +145,7 @@ tasteam:
       exception-logging:
         enabled: true
       transactional-query-logging:
-        enabled: true
+        enabled: false
       service-performance:
         enabled: false
       ai-analysis-performance:

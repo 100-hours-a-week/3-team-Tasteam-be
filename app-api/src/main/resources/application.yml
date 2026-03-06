@@ -227,7 +227,7 @@ tasteam:
     ingest:
       enabled: ${ANALYTICS_INGEST_ENABLED:true}
       max-batch-size: ${ANALYTICS_INGEST_MAX_BATCH_SIZE:50}
-      allowlist: ${ANALYTICS_INGEST_ALLOWLIST:ui.page.viewed,ui.page.dwelled,ui.restaurant.clicked,ui.restaurant.viewed,ui.review.write_started,ui.review.submitted,ui.search.executed,ui.group.clicked,ui.favorite.sheet_opened,ui.favorite.updated,ui.event.clicked,ui.tab.changed}
+      allowlist: ${ANALYTICS_INGEST_ALLOWLIST:ui.page.viewed,ui.page.dwelled,ui.restaurant.clicked,ui.restaurant.viewed,ui.review.write_started,ui.review.submitted,ui.search.executed,ui.group.clicked,ui.group.viewed,ui.favorite.sheet_opened,ui.favorite.updated,ui.event.clicked,ui.tab.changed}
       rate-limit:
         max-requests: ${ANALYTICS_INGEST_RATE_LIMIT_MAX_REQUESTS:120}
         window: ${ANALYTICS_INGEST_RATE_LIMIT_WINDOW:PT1M}

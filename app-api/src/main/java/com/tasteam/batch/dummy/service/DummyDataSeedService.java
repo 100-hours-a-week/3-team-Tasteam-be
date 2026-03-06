@@ -7,12 +7,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import com.tasteam.batch.dummy.DummySeedJobTracker;
 import com.tasteam.batch.dummy.repository.DummyDataJdbcRepository;
 import com.tasteam.domain.admin.dto.request.AdminDummySeedRequest;
 import com.tasteam.domain.admin.dto.response.AdminDataCountResponse;
@@ -30,26 +33,35 @@ public class DummyDataSeedService {
 
 	private static final String DUMMY_EMAIL_SUFFIX = "@dummy.tasteam.kr";
 	private static final Random RANDOM = new Random();
-	private static final int DEFAULT_MEMBER_COUNT = 500;
-	private static final int DEFAULT_RESTAURANT_COUNT = 200;
-	private static final int DEFAULT_GROUP_COUNT = 20;
-	private static final int DEFAULT_SUBGROUP_PER_GROUP = 5;
+	private static final int DEFAULT_MEMBER_COUNT = 10_000;
+	private static final int DEFAULT_RESTAURANT_COUNT = 10_000;
+	private static final int DEFAULT_GROUP_COUNT = 1_500;
+	private static final int DEFAULT_SUBGROUP_PER_GROUP = 4;
 	private static final int DEFAULT_MEMBER_PER_GROUP = 30;
-	private static final int DEFAULT_REVIEW_COUNT = 1000;
-	private static final int DEFAULT_CHAT_MESSAGE_PER_ROOM = 50;
+	private static final int DEFAULT_REVIEW_COUNT = 300_000;
+	private static final int DEFAULT_CHAT_MESSAGE_PER_ROOM = 167; // 총 ~100만 / 6000 채팅방
+	private static final int DEFAULT_NOTIFICATION_COUNT = 400_000;
+	private static final int DEFAULT_FAVORITE_COUNT = 100_000;
+	private static final int DEFAULT_SUBGROUP_FAVORITE_COUNT = 1_000;
 	private static final int MAX_MEMBER_COUNT = 100_000;
 	private static final int MAX_RESTAURANT_COUNT = 50_000_000;
-	private static final int MAX_GROUP_COUNT = 1_000;
+	private static final int MAX_GROUP_COUNT = 5_000;
 	private static final int MAX_SUBGROUP_PER_GROUP = 1_000;
 	private static final int MAX_MEMBER_PER_GROUP = 1_000;
 	private static final int MAX_REVIEW_COUNT = 100_000_000;
 	private static final int MAX_CHAT_MESSAGE_PER_ROOM = 1_000_000_000;
+	private static final int MAX_NOTIFICATION_COUNT = 2_000_000;
+	private static final int MAX_FAVORITE_COUNT = 500_000;
+	private static final int MAX_SUBGROUP_FAVORITE_COUNT = 500_000;
 	private static final int SERVICE_CHUNK_SIZE = 5_000;
 	private static final int RELATION_FLUSH_SIZE = 5_000;
 	private static final int MAX_KEYWORDS_PER_REVIEW = 3;
 	private static final long SLOW_STEP_THRESHOLD_MS = 2_000L;
+	private static final long MAX_TOTAL_SUBGROUP_COUNT = 1_000_000L;
+	private static final long MAX_TOTAL_CHAT_MESSAGE_COUNT = 20_000_000L;
 
 	private final DummyDataJdbcRepository dummyRepo;
+	private final DummySeedJobTracker tracker;
 
 	public AdminDummySeedResponse seed(AdminDummySeedRequest req) {
 		long start = System.currentTimeMillis();
@@ -66,18 +78,86 @@ public class DummyDataSeedService {
 		int reviewCount = normalizeCount("reviewCount", req.reviewCount(), DEFAULT_REVIEW_COUNT, MAX_REVIEW_COUNT);
 		int chatMessagePerRoom = normalizeCount("chatMessagePerRoom", req.chatMessagePerRoom(),
 			DEFAULT_CHAT_MESSAGE_PER_ROOM, MAX_CHAT_MESSAGE_PER_ROOM);
+		int notificationCount = normalizeCount("notificationCount", req.notificationCount(),
+			DEFAULT_NOTIFICATION_COUNT, MAX_NOTIFICATION_COUNT);
+		int favoriteCount = normalizeCount("favoriteCount", req.favoriteCount(),
+			DEFAULT_FAVORITE_COUNT, MAX_FAVORITE_COUNT);
+		int subgroupFavoriteCount = normalizeCount("subgroupFavoriteCount", req.subgroupFavoriteCount(),
+			DEFAULT_SUBGROUP_FAVORITE_COUNT, MAX_SUBGROUP_FAVORITE_COUNT);
 
+		validateDerivedConstraints(
+			memberCount,
+			restaurantCount,
+			groupCount,
+			subgroupPerGroup,
+			chatMessagePerRoom,
+			favoriteCount,
+			subgroupFavoriteCount);
+
+		// 순차 실행: 병렬 대량 INSERT는 DB WAL/connection pool 경합을 유발하므로 직렬화
 		LongIdBuffer memberIds = executeStep("member insert", () -> insertMembers(memberCount, runToken));
+		long notificationPreferencesInserted = executeStep("member_notification_preference insert", () -> {
+			dummyRepo.insertMemberNotificationPreferences(memberIds.toList());
+			return (long)memberIds.size() * 12;
+		});
+		long searchHistoriesInserted = executeStep("member_search_history insert", () -> {
+			dummyRepo.insertMemberSearchHistories(memberIds.toList());
+			return computeSearchHistoryCount(memberIds.size());
+		});
+
 		LongIdBuffer restaurantIds = executeStep("restaurant insert",
 			() -> insertRestaurants(restaurantCount, runToken));
+		executeStep("restaurant_address insert", () -> {
+			insertRestaurantAddresses(restaurantIds);
+			return null;
+		});
+		executeStep("restaurant_weekly_schedule insert", () -> {
+			insertRestaurantWeeklySchedules(restaurantIds);
+			return null;
+		});
+		executeStep("restaurant_food_category insert", () -> {
+			insertRestaurantFoodCategories(restaurantIds);
+			return null;
+		});
+		long menusInserted = executeStep("menu_category/menu insert",
+			() -> insertMenusForRestaurants(restaurantIds));
+
 		LongIdBuffer groupIds = executeStep("group insert", () -> insertGroups(groupCount, runToken));
 
 		GroupSeedResult groupSeedResult = executeStep(
 			"group_member/subgroup/chat relation insert",
 			() -> insertGroupRelatedData(groupIds, memberIds, subgroupPerGroup, memberPerGroup, chatMessagePerRoom));
 
+		executeStep("chat_room_member read status update", () -> {
+			dummyRepo.updateChatRoomMemberLastReadMessages();
+			return null;
+		});
+
+		List<Long> subgroupIds = groupSeedResult.subgroupIds();
+		long subgroupFavoritesInserted = executeStep("subgroup_favorite insert",
+			() -> insertSubgroupFavoritesInChunks(subgroupFavoriteCount, memberIds, subgroupIds, restaurantIds));
+
 		int reviewsInserted = executeStep("review/review_keyword insert",
 			() -> insertReviewsWithKeywords(reviewCount, memberIds, restaurantIds, groupIds));
+		executeStep("restaurant_review_sentiment/summary insert", () -> {
+			insertRestaurantReviewAnalysis(restaurantIds);
+			return null;
+		});
+
+		long notificationsInserted = executeStep("notification insert",
+			() -> insertNotificationsInChunks(notificationCount, memberIds));
+		long favoritesInserted = executeStep("favorite insert",
+			() -> insertFavoritesInChunks(favoriteCount, memberIds, restaurantIds));
+
+		if (favoritesInserted < favoriteCount) {
+			log.warn("[DummySeed] favorite insert mismatch. requested={} inserted={}", favoriteCount,
+				favoritesInserted);
+		}
+		if (subgroupFavoritesInserted < subgroupFavoriteCount) {
+			log.warn("[DummySeed] subgroup_favorite insert mismatch. requested={} inserted={}",
+				subgroupFavoriteCount,
+				subgroupFavoritesInserted);
+		}
 
 		long elapsed = System.currentTimeMillis() - start;
 		log.info("[DummySeed] completed in {}ms", elapsed);
@@ -88,7 +168,34 @@ public class DummyDataSeedService {
 			groupSeedResult.subgroupsInserted(),
 			reviewsInserted,
 			groupSeedResult.chatMessagesInserted(),
+			notificationsInserted,
+			favoritesInserted,
+			notificationPreferencesInserted,
+			menusInserted,
+			subgroupFavoritesInserted,
+			searchHistoriesInserted,
 			elapsed);
+	}
+
+	@Async("dummySeedExecutor")
+	public CompletableFuture<Void> seedAsync(AdminDummySeedRequest req) {
+		try {
+			AdminDummySeedResponse result = seed(req);
+			tracker.complete(result);
+		} catch (DummySeedStepException e) {
+			tracker.fail(e.getStepName(), e.getMessage());
+		} catch (SeedCancelledException e) {
+			tracker.cancelled();
+		} catch (Exception e) {
+			tracker.fail("seed", e.getMessage());
+		}
+		return CompletableFuture.completedFuture(null);
+	}
+
+	public static final class SeedCancelledException extends RuntimeException {
+		public SeedCancelledException() {
+			super("시딩이 취소되었습니다");
+		}
 	}
 
 	@Transactional(readOnly = true)
@@ -98,12 +205,32 @@ public class DummyDataSeedService {
 			dummyRepo.countRestaurants(),
 			dummyRepo.countGroups(),
 			dummyRepo.countSubgroups(),
+			dummyRepo.countChatRooms(),
+			dummyRepo.countSubgroupMembers(),
+			dummyRepo.countGroupMembers(),
+			dummyRepo.countChatRoomMembers(),
 			dummyRepo.countReviews(),
-			dummyRepo.countChatMessages());
+			dummyRepo.countChatMessages(),
+			dummyRepo.countNotifications(),
+			dummyRepo.countFavorites(),
+			dummyRepo.countSubgroupFavorites(),
+			dummyRepo.countMemberNotificationPreferences(),
+			dummyRepo.countMemberSearchHistories(),
+			dummyRepo.countRestaurantAddresses(),
+			dummyRepo.countRestaurantWeeklySchedules(),
+			dummyRepo.countRestaurantFoodCategories(),
+			dummyRepo.countMenuCategories(),
+			dummyRepo.countMenus(),
+			dummyRepo.countReviewKeywords(),
+			dummyRepo.countRestaurantReviewSentiments(),
+			dummyRepo.countRestaurantReviewSummaries());
 	}
 
 	@Transactional
 	public void deleteDummyData() {
+		if (tracker.isRunning()) {
+			throw new BusinessException(CommonErrorCode.SEED_ALREADY_RUNNING);
+		}
 		dummyRepo.deleteDummyData();
 	}
 
@@ -177,7 +304,37 @@ public class DummyDataSeedService {
 		int memberPerGroup,
 		int chatMessagePerRoom) {
 
-		long subgroupsInserted = 0L;
+		int totalSubgroups = groupIds.size() * subgroupPerGroup;
+
+		// Phase 1: 모든 그룹의 subgroup을 한 번에 batch INSERT (그룹별 루프 왕복 제거)
+		List<Long> allSubgroupGroupIds = new ArrayList<>(totalSubgroups);
+		List<String> allSubgroupNames = new ArrayList<>(totalSubgroups);
+		for (int groupIndex = 0; groupIndex < groupIds.size(); groupIndex++) {
+			long groupId = groupIds.get(groupIndex);
+			for (int s = 0; s < subgroupPerGroup; s++) {
+				allSubgroupGroupIds.add(groupId);
+				allSubgroupNames.add("더미팀-" + (groupIndex + 1) + "-" + (s + 1));
+			}
+		}
+
+		List<Long> allSubgroupIds = new ArrayList<>(totalSubgroups);
+		for (int start = 0; start < totalSubgroups; start += SERVICE_CHUNK_SIZE) {
+			int end = Math.min(start + SERVICE_CHUNK_SIZE, totalSubgroups);
+			allSubgroupIds.addAll(
+				dummyRepo.insertSubgroups(allSubgroupGroupIds.subList(start, end),
+					allSubgroupNames.subList(start, end)));
+		}
+		validateStepResult("subgroup batch insert", allSubgroupIds, totalSubgroups);
+
+		// Phase 2: 모든 subgroup에 대한 chatroom을 한 번에 batch INSERT
+		List<Long> allChatRoomIds = new ArrayList<>(totalSubgroups);
+		for (int start = 0; start < totalSubgroups; start += SERVICE_CHUNK_SIZE) {
+			int end = Math.min(start + SERVICE_CHUNK_SIZE, totalSubgroups);
+			allChatRoomIds.addAll(dummyRepo.insertChatRooms(allSubgroupIds.subList(start, end)));
+		}
+		validateStepResult("chatroom batch insert", allChatRoomIds, totalSubgroups);
+
+		// Phase 3: 관계 데이터는 메모리에 누적 후 flush (DB 왕복 없이 루프)
 		long chatMessagesInserted = 0L;
 		long messageSerial = 0L;
 
@@ -197,23 +354,10 @@ public class DummyDataSeedService {
 				flushGroupMemberPairs(groupMemberPairs);
 			}
 
-			List<Long> subgroupGroupIds = new ArrayList<>(subgroupPerGroup);
-			List<String> subgroupNames = new ArrayList<>(subgroupPerGroup);
+			int subgroupBase = groupIndex * subgroupPerGroup;
 			for (int s = 0; s < subgroupPerGroup; s++) {
-				subgroupGroupIds.add(groupId);
-				subgroupNames.add("더미팀-" + (groupIndex + 1) + "-" + (s + 1));
-			}
-
-			List<Long> subgroupIds = dummyRepo.insertSubgroups(subgroupGroupIds, subgroupNames);
-			validateStepResult("subgroup insert", subgroupIds, subgroupPerGroup);
-			subgroupsInserted += subgroupIds.size();
-
-			List<Long> chatRoomIds = dummyRepo.insertChatRooms(subgroupIds);
-			validateStepResult("chat_room insert", chatRoomIds, subgroupIds.size());
-
-			for (int s = 0; s < subgroupIds.size(); s++) {
-				Long subgroupId = subgroupIds.get(s);
-				Long chatRoomId = chatRoomIds.get(s);
+				Long subgroupId = allSubgroupIds.get(subgroupBase + s);
+				Long chatRoomId = allChatRoomIds.get(subgroupBase + s);
 				if (chatRoomId == null) {
 					throw new BusinessException(CommonErrorCode.INVALID_DOMAIN_STATE);
 				}
@@ -263,7 +407,7 @@ public class DummyDataSeedService {
 		flushSubgroupMemberCounts(subgroupMemberCounts);
 		chatMessagesInserted += flushChatMessages(chatMessageEntries, chatMessageContents);
 
-		return new GroupSeedResult(subgroupsInserted, chatMessagesInserted);
+		return new GroupSeedResult(allSubgroupIds.size(), chatMessagesInserted, allSubgroupIds);
 	}
 
 	private int insertReviewsWithKeywords(
@@ -275,6 +419,8 @@ public class DummyDataSeedService {
 		List<Long> keywordIds = dummyRepo.queryKeywordIds();
 		int reviewsInserted = 0;
 
+		int hotspotSize = Math.max(1, restaurantIds.size() / 10);
+
 		for (int start = 0; start < reviewCount; start += SERVICE_CHUNK_SIZE) {
 			int end = Math.min(start + SERVICE_CHUNK_SIZE, reviewCount);
 			int size = end - start;
@@ -284,7 +430,7 @@ public class DummyDataSeedService {
 			for (int i = 0; i < size; i++) {
 				int seq = start + i;
 				long memberId = memberIds.get(seq % memberIds.size());
-				long restaurantId = restaurantIds.get(seq % restaurantIds.size());
+				long restaurantId = selectRestaurantIdWithHotspot(restaurantIds, seq, hotspotSize);
 				long groupId = groupIds.get(seq % groupIds.size());
 				int recommended = RANDOM.nextBoolean() ? 1 : 0;
 				reviewEntries.add(new long[] {memberId, restaurantId, groupId, recommended});
@@ -317,6 +463,122 @@ public class DummyDataSeedService {
 
 		validateInsertedCount("review insert", reviewsInserted, reviewCount);
 		return reviewsInserted;
+	}
+
+	/**
+	 * notification을 SERVICE_CHUNK_SIZE 단위로 분할 삽입한다.
+	 * 각 청크가 별도 트랜잭션 → 장시간 단일 TX의 WAL 급증/커넥션 독점 방지.
+	 */
+	private long insertNotificationsInChunks(int notificationCount, LongIdBuffer memberIds) {
+		List<Long> memberList = memberIds.toList();
+		long inserted = 0;
+		for (int start = 0; start < notificationCount; start += SERVICE_CHUNK_SIZE) {
+			int size = Math.min(SERVICE_CHUNK_SIZE, notificationCount - start);
+			inserted += dummyRepo.insertNotificationBatch(memberList, start, size);
+		}
+		return inserted;
+	}
+
+	/**
+	 * 즐겨찾기를 SERVICE_CHUNK_SIZE 단위로 분할 삽입한다.
+	 * seq를 2차원 좌표(memberIdx × restaurantIdx)로 전개하므로
+	 * 최대 고유 행 수 = memberCount × restaurantCount.
+	 * 이 값이 favoriteCount보다 작으면 ON CONFLICT DO NOTHING으로 일부 누락되므로
+	 * memberCount × restaurantCount >= favoriteCount 조건을 충족하도록 요청값을 설정해야 한다.
+	 */
+	private long insertFavoritesInChunks(int favoriteCount, LongIdBuffer memberIds, LongIdBuffer restaurantIds) {
+		if (favoriteCount <= 0) {
+			return 0;
+		}
+		List<Long> memberList = memberIds.toList();
+		List<Long> restaurantList = restaurantIds.toList();
+		long maxInsertable = calculateSafeProduct(memberList.size(), restaurantList.size(), 1L);
+		if (maxInsertable < favoriteCount) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+		long inserted = 0;
+		for (int start = 0; start < favoriteCount; start += SERVICE_CHUNK_SIZE) {
+			int size = Math.min(SERVICE_CHUNK_SIZE, favoriteCount - start);
+			inserted += dummyRepo.insertFavoriteBatch(memberList, restaurantList, start, size);
+		}
+		return inserted;
+	}
+
+	private void insertRestaurantAddresses(LongIdBuffer restaurantIds) {
+		dummyRepo.insertRestaurantAddresses(restaurantIds.toList());
+	}
+
+	private void insertRestaurantWeeklySchedules(LongIdBuffer restaurantIds) {
+		dummyRepo.insertRestaurantWeeklySchedules(restaurantIds.toList());
+	}
+
+	private void insertRestaurantFoodCategories(LongIdBuffer restaurantIds) {
+		List<Long> categoryIds = dummyRepo.queryFoodCategoryIds();
+		if (categoryIds.isEmpty()) {
+			log.warn("[DummySeed] food_category 테이블이 비어있어 restaurant_food_category 삽입을 건너뜁니다");
+			return;
+		}
+		dummyRepo.insertRestaurantFoodCategories(restaurantIds.toList(), categoryIds);
+	}
+
+	private void insertRestaurantReviewAnalysis(LongIdBuffer restaurantIds) {
+		List<Long> ids = restaurantIds.toList();
+		dummyRepo.insertRestaurantReviewSentiments(ids);
+		dummyRepo.insertRestaurantReviewSummaries(ids);
+	}
+
+	private long insertMenusForRestaurants(LongIdBuffer restaurantIds) {
+		List<Long> categoryIds = dummyRepo.insertMenuCategories(restaurantIds.toList());
+		if (!categoryIds.isEmpty()) {
+			dummyRepo.insertMenus(categoryIds);
+		}
+		return (long)categoryIds.size() * 3;
+	}
+
+	private long insertSubgroupFavoritesInChunks(
+		int count, LongIdBuffer memberIds, List<Long> subgroupIds, LongIdBuffer restaurantIds) {
+		if (count <= 0) {
+			return 0;
+		}
+		if (memberIds.size() == 0 || subgroupIds.isEmpty() || restaurantIds.size() == 0) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		long maxInsertable = calculateSafeProduct(memberIds.size(), subgroupIds.size(), restaurantIds.size());
+		if (maxInsertable < count) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+		List<Long> memberList = memberIds.toList();
+		List<Long> restaurantList = restaurantIds.toList();
+		long inserted = 0;
+		for (int start = 0; start < count; start += SERVICE_CHUNK_SIZE) {
+			int size = Math.min(SERVICE_CHUNK_SIZE, count - start);
+			inserted += dummyRepo.insertSubgroupFavoriteBatch(memberList, subgroupIds, restaurantList, start, size);
+		}
+		return inserted;
+	}
+
+	private long computeSearchHistoryCount(int memberCount) {
+		long total = 0;
+		for (int seq = 0; seq < memberCount; seq++) {
+			total += 2 + seq % 4;
+		}
+		return total;
+	}
+
+	/**
+	 * 상위 10% 레스토랑(핫스팟)에 60%, 나머지 40%에 40% 분포로 레스토랑 ID를 선택한다.
+	 */
+	private long selectRestaurantIdWithHotspot(LongIdBuffer restaurantIds, int seq, int hotspotSize) {
+		int totalSize = restaurantIds.size();
+		if (RANDOM.nextDouble() < 0.6) {
+			return restaurantIds.get(seq % hotspotSize);
+		}
+		int tailSize = totalSize - hotspotSize;
+		if (tailSize <= 0) {
+			return restaurantIds.get(seq % totalSize);
+		}
+		return restaurantIds.get(hotspotSize + (seq % tailSize));
 	}
 
 	private long[] selectCyclicMembers(LongIdBuffer pool, int requestedCount, int seed) {
@@ -430,10 +692,76 @@ public class DummyDataSeedService {
 		}
 	}
 
+	private void validateDerivedConstraints(
+		int memberCount,
+		int restaurantCount,
+		int groupCount,
+		int subgroupPerGroup,
+		int chatMessagePerRoom,
+		int favoriteCount,
+		int subgroupFavoriteCount) {
+
+		long totalSubgroups = (long)groupCount * subgroupPerGroup;
+		if (totalSubgroups > MAX_TOTAL_SUBGROUP_COUNT) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		long totalChatMessages = totalSubgroups * (long)chatMessagePerRoom;
+		if (totalChatMessages > MAX_TOTAL_CHAT_MESSAGE_COUNT) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		long maxFavoriteCount = (long)memberCount * restaurantCount;
+		if (favoriteCount > maxFavoriteCount) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		if (isCombinationCountExceeded(subgroupFavoriteCount, memberCount, restaurantCount, totalSubgroups)) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+	}
+
+	private boolean isCombinationCountExceeded(long requested, int first, int second, long third) {
+		if (requested <= 0) {
+			return false;
+		}
+		if (first == 0 || second == 0 || third == 0) {
+			return true;
+		}
+
+		if ((long)first > Long.MAX_VALUE / second) {
+			return true;
+		}
+		long firstTwo = (long)first * second;
+		if (firstTwo > Long.MAX_VALUE / third) {
+			return true;
+		}
+		return requested > firstTwo * third;
+	}
+
+	private long calculateSafeProduct(long first, long second, long third) {
+		if (first == 0 || second == 0 || third == 0) {
+			return 0L;
+		}
+		if (first > Long.MAX_VALUE / second) {
+			return Long.MAX_VALUE;
+		}
+		long firstTwo = first * second;
+		if (firstTwo > Long.MAX_VALUE / third) {
+			return Long.MAX_VALUE;
+		}
+		return firstTwo * third;
+	}
+
 	private <T> T executeStep(String stepName, Supplier<T> step) {
+		if (tracker.isCancelRequested()) {
+			throw new SeedCancelledException();
+		}
+		tracker.startStep(stepName);
 		long start = System.currentTimeMillis();
 		try {
 			T result = step.get();
+			tracker.completeStep(stepName);
 			long elapsed = System.currentTimeMillis() - start;
 			if (elapsed >= SLOW_STEP_THRESHOLD_MS) {
 				log.warn("[DummySeed] {} is slow: {}ms", stepName, elapsed);
@@ -443,14 +771,28 @@ public class DummyDataSeedService {
 			return result;
 		} catch (BusinessException e) {
 			log.error("[DummySeed] {} failed: {}", stepName, e.getErrorCode(), e);
-			throw e;
+			throw new DummySeedStepException(stepName, e.getErrorMessage(), e);
 		} catch (Exception e) {
 			log.error("[DummySeed] {} failed", stepName, e);
-			throw e;
+			throw new DummySeedStepException(stepName, e.getMessage(), e);
 		}
 	}
 
-	private record GroupSeedResult(long subgroupsInserted, long chatMessagesInserted) {
+	private record GroupSeedResult(long subgroupsInserted, long chatMessagesInserted, List<Long> subgroupIds) {
+	}
+
+	public static final class DummySeedStepException extends RuntimeException {
+
+		private final String stepName;
+
+		public DummySeedStepException(String stepName, String cause, Throwable original) {
+			super("[" + stepName + "] 단계 실패: " + cause, original);
+			this.stepName = stepName;
+		}
+
+		public String getStepName() {
+			return stepName;
+		}
 	}
 
 	private static final class LongIdBuffer {
@@ -478,6 +820,14 @@ public class DummyDataSeedService {
 				throw new IndexOutOfBoundsException("index=" + index + ", size=" + size);
 			}
 			return values[index];
+		}
+
+		private List<Long> toList() {
+			List<Long> list = new ArrayList<>(size);
+			for (int i = 0; i < size; i++) {
+				list.add(values[i]);
+			}
+			return list;
 		}
 
 		private void ensureCapacity(int required) {

@@ -7,5 +7,11 @@ public record AdminDummySeedResponse(
 	long subgroupsInserted,
 	long reviewsInserted,
 	long chatMessagesInserted,
+	long notificationsInserted,
+	long favoritesInserted,
+	long notificationPreferencesInserted,
+	long menusInserted,
+	long subgroupFavoritesInserted,
+	long searchHistoriesInserted,
 	long elapsedMs) {
 }

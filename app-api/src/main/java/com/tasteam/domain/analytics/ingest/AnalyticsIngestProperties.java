@@ -27,6 +27,7 @@ public class AnalyticsIngestProperties {
 		"ui.review.submitted",
 		"ui.search.executed",
 		"ui.group.clicked",
+		"ui.group.viewed",
 		"ui.favorite.sheet_opened",
 		"ui.favorite.updated",
 		"ui.event.clicked",

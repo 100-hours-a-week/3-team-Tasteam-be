@@ -275,7 +275,7 @@ async function openReportDetail(reportId) {
 		currentReportId = report.id;
 		const modal = document.getElementById('reportModal');
 		if (modal) {
-			modal.style.display = 'block';
+			modal.classList.remove('is-hidden');
 		}
 	} catch (error) {
 		alert(`상세 조회 실패: ${error.message}`);
@@ -291,7 +291,7 @@ async function saveReportStatus() {
 		await updateReportStatus(currentReportId, nextStatus);
 		const modal = document.getElementById('reportModal');
 		if (modal) {
-			modal.style.display = 'none';
+			modal.classList.add('is-hidden');
 		}
 		await loadReports(
 			reportsCurrentPage,
@@ -375,7 +375,7 @@ function mountReports(state = {}) {
 		const close = () => {
 			const modal = document.getElementById('reportModal');
 			if (modal) {
-				modal.style.display = 'none';
+				modal.classList.add('is-hidden');
 			}
 		};
 		modalClose.addEventListener('click', close);
@@ -395,7 +395,7 @@ function mountReports(state = {}) {
 	if (modal) {
 		const outsideClick = (event) => {
 			if (event.target === modal) {
-				modal.style.display = 'none';
+				modal.classList.add('is-hidden');
 			}
 		};
 		window.addEventListener('click', outsideClick);

@@ -249,6 +249,7 @@ jobs:
             --deployment-config-name "${DEPLOYMENT_CONFIG_NAME}" \
             --description "Deploy ${GITHUB_SHA}" \
             --s3-location bucket="${CODEDEPLOY_BUCKET}",key="backend/${ARTIFACT_FILE}",bundleType=zip \
+            --file-exists-behavior OVERWRITE \
             --query deploymentId \
             --output text)
 

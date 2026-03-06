@@ -177,6 +177,7 @@ jobs:
             --deployment-config-name "${DEPLOYMENT_CONFIG_NAME}" \
             --description "Manual deploy ${{ inputs.source_branch }}@${{ steps.source.outputs.source_sha }} to ${DEPLOY_ENV_NAME}" \
             --s3-location bucket="${CODEDEPLOY_BUCKET}",key="backend/${{ steps.source.outputs.artifact_file }}",bundleType=zip \
+            --file-exists-behavior OVERWRITE \
             --query deploymentId \
             --output text)
 
