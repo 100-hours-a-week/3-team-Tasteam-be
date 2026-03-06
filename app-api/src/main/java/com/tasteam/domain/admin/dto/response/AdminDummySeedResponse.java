@@ -9,5 +9,9 @@ public record AdminDummySeedResponse(
 	long chatMessagesInserted,
 	long notificationsInserted,
 	long favoritesInserted,
+	long notificationPreferencesInserted,
+	long menusInserted,
+	long subgroupFavoritesInserted,
+	long searchHistoriesInserted,
 	long elapsedMs) {
 }

@@ -38,7 +38,7 @@ class ClientActivityIngestServiceTest {
 		ClientActivityIngestService service = new ClientActivityIngestService(properties, rateLimiter, storeService);
 
 		ClientActivityEventItemRequest first = eventItem("evt-1", "ui.restaurant.viewed", null);
-		ClientActivityEventItemRequest second = eventItem("evt-2", "ui.review.submitted", "v3");
+		ClientActivityEventItemRequest second = eventItem("evt-2", "ui.group.viewed", "v3");
 
 		// when
 		int accepted = service.ingest(10L, null, List.of(first, second));
@@ -171,7 +171,7 @@ class ClientActivityIngestServiceTest {
 	private AnalyticsIngestProperties defaultProperties() {
 		AnalyticsIngestProperties properties = new AnalyticsIngestProperties();
 		properties.setMaxBatchSize(50);
-		properties.setAllowlist(List.of("ui.restaurant.viewed", "ui.review.submitted"));
+		properties.setAllowlist(List.of("ui.restaurant.viewed", "ui.review.submitted", "ui.group.viewed"));
 		return properties;
 	}
 
