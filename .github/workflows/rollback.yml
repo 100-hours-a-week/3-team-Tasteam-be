@@ -165,6 +165,7 @@ jobs:
             --deployment-config-name "${DEPLOYMENT_CONFIG_NAME}" \
             --description "Rollback to ${SOURCE_DEPLOYMENT_ID} (workflow run ${GITHUB_RUN_ID})" \
             --s3-location "${S3_LOCATION}" \
+            --file-exists-behavior OVERWRITE \
             --query 'deploymentId' \
             --output text)"
 
