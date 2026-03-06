@@ -99,10 +99,13 @@ public class NotificationMessageQueueConsumer {
 
 	private boolean publishToDlq(MessageQueueMessage message) {
 		try {
-			MessageQueueMessage dlqMessage = MessageQueueMessage.of(
+			MessageQueueMessage dlqMessage = new MessageQueueMessage(
 				MessageQueueTopics.NOTIFICATION_REQUESTED_DLQ,
 				message.key(),
-				message.payload());
+				message.payload(),
+				message.headers(),
+				message.occurredAt(),
+				message.messageId());
 			messageQueueProducer.publish(dlqMessage);
 			log.info("알림 DLQ 발행 완료. messageId={}", message.messageId());
 			return true;

@@ -21,6 +21,8 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
 @UnitTest
 @DisplayName("[유닛](Message) MessageQueueTraceService 단위 테스트")
 class MessageQueueTraceServiceTest {
@@ -71,6 +73,28 @@ class MessageQueueTraceServiceTest {
 		assertThat(captor.getValue().getConsumerGroup()).isEqualTo("tasteam-api");
 		assertThat(captor.getValue().getProcessingMillis()).isEqualTo(15L);
 		assertThat(captor.getValue().getErrorMessage()).contains("역직렬화 실패");
+	}
+
+	@Test
+	@DisplayName("발행~소비 사이 end-to-end 지연을 기록한다")
+	void recordEndToEndLatency_recordsTimer() {
+		// given
+		MessageQueueTraceLogRepository repository = mock(MessageQueueTraceLogRepository.class);
+		SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+		MessageQueueTraceService service = new MessageQueueTraceService(repository, meterRegistry);
+		MessageQueueMessage message = MessageQueueMessage.of("domain.review.created", "123",
+			"payload".getBytes(StandardCharsets.UTF_8));
+
+		// when
+		service.recordEndToEndLatency(message, MessageQueueProviderType.REDIS_STREAM, "success");
+
+		// then
+		assertThat(meterRegistry.get("mq.end_to_end.latency")
+			.tag("topic", message.topic())
+			.tag("provider", MessageQueueProviderType.REDIS_STREAM.value())
+			.tag("result", "success")
+			.timer()
+			.count()).isEqualTo(1L);
 	}
 
 	@Test

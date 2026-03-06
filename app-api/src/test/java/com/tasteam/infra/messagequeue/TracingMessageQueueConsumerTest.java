@@ -2,6 +2,7 @@ package com.tasteam.infra.messagequeue;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -45,6 +46,8 @@ class TracingMessageQueueConsumerTest {
 		// then
 		verify(traceService).recordConsumeSuccess(any(MessageQueueMessage.class), any(MessageQueueProviderType.class),
 			any(String.class), any(Long.class));
+		verify(traceService).recordEndToEndLatency(any(MessageQueueMessage.class), any(MessageQueueProviderType.class),
+			eq("success"));
 	}
 
 	@Test
@@ -78,5 +81,7 @@ class TracingMessageQueueConsumerTest {
 			.hasMessageContaining("실패");
 		verify(traceService).recordConsumeFail(any(MessageQueueMessage.class), any(MessageQueueProviderType.class),
 			any(String.class), any(Long.class), any(Exception.class));
+		verify(traceService).recordEndToEndLatency(any(MessageQueueMessage.class), any(MessageQueueProviderType.class),
+			eq("fail"));
 	}
 }

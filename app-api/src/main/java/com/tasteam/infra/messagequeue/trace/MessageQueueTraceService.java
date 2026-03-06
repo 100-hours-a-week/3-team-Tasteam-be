@@ -1,5 +1,7 @@
 package com.tasteam.infra.messagequeue.trace;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
@@ -8,6 +10,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.global.metrics.MetricLabelPolicy;
 import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 
@@ -83,6 +86,24 @@ public class MessageQueueTraceService {
 		recordLatency(message.topic(), providerType.value(), processingMillis);
 	}
 
+	public void recordEndToEndLatency(MessageQueueMessage message, MessageQueueProviderType providerType,
+		String result) {
+		if (meterRegistry == null) {
+			return;
+		}
+		MetricLabelPolicy.validate("mq.end_to_end.latency", "topic", message.topic(), "provider", providerType.value(),
+			"result",
+			result);
+
+		long latencyMillis = Duration.between(message.occurredAt(), Instant.now()).toMillis();
+		Timer.builder("mq.end_to_end.latency")
+			.tag("topic", message.topic())
+			.tag("provider", providerType.value())
+			.tag("result", result)
+			.register(meterRegistry)
+			.record(Math.max(0L, latencyMillis), java.util.concurrent.TimeUnit.MILLISECONDS);
+	}
+
 	@Transactional(readOnly = true)
 	public List<MessageQueueTraceLog> findRecent(@Nullable
 	String messageId, int limit) {
@@ -106,6 +127,7 @@ public class MessageQueueTraceService {
 		if (meterRegistry == null) {
 			return;
 		}
+		MetricLabelPolicy.validate(metricName, "topic", topic, "provider", provider, "result", result);
 		meterRegistry.counter(metricName, "topic", topic, "provider", provider, "result", result).increment();
 	}
 
@@ -113,6 +135,7 @@ public class MessageQueueTraceService {
 		if (meterRegistry == null) {
 			return;
 		}
+		MetricLabelPolicy.validate("mq.consume.latency", "topic", topic, "provider", provider);
 		Timer.builder("mq.consume.latency")
 			.tag("topic", topic)
 			.tag("provider", provider)
