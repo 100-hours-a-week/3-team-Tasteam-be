@@ -1,5 +1,6 @@
 package com.tasteam.batch.dummy.repository;
 
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -25,6 +26,9 @@ public class DummyDataJdbcRepository {
 	 */
 	private static final int CHUNK = 5_000;
 
+	private static final Time DEFAULT_OPEN_TIME = Time.valueOf("09:00:00");
+	private static final Time DEFAULT_CLOSE_TIME = Time.valueOf("21:00:00");
+
 	private final JdbcTemplate jdbcTemplate;
 
 	// ── INSERT methods ────────────────────────────────────────────────────────
@@ -37,11 +41,12 @@ public class DummyDataJdbcRepository {
 	public List<Long> insertMembers(List<String> emails, List<String> nicknames) {
 		Timestamp now = ts();
 		int n = emails.size();
-		List<Long> allIds = preallocateIds("member_seq", n);
+		List<Long> allIds = new ArrayList<>(Math.max(0, n));
 
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
 			int size = end - start;
+			List<Long> chunkIds = preallocateIds("member_seq", size);
 
 			StringBuilder sql = new StringBuilder(
 				"INSERT INTO member (id, email, nickname, status, role, created_at, updated_at) VALUES ");
@@ -51,13 +56,14 @@ public class DummyDataJdbcRepository {
 				if (i > 0)
 					sql.append(',');
 				sql.append("(?,?,?,'ACTIVE','USER',?,?)");
-				p.add(allIds.get(start + i));
+				p.add(chunkIds.get(i));
 				p.add(emails.get(start + i));
 				p.add(nicknames.get(start + i));
 				p.add(now);
 				p.add(now);
 			}
 			jdbcTemplate.update(sql.toString(), p.toArray());
+			allIds.addAll(chunkIds);
 		}
 		return allIds;
 	}
@@ -70,11 +76,12 @@ public class DummyDataJdbcRepository {
 	public List<Long> insertRestaurants(List<String> names, List<String> addresses) {
 		Timestamp now = ts();
 		int n = names.size();
-		List<Long> allIds = preallocateIdentityIds("restaurant", n);
+		List<Long> allIds = new ArrayList<>(Math.max(0, n));
 
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
 			int size = end - start;
+			List<Long> chunkIds = preallocateIdentityIds("restaurant", size);
 
 			StringBuilder sql = new StringBuilder(
 				"INSERT INTO restaurant (id, name, full_address, location, vector_epoch, created_at, updated_at)"
@@ -88,7 +95,7 @@ public class DummyDataJdbcRepository {
 				double lon = 126.0 + ThreadLocalRandom.current().nextDouble() * 3.6;
 				double lat = 33.1 + ThreadLocalRandom.current().nextDouble() * 5.5;
 				sql.append("(?,?,?,ST_SetSRID(ST_MakePoint(?,?),4326),0,?,?)");
-				p.add(allIds.get(start + i));
+				p.add(chunkIds.get(i));
 				p.add(names.get(start + i));
 				p.add(addresses.get(start + i));
 				p.add(lon);
@@ -97,6 +104,7 @@ public class DummyDataJdbcRepository {
 				p.add(now);
 			}
 			jdbcTemplate.update(sql.toString(), p.toArray());
+			allIds.addAll(chunkIds);
 		}
 		return allIds;
 	}
@@ -109,11 +117,12 @@ public class DummyDataJdbcRepository {
 	public List<Long> insertGroups(List<String> names, List<String> addresses) {
 		Timestamp now = ts();
 		int n = names.size();
-		List<Long> allIds = preallocateIds("group_seq", n);
+		List<Long> allIds = new ArrayList<>(Math.max(0, n));
 
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
 			int size = end - start;
+			List<Long> chunkIds = preallocateIds("group_seq", size);
 
 			StringBuilder sql = new StringBuilder(
 				"INSERT INTO \"group\" (id, name, type, address, location, join_type, status, created_at, updated_at)"
@@ -126,7 +135,7 @@ public class DummyDataJdbcRepository {
 				double lon = 126.0 + ThreadLocalRandom.current().nextDouble() * 3.6;
 				double lat = 33.1 + ThreadLocalRandom.current().nextDouble() * 5.5;
 				sql.append("(?,?,'UNOFFICIAL',?,ST_SetSRID(ST_MakePoint(?,?),4326),'PASSWORD','ACTIVE',?,?)");
-				p.add(allIds.get(start + i));
+				p.add(chunkIds.get(i));
 				p.add(names.get(start + i));
 				p.add(addresses.get(start + i));
 				p.add(lon);
@@ -135,6 +144,7 @@ public class DummyDataJdbcRepository {
 				p.add(now);
 			}
 			jdbcTemplate.update(sql.toString(), p.toArray());
+			allIds.addAll(chunkIds);
 		}
 		return allIds;
 	}
@@ -177,11 +187,12 @@ public class DummyDataJdbcRepository {
 	public List<Long> insertSubgroups(List<Long> groupIds, List<String> names) {
 		Timestamp now = ts();
 		int n = groupIds.size();
-		List<Long> allIds = preallocateIds("subgroup_seq", n);
+		List<Long> allIds = new ArrayList<>(Math.max(0, n));
 
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
 			int size = end - start;
+			List<Long> chunkIds = preallocateIds("subgroup_seq", size);
 
 			StringBuilder sql = new StringBuilder(
 				"INSERT INTO subgroup (id, group_id, name, join_type, status, member_count, created_at, updated_at) VALUES ");
@@ -191,13 +202,14 @@ public class DummyDataJdbcRepository {
 				if (i > 0)
 					sql.append(',');
 				sql.append("(?,?,?,'OPEN','ACTIVE',0,?,?)");
-				p.add(allIds.get(start + i));
+				p.add(chunkIds.get(i));
 				p.add(groupIds.get(start + i));
 				p.add(names.get(start + i));
 				p.add(now);
 				p.add(now);
 			}
 			jdbcTemplate.update(sql.toString(), p.toArray());
+			allIds.addAll(chunkIds);
 		}
 		return allIds;
 	}
@@ -210,11 +222,12 @@ public class DummyDataJdbcRepository {
 	public List<Long> insertChatRooms(List<Long> subgroupIds) {
 		Timestamp now = ts();
 		int n = subgroupIds.size();
-		List<Long> allIds = preallocateIds("chat_room_id_seq", n);
+		List<Long> allIds = new ArrayList<>(Math.max(0, n));
 
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
 			int size = end - start;
+			List<Long> chunkIds = preallocateIds("chat_room_id_seq", size);
 
 			StringBuilder sql = new StringBuilder(
 				"INSERT INTO chat_room (id, subgroup_id, created_at) VALUES ");
@@ -224,11 +237,12 @@ public class DummyDataJdbcRepository {
 				if (i > 0)
 					sql.append(',');
 				sql.append("(?,?,?)");
-				p.add(allIds.get(start + i));
+				p.add(chunkIds.get(i));
 				p.add(subgroupIds.get(start + i));
 				p.add(now);
 			}
 			jdbcTemplate.update(sql.toString(), p.toArray());
+			allIds.addAll(chunkIds);
 		}
 		return allIds;
 	}
@@ -574,8 +588,8 @@ public class DummyDataJdbcRepository {
 					sql.append("(?,?,?,?,?,null,null,?,?)");
 					p.add(restaurantId);
 					p.add(day);
-					p.add(isClosed ? null : "09:00");
-					p.add(isClosed ? null : "21:00");
+					p.add(isClosed ? null : DEFAULT_OPEN_TIME);
+					p.add(isClosed ? null : DEFAULT_CLOSE_TIME);
 					p.add(isClosed);
 					p.add(now);
 					p.add(now);
@@ -780,8 +794,7 @@ public class DummyDataJdbcRepository {
 	public List<Long> insertMenuCategories(List<Long> restaurantIds) {
 		Timestamp now = ts();
 		int n = restaurantIds.size();
-		int totalCategories = n * 2;
-		List<Long> allIds = preallocateIdentityIds("menu_category", totalCategories);
+		List<Long> allIds = new ArrayList<>(Math.max(0, n * 2));
 
 		int restaurantsPerChunk = Math.max(1, CHUNK / 2);
 		String[] categoryNames = {"메인", "음료"};
@@ -789,6 +802,8 @@ public class DummyDataJdbcRepository {
 		for (int start = 0; start < n; start += restaurantsPerChunk) {
 			int end = Math.min(start + restaurantsPerChunk, n);
 			int restaurantCount = end - start;
+			int categoryCount = restaurantCount * 2;
+			List<Long> chunkIds = preallocateIdentityIds("menu_category", categoryCount);
 
 			StringBuilder sql = new StringBuilder(
 				"INSERT INTO menu_category (id, restaurant_id, name, display_order, created_at, updated_at) VALUES ");
@@ -802,7 +817,7 @@ public class DummyDataJdbcRepository {
 						sql.append(',');
 					first = false;
 					sql.append("(?,?,?,?,?,?)");
-					p.add(allIds.get((start + i) * 2 + c));
+					p.add(chunkIds.get(i * 2 + c));
 					p.add(restaurantId);
 					p.add(categoryNames[c]);
 					p.add(c);
@@ -811,6 +826,7 @@ public class DummyDataJdbcRepository {
 				}
 			}
 			jdbcTemplate.update(sql.toString(), p.toArray());
+			allIds.addAll(chunkIds);
 		}
 		return allIds;
 	}
@@ -1152,6 +1168,22 @@ public class DummyDataJdbcRepository {
 		return query("SELECT COUNT(*) FROM subgroup WHERE deleted_at IS NULL");
 	}
 
+	public long countGroupMembers() {
+		return query("SELECT COUNT(*) FROM group_member WHERE deleted_at IS NULL");
+	}
+
+	public long countSubgroupMembers() {
+		return query("SELECT COUNT(*) FROM subgroup_member WHERE deleted_at IS NULL");
+	}
+
+	public long countChatRooms() {
+		return query("SELECT COUNT(*) FROM chat_room WHERE deleted_at IS NULL");
+	}
+
+	public long countChatRoomMembers() {
+		return query("SELECT COUNT(*) FROM chat_room_member WHERE deleted_at IS NULL");
+	}
+
 	public long countReviews() {
 		return query("SELECT COUNT(*) FROM review WHERE deleted_at IS NULL");
 	}
@@ -1166,6 +1198,50 @@ public class DummyDataJdbcRepository {
 
 	public long countFavorites() {
 		return query("SELECT COUNT(*) FROM member_favorite_restaurant WHERE deleted_at IS NULL");
+	}
+
+	public long countSubgroupFavorites() {
+		return query("SELECT COUNT(*) FROM subgroup_favorite_restaurant WHERE deleted_at IS NULL");
+	}
+
+	public long countMemberNotificationPreferences() {
+		return query("SELECT COUNT(*) FROM member_notification_preference");
+	}
+
+	public long countMemberSearchHistories() {
+		return query("SELECT COUNT(*) FROM member_search_history WHERE deleted_at IS NULL");
+	}
+
+	public long countRestaurantAddresses() {
+		return query("SELECT COUNT(*) FROM restaurant_address");
+	}
+
+	public long countRestaurantWeeklySchedules() {
+		return query("SELECT COUNT(*) FROM restaurant_weekly_schedule");
+	}
+
+	public long countRestaurantFoodCategories() {
+		return query("SELECT COUNT(*) FROM restaurant_food_category");
+	}
+
+	public long countMenuCategories() {
+		return query("SELECT COUNT(*) FROM menu_category");
+	}
+
+	public long countMenus() {
+		return query("SELECT COUNT(*) FROM menu");
+	}
+
+	public long countReviewKeywords() {
+		return query("SELECT COUNT(*) FROM review_keyword");
+	}
+
+	public long countRestaurantReviewSentiments() {
+		return query("SELECT COUNT(*) FROM restaurant_review_sentiment");
+	}
+
+	public long countRestaurantReviewSummaries() {
+		return query("SELECT COUNT(*) FROM restaurant_review_summary");
 	}
 
 	// ── helpers ───────────────────────────────────────────────────────────────

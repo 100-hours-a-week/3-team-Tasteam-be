@@ -57,6 +57,8 @@ public class DummyDataSeedService {
 	private static final int RELATION_FLUSH_SIZE = 5_000;
 	private static final int MAX_KEYWORDS_PER_REVIEW = 3;
 	private static final long SLOW_STEP_THRESHOLD_MS = 2_000L;
+	private static final long MAX_TOTAL_SUBGROUP_COUNT = 1_000_000L;
+	private static final long MAX_TOTAL_CHAT_MESSAGE_COUNT = 20_000_000L;
 
 	private final DummyDataJdbcRepository dummyRepo;
 	private final DummySeedJobTracker tracker;
@@ -82,6 +84,15 @@ public class DummyDataSeedService {
 			DEFAULT_FAVORITE_COUNT, MAX_FAVORITE_COUNT);
 		int subgroupFavoriteCount = normalizeCount("subgroupFavoriteCount", req.subgroupFavoriteCount(),
 			DEFAULT_SUBGROUP_FAVORITE_COUNT, MAX_SUBGROUP_FAVORITE_COUNT);
+
+		validateDerivedConstraints(
+			memberCount,
+			restaurantCount,
+			groupCount,
+			subgroupPerGroup,
+			chatMessagePerRoom,
+			favoriteCount,
+			subgroupFavoriteCount);
 
 		// 순차 실행: 병렬 대량 INSERT는 DB WAL/connection pool 경합을 유발하므로 직렬화
 		LongIdBuffer memberIds = executeStep("member insert", () -> insertMembers(memberCount, runToken));
@@ -138,6 +149,16 @@ public class DummyDataSeedService {
 		long favoritesInserted = executeStep("favorite insert",
 			() -> insertFavoritesInChunks(favoriteCount, memberIds, restaurantIds));
 
+		if (favoritesInserted < favoriteCount) {
+			log.warn("[DummySeed] favorite insert mismatch. requested={} inserted={}", favoriteCount,
+				favoritesInserted);
+		}
+		if (subgroupFavoritesInserted < subgroupFavoriteCount) {
+			log.warn("[DummySeed] subgroup_favorite insert mismatch. requested={} inserted={}",
+				subgroupFavoriteCount,
+				subgroupFavoritesInserted);
+		}
+
 		long elapsed = System.currentTimeMillis() - start;
 		log.info("[DummySeed] completed in {}ms", elapsed);
 		return new AdminDummySeedResponse(
@@ -159,13 +180,14 @@ public class DummyDataSeedService {
 	@Async("dummySeedExecutor")
 	public CompletableFuture<Void> seedAsync(AdminDummySeedRequest req) {
 		try {
-			tracker.start();
 			AdminDummySeedResponse result = seed(req);
 			tracker.complete(result);
+		} catch (DummySeedStepException e) {
+			tracker.fail(e.getStepName(), e.getMessage());
 		} catch (SeedCancelledException e) {
 			tracker.cancelled();
 		} catch (Exception e) {
-			tracker.fail(e.getMessage());
+			tracker.fail("seed", e.getMessage());
 		}
 		return CompletableFuture.completedFuture(null);
 	}
@@ -183,14 +205,32 @@ public class DummyDataSeedService {
 			dummyRepo.countRestaurants(),
 			dummyRepo.countGroups(),
 			dummyRepo.countSubgroups(),
+			dummyRepo.countChatRooms(),
+			dummyRepo.countSubgroupMembers(),
+			dummyRepo.countGroupMembers(),
+			dummyRepo.countChatRoomMembers(),
 			dummyRepo.countReviews(),
 			dummyRepo.countChatMessages(),
 			dummyRepo.countNotifications(),
-			dummyRepo.countFavorites());
+			dummyRepo.countFavorites(),
+			dummyRepo.countSubgroupFavorites(),
+			dummyRepo.countMemberNotificationPreferences(),
+			dummyRepo.countMemberSearchHistories(),
+			dummyRepo.countRestaurantAddresses(),
+			dummyRepo.countRestaurantWeeklySchedules(),
+			dummyRepo.countRestaurantFoodCategories(),
+			dummyRepo.countMenuCategories(),
+			dummyRepo.countMenus(),
+			dummyRepo.countReviewKeywords(),
+			dummyRepo.countRestaurantReviewSentiments(),
+			dummyRepo.countRestaurantReviewSummaries());
 	}
 
 	@Transactional
 	public void deleteDummyData() {
+		if (tracker.isRunning()) {
+			throw new BusinessException(CommonErrorCode.SEED_ALREADY_RUNNING);
+		}
 		dummyRepo.deleteDummyData();
 	}
 
@@ -447,8 +487,15 @@ public class DummyDataSeedService {
 	 * memberCount × restaurantCount >= favoriteCount 조건을 충족하도록 요청값을 설정해야 한다.
 	 */
 	private long insertFavoritesInChunks(int favoriteCount, LongIdBuffer memberIds, LongIdBuffer restaurantIds) {
+		if (favoriteCount <= 0) {
+			return 0;
+		}
 		List<Long> memberList = memberIds.toList();
 		List<Long> restaurantList = restaurantIds.toList();
+		long maxInsertable = calculateSafeProduct(memberList.size(), restaurantList.size(), 1L);
+		if (maxInsertable < favoriteCount) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
 		long inserted = 0;
 		for (int start = 0; start < favoriteCount; start += SERVICE_CHUNK_SIZE) {
 			int size = Math.min(SERVICE_CHUNK_SIZE, favoriteCount - start);
@@ -490,9 +537,16 @@ public class DummyDataSeedService {
 
 	private long insertSubgroupFavoritesInChunks(
 		int count, LongIdBuffer memberIds, List<Long> subgroupIds, LongIdBuffer restaurantIds) {
-		if (subgroupIds.isEmpty()) {
-			log.warn("[DummySeed] subgroupIds가 비어있어 subgroup_favorite 삽입을 건너뜁니다");
+		if (count <= 0) {
 			return 0;
+		}
+		if (memberIds.size() == 0 || subgroupIds.isEmpty() || restaurantIds.size() == 0) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		long maxInsertable = calculateSafeProduct(memberIds.size(), subgroupIds.size(), restaurantIds.size());
+		if (maxInsertable < count) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 		List<Long> memberList = memberIds.toList();
 		List<Long> restaurantList = restaurantIds.toList();
@@ -638,14 +692,76 @@ public class DummyDataSeedService {
 		}
 	}
 
+	private void validateDerivedConstraints(
+		int memberCount,
+		int restaurantCount,
+		int groupCount,
+		int subgroupPerGroup,
+		int chatMessagePerRoom,
+		int favoriteCount,
+		int subgroupFavoriteCount) {
+
+		long totalSubgroups = (long)groupCount * subgroupPerGroup;
+		if (totalSubgroups > MAX_TOTAL_SUBGROUP_COUNT) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		long totalChatMessages = totalSubgroups * (long)chatMessagePerRoom;
+		if (totalChatMessages > MAX_TOTAL_CHAT_MESSAGE_COUNT) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		long maxFavoriteCount = (long)memberCount * restaurantCount;
+		if (favoriteCount > maxFavoriteCount) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+
+		if (isCombinationCountExceeded(subgroupFavoriteCount, memberCount, restaurantCount, totalSubgroups)) {
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+	}
+
+	private boolean isCombinationCountExceeded(long requested, int first, int second, long third) {
+		if (requested <= 0) {
+			return false;
+		}
+		if (first == 0 || second == 0 || third == 0) {
+			return true;
+		}
+
+		if ((long)first > Long.MAX_VALUE / second) {
+			return true;
+		}
+		long firstTwo = (long)first * second;
+		if (firstTwo > Long.MAX_VALUE / third) {
+			return true;
+		}
+		return requested > firstTwo * third;
+	}
+
+	private long calculateSafeProduct(long first, long second, long third) {
+		if (first == 0 || second == 0 || third == 0) {
+			return 0L;
+		}
+		if (first > Long.MAX_VALUE / second) {
+			return Long.MAX_VALUE;
+		}
+		long firstTwo = first * second;
+		if (firstTwo > Long.MAX_VALUE / third) {
+			return Long.MAX_VALUE;
+		}
+		return firstTwo * third;
+	}
+
 	private <T> T executeStep(String stepName, Supplier<T> step) {
 		if (tracker.isCancelRequested()) {
 			throw new SeedCancelledException();
 		}
-		tracker.updateStep(stepName);
+		tracker.startStep(stepName);
 		long start = System.currentTimeMillis();
 		try {
 			T result = step.get();
+			tracker.completeStep(stepName);
 			long elapsed = System.currentTimeMillis() - start;
 			if (elapsed >= SLOW_STEP_THRESHOLD_MS) {
 				log.warn("[DummySeed] {} is slow: {}ms", stepName, elapsed);
