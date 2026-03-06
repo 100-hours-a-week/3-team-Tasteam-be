@@ -83,6 +83,18 @@ public class DummyDataSeedService {
 		LongIdBuffer memberIds = executeStep("member insert", () -> insertMembers(memberCount, runToken));
 		LongIdBuffer restaurantIds = executeStep("restaurant insert",
 			() -> insertRestaurants(restaurantCount, runToken));
+		executeStep("restaurant_address insert", () -> {
+			insertRestaurantAddresses(restaurantIds);
+			return null;
+		});
+		executeStep("restaurant_weekly_schedule insert", () -> {
+			insertRestaurantWeeklySchedules(restaurantIds);
+			return null;
+		});
+		executeStep("restaurant_food_category insert", () -> {
+			insertRestaurantFoodCategories(restaurantIds);
+			return null;
+		});
 		LongIdBuffer groupIds = executeStep("group insert", () -> insertGroups(groupCount, runToken));
 
 		GroupSeedResult groupSeedResult = executeStep(
@@ -91,6 +103,10 @@ public class DummyDataSeedService {
 
 		int reviewsInserted = executeStep("review/review_keyword insert",
 			() -> insertReviewsWithKeywords(reviewCount, memberIds, restaurantIds, groupIds));
+		executeStep("restaurant_review_sentiment/summary insert", () -> {
+			insertRestaurantReviewAnalysis(restaurantIds);
+			return null;
+		});
 
 		long notificationsInserted = executeStep("notification insert",
 			() -> insertNotificationsInChunks(notificationCount, memberIds));
@@ -410,6 +426,29 @@ public class DummyDataSeedService {
 			inserted += dummyRepo.insertFavoriteBatch(memberList, restaurantList, start, size);
 		}
 		return inserted;
+	}
+
+	private void insertRestaurantAddresses(LongIdBuffer restaurantIds) {
+		dummyRepo.insertRestaurantAddresses(restaurantIds.toList());
+	}
+
+	private void insertRestaurantWeeklySchedules(LongIdBuffer restaurantIds) {
+		dummyRepo.insertRestaurantWeeklySchedules(restaurantIds.toList());
+	}
+
+	private void insertRestaurantFoodCategories(LongIdBuffer restaurantIds) {
+		List<Long> categoryIds = dummyRepo.queryFoodCategoryIds();
+		if (categoryIds.isEmpty()) {
+			log.warn("[DummySeed] food_category 테이블이 비어있어 restaurant_food_category 삽입을 건너뜁니다");
+			return;
+		}
+		dummyRepo.insertRestaurantFoodCategories(restaurantIds.toList(), categoryIds);
+	}
+
+	private void insertRestaurantReviewAnalysis(LongIdBuffer restaurantIds) {
+		List<Long> ids = restaurantIds.toList();
+		dummyRepo.insertRestaurantReviewSentiments(ids);
+		dummyRepo.insertRestaurantReviewSummaries(ids);
 	}
 
 	/**

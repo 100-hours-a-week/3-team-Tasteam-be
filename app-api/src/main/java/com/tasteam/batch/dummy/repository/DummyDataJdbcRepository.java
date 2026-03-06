@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -76,16 +77,22 @@ public class DummyDataJdbcRepository {
 			int size = end - start;
 
 			StringBuilder sql = new StringBuilder(
-				"INSERT INTO restaurant (id, name, full_address, vector_epoch, created_at, updated_at) VALUES ");
-			List<Object> p = new ArrayList<>(size * 6);
+				"INSERT INTO restaurant (id, name, full_address, location, vector_epoch, created_at, updated_at)"
+					+ " VALUES ");
+			List<Object> p = new ArrayList<>(size * 8);
 
 			for (int i = 0; i < size; i++) {
 				if (i > 0)
 					sql.append(',');
-				sql.append("(?,?,?,0,?,?)");
+				// 한국 영역 내 랜덤 좌표: 경도 126.0~129.6, 위도 33.1~38.6
+				double lon = 126.0 + ThreadLocalRandom.current().nextDouble() * 3.6;
+				double lat = 33.1 + ThreadLocalRandom.current().nextDouble() * 5.5;
+				sql.append("(?,?,?,ST_SetSRID(ST_MakePoint(?,?),4326),0,?,?)");
 				p.add(allIds.get(start + i));
 				p.add(names.get(start + i));
 				p.add(addresses.get(start + i));
+				p.add(lon);
+				p.add(lat);
 				p.add(now);
 				p.add(now);
 			}
@@ -422,7 +429,7 @@ public class DummyDataJdbcRepository {
 	}
 
 	private static final String[] NOTIFICATION_TYPES = {
-		"REVIEW_COMMENT", "REVIEW_LIKE", "GROUP_JOIN", "ANNOUNCEMENT", "PROMOTION"
+		"CHAT", "SYSTEM", "NOTICE"
 	};
 
 	/**
@@ -490,6 +497,202 @@ public class DummyDataJdbcRepository {
 		}
 		sql.append(" ON CONFLICT DO NOTHING");
 		return jdbcTemplate.update(sql.toString(), p.toArray());
+	}
+
+	// ── restaurant 연관 테이블 INSERT ─────────────────────────────────────────
+
+	private static final String[] SIDOS = {"서울시", "경기도", "부산시", "인천시", "대구시"};
+	private static final String[] SIGUNGUS = {"강남구", "서초구", "해운대구", "연수구", "수성구"};
+
+	/**
+	 * restaurant_address 테이블에 더미 주소를 배치 삽입한다. (restaurant 1:1)
+	 */
+	@Transactional
+	public void insertRestaurantAddresses(List<Long> restaurantIds) {
+		Timestamp now = ts();
+		int n = restaurantIds.size();
+
+		for (int start = 0; start < n; start += CHUNK) {
+			int end = Math.min(start + CHUNK, n);
+			int size = end - start;
+
+			StringBuilder sql = new StringBuilder(
+				"INSERT INTO restaurant_address"
+					+ " (restaurant_id, sido, sigungu, eupmyeondong, postal_code, created_at, updated_at) VALUES ");
+			List<Object> p = new ArrayList<>(size * 7);
+
+			for (int i = 0; i < size; i++) {
+				if (i > 0)
+					sql.append(',');
+				int seq = start + i;
+				sql.append("(?,?,?,?,?,?,?)");
+				p.add(restaurantIds.get(seq));
+				p.add(SIDOS[seq % SIDOS.length]);
+				p.add(SIGUNGUS[seq % SIGUNGUS.length]);
+				p.add("역삼동");
+				p.add("06000");
+				p.add(now);
+				p.add(now);
+			}
+			jdbcTemplate.update(sql.toString(), p.toArray());
+		}
+	}
+
+	/**
+	 * restaurant_weekly_schedule 테이블에 더미 영업시간(7일)을 배치 삽입한다.
+	 * 각 restaurant당 7행이므로 CHUNK/7 restaurant 단위로 청크를 나눈다.
+	 */
+	@Transactional
+	public void insertRestaurantWeeklySchedules(List<Long> restaurantIds) {
+		Timestamp now = ts();
+		int n = restaurantIds.size();
+		int restaurantsPerChunk = Math.max(1, CHUNK / 7);
+
+		for (int start = 0; start < n; start += restaurantsPerChunk) {
+			int end = Math.min(start + restaurantsPerChunk, n);
+			int restaurantCount = end - start;
+
+			StringBuilder sql = new StringBuilder(
+				"INSERT INTO restaurant_weekly_schedule"
+					+ " (restaurant_id, day_of_week, open_time, close_time, is_closed,"
+					+ " effective_from, effective_to, created_at, updated_at) VALUES ");
+			List<Object> p = new ArrayList<>(restaurantCount * 7 * 9);
+
+			boolean first = true;
+			for (int i = 0; i < restaurantCount; i++) {
+				long restaurantId = restaurantIds.get(start + i);
+				for (int day = 1; day <= 7; day++) {
+					if (!first)
+						sql.append(',');
+					first = false;
+					boolean isClosed = (day == 7);
+					sql.append("(?,?,?,?,?,null,null,?,?)");
+					p.add(restaurantId);
+					p.add(day);
+					p.add(isClosed ? null : "09:00");
+					p.add(isClosed ? null : "21:00");
+					p.add(isClosed);
+					p.add(now);
+					p.add(now);
+				}
+			}
+			jdbcTemplate.update(sql.toString(), p.toArray());
+		}
+	}
+
+	/**
+	 * 현재 DB에 존재하는 food_category ID 목록을 조회한다.
+	 */
+	public List<Long> queryFoodCategoryIds() {
+		return jdbcTemplate.queryForList("SELECT id FROM food_category ORDER BY id", Long.class);
+	}
+
+	/**
+	 * restaurant_food_category 테이블에 배치 삽입한다.
+	 * 각 restaurant에 seq 기반으로 1~2개 카테고리를 할당한다.
+	 */
+	@Transactional
+	public void insertRestaurantFoodCategories(List<Long> restaurantIds, List<Long> categoryIds) {
+		int n = restaurantIds.size();
+		int catSize = categoryIds.size();
+
+		List<Object> p = new ArrayList<>(CHUNK * 2);
+		StringBuilder sql = null;
+		int rowsInBatch = 0;
+
+		for (int seq = 0; seq < n; seq++) {
+			long restaurantId = restaurantIds.get(seq);
+			int categoryCount = 1 + seq % 2;
+
+			for (int c = 0; c < categoryCount; c++) {
+				if (rowsInBatch == 0) {
+					sql = new StringBuilder(
+						"INSERT INTO restaurant_food_category (restaurant_id, food_category_id) VALUES ");
+				} else {
+					sql.append(',');
+				}
+				sql.append("(?,?)");
+				p.add(restaurantId);
+				p.add(categoryIds.get((seq + c) % catSize));
+				rowsInBatch++;
+
+				if (rowsInBatch >= CHUNK) {
+					sql.append(" ON CONFLICT DO NOTHING");
+					jdbcTemplate.update(sql.toString(), p.toArray());
+					p.clear();
+					rowsInBatch = 0;
+				}
+			}
+		}
+		if (rowsInBatch > 0) {
+			sql.append(" ON CONFLICT DO NOTHING");
+			jdbcTemplate.update(sql.toString(), p.toArray());
+		}
+	}
+
+	/**
+	 * restaurant_review_sentiment 테이블에 더미 감정분석 결과를 배치 삽입한다. (restaurant 1:1)
+	 */
+	@Transactional
+	public void insertRestaurantReviewSentiments(List<Long> restaurantIds) {
+		Timestamp now = ts();
+		int n = restaurantIds.size();
+
+		for (int start = 0; start < n; start += CHUNK) {
+			int end = Math.min(start + CHUNK, n);
+			int size = end - start;
+
+			StringBuilder sql = new StringBuilder(
+				"INSERT INTO restaurant_review_sentiment"
+					+ " (restaurant_id, vector_epoch, model_version, positive_count, negative_count, neutral_count,"
+					+ " positive_percent, negative_percent, neutral_percent, analyzed_at) VALUES ");
+			List<Object> p = new ArrayList<>(size * 5);
+
+			for (int i = 0; i < size; i++) {
+				if (i > 0)
+					sql.append(',');
+				int seq = start + i;
+				sql.append("(?,0,'dummy-v1',?,?,?,60,20,20,?)");
+				p.add(restaurantIds.get(seq));
+				p.add(seq % 10 + 1);
+				p.add(2);
+				p.add(1);
+				p.add(now);
+			}
+			sql.append(" ON CONFLICT (restaurant_id) DO NOTHING");
+			jdbcTemplate.update(sql.toString(), p.toArray());
+		}
+	}
+
+	/**
+	 * restaurant_review_summary 테이블에 더미 요약(JSONB)을 배치 삽입한다. (restaurant 1:1)
+	 */
+	@Transactional
+	public void insertRestaurantReviewSummaries(List<Long> restaurantIds) {
+		Timestamp now = ts();
+		int n = restaurantIds.size();
+		// JSONB 리터럴 — 더미 고정값이므로 SQL 상수로 임베드
+		String jsonbLiteral = "'{\"summary\":\"더미 리뷰 요약입니다.\",\"highlights\":[\"맛있다\",\"친절하다\"]}'::jsonb";
+
+		for (int start = 0; start < n; start += CHUNK) {
+			int end = Math.min(start + CHUNK, n);
+			int size = end - start;
+
+			StringBuilder sql = new StringBuilder(
+				"INSERT INTO restaurant_review_summary"
+					+ " (restaurant_id, vector_epoch, model_version, summary_json, analyzed_at) VALUES ");
+			List<Object> p = new ArrayList<>(size * 2);
+
+			for (int i = 0; i < size; i++) {
+				if (i > 0)
+					sql.append(',');
+				sql.append("(?,0,'dummy-v1',").append(jsonbLiteral).append(",?)");
+				p.add(restaurantIds.get(start + i));
+				p.add(now);
+			}
+			sql.append(" ON CONFLICT DO NOTHING");
+			jdbcTemplate.update(sql.toString(), p.toArray());
+		}
 	}
 
 	// ── DELETE ────────────────────────────────────────────────────────────────
@@ -608,6 +811,36 @@ public class DummyDataJdbcRepository {
 		// 14. 더미 음식점 리뷰 삭제
 		jdbcTemplate.update("""
 			DELETE FROM review
+			WHERE restaurant_id IN (SELECT id FROM restaurant WHERE name LIKE '더미식당-%')
+			""");
+
+		// 14-a. 더미 음식점 리뷰 요약 삭제
+		jdbcTemplate.update("""
+			DELETE FROM restaurant_review_summary
+			WHERE restaurant_id IN (SELECT id FROM restaurant WHERE name LIKE '더미식당-%')
+			""");
+
+		// 14-b. 더미 음식점 리뷰 감정분석 삭제
+		jdbcTemplate.update("""
+			DELETE FROM restaurant_review_sentiment
+			WHERE restaurant_id IN (SELECT id FROM restaurant WHERE name LIKE '더미식당-%')
+			""");
+
+		// 14-c. 더미 음식점 음식 카테고리 삭제
+		jdbcTemplate.update("""
+			DELETE FROM restaurant_food_category
+			WHERE restaurant_id IN (SELECT id FROM restaurant WHERE name LIKE '더미식당-%')
+			""");
+
+		// 14-d. 더미 음식점 주간 스케줄 삭제
+		jdbcTemplate.update("""
+			DELETE FROM restaurant_weekly_schedule
+			WHERE restaurant_id IN (SELECT id FROM restaurant WHERE name LIKE '더미식당-%')
+			""");
+
+		// 14-e. 더미 음식점 주소 삭제
+		jdbcTemplate.update("""
+			DELETE FROM restaurant_address
 			WHERE restaurant_id IN (SELECT id FROM restaurant WHERE name LIKE '더미식당-%')
 			""");
 
