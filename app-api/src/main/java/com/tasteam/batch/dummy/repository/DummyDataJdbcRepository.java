@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -76,16 +77,22 @@ public class DummyDataJdbcRepository {
 			int size = end - start;
 
 			StringBuilder sql = new StringBuilder(
-				"INSERT INTO restaurant (id, name, full_address, vector_epoch, created_at, updated_at) VALUES ");
-			List<Object> p = new ArrayList<>(size * 6);
+				"INSERT INTO restaurant (id, name, full_address, location, vector_epoch, created_at, updated_at)"
+					+ " VALUES ");
+			List<Object> p = new ArrayList<>(size * 8);
 
 			for (int i = 0; i < size; i++) {
 				if (i > 0)
 					sql.append(',');
-				sql.append("(?,?,?,0,?,?)");
+				// 한국 영역 내 랜덤 좌표: 경도 126.0~129.6, 위도 33.1~38.6
+				double lon = 126.0 + ThreadLocalRandom.current().nextDouble() * 3.6;
+				double lat = 33.1 + ThreadLocalRandom.current().nextDouble() * 5.5;
+				sql.append("(?,?,?,ST_SetSRID(ST_MakePoint(?,?),4326),0,?,?)");
 				p.add(allIds.get(start + i));
 				p.add(names.get(start + i));
 				p.add(addresses.get(start + i));
+				p.add(lon);
+				p.add(lat);
 				p.add(now);
 				p.add(now);
 			}
