@@ -49,8 +49,8 @@
             </encoder>
         </appender>
 
-        <!-- Hibernate 로그: SQL만 DEBUG, 나머지는 WARN -->
-        <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+        <!-- Hibernate 로그: DEV/LOCAL에서 SQL 단계 진행 점검을 위해 INFO 허용 -->
+        <logger name="org.hibernate.SQL" level="INFO" additivity="false">
             <appender-ref ref="STDOUT" />
         </logger>
         <logger name="org.hibernate.orm" level="WARN" />
@@ -70,14 +70,24 @@
 
         <!-- 자신의 애플리케이션만 DEBUG 허용 -->
         <logger name="com.tasteam" level="DEBUG" />
-        <!-- 더미 시딩 패키지: 대량 삽입 중 로그 폭증 및 디스크 I/O 방지 -->
-        <logger name="com.tasteam.batch.dummy" level="WARN" />
+        <!-- 더미 시딩 패키지: DEV/LOCAL에서 단계 추적용 INFO 허용 -->
+        <logger name="com.tasteam.batch.dummy" level="INFO" />
 
         <!-- Root 레벨을 INFO로 변경하여 불필요한 DEBUG 로그 차단 -->
         <root level="INFO">
             <appender-ref ref="STDOUT" />
             <appender-ref ref="ASYNC_JSON_FILE" />
         </root>
+    </springProfile>
+
+    <springProfile name="stg">
+        <!-- stg: SQL/더미 시딩 로그 I/O 절감 위해 WARN 유지 -->
+        <logger name="org.hibernate.SQL" level="WARN" additivity="false">
+            <appender-ref ref="STDOUT" />
+        </logger>
+        <logger name="org.hibernate.orm" level="WARN" />
+        <logger name="org.hibernate.query" level="WARN" />
+        <logger name="com.tasteam.batch.dummy" level="WARN" />
     </springProfile>
 
     <springProfile name="prod">
