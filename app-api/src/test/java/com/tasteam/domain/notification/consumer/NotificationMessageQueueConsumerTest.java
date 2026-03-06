@@ -41,13 +41,15 @@ class NotificationMessageQueueConsumerTest {
 		MessageQueueProperties properties = new MessageQueueProperties();
 		SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
 		ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
+		NotificationMessageQueueConsumerMetricsCollector metricsCollector = new NotificationMessageQueueConsumerMetricsCollector(
+			meterRegistry);
 		NotificationMessageQueueConsumer consumer = new NotificationMessageQueueConsumer(
 			messageQueueConsumer,
 			properties,
 			messageQueueProducer,
 			dispatcher,
 			objectMapper,
-			meterRegistry);
+			metricsCollector);
 		ReflectionTestUtils.setField(consumer, "maxRetries", 3);
 
 		MessageQueueMessage message = MessageQueueMessage.of(
@@ -76,13 +78,15 @@ class NotificationMessageQueueConsumerTest {
 		MessageQueueProperties properties = new MessageQueueProperties();
 		SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
 		ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
+		NotificationMessageQueueConsumerMetricsCollector metricsCollector = new NotificationMessageQueueConsumerMetricsCollector(
+			meterRegistry);
 		NotificationMessageQueueConsumer consumer = new NotificationMessageQueueConsumer(
 			messageQueueConsumer,
 			properties,
 			messageQueueProducer,
 			dispatcher,
 			objectMapper,
-			meterRegistry);
+			metricsCollector);
 		ReflectionTestUtils.setField(consumer, "maxRetries", 1);
 
 		doThrow(new IllegalStateException("fcm 실패"))

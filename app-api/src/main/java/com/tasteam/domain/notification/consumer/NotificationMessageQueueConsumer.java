@@ -5,17 +5,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.notification.dispatch.NotificationDispatcher;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
-import com.tasteam.global.metrics.MetricLabelPolicy;
 import com.tasteam.infra.messagequeue.MessageQueueConsumer;
 import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProducer;
@@ -24,8 +21,6 @@ import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 import com.tasteam.infra.messagequeue.MessageQueueSubscription;
 import com.tasteam.infra.messagequeue.MessageQueueTopics;
 
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -49,8 +44,7 @@ public class NotificationMessageQueueConsumer {
 	private final MessageQueueProducer messageQueueProducer;
 	private final NotificationDispatcher dispatcher;
 	private final ObjectMapper objectMapper;
-	@Nullable
-	private final MeterRegistry meterRegistry;
+	private final NotificationMessageQueueConsumerMetricsCollector metricsCollector;
 
 	private MessageQueueSubscription subscription;
 
@@ -84,22 +78,22 @@ public class NotificationMessageQueueConsumer {
 		String result = "success";
 		try {
 			dispatcher.dispatch(payload);
-			incrementProcessCounter("success");
+			metricsCollector.recordProcessResult("success");
 			retryCountMap.remove(message.messageId());
 		} catch (Exception ex) {
 			result = "fail";
-			incrementProcessCounter("fail");
+			metricsCollector.recordProcessResult("fail");
 			int count = retryCountMap.merge(message.messageId(), 1, Integer::sum);
 			log.warn("알림 처리 실패. eventId={}, retryCount={}/{}", payload.eventId(), count, maxRetries, ex);
 			if (count >= maxRetries) {
 				boolean dlqPublished = publishToDlq(message);
-				incrementDlqCounter(dlqPublished ? "success" : "fail");
+				metricsCollector.recordDlqResult(dlqPublished ? "success" : "fail");
 				retryCountMap.remove(message.messageId());
 			} else {
 				throw ex;
 			}
 		} finally {
-			recordProcessLatency(result, startedAtNanos);
+			metricsCollector.recordProcessLatency(result, System.nanoTime() - startedAtNanos);
 		}
 	}
 
@@ -127,31 +121,4 @@ public class NotificationMessageQueueConsumer {
 		}
 	}
 
-	private void incrementProcessCounter(String result) {
-		if (meterRegistry == null) {
-			return;
-		}
-		MetricLabelPolicy.validate("notification.consumer.process", "result", result);
-		meterRegistry.counter("notification.consumer.process", "result", result).increment();
-	}
-
-	private void recordProcessLatency(String result, long startedAtNanos) {
-		if (meterRegistry == null) {
-			return;
-		}
-		MetricLabelPolicy.validate("notification.consumer.process.latency", "result", result);
-		Timer.builder("notification.consumer.process.latency")
-			.publishPercentileHistogram()
-			.tag("result", result)
-			.register(meterRegistry)
-			.record(System.nanoTime() - startedAtNanos, TimeUnit.NANOSECONDS);
-	}
-
-	private void incrementDlqCounter(String result) {
-		if (meterRegistry == null) {
-			return;
-		}
-		MetricLabelPolicy.validate("notification.consumer.dlq", "result", result);
-		meterRegistry.counter("notification.consumer.dlq", "result", result).increment();
-	}
 }
