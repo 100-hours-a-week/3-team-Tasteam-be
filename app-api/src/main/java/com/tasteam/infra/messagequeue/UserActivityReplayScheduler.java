@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import com.tasteam.domain.analytics.resilience.UserActivityReplayResult;
 import com.tasteam.domain.analytics.resilience.UserActivityReplayRunner;
+import com.tasteam.domain.analytics.resilience.UserActivityReplayMetricsCollector;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,12 +19,16 @@ import lombok.extern.slf4j.Slf4j;
 public class UserActivityReplayScheduler {
 
 	private final UserActivityReplayRunner userActivityReplayRunner;
+	private final UserActivityReplayMetricsCollector replayMetricsCollector;
 	@Value("${tasteam.analytics.replay.batch-size:100}")
 	private int replayBatchSize;
 
 	@Scheduled(fixedDelayString = "${tasteam.analytics.replay.fixed-delay:PT1M}")
 	public void replayPendingEvents() {
+		long startedAtNanos = System.nanoTime();
 		UserActivityReplayResult result = userActivityReplayRunner.runPendingReplay(replayBatchSize);
+		replayMetricsCollector.recordReplayResult(result, System.nanoTime() - startedAtNanos);
+
 		if (result.processedCount() == 0) {
 			return;
 		}

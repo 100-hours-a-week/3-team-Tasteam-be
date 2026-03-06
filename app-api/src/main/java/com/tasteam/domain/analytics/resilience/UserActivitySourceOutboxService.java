@@ -9,8 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.global.aop.ObservedOutbox;
-
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -18,20 +16,19 @@ import lombok.RequiredArgsConstructor;
 public class UserActivitySourceOutboxService {
 
 	private final UserActivitySourceOutboxJdbcRepository outboxRepository;
-	@Nullable
-	private final MeterRegistry meterRegistry;
+	private final UserActivitySourceOutboxMetricsCollector metricsCollector;
 
 	@Transactional
 	public void enqueue(ActivityEvent event) {
 		try {
 			boolean inserted = outboxRepository.insertPendingIfAbsent(event);
 			if (inserted) {
-				incrementCounter("analytics.user-activity.outbox.enqueue", "inserted");
+				metricsCollector.recordEnqueueResult("inserted");
 				return;
 			}
-			incrementCounter("analytics.user-activity.outbox.enqueue", "duplicate");
+			metricsCollector.recordEnqueueResult("duplicate");
 		} catch (Exception ex) {
-			incrementCounter("analytics.user-activity.outbox.enqueue", "fail");
+			metricsCollector.recordEnqueueResult("fail");
 			throw ex;
 		}
 	}
@@ -39,14 +36,14 @@ public class UserActivitySourceOutboxService {
 	@Transactional
 	public void markPublished(String eventId) {
 		outboxRepository.markPublished(eventId);
-		incrementCounter("analytics.user-activity.outbox.publish", "success");
+		metricsCollector.recordPublishResult("success");
 	}
 
 	@Transactional
 	public void markFailed(String eventId, Throwable ex) {
 		outboxRepository.markFailed(eventId, ex == null ? null : ex.getMessage());
-		incrementCounter("analytics.user-activity.outbox.publish", "fail");
-		incrementCounter("analytics.user-activity.outbox.retry", "scheduled");
+		metricsCollector.recordPublishResult("fail");
+		metricsCollector.recordRetryScheduled();
 	}
 
 	@Transactional(readOnly = true)
@@ -60,10 +57,4 @@ public class UserActivitySourceOutboxService {
 		return outboxRepository.summarize();
 	}
 
-	private void incrementCounter(String metricName, String result) {
-		if (meterRegistry == null) {
-			return;
-		}
-		meterRegistry.counter(metricName, "result", result).increment();
-	}
 }

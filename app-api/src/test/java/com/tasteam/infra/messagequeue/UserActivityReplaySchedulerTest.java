@@ -11,6 +11,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.analytics.resilience.UserActivityReplayResult;
 import com.tasteam.domain.analytics.resilience.UserActivityReplayRunner;
+import com.tasteam.domain.analytics.resilience.UserActivityReplayMetricsCollector;
+
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 @UnitTest
 @DisplayName("[유닛](UserActivity) UserActivityReplayScheduler 단위 테스트")
@@ -21,7 +24,9 @@ class UserActivityReplaySchedulerTest {
 	void replayPendingEvents_invokesRunnerWithBatchSize() {
 		UserActivityReplayRunner replayRunner = mock(UserActivityReplayRunner.class);
 		when(replayRunner.runPendingReplay(200)).thenReturn(new UserActivityReplayResult(0, 0, 0));
-		UserActivityReplayScheduler scheduler = new UserActivityReplayScheduler(replayRunner);
+		UserActivityReplayMetricsCollector replayMetricsCollector = new UserActivityReplayMetricsCollector(
+			new SimpleMeterRegistry());
+		UserActivityReplayScheduler scheduler = new UserActivityReplayScheduler(replayRunner, replayMetricsCollector);
 		ReflectionTestUtils.setField(scheduler, "replayBatchSize", 200);
 
 		scheduler.replayPendingEvents();
