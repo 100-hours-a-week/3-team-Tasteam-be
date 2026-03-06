@@ -6,7 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.tasteam.domain.analytics.resilience.UserActivityReplayResult;
-import com.tasteam.domain.analytics.resilience.UserActivityReplayService;
+import com.tasteam.domain.analytics.resilience.UserActivityReplayRunner;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,13 +17,13 @@ import lombok.extern.slf4j.Slf4j;
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
 public class UserActivityReplayScheduler {
 
-	private final UserActivityReplayService userActivityReplayService;
+	private final UserActivityReplayRunner userActivityReplayRunner;
 	@Value("${tasteam.analytics.replay.batch-size:100}")
 	private int replayBatchSize;
 
 	@Scheduled(fixedDelayString = "${tasteam.analytics.replay.fixed-delay:PT1M}")
 	public void replayPendingEvents() {
-		UserActivityReplayResult result = userActivityReplayService.replayPending(replayBatchSize);
+		UserActivityReplayResult result = userActivityReplayRunner.runPendingReplay(replayBatchSize);
 		if (result.processedCount() == 0) {
 			return;
 		}
