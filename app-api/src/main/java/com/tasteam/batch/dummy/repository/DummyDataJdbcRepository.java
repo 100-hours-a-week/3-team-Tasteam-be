@@ -695,12 +695,267 @@ public class DummyDataJdbcRepository {
 		}
 	}
 
+	private static final String[] NOTIFICATION_CHANNELS = {"WEB", "PUSH", "EMAIL", "SMS"};
+
+	/**
+	 * member_notification_preference 테이블에 4채널 × 3타입 = 12 rows/member 배치 삽입한다.
+	 * ON CONFLICT DO NOTHING으로 중복 삽입 방지.
+	 */
+	@Transactional
+	public void insertMemberNotificationPreferences(List<Long> memberIds) {
+		Timestamp now = ts();
+		int n = memberIds.size();
+		int rowsPerMember = NOTIFICATION_CHANNELS.length * NOTIFICATION_TYPES.length; // 12
+		int membersPerChunk = Math.max(1, CHUNK / rowsPerMember);
+
+		for (int start = 0; start < n; start += membersPerChunk) {
+			int end = Math.min(start + membersPerChunk, n);
+			int memberCount = end - start;
+
+			StringBuilder sql = new StringBuilder(
+				"INSERT INTO member_notification_preference"
+					+ " (member_id, channel, notification_type, is_enabled, created_at, updated_at) VALUES ");
+			List<Object> p = new ArrayList<>(memberCount * rowsPerMember * 6);
+
+			boolean first = true;
+			for (int i = 0; i < memberCount; i++) {
+				long memberId = memberIds.get(start + i);
+				int memberSeq = start + i;
+				for (int chanIdx = 0; chanIdx < NOTIFICATION_CHANNELS.length; chanIdx++) {
+					for (int typeIdx = 0; typeIdx < NOTIFICATION_TYPES.length; typeIdx++) {
+						if (!first)
+							sql.append(',');
+						first = false;
+						int seq = memberSeq * rowsPerMember + chanIdx * NOTIFICATION_TYPES.length + typeIdx;
+						boolean enabled = (seq % 5 != 0);
+						sql.append("(?,?,?,?,?,?)");
+						p.add(memberId);
+						p.add(NOTIFICATION_CHANNELS[chanIdx]);
+						p.add(NOTIFICATION_TYPES[typeIdx]);
+						p.add(enabled);
+						p.add(now);
+						p.add(now);
+					}
+				}
+			}
+			sql.append(" ON CONFLICT DO NOTHING");
+			jdbcTemplate.update(sql.toString(), p.toArray());
+		}
+	}
+
+	/**
+	 * chat_room_member.last_read_message_id를 더미 채팅방 멤버의 70%에 대해 갱신한다.
+	 * 각 채팅방의 최대 메시지 ID를 설정한다.
+	 */
+	@Transactional
+	public void updateChatRoomMemberLastReadMessages() {
+		jdbcTemplate.update("""
+			UPDATE chat_room_member crm
+			SET last_read_message_id = latest.max_id
+			FROM (
+			    SELECT chat_room_id, MAX(id) AS max_id
+			    FROM chat_message
+			    WHERE chat_room_id IN (
+			        SELECT cr.id FROM chat_room cr
+			        JOIN subgroup sg ON cr.subgroup_id = sg.id
+			        WHERE sg.group_id IN (SELECT id FROM "group" WHERE name LIKE '더미그룹-%')
+			    )
+			    GROUP BY chat_room_id
+			) latest
+			WHERE crm.chat_room_id = latest.chat_room_id
+			  AND (crm.id % 10) < 7
+			""");
+	}
+
+	/**
+	 * menu_category 테이블에 restaurant당 2개 카테고리를 배치 삽입한다.
+	 * 반환 리스트는 삽입된 카테고리 ID 전체다 (insertMenus의 FK로 사용).
+	 */
+	@Transactional
+	public List<Long> insertMenuCategories(List<Long> restaurantIds) {
+		Timestamp now = ts();
+		int n = restaurantIds.size();
+		int totalCategories = n * 2;
+		List<Long> allIds = preallocateIdentityIds("menu_category", totalCategories);
+
+		int restaurantsPerChunk = Math.max(1, CHUNK / 2);
+		String[] categoryNames = {"메인", "음료"};
+
+		for (int start = 0; start < n; start += restaurantsPerChunk) {
+			int end = Math.min(start + restaurantsPerChunk, n);
+			int restaurantCount = end - start;
+
+			StringBuilder sql = new StringBuilder(
+				"INSERT INTO menu_category (id, restaurant_id, name, display_order, created_at, updated_at) VALUES ");
+			List<Object> p = new ArrayList<>(restaurantCount * 2 * 6);
+
+			boolean first = true;
+			for (int i = 0; i < restaurantCount; i++) {
+				long restaurantId = restaurantIds.get(start + i);
+				for (int c = 0; c < 2; c++) {
+					if (!first)
+						sql.append(',');
+					first = false;
+					sql.append("(?,?,?,?,?,?)");
+					p.add(allIds.get((start + i) * 2 + c));
+					p.add(restaurantId);
+					p.add(categoryNames[c]);
+					p.add(c);
+					p.add(now);
+					p.add(now);
+				}
+			}
+			jdbcTemplate.update(sql.toString(), p.toArray());
+		}
+		return allIds;
+	}
+
+	/**
+	 * menu 테이블에 category당 3개 메뉴를 배치 삽입한다.
+	 * 가격: seq % 5 * 1000 + 8000 (8000~12000원), is_recommended: seq % 3 == 0.
+	 */
+	@Transactional
+	public void insertMenus(List<Long> categoryIds) {
+		Timestamp now = ts();
+		int n = categoryIds.size();
+		int categoriesPerChunk = Math.max(1, CHUNK / 3);
+
+		for (int start = 0; start < n; start += categoriesPerChunk) {
+			int end = Math.min(start + categoriesPerChunk, n);
+			int catCount = end - start;
+
+			StringBuilder sql = new StringBuilder(
+				"INSERT INTO menu (category_id, name, price, is_recommended, display_order, created_at, updated_at)"
+					+ " VALUES ");
+			List<Object> p = new ArrayList<>(catCount * 3 * 7);
+
+			boolean first = true;
+			for (int i = 0; i < catCount; i++) {
+				long categoryId = categoryIds.get(start + i);
+				for (int m = 0; m < 3; m++) {
+					if (!first)
+						sql.append(',');
+					first = false;
+					int seq = (start + i) * 3 + m;
+					int price = seq % 5 * 1000 + 8000;
+					boolean recommended = seq % 3 == 0;
+					sql.append("(?,?,?,?,?,?,?)");
+					p.add(categoryId);
+					p.add("더미메뉴-" + (seq + 1));
+					p.add(price);
+					p.add(recommended);
+					p.add(m);
+					p.add(now);
+					p.add(now);
+				}
+			}
+			jdbcTemplate.update(sql.toString(), p.toArray());
+		}
+	}
+
+	/**
+	 * subgroup_favorite_restaurant 테이블에 단일 배치 삽입한다. (서비스 청크 단위로 호출)
+	 * seq를 [memberIdx, subgroupIdx, restaurantIdx] 3차원 좌표로 전개해 중복을 최소화한다.
+	 * ON CONFLICT DO NOTHING으로 중복 삽입 방지.
+	 */
+	@Transactional
+	public long insertSubgroupFavoriteBatch(
+		List<Long> memberIds, List<Long> subgroupIds, List<Long> restaurantIds,
+		int startSeq, int batchSize) {
+		Timestamp now = ts();
+		int memberSize = memberIds.size();
+		int subgroupSize = subgroupIds.size();
+		int restaurantSize = restaurantIds.size();
+
+		StringBuilder sql = new StringBuilder(
+			"INSERT INTO subgroup_favorite_restaurant (member_id, subgroup_id, restaurant_id, created_at) VALUES ");
+		List<Object> p = new ArrayList<>(batchSize * 4);
+
+		for (int i = 0; i < batchSize; i++) {
+			if (i > 0)
+				sql.append(',');
+			int seq = startSeq + i;
+			int memberIdx = seq % memberSize;
+			int subgroupIdx = (seq / memberSize) % subgroupSize;
+			int restaurantIdx = (seq / memberSize / subgroupSize) % restaurantSize;
+			sql.append("(?,?,?,?)");
+			p.add(memberIds.get(memberIdx));
+			p.add(subgroupIds.get(subgroupIdx));
+			p.add(restaurantIds.get(restaurantIdx));
+			p.add(now);
+		}
+		sql.append(" ON CONFLICT DO NOTHING");
+		return jdbcTemplate.update(sql.toString(), p.toArray());
+	}
+
+	private static final String[] SEARCH_KEYWORDS = {
+		"한식", "중식", "일식", "양식", "분식", "카페", "치킨", "피자", "버거", "초밥", "삼겹살", "냉면", "국밥", "라멘", "파스타"
+	};
+
+	/**
+	 * member_search_history 테이블에 멤버당 2~5개 키워드를 배치 삽입한다.
+	 * ON CONFLICT DO NOTHING으로 중복 삽입 방지.
+	 */
+	@Transactional
+	public void insertMemberSearchHistories(List<Long> memberIds) {
+		Timestamp now = ts();
+		int n = memberIds.size();
+		int keywordCount = SEARCH_KEYWORDS.length;
+
+		List<Object> p = new ArrayList<>(CHUNK * 4);
+		StringBuilder sql = null;
+		int rowsInBatch = 0;
+
+		for (int seq = 0; seq < n; seq++) {
+			long memberId = memberIds.get(seq);
+			int keywordsForMember = 2 + seq % 4;
+
+			for (int k = 0; k < keywordsForMember; k++) {
+				if (rowsInBatch == 0) {
+					sql = new StringBuilder(
+						"INSERT INTO member_search_history (member_id, keyword, count, created_at, updated_at) VALUES ");
+				} else {
+					sql.append(',');
+				}
+				sql.append("(?,?,1,?,?)");
+				p.add(memberId);
+				p.add(SEARCH_KEYWORDS[(seq + k) % keywordCount]);
+				p.add(now);
+				p.add(now);
+				rowsInBatch++;
+
+				if (rowsInBatch >= CHUNK) {
+					sql.append(" ON CONFLICT DO NOTHING");
+					jdbcTemplate.update(sql.toString(), p.toArray());
+					p.clear();
+					rowsInBatch = 0;
+				}
+			}
+		}
+		if (rowsInBatch > 0) {
+			sql.append(" ON CONFLICT DO NOTHING");
+			jdbcTemplate.update(sql.toString(), p.toArray());
+		}
+	}
+
 	// ── DELETE ────────────────────────────────────────────────────────────────
 
 	/**
 	 * 더미 데이터를 외래키 제약 순서에 맞춰 전부 삭제한다.
 	 */
 	public void deleteDummyData() {
+		// 0-pre1. 더미 멤버의 알림 설정 삭제
+		jdbcTemplate.update("""
+			DELETE FROM member_notification_preference
+			WHERE member_id IN (SELECT id FROM member WHERE email LIKE '%@dummy.tasteam.kr')
+			""");
+
+		// 0-pre2. 더미 멤버의 검색 기록 삭제
+		jdbcTemplate.update("""
+			DELETE FROM member_search_history
+			WHERE member_id IN (SELECT id FROM member WHERE email LIKE '%@dummy.tasteam.kr')
+			""");
+
 		// 0-a. 더미 멤버의 즐겨찾기 삭제
 		jdbcTemplate.update("""
 			DELETE FROM member_favorite_restaurant
@@ -784,6 +1039,15 @@ public class DummyDataJdbcRepository {
 			)
 			""");
 
+		// 9-a. 더미 서브그룹 즐겨찾기 삭제
+		jdbcTemplate.update("""
+			DELETE FROM subgroup_favorite_restaurant
+			WHERE subgroup_id IN (
+			    SELECT id FROM subgroup
+			    WHERE group_id IN (SELECT id FROM "group" WHERE name LIKE '더미그룹-%')
+			)
+			""");
+
 		// 10. 더미 그룹의 하위그룹 삭제
 		jdbcTemplate.update("""
 			DELETE FROM subgroup
@@ -841,6 +1105,20 @@ public class DummyDataJdbcRepository {
 		// 14-e. 더미 음식점 주소 삭제
 		jdbcTemplate.update("""
 			DELETE FROM restaurant_address
+			WHERE restaurant_id IN (SELECT id FROM restaurant WHERE name LIKE '더미식당-%')
+			""");
+
+		// 14-f. 더미 음식점 메뉴 삭제
+		jdbcTemplate.update("""
+			DELETE FROM menu WHERE category_id IN (
+			    SELECT id FROM menu_category
+			    WHERE restaurant_id IN (SELECT id FROM restaurant WHERE name LIKE '더미식당-%')
+			)
+			""");
+
+		// 14-g. 더미 음식점 메뉴 카테고리 삭제
+		jdbcTemplate.update("""
+			DELETE FROM menu_category
 			WHERE restaurant_id IN (SELECT id FROM restaurant WHERE name LIKE '더미식당-%')
 			""");
 

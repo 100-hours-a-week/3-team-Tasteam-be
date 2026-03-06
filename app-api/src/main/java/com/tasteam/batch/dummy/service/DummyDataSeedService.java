@@ -33,24 +33,26 @@ public class DummyDataSeedService {
 
 	private static final String DUMMY_EMAIL_SUFFIX = "@dummy.tasteam.kr";
 	private static final Random RANDOM = new Random();
-	private static final int DEFAULT_MEMBER_COUNT = 500;
-	private static final int DEFAULT_RESTAURANT_COUNT = 200;
-	private static final int DEFAULT_GROUP_COUNT = 20;
-	private static final int DEFAULT_SUBGROUP_PER_GROUP = 5;
+	private static final int DEFAULT_MEMBER_COUNT = 10_000;
+	private static final int DEFAULT_RESTAURANT_COUNT = 10_000;
+	private static final int DEFAULT_GROUP_COUNT = 1_500;
+	private static final int DEFAULT_SUBGROUP_PER_GROUP = 4;
 	private static final int DEFAULT_MEMBER_PER_GROUP = 30;
-	private static final int DEFAULT_REVIEW_COUNT = 1000;
-	private static final int DEFAULT_CHAT_MESSAGE_PER_ROOM = 50;
-	private static final int DEFAULT_NOTIFICATION_COUNT = 5_000;
-	private static final int DEFAULT_FAVORITE_COUNT = 1_000;
+	private static final int DEFAULT_REVIEW_COUNT = 300_000;
+	private static final int DEFAULT_CHAT_MESSAGE_PER_ROOM = 167; // 총 ~100만 / 6000 채팅방
+	private static final int DEFAULT_NOTIFICATION_COUNT = 400_000;
+	private static final int DEFAULT_FAVORITE_COUNT = 100_000;
+	private static final int DEFAULT_SUBGROUP_FAVORITE_COUNT = 1_000;
 	private static final int MAX_MEMBER_COUNT = 100_000;
 	private static final int MAX_RESTAURANT_COUNT = 50_000_000;
-	private static final int MAX_GROUP_COUNT = 1_000;
+	private static final int MAX_GROUP_COUNT = 5_000;
 	private static final int MAX_SUBGROUP_PER_GROUP = 1_000;
 	private static final int MAX_MEMBER_PER_GROUP = 1_000;
 	private static final int MAX_REVIEW_COUNT = 100_000_000;
 	private static final int MAX_CHAT_MESSAGE_PER_ROOM = 1_000_000_000;
 	private static final int MAX_NOTIFICATION_COUNT = 2_000_000;
 	private static final int MAX_FAVORITE_COUNT = 500_000;
+	private static final int MAX_SUBGROUP_FAVORITE_COUNT = 500_000;
 	private static final int SERVICE_CHUNK_SIZE = 5_000;
 	private static final int RELATION_FLUSH_SIZE = 5_000;
 	private static final int MAX_KEYWORDS_PER_REVIEW = 3;
@@ -78,9 +80,20 @@ public class DummyDataSeedService {
 			DEFAULT_NOTIFICATION_COUNT, MAX_NOTIFICATION_COUNT);
 		int favoriteCount = normalizeCount("favoriteCount", req.favoriteCount(),
 			DEFAULT_FAVORITE_COUNT, MAX_FAVORITE_COUNT);
+		int subgroupFavoriteCount = normalizeCount("subgroupFavoriteCount", req.subgroupFavoriteCount(),
+			DEFAULT_SUBGROUP_FAVORITE_COUNT, MAX_SUBGROUP_FAVORITE_COUNT);
 
 		// 순차 실행: 병렬 대량 INSERT는 DB WAL/connection pool 경합을 유발하므로 직렬화
 		LongIdBuffer memberIds = executeStep("member insert", () -> insertMembers(memberCount, runToken));
+		long notificationPreferencesInserted = executeStep("member_notification_preference insert", () -> {
+			dummyRepo.insertMemberNotificationPreferences(memberIds.toList());
+			return (long)memberIds.size() * 12;
+		});
+		long searchHistoriesInserted = executeStep("member_search_history insert", () -> {
+			dummyRepo.insertMemberSearchHistories(memberIds.toList());
+			return computeSearchHistoryCount(memberIds.size());
+		});
+
 		LongIdBuffer restaurantIds = executeStep("restaurant insert",
 			() -> insertRestaurants(restaurantCount, runToken));
 		executeStep("restaurant_address insert", () -> {
@@ -95,11 +108,23 @@ public class DummyDataSeedService {
 			insertRestaurantFoodCategories(restaurantIds);
 			return null;
 		});
+		long menusInserted = executeStep("menu_category/menu insert",
+			() -> insertMenusForRestaurants(restaurantIds));
+
 		LongIdBuffer groupIds = executeStep("group insert", () -> insertGroups(groupCount, runToken));
 
 		GroupSeedResult groupSeedResult = executeStep(
 			"group_member/subgroup/chat relation insert",
 			() -> insertGroupRelatedData(groupIds, memberIds, subgroupPerGroup, memberPerGroup, chatMessagePerRoom));
+
+		executeStep("chat_room_member read status update", () -> {
+			dummyRepo.updateChatRoomMemberLastReadMessages();
+			return null;
+		});
+
+		List<Long> subgroupIds = groupSeedResult.subgroupIds();
+		long subgroupFavoritesInserted = executeStep("subgroup_favorite insert",
+			() -> insertSubgroupFavoritesInChunks(subgroupFavoriteCount, memberIds, subgroupIds, restaurantIds));
 
 		int reviewsInserted = executeStep("review/review_keyword insert",
 			() -> insertReviewsWithKeywords(reviewCount, memberIds, restaurantIds, groupIds));
@@ -124,6 +149,10 @@ public class DummyDataSeedService {
 			groupSeedResult.chatMessagesInserted(),
 			notificationsInserted,
 			favoritesInserted,
+			notificationPreferencesInserted,
+			menusInserted,
+			subgroupFavoritesInserted,
+			searchHistoriesInserted,
 			elapsed);
 	}
 
@@ -338,7 +367,7 @@ public class DummyDataSeedService {
 		flushSubgroupMemberCounts(subgroupMemberCounts);
 		chatMessagesInserted += flushChatMessages(chatMessageEntries, chatMessageContents);
 
-		return new GroupSeedResult(allSubgroupIds.size(), chatMessagesInserted);
+		return new GroupSeedResult(allSubgroupIds.size(), chatMessagesInserted, allSubgroupIds);
 	}
 
 	private int insertReviewsWithKeywords(
@@ -449,6 +478,38 @@ public class DummyDataSeedService {
 		List<Long> ids = restaurantIds.toList();
 		dummyRepo.insertRestaurantReviewSentiments(ids);
 		dummyRepo.insertRestaurantReviewSummaries(ids);
+	}
+
+	private long insertMenusForRestaurants(LongIdBuffer restaurantIds) {
+		List<Long> categoryIds = dummyRepo.insertMenuCategories(restaurantIds.toList());
+		if (!categoryIds.isEmpty()) {
+			dummyRepo.insertMenus(categoryIds);
+		}
+		return (long)categoryIds.size() * 3;
+	}
+
+	private long insertSubgroupFavoritesInChunks(
+		int count, LongIdBuffer memberIds, List<Long> subgroupIds, LongIdBuffer restaurantIds) {
+		if (subgroupIds.isEmpty()) {
+			log.warn("[DummySeed] subgroupIds가 비어있어 subgroup_favorite 삽입을 건너뜁니다");
+			return 0;
+		}
+		List<Long> memberList = memberIds.toList();
+		List<Long> restaurantList = restaurantIds.toList();
+		long inserted = 0;
+		for (int start = 0; start < count; start += SERVICE_CHUNK_SIZE) {
+			int size = Math.min(SERVICE_CHUNK_SIZE, count - start);
+			inserted += dummyRepo.insertSubgroupFavoriteBatch(memberList, subgroupIds, restaurantList, start, size);
+		}
+		return inserted;
+	}
+
+	private long computeSearchHistoryCount(int memberCount) {
+		long total = 0;
+		for (int seq = 0; seq < memberCount; seq++) {
+			total += 2 + seq % 4;
+		}
+		return total;
 	}
 
 	/**
@@ -601,7 +662,7 @@ public class DummyDataSeedService {
 		}
 	}
 
-	private record GroupSeedResult(long subgroupsInserted, long chatMessagesInserted) {
+	private record GroupSeedResult(long subgroupsInserted, long chatMessagesInserted, List<Long> subgroupIds) {
 	}
 
 	public static final class DummySeedStepException extends RuntimeException {

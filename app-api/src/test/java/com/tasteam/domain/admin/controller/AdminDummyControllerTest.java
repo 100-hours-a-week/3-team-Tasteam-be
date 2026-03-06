@@ -52,7 +52,7 @@ class AdminDummyControllerTest {
 		@DisplayName("시딩이 진행 중이지 않으면 202를 반환한다")
 		void 더미_시드_성공() throws Exception {
 			// given
-			var request = new AdminDummySeedRequest(1, 2, 0, 0, 0, 0, 0, 0, 0);
+			var request = new AdminDummySeedRequest(1, 2, 0, 0, 0, 0, 0, 0, 0, 0);
 			given(jobTracker.isRunning()).willReturn(false);
 			given(dummyDataSeedService.seedAsync(any())).willReturn(CompletableFuture.completedFuture(null));
 
@@ -67,7 +67,7 @@ class AdminDummyControllerTest {
 		@DisplayName("이미 시딩이 진행 중이면 409를 반환한다")
 		void 더미_시드_중복_실패() throws Exception {
 			// given
-			var request = new AdminDummySeedRequest(1, 2, 0, 0, 0, 0, 0, 0, 0);
+			var request = new AdminDummySeedRequest(1, 2, 0, 0, 0, 0, 0, 0, 0, 0);
 			given(jobTracker.isRunning()).willReturn(true);
 
 			// when & then
@@ -82,7 +82,7 @@ class AdminDummyControllerTest {
 		@DisplayName("음수 값이 들어오면 400으로 실패한다")
 		void 더미_시드_음수값_실패() throws Exception {
 			// given
-			var request = new AdminDummySeedRequest(-1, 0, 0, 0, 0, 0, 0, 0, 0);
+			var request = new AdminDummySeedRequest(-1, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 			// when & then
 			mockMvc.perform(post("/api/v1/admin/dummy/seed")

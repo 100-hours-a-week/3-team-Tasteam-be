@@ -14,7 +14,7 @@ public class DummySeedJobTracker {
 		IDLE, RUNNING, COMPLETED, FAILED, CANCELLED
 	}
 
-	private static final int TOTAL_STEPS = 11;
+	private static final int TOTAL_STEPS = 16;
 
 	private volatile Status status = Status.IDLE;
 	private volatile String currentStep = null;
