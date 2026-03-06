@@ -1,13 +1,10 @@
 package com.tasteam.domain.analytics.resilience;
 
-import java.time.Duration;
-import java.time.Instant;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import com.tasteam.global.aop.ObservedAsyncPipeline;
+
 import lombok.RequiredArgsConstructor;
 
 @Component

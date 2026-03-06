@@ -5,9 +5,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import com.tasteam.domain.analytics.resilience.UserActivityReplayMetricsCollector;
 import com.tasteam.domain.analytics.resilience.UserActivityReplayResult;
 import com.tasteam.domain.analytics.resilience.UserActivityReplayRunner;
-import com.tasteam.domain.analytics.resilience.UserActivityReplayMetricsCollector;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

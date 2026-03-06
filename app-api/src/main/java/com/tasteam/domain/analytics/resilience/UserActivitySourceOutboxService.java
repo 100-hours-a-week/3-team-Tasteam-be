@@ -3,12 +3,12 @@ package com.tasteam.domain.analytics.resilience;
 import java.time.Instant;
 import java.util.List;
 
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.global.aop.ObservedOutbox;
+
 import lombok.RequiredArgsConstructor;
 
 @Service

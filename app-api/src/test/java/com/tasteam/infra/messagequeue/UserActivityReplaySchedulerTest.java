@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.tasteam.config.annotation.UnitTest;
+import com.tasteam.domain.analytics.resilience.UserActivityReplayMetricsCollector;
 import com.tasteam.domain.analytics.resilience.UserActivityReplayResult;
 import com.tasteam.domain.analytics.resilience.UserActivityReplayRunner;
-import com.tasteam.domain.analytics.resilience.UserActivityReplayMetricsCollector;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
