@@ -41,7 +41,7 @@ public class AdminDummyController implements AdminDummyControllerDocs {
 		@RequestBody @Valid
 		AdminDummySeedRequest request) {
 
-		if (jobTracker.isRunning()) {
+		if (!jobTracker.tryStart()) {
 			throw new BusinessException(CommonErrorCode.SEED_ALREADY_RUNNING);
 		}
 		dummyDataSeedService.seedAsync(request);
@@ -75,6 +75,9 @@ public class AdminDummyController implements AdminDummyControllerDocs {
 	@DeleteMapping
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteDummyData() {
+		if (jobTracker.isRunning()) {
+			throw new BusinessException(CommonErrorCode.SEED_ALREADY_RUNNING);
+		}
 		dummyDataSeedService.deleteDummyData();
 	}
 }

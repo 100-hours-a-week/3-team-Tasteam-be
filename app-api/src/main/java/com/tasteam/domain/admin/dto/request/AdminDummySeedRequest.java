@@ -8,7 +8,7 @@ public record AdminDummySeedRequest(
 	int memberCount,
 	@Min(value = 0) @Max(value = 50000000)
 	int restaurantCount,
-	@Min(value = 0) @Max(value = 1000)
+	@Min(value = 0) @Max(value = 5000)
 	int groupCount,
 	@Min(value = 0) @Max(value = 1000)
 	int subgroupPerGroup,
@@ -21,5 +21,7 @@ public record AdminDummySeedRequest(
 	@Min(value = 0) @Max(value = 2000000)
 	int notificationCount,
 	@Min(value = 0) @Max(value = 500000)
-	int favoriteCount) {
+	int favoriteCount,
+	@Min(value = 0) @Max(value = 500000)
+	int subgroupFavoriteCount) {
 }

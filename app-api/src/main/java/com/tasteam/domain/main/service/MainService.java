@@ -313,9 +313,11 @@ public class MainService {
 		return restaurantReviewSummaryRepository
 			.findByRestaurantIdIn(restaurantIds)
 			.stream()
+			.filter(summary -> toSummaryString(summary.getSummaryJson()) != null)
 			.collect(Collectors.toMap(
 				RestaurantReviewSummary::getRestaurantId,
-				s -> toSummaryString(s.getSummaryJson())));
+				s -> toSummaryString(s.getSummaryJson()),
+				(existing, replacement) -> existing));
 	}
 
 	private static String toSummaryString(Map<String, Object> summaryJson) {
