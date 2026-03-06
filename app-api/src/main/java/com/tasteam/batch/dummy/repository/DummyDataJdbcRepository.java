@@ -858,7 +858,7 @@ public class DummyDataJdbcRepository {
 						sql.append(',');
 					first = false;
 					int seq = (start + i) * 3 + m;
-					int price = seq % 5 * 1000 + 8000;
+					int price = (seq % 5) * 1000 + 8000;
 					boolean recommended = seq % 3 == 0;
 					sql.append("(?,?,?,?,?,?,?)");
 					p.add(categoryId);
