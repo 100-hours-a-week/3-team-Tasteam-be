@@ -1,4 +1,4 @@
-package com.tasteam.domain.auth.controller;
+package com.tasteam.domain.test.controller;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -22,7 +22,7 @@ import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.MemberErrorCode;
 import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
 
-@ActiveProfiles("test")
+@ActiveProfiles({"test", "local"})
 @ControllerWebMvcTest(TestAuthController.class)
 @DisplayName("[유닛](Auth) TestAuthController 단위 테스트")
 class TestAuthControllerTest {
@@ -48,7 +48,7 @@ class TestAuthControllerTest {
 			.willReturn(new TestAuthTokenService.TestTokenResult("access-token", "refresh-token", 7L, true));
 
 		// when & then
-		mockMvc.perform(post("/api/v1/auth/token/test")
+		mockMvc.perform(post("/api/v1/test/auth/token")
 			.contentType(APPLICATION_JSON)
 			.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isOk())
@@ -65,7 +65,7 @@ class TestAuthControllerTest {
 		var request = new TestAuthTokenRequest("", "");
 
 		// when & then
-		mockMvc.perform(post("/api/v1/auth/token/test")
+		mockMvc.perform(post("/api/v1/test/auth/token")
 			.contentType(APPLICATION_JSON)
 			.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isBadRequest())
@@ -81,7 +81,7 @@ class TestAuthControllerTest {
 			.willThrow(new BusinessException(MemberErrorCode.MEMBER_NOT_FOUND));
 
 		// when & then
-		mockMvc.perform(post("/api/v1/auth/token/test")
+		mockMvc.perform(post("/api/v1/test/auth/token")
 			.contentType(APPLICATION_JSON)
 			.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isNotFound())

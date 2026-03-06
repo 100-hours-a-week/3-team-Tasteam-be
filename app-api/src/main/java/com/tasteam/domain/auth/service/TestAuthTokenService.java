@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +27,16 @@ import lombok.RequiredArgsConstructor;
 public class TestAuthTokenService {
 
 	private static final String TEST_PROVIDER = "TEST";
+	private static final String STG_PROFILE = "stg";
+	private static final String TEST_ACCESS_TOKEN_EXPIRATION_PROPERTY = "tasteam.auth.test.access-token-expiration-ms";
+	private static final long STG_DEFAULT_TEST_ACCESS_TOKEN_EXPIRATION_MS = 172800000L; // 48h
 
 	private final MemberRepository memberRepository;
 	private final MemberOAuthAccountRepository memberOAuthAccountRepository;
 	private final JwtTokenProvider jwtTokenProvider;
 	private final RefreshTokenStore refreshTokenStore;
 	private final ApplicationEventPublisher eventPublisher;
+	private final Environment environment;
 
 	public TestTokenResult issueTokens(String identifier, String nickname) {
 		return memberOAuthAccountRepository.findByProviderAndProviderUserId(TEST_PROVIDER, identifier)
@@ -46,7 +52,7 @@ public class TestAuthTokenService {
 		member.loginSuccess();
 		memberRepository.save(member);
 
-		String accessToken = jwtTokenProvider.generateAccessToken(member.getId(), member.getRole().name());
+		String accessToken = issueTestAccessToken(member);
 		String refreshToken = jwtTokenProvider.generateRefreshToken(member.getId());
 
 		String tokenFamilyId = UUID.randomUUID().toString();
@@ -75,7 +81,7 @@ public class TestAuthTokenService {
 			new MemberRegisteredEvent(member.getId(), member.getEmail(),
 				member.getNickname(), Instant.now()));
 
-		String accessToken = jwtTokenProvider.generateAccessToken(member.getId(), member.getRole().name());
+		String accessToken = issueTestAccessToken(member);
 		String refreshToken = jwtTokenProvider.generateRefreshToken(member.getId());
 
 		String tokenFamilyId = UUID.randomUUID().toString();
@@ -94,6 +100,18 @@ public class TestAuthTokenService {
 			return nickname;
 		}
 		return "테스트유저_" + UUID.randomUUID().toString().substring(0, 8);
+	}
+
+	private String issueTestAccessToken(Member member) {
+		if (environment.acceptsProfiles(Profiles.of(STG_PROFILE))) {
+			long accessTokenExpirationMs = environment.getProperty(
+				TEST_ACCESS_TOKEN_EXPIRATION_PROPERTY,
+				Long.class,
+				STG_DEFAULT_TEST_ACCESS_TOKEN_EXPIRATION_MS);
+			return jwtTokenProvider.generateAccessToken(member.getId(), member.getRole().name(),
+				accessTokenExpirationMs);
+		}
+		return jwtTokenProvider.generateAccessToken(member.getId(), member.getRole().name());
 	}
 
 	public record TestTokenResult(String accessToken, String refreshToken, Long memberId, boolean isNew) {

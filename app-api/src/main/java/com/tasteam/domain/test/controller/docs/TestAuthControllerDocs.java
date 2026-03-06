@@ -1,4 +1,4 @@
-package com.tasteam.domain.auth.controller.docs;
+package com.tasteam.domain.test.controller.docs;
 
 import com.tasteam.domain.auth.dto.request.TestAuthTokenRequest;
 import com.tasteam.domain.auth.dto.response.TestAuthTokenResponse;
@@ -19,7 +19,7 @@ import jakarta.validation.Valid;
 @Tag(name = "Auth", description = "인증 관련 API")
 public interface TestAuthControllerDocs {
 
-	@Operation(summary = "테스트용 액세스 토큰 발급", description = "부하 테스트 및 개발용 백도어 로그인 API입니다. identifier가 존재하지 않으면 자동으로 회원을 생성합니다. dev, test 프로필에서만 사용 가능합니다.")
+	@Operation(summary = "테스트용 액세스 토큰 발급", description = "부하 테스트 및 개발용 백도어 로그인 API입니다. identifier가 존재하지 않으면 자동으로 회원을 생성합니다. dev, local, stg 프로필에서만 사용 가능하며 stg 기본 만료시간은 48시간입니다.")
 	@RequestBody(required = true, content = @Content(schema = @Schema(implementation = TestAuthTokenRequest.class), examples = @ExampleObject(name = "테스트 토큰 발급 요청", value = """
 		{
 		    "identifier": "test-user-001",
