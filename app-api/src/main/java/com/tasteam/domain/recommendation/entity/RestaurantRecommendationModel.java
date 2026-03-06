@@ -8,6 +8,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -25,7 +27,11 @@ import lombok.NoArgsConstructor;
 public class RestaurantRecommendationModel extends BaseCreatedAtEntity {
 
 	@Id
-	@Column(name = "version", nullable = false, length = 100)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id")
+	private Long id;
+
+	@Column(name = "version", nullable = false, length = 100, unique = true)
 	private String version;
 
 	@Enumerated(EnumType.STRING)

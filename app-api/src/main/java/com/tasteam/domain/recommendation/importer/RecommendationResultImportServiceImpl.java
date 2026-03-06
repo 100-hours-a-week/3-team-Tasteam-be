@@ -46,13 +46,18 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 	public RecommendationResultImportResult importResults(RecommendationResultImportRequest request) {
 		Objects.requireNonNull(request, "request는 null일 수 없습니다.");
 
-		RestaurantRecommendationModel model = modelRepository.findById(request.requestedModelVersion())
+		RestaurantRecommendationModel model = modelRepository.findByVersion(request.requestedModelVersion())
 			.orElseThrow(() -> RecommendationBusinessException.modelNotFound(request.requestedModelVersion()));
+		Long modelId = model.getId();
+		if (modelId == null) {
+			throw RecommendationBusinessException.resultValidationFailed(
+				"추천 모델 ID가 존재하지 않습니다. version=" + model.getVersion());
+		}
 
 		markLoading(model);
 
 		try (InputStream inputStream = resultObjectReader.openStream(request.s3Uri())) {
-			deleteExistingRows(model.getVersion());
+			deleteExistingRows(modelId);
 
 			ImportAccumulator accumulator = new ImportAccumulator();
 			List<RestaurantRecommendationRow> buffer = new ArrayList<>(INSERT_CHUNK_SIZE);
@@ -68,13 +73,13 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 				}
 				buffer.add(row);
 				if (buffer.size() >= INSERT_CHUNK_SIZE) {
-					accumulator.addInsertedRows(flushBuffer(model.getVersion(), buffer));
+					accumulator.addInsertedRows(flushBuffer(modelId, buffer));
 					buffer.clear();
 				}
 			});
 
 			if (!buffer.isEmpty()) {
-				accumulator.addInsertedRows(flushBuffer(model.getVersion(), buffer));
+				accumulator.addInsertedRows(flushBuffer(modelId, buffer));
 				buffer.clear();
 			}
 
@@ -117,15 +122,15 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 		});
 	}
 
-	private int flushBuffer(String modelVersion, List<RestaurantRecommendationRow> buffer) {
+	private int flushBuffer(long modelId, List<RestaurantRecommendationRow> buffer) {
 		Integer inserted = transactionOperations.execute(
-			status -> recommendationJdbcRepository.batchInsert(buffer));
+			status -> recommendationJdbcRepository.batchInsert(modelId, buffer));
 		return inserted == null ? 0 : inserted;
 	}
 
-	private void deleteExistingRows(String modelVersion) {
+	private void deleteExistingRows(long modelId) {
 		transactionOperations.execute(status -> {
-			recommendationJdbcRepository.deleteByPipelineVersion(modelVersion);
+			recommendationJdbcRepository.deleteByModelId(modelId);
 			return null;
 		});
 	}

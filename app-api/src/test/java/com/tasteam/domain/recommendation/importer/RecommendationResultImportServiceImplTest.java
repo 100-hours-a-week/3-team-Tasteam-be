@@ -16,6 +16,7 @@ import java.util.function.Consumer;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionOperations;
 
@@ -40,7 +41,7 @@ class RecommendationResultImportServiceImplTest {
 		RecommendationResultCsvReader csvReader = mock(RecommendationResultCsvReader.class);
 		RecommendationImportRowValidator validator = mock(RecommendationImportRowValidator.class);
 		TransactionOperations txOps = mock(TransactionOperations.class);
-		when(repository.findById("deepfm-1")).thenReturn(Optional.empty());
+		when(repository.findByVersion("deepfm-1")).thenReturn(Optional.empty());
 		RecommendationResultImportServiceImpl service = new RecommendationResultImportServiceImpl(
 			repository,
 			jdbcRepository,
@@ -66,6 +67,7 @@ class RecommendationResultImportServiceImplTest {
 		RecommendationImportRowValidator validator = mock(RecommendationImportRowValidator.class);
 		TransactionOperations txOps = passthroughTxOps();
 		RestaurantRecommendationModel model = RestaurantRecommendationModel.loading("deepfm-1");
+		ReflectionTestUtils.setField(model, "id", 1L);
 		RestaurantRecommendationRow row = new RestaurantRecommendationRow(
 			1L,
 			null,
@@ -77,11 +79,11 @@ class RecommendationResultImportServiceImplTest {
 			java.time.Instant.parse("2026-03-03T10:00:00Z"),
 			java.time.Instant.parse("2026-03-04T10:00:00Z"));
 
-		when(repository.findById("deepfm-1")).thenReturn(Optional.of(model));
+		when(repository.findByVersion("deepfm-1")).thenReturn(Optional.of(model));
 		when(repository.save(model)).thenReturn(model);
 		when(objectReader.openStream("s3://bucket/result.csv")).thenReturn(new ByteArrayInputStream(new byte[0]));
 		when(validator.validateAndConvertOrNull(any(ParsedRecommendationCsvRow.class), eq("deepfm-1"))).thenReturn(row);
-		when(jdbcRepository.batchInsert(any())).thenReturn(1);
+		when(jdbcRepository.batchInsert(eq(1L), any())).thenReturn(1);
 		RecommendationResultImportServiceImpl service = new RecommendationResultImportServiceImpl(
 			repository,
 			jdbcRepository,
@@ -114,9 +116,9 @@ class RecommendationResultImportServiceImplTest {
 		assertThat(result.insertedRows()).isEqualTo(1);
 		assertThat(result.skippedRows()).isZero();
 		assertThat(model.getStatus()).isEqualTo(RestaurantRecommendationModelStatus.READY);
-		verify(repository).findById("deepfm-1");
+		verify(repository).findByVersion("deepfm-1");
 		verify(repository, times(2)).save(model);
-		verify(jdbcRepository).deleteByPipelineVersion("deepfm-1");
+		verify(jdbcRepository).deleteByModelId(1L);
 	}
 
 	private TransactionOperations passthroughTxOps() {

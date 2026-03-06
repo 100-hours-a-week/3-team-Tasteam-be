@@ -36,7 +36,7 @@ class RecommendationImportRowValidatorTest {
 			Instant.parse("2026-02-28T14:00:00Z"));
 
 		RestaurantRecommendationRow converted = validator.validateAndConvertOrNull(row, "deepfm-1");
-		assertThat(converted.userId()).isNull();
+		assertThat(converted.memberId()).isNull();
 		assertThat(converted.anonymousId()).isEqualTo("anon_003");
 	}
 
@@ -98,7 +98,7 @@ class RecommendationImportRowValidatorTest {
 
 		RestaurantRecommendationRow converted = validator.validateAndConvertOrNull(row, "deepfm-1");
 
-		assertThat(converted.userId()).isEqualTo(1L);
+		assertThat(converted.memberId()).isEqualTo(1L);
 		assertThat(converted.anonymousId()).isNull();
 		assertThat(converted.restaurantId()).isEqualTo(101L);
 		assertThat(converted.rank()).isEqualTo(1);

@@ -3,7 +3,7 @@ package com.tasteam.domain.recommendation.persistence;
 import java.time.Instant;
 
 public record RestaurantRecommendationRow(
-	Long userId,
+	Long memberId,
 	String anonymousId,
 	Long restaurantId,
 	double score,

@@ -2,7 +2,8 @@
 -- 개인화 추천 모델 버전 메타데이터 + 사용자별 추천 결과 저장 테이블 생성
 
 CREATE TABLE IF NOT EXISTS restaurant_recommendation_model (
-    version VARCHAR(100) PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
+    version VARCHAR(100) NOT NULL UNIQUE,
     status VARCHAR(20) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     activated_at TIMESTAMPTZ,
@@ -21,11 +22,12 @@ CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_model_status_created
 
 CREATE TABLE IF NOT EXISTS restaurant_recommendation (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT,
+    member_id BIGINT,
     anonymous_id VARCHAR(100),
     restaurant_id BIGINT NOT NULL,
     score DOUBLE PRECISION NOT NULL,
     rank INT NOT NULL,
+    model_id BIGINT NOT NULL,
     context_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
     pipeline_version VARCHAR(30) NOT NULL,
     generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -35,32 +37,32 @@ CREATE TABLE IF NOT EXISTS restaurant_recommendation (
     CONSTRAINT chk_restaurant_recommendation_rank_positive CHECK (rank > 0),
     CONSTRAINT chk_restaurant_recommendation_expiry CHECK (expires_at > generated_at),
     CONSTRAINT chk_restaurant_recommendation_subject CHECK (
-        user_id IS NOT NULL OR anonymous_id IS NOT NULL
+        member_id IS NOT NULL OR anonymous_id IS NOT NULL
     ),
 
-    CONSTRAINT fk_recommendation_user
-        FOREIGN KEY (user_id) REFERENCES member(id),
+    CONSTRAINT fk_recommendation_member
+        FOREIGN KEY (member_id) REFERENCES member(id),
 
     CONSTRAINT fk_recommendation_restaurant
         FOREIGN KEY (restaurant_id) REFERENCES restaurant(id),
 
     CONSTRAINT fk_recommendation_model
-        FOREIGN KEY (pipeline_version) REFERENCES restaurant_recommendation_model(version)
+        FOREIGN KEY (model_id) REFERENCES restaurant_recommendation_model(id)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_restaurant_recommendation_pipeline_user_rank
-    ON restaurant_recommendation (pipeline_version, user_id, rank)
-    WHERE user_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_restaurant_recommendation_model_member_rank
+    ON restaurant_recommendation (model_id, member_id, rank)
+    WHERE member_id IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_restaurant_recommendation_pipeline_anonymous_rank
-    ON restaurant_recommendation (pipeline_version, anonymous_id, rank)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_restaurant_recommendation_model_anonymous_rank
+    ON restaurant_recommendation (model_id, anonymous_id, rank)
     WHERE anonymous_id IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_user_pipeline_rank
-    ON restaurant_recommendation (user_id, pipeline_version, rank ASC);
+CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_member_model_rank
+    ON restaurant_recommendation (member_id, model_id, rank ASC);
 
-CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_anonymous_pipeline_rank
-    ON restaurant_recommendation (anonymous_id, pipeline_version, rank ASC);
+CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_anonymous_model_rank
+    ON restaurant_recommendation (anonymous_id, model_id, rank ASC);
 
-CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_pipeline_version
-    ON restaurant_recommendation (pipeline_version);
+CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_model_id
+    ON restaurant_recommendation (model_id);
