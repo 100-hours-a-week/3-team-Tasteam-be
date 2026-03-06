@@ -18,13 +18,25 @@ class RecommendationResultImportFacadeImplTest {
 	@Test
 	@DisplayName("요청/대기 스켈레톤 이후 import 서비스를 호출한다")
 	void importRecommendationResults_callsImportService() {
+		AiRecommendationJobClient aiRecommendationJobClient = mock(AiRecommendationJobClient.class);
 		RecommendationResultImportService importService = mock(RecommendationResultImportService.class);
-		RecommendationResultImportFacadeImpl facade = new RecommendationResultImportFacadeImpl(importService);
+		RecommendationResultImportFacadeImpl facade = new RecommendationResultImportFacadeImpl(
+			aiRecommendationJobClient,
+			importService);
 		RecommendationResultImportResult expected = new RecommendationResultImportResult("deepfm-1", 10, 9, 1);
+		when(aiRecommendationJobClient.requestRecommendation(org.mockito.ArgumentMatchers.any()))
+			.thenReturn(new AiRecommendationResponse("job-1"));
 		when(importService.importResults(org.mockito.ArgumentMatchers.any())).thenReturn(expected);
 
 		RecommendationResultImportResult result = facade.importResults(
 			new RecommendationResultImportFacadeCommand("deepfm-1", "s3://bucket/result.csv", "req-1"));
+
+		ArgumentCaptor<AiRecommendationRequest> aiCaptor = ArgumentCaptor.forClass(
+			AiRecommendationRequest.class);
+		verify(aiRecommendationJobClient).requestRecommendation(aiCaptor.capture());
+		AiRecommendationRequest aiRequest = aiCaptor.getValue();
+		assertThat(aiRequest.modelVersion()).isEqualTo("deepfm-1");
+		assertThat(aiRequest.requestId()).isEqualTo("req-1");
 
 		ArgumentCaptor<RecommendationResultImportRequest> captor = ArgumentCaptor.forClass(
 			RecommendationResultImportRequest.class);

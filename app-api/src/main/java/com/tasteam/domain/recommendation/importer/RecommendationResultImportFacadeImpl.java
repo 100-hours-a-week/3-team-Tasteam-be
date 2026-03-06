@@ -15,9 +15,13 @@ public class RecommendationResultImportFacadeImpl implements RecommendationResul
 
 	private static final Logger log = LoggerFactory.getLogger(RecommendationResultImportFacadeImpl.class);
 
+	private final AiRecommendationJobClient aiRecommendationJobClient;
 	private final RecommendationResultImportService importService;
 
-	public RecommendationResultImportFacadeImpl(RecommendationResultImportService importService) {
+	public RecommendationResultImportFacadeImpl(
+		AiRecommendationJobClient aiRecommendationJobClient,
+		RecommendationResultImportService importService) {
+		this.aiRecommendationJobClient = aiRecommendationJobClient;
 		this.importService = importService;
 	}
 
@@ -25,16 +29,19 @@ public class RecommendationResultImportFacadeImpl implements RecommendationResul
 	public RecommendationResultImportResult importResults(RecommendationResultImportFacadeCommand command) {
 		Objects.requireNonNull(command, "command는 null일 수 없습니다.");
 
-		requestModelBuild(command);
+		requestRecommendation(command);
 		String resultS3Uri = awaitResult(command);
 		return importService.importResults(
 			new RecommendationResultImportRequest(command.requestedModelVersion(), resultS3Uri, command.requestId()));
 	}
 
-	private void requestModelBuild(RecommendationResultImportFacadeCommand command) {
-		log.info("recommendation import facade request accepted. modelVersion={}, requestId={}",
+	private void requestRecommendation(RecommendationResultImportFacadeCommand command) {
+		AiRecommendationResponse response = aiRecommendationJobClient.requestRecommendation(
+			new AiRecommendationRequest(command.requestedModelVersion(), command.requestId()));
+		log.info("recommendation import facade request sent. modelVersion={}, requestId={}, jobId={}",
 			command.requestedModelVersion(),
-			command.requestId());
+			command.requestId(),
+			response.jobId());
 	}
 
 	private String awaitResult(RecommendationResultImportFacadeCommand command) {
