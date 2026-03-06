@@ -21,17 +21,22 @@ CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_model_status_created
 
 CREATE TABLE IF NOT EXISTS restaurant_recommendation (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
+    user_id BIGINT,
+    anonymous_id VARCHAR(100),
     restaurant_id BIGINT NOT NULL,
     score DOUBLE PRECISION NOT NULL,
     rank INT NOT NULL,
-    model_id VARCHAR(100) NOT NULL,
-    generated_at TIMESTAMPTZ NOT NULL,
+    context_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
+    pipeline_version VARCHAR(30) NOT NULL,
+    generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT chk_restaurant_recommendation_rank_positive CHECK (rank > 0),
     CONSTRAINT chk_restaurant_recommendation_expiry CHECK (expires_at > generated_at),
+    CONSTRAINT chk_restaurant_recommendation_subject CHECK (
+        user_id IS NOT NULL OR anonymous_id IS NOT NULL
+    ),
 
     CONSTRAINT fk_recommendation_user
         FOREIGN KEY (user_id) REFERENCES member(id),
@@ -40,14 +45,22 @@ CREATE TABLE IF NOT EXISTS restaurant_recommendation (
         FOREIGN KEY (restaurant_id) REFERENCES restaurant(id),
 
     CONSTRAINT fk_recommendation_model
-        FOREIGN KEY (model_id) REFERENCES restaurant_recommendation_model(version)
+        FOREIGN KEY (pipeline_version) REFERENCES restaurant_recommendation_model(version)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_restaurant_recommendation_model_user_rank
-    ON restaurant_recommendation (model_id, user_id, rank);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_restaurant_recommendation_pipeline_user_rank
+    ON restaurant_recommendation (pipeline_version, user_id, rank)
+    WHERE user_id IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_user_model_rank
-    ON restaurant_recommendation (user_id, model_id, rank ASC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_restaurant_recommendation_pipeline_anonymous_rank
+    ON restaurant_recommendation (pipeline_version, anonymous_id, rank)
+    WHERE anonymous_id IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_model_id
-    ON restaurant_recommendation (model_id);
+CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_user_pipeline_rank
+    ON restaurant_recommendation (user_id, pipeline_version, rank ASC);
+
+CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_anonymous_pipeline_rank
+    ON restaurant_recommendation (anonymous_id, pipeline_version, rank ASC);
+
+CREATE INDEX IF NOT EXISTS idx_restaurant_recommendation_pipeline_version
+    ON restaurant_recommendation (pipeline_version);

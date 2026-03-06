@@ -34,6 +34,8 @@ class DefaultRecommendationResultCsvReaderTest {
 
 		assertThat(rows).hasSize(2);
 		assertThat(rows.get(0).userId()).isEqualTo("1");
+		assertThat(rows.get(1).anonymousId()).isEqualTo("anon_003");
+		assertThat(rows.get(0).contextSnapshot()).isEqualTo("{}");
 		assertThat(rows.get(1).userId()).isEmpty();
 		assertThat(rows.get(0).generatedAt()).isEqualTo(java.time.Instant.parse("2026-02-27T14:00:00Z"));
 		assertThat(rows.get(0).expiresAt()).isEqualTo(java.time.Instant.parse("2026-02-28T14:00:00Z"));

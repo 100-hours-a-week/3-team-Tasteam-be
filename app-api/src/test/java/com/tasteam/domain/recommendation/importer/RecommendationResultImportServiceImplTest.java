@@ -68,9 +68,12 @@ class RecommendationResultImportServiceImplTest {
 		RestaurantRecommendationModel model = RestaurantRecommendationModel.loading("deepfm-1");
 		RestaurantRecommendationRow row = new RestaurantRecommendationRow(
 			1L,
+			null,
 			11L,
 			0.91,
 			1,
+			"{}",
+			"deepfm-1",
 			java.time.Instant.parse("2026-03-03T10:00:00Z"),
 			java.time.Instant.parse("2026-03-04T10:00:00Z"));
 
@@ -78,7 +81,7 @@ class RecommendationResultImportServiceImplTest {
 		when(repository.save(model)).thenReturn(model);
 		when(objectReader.openStream("s3://bucket/result.csv")).thenReturn(new ByteArrayInputStream(new byte[0]));
 		when(validator.validateAndConvertOrNull(any(ParsedRecommendationCsvRow.class), eq("deepfm-1"))).thenReturn(row);
-		when(jdbcRepository.batchInsert(eq("deepfm-1"), any())).thenReturn(1);
+		when(jdbcRepository.batchInsert(any())).thenReturn(1);
 		RecommendationResultImportServiceImpl service = new RecommendationResultImportServiceImpl(
 			repository,
 			jdbcRepository,
@@ -92,9 +95,11 @@ class RecommendationResultImportServiceImplTest {
 			consumer.accept(new ParsedRecommendationCsvRow(
 				2L,
 				"1",
+				"",
 				"11",
 				"0.91",
 				"1",
+				"{}",
 				"deepfm-1",
 				java.time.Instant.parse("2026-03-03T10:00:00Z"),
 				java.time.Instant.parse("2026-03-04T10:00:00Z")));
@@ -111,7 +116,7 @@ class RecommendationResultImportServiceImplTest {
 		assertThat(model.getStatus()).isEqualTo(RestaurantRecommendationModelStatus.READY);
 		verify(repository).findById("deepfm-1");
 		verify(repository, times(2)).save(model);
-		verify(jdbcRepository).deleteByModelId("deepfm-1");
+		verify(jdbcRepository).deleteByPipelineVersion("deepfm-1");
 	}
 
 	private TransactionOperations passthroughTxOps() {

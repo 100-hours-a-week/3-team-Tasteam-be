@@ -22,9 +22,11 @@ import com.tasteam.domain.recommendation.exception.RecommendationBusinessExcepti
 public class DefaultRecommendationResultCsvReader implements RecommendationResultCsvReader {
 
 	private static final String USER_ID = "user_id";
+	private static final String ANONYMOUS_ID = "anonymous_id";
 	private static final String RESTAURANT_ID = "restaurant_id";
 	private static final String SCORE = "score";
 	private static final String RANK = "rank";
+	private static final String CONTEXT_SNAPSHOT = "context_snapshot";
 	private static final String PIPELINE_VERSION = "pipeline_version";
 	private static final String GENERATED_AT = "generated_at";
 	private static final String EXPIRES_AT = "expires_at";
@@ -50,9 +52,11 @@ public class DefaultRecommendationResultCsvReader implements RecommendationResul
 				consumer.accept(new ParsedRecommendationCsvRow(
 					lineNumber,
 					valueAt(fields, headerIndexMap, USER_ID, lineNumber),
+					valueAt(fields, headerIndexMap, ANONYMOUS_ID, lineNumber),
 					valueAt(fields, headerIndexMap, RESTAURANT_ID, lineNumber),
 					valueAt(fields, headerIndexMap, SCORE, lineNumber),
 					valueAt(fields, headerIndexMap, RANK, lineNumber),
+					valueAt(fields, headerIndexMap, CONTEXT_SNAPSHOT, lineNumber),
 					valueAt(fields, headerIndexMap, PIPELINE_VERSION, lineNumber),
 					parseInstant(valueAt(fields, headerIndexMap, GENERATED_AT, lineNumber), GENERATED_AT, lineNumber),
 					parseInstant(valueAt(fields, headerIndexMap, EXPIRES_AT, lineNumber), EXPIRES_AT, lineNumber)));
@@ -70,7 +74,15 @@ public class DefaultRecommendationResultCsvReader implements RecommendationResul
 	}
 
 	private void validateRequiredHeaders(Map<String, Integer> headerIndexMap) {
-		for (String requiredHeader : List.of(USER_ID, RESTAURANT_ID, SCORE, RANK, PIPELINE_VERSION, GENERATED_AT,
+		for (String requiredHeader : List.of(
+			USER_ID,
+			ANONYMOUS_ID,
+			RESTAURANT_ID,
+			SCORE,
+			RANK,
+			CONTEXT_SNAPSHOT,
+			PIPELINE_VERSION,
+			GENERATED_AT,
 			EXPIRES_AT)) {
 			if (!headerIndexMap.containsKey(requiredHeader)) {
 				throw RecommendationBusinessException.csvFormatInvalid("필수 헤더가 없습니다: " + requiredHeader);

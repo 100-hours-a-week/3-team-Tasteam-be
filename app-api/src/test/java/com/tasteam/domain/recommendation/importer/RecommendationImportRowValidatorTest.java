@@ -8,6 +8,7 @@ import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.recommendation.exception.RecommendationBusinessException;
 import com.tasteam.domain.recommendation.persistence.RestaurantRecommendationRow;
@@ -16,22 +17,27 @@ import com.tasteam.domain.recommendation.persistence.RestaurantRecommendationRow
 @DisplayName("[유닛](Recommendation) RecommendationImportRowValidator 단위 테스트")
 class RecommendationImportRowValidatorTest {
 
-	private final RecommendationImportRowValidator validator = new RecommendationImportRowValidator();
+	private final RecommendationImportRowValidator validator = new RecommendationImportRowValidator(
+		JsonMapper.builder().findAndAddModules().build());
 
 	@Test
-	@DisplayName("user_id가 비어 있으면 행을 스킵한다")
-	void validateAndConvertOrNull_skipsWhenUserIdBlank() {
+	@DisplayName("user_id가 비어 있어도 anonymous_id가 있으면 익명 행으로 변환한다")
+	void validateAndConvertOrNull_allowsAnonymousRow() {
 		ParsedRecommendationCsvRow row = new ParsedRecommendationCsvRow(
 			2L,
 			"",
+			"anon_003",
 			"101",
 			"0.8",
 			"1",
+			"{}",
 			"deepfm-1",
 			Instant.parse("2026-02-27T14:00:00Z"),
 			Instant.parse("2026-02-28T14:00:00Z"));
 
-		assertThat(validator.validateAndConvertOrNull(row, "deepfm-1")).isNull();
+		RestaurantRecommendationRow converted = validator.validateAndConvertOrNull(row, "deepfm-1");
+		assertThat(converted.userId()).isNull();
+		assertThat(converted.anonymousId()).isEqualTo("anon_003");
 	}
 
 	@Test
@@ -40,9 +46,11 @@ class RecommendationImportRowValidatorTest {
 		ParsedRecommendationCsvRow row = new ParsedRecommendationCsvRow(
 			2L,
 			"1",
+			"",
 			"101",
 			"0.8",
 			"1",
+			"{}",
 			"deepfm-2",
 			Instant.parse("2026-02-27T14:00:00Z"),
 			Instant.parse("2026-02-28T14:00:00Z"));
@@ -59,9 +67,11 @@ class RecommendationImportRowValidatorTest {
 		ParsedRecommendationCsvRow row = new ParsedRecommendationCsvRow(
 			2L,
 			"1",
+			"",
 			"101",
 			"0.8",
 			"1",
+			"{}",
 			"deepfm-1",
 			Instant.parse("2026-02-28T14:00:00Z"),
 			Instant.parse("2026-02-28T14:00:00Z"));
@@ -77,9 +87,11 @@ class RecommendationImportRowValidatorTest {
 		ParsedRecommendationCsvRow row = new ParsedRecommendationCsvRow(
 			2L,
 			"1",
+			"",
 			"101",
 			"0.8",
 			"1",
+			"{\"weekday\":\"THU\"}",
 			"deepfm-1",
 			Instant.parse("2026-02-27T14:00:00Z"),
 			Instant.parse("2026-02-28T14:00:00Z"));
@@ -87,7 +99,10 @@ class RecommendationImportRowValidatorTest {
 		RestaurantRecommendationRow converted = validator.validateAndConvertOrNull(row, "deepfm-1");
 
 		assertThat(converted.userId()).isEqualTo(1L);
+		assertThat(converted.anonymousId()).isNull();
 		assertThat(converted.restaurantId()).isEqualTo(101L);
 		assertThat(converted.rank()).isEqualTo(1);
+		assertThat(converted.contextSnapshot()).isEqualTo("{\"weekday\":\"THU\"}");
+		assertThat(converted.pipelineVersion()).isEqualTo("deepfm-1");
 	}
 }

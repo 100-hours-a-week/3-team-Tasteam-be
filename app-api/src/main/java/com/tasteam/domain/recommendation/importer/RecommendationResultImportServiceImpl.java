@@ -119,13 +119,13 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 
 	private int flushBuffer(String modelVersion, List<RestaurantRecommendationRow> buffer) {
 		Integer inserted = transactionOperations.execute(
-			status -> recommendationJdbcRepository.batchInsert(modelVersion, buffer));
+			status -> recommendationJdbcRepository.batchInsert(buffer));
 		return inserted == null ? 0 : inserted;
 	}
 
 	private void deleteExistingRows(String modelVersion) {
 		transactionOperations.execute(status -> {
-			recommendationJdbcRepository.deleteByModelId(modelVersion);
+			recommendationJdbcRepository.deleteByPipelineVersion(modelVersion);
 			return null;
 		});
 	}
