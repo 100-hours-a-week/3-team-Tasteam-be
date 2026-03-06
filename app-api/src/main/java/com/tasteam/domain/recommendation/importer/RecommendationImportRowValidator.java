@@ -24,9 +24,9 @@ public class RecommendationImportRowValidator {
 		String expectedModelVersion) {
 		Objects.requireNonNull(row, "row는 null일 수 없습니다.");
 
-		Long userId = parseNullableLong(row.userId(), "user_id", row.lineNumber());
+		Long memberId = parseNullableLong(row.userId(), "user_id", row.lineNumber());
 		String anonymousId = normalizeAnonymousId(row.anonymousId(), row.lineNumber());
-		if (userId == null && anonymousId == null) {
+		if (memberId == null && anonymousId == null) {
 			return null;
 		}
 
@@ -44,7 +44,7 @@ public class RecommendationImportRowValidator {
 				"expires_at은 generated_at 이후여야 합니다. line=" + row.lineNumber());
 		}
 		return new RestaurantRecommendationRow(
-			userId,
+			memberId,
 			anonymousId,
 			restaurantId,
 			score,

@@ -47,6 +47,15 @@ public class RestaurantRecommendationJdbcRepository {
 		LIMIT ?
 		""";
 
+	private static final String FIND_BY_ANONYMOUS_AND_MODEL_SQL = """
+		SELECT member_id, anonymous_id, restaurant_id, score, rank, context_snapshot::text AS context_snapshot, pipeline_version, generated_at, expires_at
+		FROM restaurant_recommendation
+		WHERE anonymous_id = ?
+		  AND model_id = ?
+		ORDER BY rank ASC
+		LIMIT ?
+		""";
+
 	private final JdbcTemplate jdbcTemplate;
 
 	public int deleteByModelId(long modelId) {
@@ -111,6 +120,28 @@ public class RestaurantRecommendationJdbcRepository {
 				rs.getObject("generated_at", java.time.OffsetDateTime.class).toInstant(),
 				rs.getObject("expires_at", java.time.OffsetDateTime.class).toInstant()),
 			memberId,
+			modelId,
+			limit);
+	}
+
+	public List<RestaurantRecommendationRow> findTopByAnonymousIdAndModelId(String anonymousId, long modelId,
+		int limit) {
+		if (limit <= 0) {
+			return Collections.emptyList();
+		}
+		return jdbcTemplate.query(
+			FIND_BY_ANONYMOUS_AND_MODEL_SQL,
+			(rs, rowNum) -> new RestaurantRecommendationRow(
+				rs.getObject("member_id", Long.class),
+				rs.getString("anonymous_id"),
+				rs.getLong("restaurant_id"),
+				rs.getDouble("score"),
+				rs.getInt("rank"),
+				rs.getString("context_snapshot"),
+				rs.getString("pipeline_version"),
+				rs.getObject("generated_at", java.time.OffsetDateTime.class).toInstant(),
+				rs.getObject("expires_at", java.time.OffsetDateTime.class).toInstant()),
+			anonymousId,
 			modelId,
 			limit);
 	}
