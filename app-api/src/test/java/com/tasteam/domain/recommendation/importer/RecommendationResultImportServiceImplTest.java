@@ -21,6 +21,8 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionOperations;
 
 import com.tasteam.config.annotation.UnitTest;
+import com.tasteam.domain.batch.entity.BatchExecution;
+import com.tasteam.domain.batch.repository.BatchExecutionRepository;
 import com.tasteam.domain.recommendation.entity.RestaurantRecommendationModel;
 import com.tasteam.domain.recommendation.entity.RestaurantRecommendationModelStatus;
 import com.tasteam.domain.recommendation.exception.RecommendationBusinessException;
@@ -35,6 +37,7 @@ class RecommendationResultImportServiceImplTest {
 	@Test
 	@DisplayName("요청 모델이 없으면 MODEL_NOT_FOUND 예외를 던진다")
 	void ingest_throwsWhenModelNotFound() {
+		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
 		RestaurantRecommendationModelRepository repository = mock(RestaurantRecommendationModelRepository.class);
 		RestaurantRecommendationJdbcRepository jdbcRepository = mock(RestaurantRecommendationJdbcRepository.class);
 		RecommendationResultObjectReader objectReader = mock(RecommendationResultObjectReader.class);
@@ -43,6 +46,7 @@ class RecommendationResultImportServiceImplTest {
 		TransactionOperations txOps = mock(TransactionOperations.class);
 		when(repository.findByVersion("deepfm-1")).thenReturn(Optional.empty());
 		RecommendationResultImportServiceImpl service = new RecommendationResultImportServiceImpl(
+			batchExecutionRepository,
 			repository,
 			jdbcRepository,
 			objectReader,
@@ -60,6 +64,7 @@ class RecommendationResultImportServiceImplTest {
 	@Test
 	@DisplayName("모델이 존재하면 LOADING 후 READY 상태로 전이하고 결과를 반환한다")
 	void ingest_marksLoadingThenReady() throws Exception {
+		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
 		RestaurantRecommendationModelRepository repository = mock(RestaurantRecommendationModelRepository.class);
 		RestaurantRecommendationJdbcRepository jdbcRepository = mock(RestaurantRecommendationJdbcRepository.class);
 		RecommendationResultObjectReader objectReader = mock(RecommendationResultObjectReader.class);
@@ -68,6 +73,9 @@ class RecommendationResultImportServiceImplTest {
 		TransactionOperations txOps = passthroughTxOps();
 		RestaurantRecommendationModel model = RestaurantRecommendationModel.loading("deepfm-1");
 		ReflectionTestUtils.setField(model, "id", 1L);
+		BatchExecution execution = BatchExecution.start(
+			com.tasteam.domain.batch.entity.BatchType.RECOMMENDATION_IMPORT_ON_DEMAND,
+			java.time.Instant.parse("2026-03-03T09:00:00Z"));
 		RestaurantRecommendationRow row = new RestaurantRecommendationRow(
 			1L,
 			null,
@@ -81,10 +89,12 @@ class RecommendationResultImportServiceImplTest {
 
 		when(repository.findByVersion("deepfm-1")).thenReturn(Optional.of(model));
 		when(repository.save(model)).thenReturn(model);
+		when(batchExecutionRepository.save(any(BatchExecution.class))).thenReturn(execution);
 		when(objectReader.openStream("s3://bucket/result.csv")).thenReturn(new ByteArrayInputStream(new byte[0]));
 		when(validator.validateAndConvertOrNull(any(ParsedRecommendationCsvRow.class), eq("deepfm-1"))).thenReturn(row);
 		when(jdbcRepository.batchInsert(eq(1L), any())).thenReturn(1);
 		RecommendationResultImportServiceImpl service = new RecommendationResultImportServiceImpl(
+			batchExecutionRepository,
 			repository,
 			jdbcRepository,
 			objectReader,
@@ -119,6 +129,7 @@ class RecommendationResultImportServiceImplTest {
 		verify(repository).findByVersion("deepfm-1");
 		verify(repository, times(2)).save(model);
 		verify(jdbcRepository).deleteByModelId(1L);
+		verify(batchExecutionRepository, times(2)).save(any(BatchExecution.class));
 	}
 
 	private TransactionOperations passthroughTxOps() {
