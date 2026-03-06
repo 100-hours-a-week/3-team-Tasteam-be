@@ -4,14 +4,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.global.aop.ObservedOutbox;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -19,20 +17,19 @@ import lombok.RequiredArgsConstructor;
 public class UserActivityDispatchOutboxService {
 
 	private final UserActivityDispatchOutboxJdbcRepository outboxRepository;
-	@Nullable
-	private final MeterRegistry meterRegistry;
+	private final UserActivityDispatchOutboxMetricsCollector metricsCollector;
 
 	@Transactional
 	public void enqueue(ActivityEvent event, UserActivityDispatchTarget dispatchTarget) {
 		try {
 			boolean inserted = outboxRepository.insertPendingIfAbsent(event, dispatchTarget);
 			if (inserted) {
-				incrementCounter("analytics.user-activity.dispatch.enqueue", "inserted", dispatchTarget);
+				metricsCollector.recordEnqueueResult("inserted", dispatchTarget);
 				return;
 			}
-			incrementCounter("analytics.user-activity.dispatch.enqueue", "duplicate", dispatchTarget);
+			metricsCollector.recordEnqueueResult("duplicate", dispatchTarget);
 		} catch (Exception ex) {
-			incrementCounter("analytics.user-activity.dispatch.enqueue", "fail", dispatchTarget);
+			metricsCollector.recordEnqueueResult("fail", dispatchTarget);
 			throw ex;
 		}
 	}
@@ -46,7 +43,7 @@ public class UserActivityDispatchOutboxService {
 	@Transactional
 	public void markDispatched(long id, UserActivityDispatchTarget dispatchTarget) {
 		outboxRepository.markDispatched(id);
-		incrementCounter("analytics.user-activity.dispatch.execute", "success", dispatchTarget);
+		metricsCollector.recordExecuteResult("success", dispatchTarget);
 	}
 
 	@Transactional
@@ -57,23 +54,13 @@ public class UserActivityDispatchOutboxService {
 		Duration baseDelay,
 		Duration maxDelay) {
 		outboxRepository.markFailed(id, ex == null ? null : ex.getMessage(), baseDelay, maxDelay);
-		incrementCounter("analytics.user-activity.dispatch.execute", "fail", dispatchTarget);
-		incrementCounter("analytics.user-activity.dispatch.retry", "scheduled", dispatchTarget);
+		metricsCollector.recordExecuteResult("fail", dispatchTarget);
+		metricsCollector.recordRetryScheduled(dispatchTarget);
 	}
 
 	@ObservedOutbox(name = "analytics_dispatch")
 	@Transactional(readOnly = true)
 	public List<UserActivityDispatchOutboxSummary> summarizeByTarget() {
 		return outboxRepository.summarizeByTarget();
-	}
-
-	private void incrementCounter(String metricName, String result, UserActivityDispatchTarget dispatchTarget) {
-		if (meterRegistry == null) {
-			return;
-		}
-		meterRegistry.counter(metricName,
-			"result", result,
-			"target", dispatchTarget.name().toLowerCase())
-			.increment();
 	}
 }

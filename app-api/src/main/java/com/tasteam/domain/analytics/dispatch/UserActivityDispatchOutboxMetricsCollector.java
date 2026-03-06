@@ -85,4 +85,48 @@ public class UserActivityDispatchOutboxMetricsCollector {
 		pendingByTarget.values().forEach(counter -> counter.set(0));
 		failedByTarget.values().forEach(counter -> counter.set(0));
 	}
+
+	public void recordEnqueueResult(String result, UserActivityDispatchTarget dispatchTarget) {
+		if (meterRegistry == null) {
+			return;
+		}
+		String targetValue = dispatchTarget.name().toLowerCase();
+		MetricLabelPolicy.validate("analytics.user-activity.dispatch.enqueue", "result", result);
+		MetricLabelPolicy.validate("analytics.user-activity.dispatch.enqueue", "target", targetValue);
+		meterRegistry.counter("analytics.user-activity.dispatch.enqueue", "result", result, "target", targetValue)
+			.increment();
+	}
+
+	public void recordExecuteResult(String result, UserActivityDispatchTarget dispatchTarget) {
+		if (meterRegistry == null) {
+			return;
+		}
+		String targetValue = dispatchTarget.name().toLowerCase();
+		MetricLabelPolicy.validate("analytics.user-activity.dispatch.execute", "result", result);
+		MetricLabelPolicy.validate("analytics.user-activity.dispatch.execute", "target", targetValue);
+		meterRegistry.counter("analytics.user-activity.dispatch.execute", "result", result, "target", targetValue)
+			.increment();
+	}
+
+	public void recordRetryScheduled(UserActivityDispatchTarget dispatchTarget) {
+		if (meterRegistry == null) {
+			return;
+		}
+		String targetValue = dispatchTarget.name().toLowerCase();
+		MetricLabelPolicy.validate("analytics.user-activity.dispatch.retry", "result", "scheduled");
+		MetricLabelPolicy.validate("analytics.user-activity.dispatch.retry", "target", targetValue);
+		meterRegistry.counter("analytics.user-activity.dispatch.retry", "result", "scheduled", "target", targetValue)
+			.increment();
+	}
+
+	public void recordCircuitState(String state, UserActivityDispatchTarget dispatchTarget) {
+		if (meterRegistry == null) {
+			return;
+		}
+		String targetValue = dispatchTarget.name().toLowerCase();
+		MetricLabelPolicy.validate("analytics.user-activity.dispatch.circuit", "state", state);
+		MetricLabelPolicy.validate("analytics.user-activity.dispatch.circuit", "target", targetValue);
+		meterRegistry.counter("analytics.user-activity.dispatch.circuit", "state", state, "target", targetValue)
+			.increment();
+	}
 }
