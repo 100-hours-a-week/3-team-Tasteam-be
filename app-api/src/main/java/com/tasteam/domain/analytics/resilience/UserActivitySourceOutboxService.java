@@ -3,6 +3,7 @@ package com.tasteam.domain.analytics.resilience;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 public class UserActivitySourceOutboxService {
 
 	private final UserActivitySourceOutboxJdbcRepository outboxRepository;
+	@Nullable
 	private final UserActivitySourceOutboxMetricsCollector metricsCollector;
 
 	@Transactional
@@ -23,12 +25,12 @@ public class UserActivitySourceOutboxService {
 		try {
 			boolean inserted = outboxRepository.insertPendingIfAbsent(event);
 			if (inserted) {
-				metricsCollector.recordEnqueueResult("inserted");
+				recordEnqueueResult("inserted");
 				return;
 			}
-			metricsCollector.recordEnqueueResult("duplicate");
+			recordEnqueueResult("duplicate");
 		} catch (Exception ex) {
-			metricsCollector.recordEnqueueResult("fail");
+			recordEnqueueResult("fail");
 			throw ex;
 		}
 	}
@@ -36,14 +38,32 @@ public class UserActivitySourceOutboxService {
 	@Transactional
 	public void markPublished(String eventId) {
 		outboxRepository.markPublished(eventId);
-		metricsCollector.recordPublishResult("success");
+		recordPublishResult("success");
 	}
 
 	@Transactional
 	public void markFailed(String eventId, Throwable ex) {
 		outboxRepository.markFailed(eventId, ex == null ? null : ex.getMessage());
-		metricsCollector.recordPublishResult("fail");
-		metricsCollector.recordRetryScheduled();
+		recordPublishResult("fail");
+		recordRetryScheduled();
+	}
+
+	private void recordEnqueueResult(String result) {
+		if (metricsCollector != null) {
+			metricsCollector.recordEnqueueResult(result);
+		}
+	}
+
+	private void recordPublishResult(String result) {
+		if (metricsCollector != null) {
+			metricsCollector.recordPublishResult(result);
+		}
+	}
+
+	private void recordRetryScheduled() {
+		if (metricsCollector != null) {
+			metricsCollector.recordRetryScheduled();
+		}
 	}
 
 	@Transactional(readOnly = true)

@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 public class UserActivityDispatchOutboxService {
 
 	private final UserActivityDispatchOutboxJdbcRepository outboxRepository;
+	@Nullable
 	private final UserActivityDispatchOutboxMetricsCollector metricsCollector;
 
 	@Transactional
@@ -24,12 +26,12 @@ public class UserActivityDispatchOutboxService {
 		try {
 			boolean inserted = outboxRepository.insertPendingIfAbsent(event, dispatchTarget);
 			if (inserted) {
-				metricsCollector.recordEnqueueResult("inserted", dispatchTarget);
+				recordEnqueueResult("inserted", dispatchTarget);
 				return;
 			}
-			metricsCollector.recordEnqueueResult("duplicate", dispatchTarget);
+			recordEnqueueResult("duplicate", dispatchTarget);
 		} catch (Exception ex) {
-			metricsCollector.recordEnqueueResult("fail", dispatchTarget);
+			recordEnqueueResult("fail", dispatchTarget);
 			throw ex;
 		}
 	}
@@ -43,7 +45,7 @@ public class UserActivityDispatchOutboxService {
 	@Transactional
 	public void markDispatched(long id, UserActivityDispatchTarget dispatchTarget) {
 		outboxRepository.markDispatched(id);
-		metricsCollector.recordExecuteResult("success", dispatchTarget);
+		recordExecuteResult("success", dispatchTarget);
 	}
 
 	@Transactional
@@ -54,8 +56,26 @@ public class UserActivityDispatchOutboxService {
 		Duration baseDelay,
 		Duration maxDelay) {
 		outboxRepository.markFailed(id, ex == null ? null : ex.getMessage(), baseDelay, maxDelay);
-		metricsCollector.recordExecuteResult("fail", dispatchTarget);
-		metricsCollector.recordRetryScheduled(dispatchTarget);
+		recordExecuteResult("fail", dispatchTarget);
+		recordRetryScheduled(dispatchTarget);
+	}
+
+	private void recordEnqueueResult(String result, UserActivityDispatchTarget dispatchTarget) {
+		if (metricsCollector != null) {
+			metricsCollector.recordEnqueueResult(result, dispatchTarget);
+		}
+	}
+
+	private void recordExecuteResult(String result, UserActivityDispatchTarget dispatchTarget) {
+		if (metricsCollector != null) {
+			metricsCollector.recordExecuteResult(result, dispatchTarget);
+		}
+	}
+
+	private void recordRetryScheduled(UserActivityDispatchTarget dispatchTarget) {
+		if (metricsCollector != null) {
+			metricsCollector.recordRetryScheduled(dispatchTarget);
+		}
 	}
 
 	@ObservedOutbox(name = "analytics_dispatch")
