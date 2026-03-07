@@ -22,6 +22,7 @@ public final class ApiEndpoints {
 	public static final String LOGIN = AUTH + "/login";
 	public static final String LOGOUT = AUTH + "/logout";
 	public static final String SIGNUP = AUTH + "/signup";
+	public static final String AUTH_TOKEN_TEST = API_V1 + "/test/auth/token";
 	public static final String REFRESH_TOKEN = AUTH + "/token/refresh";
 	public static final String AUTH_OAUTH = AUTH + "/oauth";
 	public static final String AUTH_OAUTH_ALL = AUTH_OAUTH + ALL;
