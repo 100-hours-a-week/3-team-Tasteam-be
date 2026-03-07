@@ -2,7 +2,6 @@ package com.tasteam.domain.notification.outbox;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.lang.Nullable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -17,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
 public class NotificationOutboxMetricsCollector {
 
 	private final NotificationOutboxService outboxService;
