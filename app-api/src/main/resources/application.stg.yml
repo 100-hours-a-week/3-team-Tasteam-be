@@ -97,6 +97,9 @@ chat:
       client-to-server: ${CHAT_WEBSOCKET_HEARTBEAT_CLIENT_TO_SERVER:15000}
 
 tasteam:
+  auth:
+    test:
+      access-token-expiration-ms: ${TASTEAM_TEST_AUTH_ACCESS_TOKEN_EXPIRATION_MS:172800000}
   notification:
     email:
       provider: ${NOTIFICATION_EMAIL_PROVIDER:ses}

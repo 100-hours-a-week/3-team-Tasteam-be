@@ -19,23 +19,65 @@ def getVersionFromGit() {
     def currentBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
     def isMainBranch = currentBranch == 'main'
 
-    try {
-        def allTags = 'git tag --points-at HEAD'.execute().text.trim().split('\n')
-        def semanticTag = allTags.find { it.matches(/^v?\d+\.\d+\.\d+$/) }
-
-        if (!semanticTag) {
-            semanticTag = 'git describe --tags --abbrev=0'.execute().text.trim()
+    def manualVersion = (System.getenv('RELEASE_VERSION') ?: System.getProperty('releaseVersion'))?.trim()
+    if (manualVersion) {
+        if (!manualVersion.matches(/^v?\d+\.\d+\.\d+$/)) {
+            throw new GradleException("수동 버전 값(최신 형식 vX.Y.Z 또는 X.Y.Z) 만 사용할 수 있습니다: ${manualVersion}")
         }
+        return manualVersion
+    }
+
+    def bumpType = (System.getenv('VERSION_BUMP') ?: 'patch').toLowerCase(Locale.ROOT)
+    def bumpVersion = { String tag, String type ->
+        def normalized = tag.replaceFirst('^v', '')
+        def versionNumbers = normalized.split('\\.')
+
+        if (versionNumbers.size() != 3) {
+            throw new GradleException("유효하지 않은 시맨틱 태그 형식입니다: ${tag}")
+        }
+
+        def major = versionNumbers[0].toInteger()
+        def minor = versionNumbers[1].toInteger()
+        def patch = versionNumbers[2].toInteger()
+
+        switch (type) {
+            case 'major':
+                major += 1
+                minor = 0
+                patch = 0
+                break
+            case 'minor':
+                minor += 1
+                patch = 0
+                break
+            default:
+                patch += 1
+        }
+
+        return "v${major}.${minor}.${patch}"
+    }
+
+    try {
+        def allTags = 'git tag --list "v[0-9]*.[0-9]*.[0-9]*" --sort=-v:refname'.execute().text.trim().split('\\n')
+        def latestTag = allTags.find { it.trim().matches(/^v?\d+\.\d+\.\d+$/) }
 
         def commitCount = 'git rev-list --count HEAD'.execute().text.trim()
         def hash = 'git rev-parse --short HEAD'.execute().text.trim()
 
-        if (semanticTag && !semanticTag.isEmpty() && semanticTag.matches(/^v?\d+\.\d+\.\d+$/)) {
-            return "${semanticTag}.${commitCount}-${hash}"
+        if (!latestTag) {
+            if (isCI && isMainBranch) {
+                throw new GradleException("main 브랜치의 CI/CD 환경에서는 시맨틱 버저닝 Git 태그(v1.0.0)가 필수입니다. 사용 가능한 태그가 없습니다.")
+            }
+            return "0.0.1.${commitCount}-${hash}"
         }
 
         if (isCI && isMainBranch) {
-            throw new GradleException("main 브랜치의 CI/CD 환경에서는 시맨틱 버저닝 Git 태그(v1.0.0)가 필수입니다. 현재 태그: ${allTags.join(', ') ?: '없음'}")
+            def nextTag = bumpVersion(latestTag, bumpType)
+            return "${nextTag}.${commitCount}-${hash}"
+        }
+
+        if (latestTag && !latestTag.isEmpty() && latestTag.matches(/^v?\d+\.\d+\.\d+$/)) {
+            return "${latestTag}.${commitCount}-${hash}"
         }
 
         return "0.0.1.${commitCount}-${hash}"
@@ -46,6 +88,7 @@ def getVersionFromGit() {
         return '0.0.1-SNAPSHOT'
     }
 }
+
 
 subprojects {
     apply plugin: 'java'
@@ -93,4 +136,3 @@ subprojects {
 }
 
 apply from: "${rootDir}/gradle/flyway/flywayCreate.gradle"
-
