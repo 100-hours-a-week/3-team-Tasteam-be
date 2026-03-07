@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,8 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class UserActivityDispatchOutboxService {
 
 	private final UserActivityDispatchOutboxJdbcRepository outboxRepository;
-	@Nullable
-	private final UserActivityDispatchOutboxMetricsCollector metricsCollector;
+	private final ObjectProvider<UserActivityDispatchOutboxMetricsCollector> metricsCollectorProvider;
 
 	@Transactional
 	public void enqueue(ActivityEvent event, UserActivityDispatchTarget dispatchTarget) {
@@ -61,21 +61,29 @@ public class UserActivityDispatchOutboxService {
 	}
 
 	private void recordEnqueueResult(String result, UserActivityDispatchTarget dispatchTarget) {
+		UserActivityDispatchOutboxMetricsCollector metricsCollector = metricsCollector();
 		if (metricsCollector != null) {
 			metricsCollector.recordEnqueueResult(result, dispatchTarget);
 		}
 	}
 
 	private void recordExecuteResult(String result, UserActivityDispatchTarget dispatchTarget) {
+		UserActivityDispatchOutboxMetricsCollector metricsCollector = metricsCollector();
 		if (metricsCollector != null) {
 			metricsCollector.recordExecuteResult(result, dispatchTarget);
 		}
 	}
 
 	private void recordRetryScheduled(UserActivityDispatchTarget dispatchTarget) {
+		UserActivityDispatchOutboxMetricsCollector metricsCollector = metricsCollector();
 		if (metricsCollector != null) {
 			metricsCollector.recordRetryScheduled(dispatchTarget);
 		}
+	}
+
+	@Nullable
+	private UserActivityDispatchOutboxMetricsCollector metricsCollector() {
+		return metricsCollectorProvider.getIfAvailable();
 	}
 
 	@ObservedOutbox(name = "analytics_dispatch")

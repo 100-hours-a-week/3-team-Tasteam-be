@@ -3,6 +3,7 @@ package com.tasteam.domain.analytics.resilience;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,8 +18,7 @@ import lombok.RequiredArgsConstructor;
 public class UserActivitySourceOutboxService {
 
 	private final UserActivitySourceOutboxJdbcRepository outboxRepository;
-	@Nullable
-	private final UserActivitySourceOutboxMetricsCollector metricsCollector;
+	private final ObjectProvider<UserActivitySourceOutboxMetricsCollector> metricsCollectorProvider;
 
 	@Transactional
 	public void enqueue(ActivityEvent event) {
@@ -49,18 +49,21 @@ public class UserActivitySourceOutboxService {
 	}
 
 	private void recordEnqueueResult(String result) {
+		UserActivitySourceOutboxMetricsCollector metricsCollector = metricsCollector();
 		if (metricsCollector != null) {
 			metricsCollector.recordEnqueueResult(result);
 		}
 	}
 
 	private void recordPublishResult(String result) {
+		UserActivitySourceOutboxMetricsCollector metricsCollector = metricsCollector();
 		if (metricsCollector != null) {
 			metricsCollector.recordPublishResult(result);
 		}
 	}
 
 	private void recordRetryScheduled() {
+		UserActivitySourceOutboxMetricsCollector metricsCollector = metricsCollector();
 		if (metricsCollector != null) {
 			metricsCollector.recordRetryScheduled();
 		}
@@ -75,6 +78,11 @@ public class UserActivitySourceOutboxService {
 	@ObservedOutbox(name = "analytics_source")
 	public UserActivitySourceOutboxSummary summarize() {
 		return outboxRepository.summarize();
+	}
+
+	@Nullable
+	private UserActivitySourceOutboxMetricsCollector metricsCollector() {
+		return metricsCollectorProvider.getIfAvailable();
 	}
 
 }
