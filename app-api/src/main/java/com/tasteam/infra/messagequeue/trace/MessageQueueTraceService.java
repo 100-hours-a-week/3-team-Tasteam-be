@@ -1,7 +1,5 @@
 package com.tasteam.infra.messagequeue.trace;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
@@ -10,12 +8,9 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.tasteam.global.metrics.MetricLabelPolicy;
 import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,8 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 public class MessageQueueTraceService {
 
 	private final MessageQueueTraceLogRepository traceLogRepository;
-	@Nullable
-	private final MeterRegistry meterRegistry;
 
 	@Transactional
 	public void recordPublish(MessageQueueMessage message, MessageQueueProviderType providerType) {
@@ -38,8 +31,6 @@ public class MessageQueueTraceService {
 			message.topic(),
 			providerType.value(),
 			message.key()));
-
-		incrementCounter("mq.publish.count", message.topic(), providerType.value(), "success");
 	}
 
 	@Transactional
@@ -58,9 +49,6 @@ public class MessageQueueTraceService {
 			message.key(),
 			consumerGroup,
 			processingMillis));
-
-		incrementCounter("mq.consume.count", message.topic(), providerType.value(), "success");
-		recordLatency(message.topic(), providerType.value(), processingMillis);
 	}
 
 	@Transactional
@@ -81,27 +69,6 @@ public class MessageQueueTraceService {
 			consumerGroup,
 			processingMillis,
 			ex.getMessage()));
-
-		incrementCounter("mq.consume.count", message.topic(), providerType.value(), "fail");
-		recordLatency(message.topic(), providerType.value(), processingMillis);
-	}
-
-	public void recordEndToEndLatency(MessageQueueMessage message, MessageQueueProviderType providerType,
-		String result) {
-		if (meterRegistry == null) {
-			return;
-		}
-		MetricLabelPolicy.validate("mq.end_to_end.latency", "topic", message.topic(), "provider", providerType.value(),
-			"result",
-			result);
-
-		long latencyMillis = Duration.between(message.occurredAt(), Instant.now()).toMillis();
-		Timer.builder("mq.end_to_end.latency")
-			.tag("topic", message.topic())
-			.tag("provider", providerType.value())
-			.tag("result", result)
-			.register(meterRegistry)
-			.record(Math.max(0L, latencyMillis), java.util.concurrent.TimeUnit.MILLISECONDS);
 	}
 
 	@Transactional(readOnly = true)
@@ -121,25 +88,5 @@ public class MessageQueueTraceService {
 			log.error("메시지큐 추적 로그 저장에 실패했습니다. messageId={}, topic={}",
 				traceLog.getMessageId(), traceLog.getTopic(), ex);
 		}
-	}
-
-	private void incrementCounter(String metricName, String topic, String provider, String result) {
-		if (meterRegistry == null) {
-			return;
-		}
-		MetricLabelPolicy.validate(metricName, "topic", topic, "provider", provider, "result", result);
-		meterRegistry.counter(metricName, "topic", topic, "provider", provider, "result", result).increment();
-	}
-
-	private void recordLatency(String topic, String provider, long processingMillis) {
-		if (meterRegistry == null) {
-			return;
-		}
-		MetricLabelPolicy.validate("mq.consume.latency", "topic", topic, "provider", provider);
-		Timer.builder("mq.consume.latency")
-			.tag("topic", topic)
-			.tag("provider", provider)
-			.register(meterRegistry)
-			.record(java.time.Duration.ofMillis(processingMillis));
 	}
 }

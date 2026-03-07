@@ -17,14 +17,12 @@ public class TracingMessageQueueConsumer implements MessageQueueConsumer {
 			long startedAtNanos = System.nanoTime();
 			try {
 				handler.handle(message);
-				traceService.recordEndToEndLatency(message, providerType, "success");
 				traceService.recordConsumeSuccess(
 					message,
 					providerType,
 					subscription.consumerGroup(),
 					toMillis(startedAtNanos));
 			} catch (Exception ex) {
-				traceService.recordEndToEndLatency(message, providerType, "fail");
 				traceService.recordConsumeFail(
 					message,
 					providerType,
