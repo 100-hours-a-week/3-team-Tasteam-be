@@ -26,6 +26,7 @@ public final class ApiEndpointSecurityPolicy {
 			permit(POST, ApiEndpoints.LOGIN),
 			permit(POST, ApiEndpoints.SIGNUP),
 			permit(POST, ApiEndpoints.LOGOUT),
+			permit(POST, ApiEndpoints.AUTH_TOKEN_TEST),
 			permit(POST, ApiEndpoints.REFRESH_TOKEN),
 
 			permit(GET, ApiEndpoints.AUTH_OAUTH_ALL),
