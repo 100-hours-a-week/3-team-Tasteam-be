@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
+import com.tasteam.global.aop.ObservedAsyncPipeline;
 import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProducer;
 import com.tasteam.infra.messagequeue.MessageQueueTopics;
@@ -30,6 +31,7 @@ public class NotificationOutboxScanner {
 	private final MessageQueueProducer messageQueueProducer;
 	private final ObjectMapper objectMapper;
 
+	@ObservedAsyncPipeline(domain = "notification", stage = "outbox_scan")
 	@Scheduled(fixedDelayString = "${tasteam.notification.outbox.scan-delay:30000}")
 	public void scan() {
 		List<NotificationRequestedPayload> candidates = outboxService.findCandidates(batchSize);

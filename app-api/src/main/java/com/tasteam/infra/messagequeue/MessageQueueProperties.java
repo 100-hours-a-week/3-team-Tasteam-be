@@ -24,6 +24,13 @@ public class MessageQueueProperties {
 		return MessageQueueProviderType.from(provider);
 	}
 
+	public MessageQueueProviderType effectiveProviderType() {
+		if (!enabled) {
+			return MessageQueueProviderType.NONE;
+		}
+		return providerType();
+	}
+
 	@PostConstruct
 	public void logConfiguration() {
 		log.info("=== MessageQueue Configuration ===");

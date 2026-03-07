@@ -12,6 +12,7 @@ import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
 
 @Configuration
+@ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "provider", havingValue = "redis-stream")
 public class MessageQueueStreamContainerConfig {
 

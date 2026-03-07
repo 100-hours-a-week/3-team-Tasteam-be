@@ -11,11 +11,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.domain.notification.dispatch.NotificationDispatcher;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
 import com.tasteam.infra.messagequeue.MessageQueueConsumer;
 import com.tasteam.infra.messagequeue.MessageQueueMessage;
-import com.tasteam.infra.messagequeue.MessageQueueProducer;
 import com.tasteam.infra.messagequeue.MessageQueueProperties;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 import com.tasteam.infra.messagequeue.MessageQueueSubscription;
@@ -41,8 +39,8 @@ public class NotificationMessageQueueConsumer {
 
 	private final MessageQueueConsumer messageQueueConsumer;
 	private final MessageQueueProperties messageQueueProperties;
-	private final MessageQueueProducer messageQueueProducer;
-	private final NotificationDispatcher dispatcher;
+	private final NotificationMessageProcessor messageProcessor;
+	private final NotificationDlqPublisher dlqPublisher;
 	private final ObjectMapper objectMapper;
 
 	private MessageQueueSubscription subscription;
@@ -74,30 +72,17 @@ public class NotificationMessageQueueConsumer {
 	private void handleMessage(MessageQueueMessage message) {
 		NotificationRequestedPayload payload = deserializePayload(message.payload());
 		try {
-			dispatcher.dispatch(payload);
+			messageProcessor.process(payload);
 			retryCountMap.remove(message.messageId());
 		} catch (Exception ex) {
 			int count = retryCountMap.merge(message.messageId(), 1, Integer::sum);
 			log.warn("알림 처리 실패. eventId={}, retryCount={}/{}", payload.eventId(), count, maxRetries, ex);
 			if (count >= maxRetries) {
-				publishToDlq(message);
+				dlqPublisher.publish(message);
 				retryCountMap.remove(message.messageId());
 			} else {
 				throw ex;
 			}
-		}
-	}
-
-	private void publishToDlq(MessageQueueMessage message) {
-		try {
-			MessageQueueMessage dlqMessage = MessageQueueMessage.of(
-				MessageQueueTopics.NOTIFICATION_REQUESTED_DLQ,
-				message.key(),
-				message.payload());
-			messageQueueProducer.publish(dlqMessage);
-			log.info("알림 DLQ 발행 완료. messageId={}", message.messageId());
-		} catch (Exception ex) {
-			log.error("알림 DLQ 발행 실패. messageId={}", message.messageId(), ex);
 		}
 	}
 

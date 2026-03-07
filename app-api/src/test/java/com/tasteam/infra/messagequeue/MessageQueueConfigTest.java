@@ -55,6 +55,7 @@ class MessageQueueConfigTest {
 	void producer_redisProvider_withoutRedisTemplate_throwsException() {
 		// given
 		MessageQueueProperties properties = new MessageQueueProperties();
+		properties.setEnabled(true);
 		properties.setProvider("redis-stream");
 		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
 
@@ -103,6 +104,7 @@ class MessageQueueConfigTest {
 	void consumer_redisProvider_withoutListenerContainer_throwsException() {
 		// given
 		MessageQueueProperties properties = new MessageQueueProperties();
+		properties.setEnabled(true);
 		properties.setProvider("redis-stream");
 		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
 		StringRedisTemplate stringRedisTemplate = mock(StringRedisTemplate.class);
