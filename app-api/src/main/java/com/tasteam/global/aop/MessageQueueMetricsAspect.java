@@ -56,11 +56,10 @@ public class MessageQueueMetricsAspect {
 			"result", "success").increment();
 	}
 
-	@AfterReturning("onConsumeSuccess() && args(message, providerType, consumerGroup, processingMillis)")
+	@AfterReturning("onConsumeSuccess() && args(message, providerType, *, processingMillis)")
 	public void afterConsumeSuccess(
 		MessageQueueMessage message,
 		MessageQueueProviderType providerType,
-		String consumerGroup,
 		long processingMillis) {
 		if (meterRegistry == null) {
 			return;
@@ -70,13 +69,11 @@ public class MessageQueueMetricsAspect {
 		recordEndToEndLatency(message, providerType, "success");
 	}
 
-	@AfterReturning("onConsumeFail() && args(message, providerType, consumerGroup, processingMillis, ex)")
+	@AfterReturning("onConsumeFail() && args(message, providerType, *, processingMillis, *)")
 	public void afterConsumeFail(
 		MessageQueueMessage message,
 		MessageQueueProviderType providerType,
-		String consumerGroup,
-		long processingMillis,
-		Exception ex) {
+		long processingMillis) {
 		if (meterRegistry == null) {
 			return;
 		}
