@@ -11,11 +11,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.domain.notification.dispatch.NotificationDispatcher;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
 import com.tasteam.infra.messagequeue.MessageQueueConsumer;
 import com.tasteam.infra.messagequeue.MessageQueueMessage;
-import com.tasteam.infra.messagequeue.MessageQueueProducer;
 import com.tasteam.infra.messagequeue.MessageQueueProperties;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 import com.tasteam.infra.messagequeue.MessageQueueSubscription;
@@ -41,10 +39,9 @@ public class NotificationMessageQueueConsumer {
 
 	private final MessageQueueConsumer messageQueueConsumer;
 	private final MessageQueueProperties messageQueueProperties;
-	private final MessageQueueProducer messageQueueProducer;
-	private final NotificationDispatcher dispatcher;
+	private final NotificationMessageProcessor messageProcessor;
+	private final NotificationDlqPublisher dlqPublisher;
 	private final ObjectMapper objectMapper;
-	private final NotificationMessageQueueConsumerMetricsCollector metricsCollector;
 
 	private MessageQueueSubscription subscription;
 
@@ -74,44 +71,18 @@ public class NotificationMessageQueueConsumer {
 
 	private void handleMessage(MessageQueueMessage message) {
 		NotificationRequestedPayload payload = deserializePayload(message.payload());
-		long startedAtNanos = System.nanoTime();
-		String result = "success";
 		try {
-			dispatcher.dispatch(payload);
-			metricsCollector.recordProcessResult("success");
+			messageProcessor.process(payload);
 			retryCountMap.remove(message.messageId());
 		} catch (Exception ex) {
-			result = "fail";
-			metricsCollector.recordProcessResult("fail");
 			int count = retryCountMap.merge(message.messageId(), 1, Integer::sum);
 			log.warn("알림 처리 실패. eventId={}, retryCount={}/{}", payload.eventId(), count, maxRetries, ex);
 			if (count >= maxRetries) {
-				boolean dlqPublished = publishToDlq(message);
-				metricsCollector.recordDlqResult(dlqPublished ? "success" : "fail");
+				dlqPublisher.publish(message);
 				retryCountMap.remove(message.messageId());
 			} else {
 				throw ex;
 			}
-		} finally {
-			metricsCollector.recordProcessLatency(result, System.nanoTime() - startedAtNanos);
-		}
-	}
-
-	private boolean publishToDlq(MessageQueueMessage message) {
-		try {
-			MessageQueueMessage dlqMessage = new MessageQueueMessage(
-				MessageQueueTopics.NOTIFICATION_REQUESTED_DLQ,
-				message.key(),
-				message.payload(),
-				message.headers(),
-				message.occurredAt(),
-				message.messageId());
-			messageQueueProducer.publish(dlqMessage);
-			log.info("알림 DLQ 발행 완료. messageId={}", message.messageId());
-			return true;
-		} catch (Exception ex) {
-			log.error("알림 DLQ 발행 실패. messageId={}", message.messageId(), ex);
-			return false;
 		}
 	}
 
@@ -123,5 +94,4 @@ public class NotificationMessageQueueConsumer {
 			throw new IllegalArgumentException("알림 메시지 역직렬화 실패. payload=" + payloadAsString, ex);
 		}
 	}
-
 }
