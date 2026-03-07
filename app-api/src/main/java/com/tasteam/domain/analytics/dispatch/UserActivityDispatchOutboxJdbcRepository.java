@@ -68,6 +68,17 @@ public class UserActivityDispatchOutboxJdbcRepository {
 		WHERE id = :id
 		""";
 
+	private static final String SELECT_SUMMARY_BY_TARGET_SQL = """
+		SELECT
+			dispatch_target,
+			COALESCE(SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END), 0) AS pending_count,
+			COALESCE(SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END), 0) AS failed_count,
+			COALESCE(SUM(CASE WHEN status = 'DISPATCHED' THEN 1 ELSE 0 END), 0) AS dispatched_count,
+			COALESCE(MAX(retry_count), 0) AS max_retry_count
+		FROM user_activity_dispatch_outbox
+		GROUP BY dispatch_target
+		""";
+
 	private final NamedParameterJdbcTemplate jdbcTemplate;
 	private final ObjectMapper objectMapper;
 
@@ -108,6 +119,18 @@ public class UserActivityDispatchOutboxJdbcRepository {
 			.addValue("baseBackoffSeconds", baseBackoffSeconds)
 			.addValue("maxBackoffSeconds", Math.max(baseBackoffSeconds, maxBackoffSeconds))
 			.addValue("lastError", truncateError(lastError)));
+	}
+
+	public List<UserActivityDispatchOutboxSummary> summarizeByTarget() {
+		return jdbcTemplate.query(
+			SELECT_SUMMARY_BY_TARGET_SQL,
+			new MapSqlParameterSource(),
+			(rs, rowNum) -> new UserActivityDispatchOutboxSummary(
+				UserActivityDispatchTarget.valueOf(rs.getString("dispatch_target")),
+				rs.getLong("pending_count"),
+				rs.getLong("failed_count"),
+				rs.getLong("dispatched_count"),
+				rs.getLong("max_retry_count")));
 	}
 
 	private String serializePayload(ActivityEvent event) {

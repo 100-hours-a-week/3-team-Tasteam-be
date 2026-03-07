@@ -31,7 +31,7 @@ class MessageQueueTraceServiceTest {
 		// given
 		MessageQueueTraceLogRepository repository = mock(MessageQueueTraceLogRepository.class);
 		when(repository.save(any(MessageQueueTraceLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
-		MessageQueueTraceService service = new MessageQueueTraceService(repository, null);
+		MessageQueueTraceService service = new MessageQueueTraceService(repository);
 		MessageQueueMessage message = MessageQueueMessage.of("domain.review.created", "123",
 			"payload".getBytes(StandardCharsets.UTF_8));
 
@@ -52,7 +52,7 @@ class MessageQueueTraceServiceTest {
 		// given
 		MessageQueueTraceLogRepository repository = mock(MessageQueueTraceLogRepository.class);
 		when(repository.save(any(MessageQueueTraceLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
-		MessageQueueTraceService service = new MessageQueueTraceService(repository, null);
+		MessageQueueTraceService service = new MessageQueueTraceService(repository);
 		MessageQueueMessage message = MessageQueueMessage.of("domain.group.member-joined", "200",
 			"payload".getBytes(StandardCharsets.UTF_8));
 
@@ -80,7 +80,7 @@ class MessageQueueTraceServiceTest {
 		MessageQueueTraceLogRepository repository = mock(MessageQueueTraceLogRepository.class);
 		Page<MessageQueueTraceLog> page = new PageImpl<>(List.of());
 		when(repository.findAllByMessageIdOrderByIdDesc(eq("msg-1"), any(Pageable.class))).thenReturn(page);
-		MessageQueueTraceService service = new MessageQueueTraceService(repository, null);
+		MessageQueueTraceService service = new MessageQueueTraceService(repository);
 
 		// when
 		service.findRecent("msg-1", 10);

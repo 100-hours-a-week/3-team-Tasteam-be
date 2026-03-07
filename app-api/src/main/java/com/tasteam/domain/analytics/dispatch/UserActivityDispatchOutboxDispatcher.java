@@ -4,13 +4,11 @@ import java.time.Duration;
 import java.util.List;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.analytics.api.ActivityEvent;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,8 +23,7 @@ public class UserActivityDispatchOutboxDispatcher {
 	private final UserActivityDispatchCircuitBreaker circuitBreaker;
 	private final AnalyticsDispatchProperties dispatchProperties;
 	private final ObjectMapper objectMapper;
-	@Nullable
-	private final MeterRegistry meterRegistry;
+	private final UserActivityDispatchOutboxMetricsCollector metricsCollector;
 
 	public UserActivityDispatchResult dispatchPendingPosthog() {
 		return dispatchPending(UserActivityDispatchTarget.POSTHOG, dispatchProperties.getBatchSize());
@@ -37,7 +34,7 @@ public class UserActivityDispatchOutboxDispatcher {
 			return new UserActivityDispatchResult(0, 0, 0, false);
 		}
 		if (!circuitBreaker.allowRequest()) {
-			incrementCounter("analytics.user-activity.dispatch.circuit", "open", dispatchTarget);
+			metricsCollector.recordCircuitState("open", dispatchTarget);
 			return new UserActivityDispatchResult(0, 0, 0, true);
 		}
 
@@ -90,15 +87,5 @@ public class UserActivityDispatchOutboxDispatcher {
 
 	private Duration retryMaxDelay() {
 		return dispatchProperties.getRetry().getMaxDelay();
-	}
-
-	private void incrementCounter(String metricName, String state, UserActivityDispatchTarget dispatchTarget) {
-		if (meterRegistry == null) {
-			return;
-		}
-		meterRegistry.counter(metricName,
-			"state", state,
-			"target", dispatchTarget.name().toLowerCase())
-			.increment();
 	}
 }

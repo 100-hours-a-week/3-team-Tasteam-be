@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisStreamCommands.XClaimOptions;
@@ -32,12 +34,10 @@ import com.tasteam.domain.chat.repository.ChatRoomRepository;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 @ConditionalOnProperty(name = "spring.data.redis.enabled", havingValue = "true", matchIfMissing = true)
 public class ChatStreamSubscriber {
 	private static final Duration POLL_MIN_IDLE = Duration.ofMinutes(1);
@@ -53,6 +53,23 @@ public class ChatStreamSubscriber {
 	private final SimpMessagingTemplate messagingTemplate;
 
 	private final Map<Long, Subscription> subscriptions = new ConcurrentHashMap<>();
+
+	@Autowired
+	public ChatStreamSubscriber(
+		@Qualifier("chatStreamListenerContainer")
+		StreamMessageListenerContainer<String, MapRecord<String, String, String>> container,
+		StringRedisTemplate stringRedisTemplate,
+		ChatRoomRepository chatRoomRepository,
+		ChatStreamKeyResolver keyResolver,
+		ChatStreamGroupNameProvider groupNameProvider,
+		SimpMessagingTemplate messagingTemplate) {
+		this.container = container;
+		this.stringRedisTemplate = stringRedisTemplate;
+		this.chatRoomRepository = chatRoomRepository;
+		this.keyResolver = keyResolver;
+		this.groupNameProvider = groupNameProvider;
+		this.messagingTemplate = messagingTemplate;
+	}
 
 	@PostConstruct
 	public void start() {
