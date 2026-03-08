@@ -1,10 +1,16 @@
 package com.tasteam.domain.recommendation.importer;
 
+import java.time.Instant;
 import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+
+import com.tasteam.domain.recommendation.entity.RestaurantRecommendationImportCheckpoint;
+import com.tasteam.domain.recommendation.exception.RecommendationBusinessException;
+import com.tasteam.domain.recommendation.repository.RestaurantRecommendationImportCheckpointRepository;
 
 /**
  * 추천 결과 import 오케스트레이션 파사드.
@@ -16,12 +22,15 @@ public class RecommendationResultImportFacadeImpl implements RecommendationResul
 	private static final Logger log = LoggerFactory.getLogger(RecommendationResultImportFacadeImpl.class);
 
 	private final S3RecommendationResultPollingService resultPollingService;
+	private final RestaurantRecommendationImportCheckpointRepository checkpointRepository;
 	private final RecommendationResultImportService importService;
 
 	public RecommendationResultImportFacadeImpl(
 		S3RecommendationResultPollingService resultPollingService,
+		RestaurantRecommendationImportCheckpointRepository checkpointRepository,
 		RecommendationResultImportService importService) {
 		this.resultPollingService = resultPollingService;
+		this.checkpointRepository = checkpointRepository;
 		this.importService = importService;
 	}
 
@@ -29,17 +38,44 @@ public class RecommendationResultImportFacadeImpl implements RecommendationResul
 	public RecommendationResultImportResult importResults(RecommendationResultImportFacadeCommand command) {
 		Objects.requireNonNull(command, "command는 null일 수 없습니다.");
 
-		String resultS3Uri = awaitResult(command);
-		return importService.importResults(
-			new RecommendationResultImportRequest(command.requestedModelVersion(), resultS3Uri, command.requestId()));
+		RecommendationResultS3Target target = awaitResult(command);
+		ensureNotImported(target);
+		RecommendationResultImportResult result = importService.importResults(
+			new RecommendationResultImportRequest(command.requestedModelVersion(), target.resultFileS3Uri(),
+				command.requestId()));
+		saveCheckpoint(target);
+		return result;
 	}
 
-	private String awaitResult(RecommendationResultImportFacadeCommand command) {
-		String resolvedS3Uri = resultPollingService.awaitResultS3Uri(command.resultS3Uri(), command.requestId());
-		log.info("recommendation import facade result resolved. modelVersion={}, requestId={}, s3Uri={}",
+	private RecommendationResultS3Target awaitResult(RecommendationResultImportFacadeCommand command) {
+		RecommendationResultS3Target target = resultPollingService.awaitImportTarget(
+			command.resultS3Uri(),
 			command.requestedModelVersion(),
+			command.requestId());
+		log.info("recommendation import facade result resolved. modelVersion={}, requestId={}, s3Uri={}, batchDt={}",
+			target.pipelineVersion(),
 			command.requestId(),
-			resolvedS3Uri);
-		return resolvedS3Uri;
+			target.resultFileS3Uri(),
+			target.batchDate());
+		return target;
+	}
+
+	private void ensureNotImported(RecommendationResultS3Target target) {
+		if (checkpointRepository.existsByPipelineVersionAndBatchDt(target.pipelineVersion(), target.batchDate())) {
+			throw RecommendationBusinessException.resultValidationFailed(
+				"이미 import 완료된 추천 결과입니다. dedupKey=" + target.dedupKey());
+		}
+	}
+
+	private void saveCheckpoint(RecommendationResultS3Target target) {
+		try {
+			checkpointRepository.save(RestaurantRecommendationImportCheckpoint.of(
+				target.pipelineVersion(),
+				target.batchDate(),
+				Instant.now()));
+		} catch (DataIntegrityViolationException ex) {
+			throw RecommendationBusinessException.resultValidationFailed(
+				"이미 import 완료된 추천 결과입니다. dedupKey=" + target.dedupKey());
+		}
 	}
 }

@@ -23,8 +23,8 @@ import com.tasteam.domain.recommendation.importer.config.RecommendationImportPol
 class S3RecommendationResultPollingServiceTest {
 
 	@Test
-	@DisplayName("prefix에서 csv를 찾으면 해당 s3Uri를 반환한다")
-	void awaitResultS3Uri_returnsFirstCsv() {
+	@DisplayName("pipeline_version 하위에서 _SUCCESS + csv가 있는 최신 dt를 반환한다")
+	void awaitImportTarget_returnsLatestCompletedDt() {
 		AmazonS3 amazonS3 = mock(AmazonS3.class);
 		RecommendationImportPollingProperties properties = new RecommendationImportPollingProperties();
 		properties.setTimeout(Duration.ofSeconds(1));
@@ -32,37 +32,55 @@ class S3RecommendationResultPollingServiceTest {
 		S3RecommendationResultPollingService service = new S3RecommendationResultPollingService(amazonS3, properties);
 
 		ListObjectsV2Result result = new ListObjectsV2Result();
-		S3ObjectSummary success = new S3ObjectSummary();
-		success.setKey("recommendations/dt=2026-03-06/model=v1/_SUCCESS");
-		S3ObjectSummary csv = new S3ObjectSummary();
-		csv.setKey("recommendations/dt=2026-03-06/model=v1/part-00001.csv");
-		result.getObjectSummaries().add(success);
-		result.getObjectSummaries().add(csv);
+		result.getObjectSummaries().add(object("recommendations/pipeline_version=deepfm-1/dt=2026-03-07/_SUCCESS"));
+		result.getObjectSummaries()
+			.add(object("recommendations/pipeline_version=deepfm-1/dt=2026-03-07/part-00001.csv"));
+		result.getObjectSummaries().add(object("recommendations/pipeline_version=deepfm-1/dt=2026-03-08/_SUCCESS"));
+		result.getObjectSummaries()
+			.add(object("recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00003.csv"));
+		result.getObjectSummaries()
+			.add(object("recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00001.csv"));
 		when(amazonS3.listObjectsV2(any(com.amazonaws.services.s3.model.ListObjectsV2Request.class)))
 			.thenReturn(result);
 
-		String s3Uri = service.awaitResultS3Uri("s3://tasteam-dev-analytics/recommendations/dt=2026-03-06/model=v1/",
+		RecommendationResultS3Target target = service.awaitImportTarget(
+			"s3://tasteam-dev-analytics/recommendations/",
+			"deepfm-1",
 			"req-1");
 
-		assertThat(s3Uri).isEqualTo("s3://tasteam-dev-analytics/recommendations/dt=2026-03-06/model=v1/part-00001.csv");
+		assertThat(target.pipelineVersion()).isEqualTo("deepfm-1");
+		assertThat(target.batchDate()).hasToString("2026-03-08");
+		assertThat(target.resultFileS3Uri())
+			.isEqualTo(
+				"s3://tasteam-dev-analytics/recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00001.csv");
 	}
 
 	@Test
-	@DisplayName("timeout 내 csv를 찾지 못하면 polling timeout 예외를 던진다")
-	void awaitResultS3Uri_throwsWhenTimeout() {
+	@DisplayName("_SUCCESS 없는 dt는 완료 배치로 간주하지 않는다")
+	void awaitImportTarget_requiresSuccessMarker() {
 		AmazonS3 amazonS3 = mock(AmazonS3.class);
 		RecommendationImportPollingProperties properties = new RecommendationImportPollingProperties();
 		properties.setTimeout(Duration.ofMillis(30));
 		properties.setInterval(Duration.ofMillis(10));
 		S3RecommendationResultPollingService service = new S3RecommendationResultPollingService(amazonS3, properties);
 
+		ListObjectsV2Result result = new ListObjectsV2Result();
+		result.getObjectSummaries()
+			.add(object("recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00001.csv"));
 		when(amazonS3.listObjectsV2(any(com.amazonaws.services.s3.model.ListObjectsV2Request.class)))
-			.thenReturn(new ListObjectsV2Result());
+			.thenReturn(result);
 
-		assertThatThrownBy(
-			() -> service.awaitResultS3Uri("s3://tasteam-dev-analytics/recommendations/dt=2026-03-06/model=v1/",
-				"req-2"))
+		assertThatThrownBy(() -> service.awaitImportTarget(
+			"s3://tasteam-dev-analytics/recommendations/",
+			"deepfm-1",
+			"req-2"))
 			.isInstanceOf(RecommendationBusinessException.class)
 			.hasMessageContaining("대기 시간 초과");
+	}
+
+	private S3ObjectSummary object(String key) {
+		S3ObjectSummary summary = new S3ObjectSummary();
+		summary.setKey(key);
+		return summary;
 	}
 }
