@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,7 @@ public class UserActivityDispatchCircuitBreaker {
 	private int consecutiveFailures;
 	private Instant openedAt;
 
+	@Autowired
 	public UserActivityDispatchCircuitBreaker(AnalyticsDispatchProperties properties) {
 		this(
 			properties.getCircuit().getFailureThreshold(),

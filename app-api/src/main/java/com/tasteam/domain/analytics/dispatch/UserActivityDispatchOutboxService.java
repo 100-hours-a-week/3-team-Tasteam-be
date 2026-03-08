@@ -4,13 +4,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.analytics.api.ActivityEvent;
+import com.tasteam.global.aop.ObservedOutbox;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -18,20 +19,19 @@ import lombok.RequiredArgsConstructor;
 public class UserActivityDispatchOutboxService {
 
 	private final UserActivityDispatchOutboxJdbcRepository outboxRepository;
-	@Nullable
-	private final MeterRegistry meterRegistry;
+	private final ObjectProvider<UserActivityDispatchOutboxMetricsCollector> metricsCollectorProvider;
 
 	@Transactional
 	public void enqueue(ActivityEvent event, UserActivityDispatchTarget dispatchTarget) {
 		try {
 			boolean inserted = outboxRepository.insertPendingIfAbsent(event, dispatchTarget);
 			if (inserted) {
-				incrementCounter("analytics.user-activity.dispatch.enqueue", "inserted", dispatchTarget);
+				recordEnqueueResult("inserted", dispatchTarget);
 				return;
 			}
-			incrementCounter("analytics.user-activity.dispatch.enqueue", "duplicate", dispatchTarget);
+			recordEnqueueResult("duplicate", dispatchTarget);
 		} catch (Exception ex) {
-			incrementCounter("analytics.user-activity.dispatch.enqueue", "fail", dispatchTarget);
+			recordEnqueueResult("fail", dispatchTarget);
 			throw ex;
 		}
 	}
@@ -45,7 +45,7 @@ public class UserActivityDispatchOutboxService {
 	@Transactional
 	public void markDispatched(long id, UserActivityDispatchTarget dispatchTarget) {
 		outboxRepository.markDispatched(id);
-		incrementCounter("analytics.user-activity.dispatch.execute", "success", dispatchTarget);
+		recordExecuteResult("success", dispatchTarget);
 	}
 
 	@Transactional
@@ -56,17 +56,39 @@ public class UserActivityDispatchOutboxService {
 		Duration baseDelay,
 		Duration maxDelay) {
 		outboxRepository.markFailed(id, ex == null ? null : ex.getMessage(), baseDelay, maxDelay);
-		incrementCounter("analytics.user-activity.dispatch.execute", "fail", dispatchTarget);
-		incrementCounter("analytics.user-activity.dispatch.retry", "scheduled", dispatchTarget);
+		recordExecuteResult("fail", dispatchTarget);
+		recordRetryScheduled(dispatchTarget);
 	}
 
-	private void incrementCounter(String metricName, String result, UserActivityDispatchTarget dispatchTarget) {
-		if (meterRegistry == null) {
-			return;
+	private void recordEnqueueResult(String result, UserActivityDispatchTarget dispatchTarget) {
+		UserActivityDispatchOutboxMetricsCollector metricsCollector = metricsCollector();
+		if (metricsCollector != null) {
+			metricsCollector.recordEnqueueResult(result, dispatchTarget);
 		}
-		meterRegistry.counter(metricName,
-			"result", result,
-			"target", dispatchTarget.name().toLowerCase())
-			.increment();
+	}
+
+	private void recordExecuteResult(String result, UserActivityDispatchTarget dispatchTarget) {
+		UserActivityDispatchOutboxMetricsCollector metricsCollector = metricsCollector();
+		if (metricsCollector != null) {
+			metricsCollector.recordExecuteResult(result, dispatchTarget);
+		}
+	}
+
+	private void recordRetryScheduled(UserActivityDispatchTarget dispatchTarget) {
+		UserActivityDispatchOutboxMetricsCollector metricsCollector = metricsCollector();
+		if (metricsCollector != null) {
+			metricsCollector.recordRetryScheduled(dispatchTarget);
+		}
+	}
+
+	@Nullable
+	private UserActivityDispatchOutboxMetricsCollector metricsCollector() {
+		return metricsCollectorProvider.getIfAvailable();
+	}
+
+	@ObservedOutbox(name = "analytics_dispatch")
+	@Transactional(readOnly = true)
+	public List<UserActivityDispatchOutboxSummary> summarizeByTarget() {
+		return outboxRepository.summarizeByTarget();
 	}
 }

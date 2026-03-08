@@ -3,6 +3,7 @@ package com.tasteam.domain.notification.outbox;
 import java.sql.Types;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -53,6 +54,16 @@ public class NotificationOutboxJdbcRepository {
 		LIMIT :limit
 		""";
 
+	private static final String SELECT_SUMMARY_SQL = """
+		SELECT
+			COALESCE(SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END), 0) AS pending_count,
+			COALESCE(SUM(CASE WHEN status = 'PUBLISHED' THEN 1 ELSE 0 END), 0) AS published_count,
+			COALESCE(SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END), 0) AS failed_count,
+			COALESCE(SUM(CASE WHEN status = 'PENDING' AND retry_count > 0 THEN 1 ELSE 0 END), 0) AS retrying_count,
+			COALESCE(MAX(retry_count), 0) AS max_retry_count
+		FROM notification_outbox
+		""";
+
 	private final NamedParameterJdbcTemplate jdbcTemplate;
 
 	public boolean insertIfAbsent(String eventId, String eventType, Long recipientId, String payloadJson) {
@@ -91,6 +102,22 @@ public class NotificationOutboxJdbcRepository {
 				rs.getInt("retry_count"),
 				rs.getTimestamp("next_retry_at") == null ? null
 					: rs.getTimestamp("next_retry_at").toInstant()));
+	}
+
+	public NotificationOutboxSummary summarize() {
+		NotificationOutboxSummary summary = jdbcTemplate.queryForObject(
+			SELECT_SUMMARY_SQL,
+			Map.of(),
+			(rs, rowNum) -> new NotificationOutboxSummary(
+				rs.getLong("pending_count"),
+				rs.getLong("published_count"),
+				rs.getLong("failed_count"),
+				rs.getLong("retrying_count"),
+				rs.getLong("max_retry_count")));
+		if (summary == null) {
+			return new NotificationOutboxSummary(0, 0, 0, 0, 0);
+		}
+		return summary;
 	}
 
 	private String truncateError(String errorMessage) {

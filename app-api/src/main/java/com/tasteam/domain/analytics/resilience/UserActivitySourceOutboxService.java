@@ -3,13 +3,14 @@ package com.tasteam.domain.analytics.resilience;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.analytics.api.ActivityEvent;
+import com.tasteam.global.aop.ObservedOutbox;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -17,20 +18,19 @@ import lombok.RequiredArgsConstructor;
 public class UserActivitySourceOutboxService {
 
 	private final UserActivitySourceOutboxJdbcRepository outboxRepository;
-	@Nullable
-	private final MeterRegistry meterRegistry;
+	private final ObjectProvider<UserActivitySourceOutboxMetricsCollector> metricsCollectorProvider;
 
 	@Transactional
 	public void enqueue(ActivityEvent event) {
 		try {
 			boolean inserted = outboxRepository.insertPendingIfAbsent(event);
 			if (inserted) {
-				incrementCounter("analytics.user-activity.outbox.enqueue", "inserted");
+				recordEnqueueResult("inserted");
 				return;
 			}
-			incrementCounter("analytics.user-activity.outbox.enqueue", "duplicate");
+			recordEnqueueResult("duplicate");
 		} catch (Exception ex) {
-			incrementCounter("analytics.user-activity.outbox.enqueue", "fail");
+			recordEnqueueResult("fail");
 			throw ex;
 		}
 	}
@@ -38,14 +38,35 @@ public class UserActivitySourceOutboxService {
 	@Transactional
 	public void markPublished(String eventId) {
 		outboxRepository.markPublished(eventId);
-		incrementCounter("analytics.user-activity.outbox.publish", "success");
+		recordPublishResult("success");
 	}
 
 	@Transactional
 	public void markFailed(String eventId, Throwable ex) {
 		outboxRepository.markFailed(eventId, ex == null ? null : ex.getMessage());
-		incrementCounter("analytics.user-activity.outbox.publish", "fail");
-		incrementCounter("analytics.user-activity.outbox.retry", "scheduled");
+		recordPublishResult("fail");
+		recordRetryScheduled();
+	}
+
+	private void recordEnqueueResult(String result) {
+		UserActivitySourceOutboxMetricsCollector metricsCollector = metricsCollector();
+		if (metricsCollector != null) {
+			metricsCollector.recordEnqueueResult(result);
+		}
+	}
+
+	private void recordPublishResult(String result) {
+		UserActivitySourceOutboxMetricsCollector metricsCollector = metricsCollector();
+		if (metricsCollector != null) {
+			metricsCollector.recordPublishResult(result);
+		}
+	}
+
+	private void recordRetryScheduled() {
+		UserActivitySourceOutboxMetricsCollector metricsCollector = metricsCollector();
+		if (metricsCollector != null) {
+			metricsCollector.recordRetryScheduled();
+		}
 	}
 
 	@Transactional(readOnly = true)
@@ -54,14 +75,14 @@ public class UserActivitySourceOutboxService {
 	}
 
 	@Transactional(readOnly = true)
+	@ObservedOutbox(name = "analytics_source")
 	public UserActivitySourceOutboxSummary summarize() {
 		return outboxRepository.summarize();
 	}
 
-	private void incrementCounter(String metricName, String result) {
-		if (meterRegistry == null) {
-			return;
-		}
-		meterRegistry.counter(metricName, "result", result).increment();
+	@Nullable
+	private UserActivitySourceOutboxMetricsCollector metricsCollector() {
+		return metricsCollectorProvider.getIfAvailable();
 	}
+
 }

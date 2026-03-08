@@ -241,15 +241,27 @@ flowchart LR
   - `messageId`(optional): 특정 메시지 이력 조회
   - `limit`(optional, default `50`, max `200`)
 
-## **[8-4] 메트릭**
+## **[8-4] 메트릭 수집 아키텍처**
 
-- Counter
-  - `mq.publish.count` (`topic`, `provider`, `result`)
-  - `mq.consume.count` (`topic`, `provider`, `result`)
-- Timer
-  - `mq.consume.latency` (`topic`, `provider`)
+메트릭 수집은 AOP로 비즈니스 코드에서 완전히 분리되어 있다.
+전체 메트릭 카탈로그, 수집 방식 결정 가이드, Aspect/Collector 설계 상세는 아래 문서를 참조한다.
+
+→ **[비동기 이벤트 아키텍처 & AOP 메트릭 수집 설계](./async-observability.md)**
+
+### 핵심 MQ 메트릭 요약
+
+| 메트릭 | 타입 | 라벨 | 수집 주체 |
+|---|---|---|---|
+| `mq.publish.count` | Counter | `topic`, `provider`, `result` | `MessageQueueMetricsAspect` |
+| `mq.consume.count` | Counter | `topic`, `provider`, `result` | `MessageQueueMetricsAspect` |
+| `mq.consume.latency` | Timer | `topic`, `provider` | `MessageQueueMetricsAspect` |
+| `mq.end_to_end.latency` | Timer | `topic`, `provider`, `result` | `MessageQueueMetricsAspect` |
+| `notification.consumer.process` | Counter | `result` | `MessageQueueMetricsAspect` |
+| `notification.consumer.dlq` | Counter | `result` | `MessageQueueMetricsAspect` |
 
 ## **[8-5] 관심사 분리**
 
-- 비즈니스 클래스(`*Publisher`, `*ConsumerRegistrar`)는 도메인 로직만 담당한다.
-- 관측/추적은 `TracingMessageQueueProducer`, `TracingMessageQueueConsumer` 데코레이터에서 공통 처리한다.
+- `MessageQueueTraceService`: DB 저장 전담 — `io.micrometer` import 없음
+- `TracingMessageQueueProducer` / `TracingMessageQueueConsumer`: Decorator 패턴으로 TraceService 호출
+- `MessageQueueMetricsAspect`: TraceService `record*()` 메서드에 `@AfterReturning`으로 메트릭 수집
+- 비즈니스 클래스(`NotificationMessageProcessor`, `NotificationDlqPublisher`)는 마커 어노테이션만 부착
