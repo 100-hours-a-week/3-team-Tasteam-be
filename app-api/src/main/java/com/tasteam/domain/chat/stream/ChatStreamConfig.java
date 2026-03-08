@@ -1,6 +1,7 @@
 package com.tasteam.domain.chat.stream;
 
 import java.time.Duration;
+import java.util.concurrent.Executors;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -23,6 +24,7 @@ public class ChatStreamConfig {
 			.pollTimeout(Duration.ofSeconds(1))
 			.batchSize(10)
 			.serializer(new StringRedisSerializer())
+			.executor(Executors.newFixedThreadPool(4))
 			.build();
 
 		return StreamMessageListenerContainer.create(connectionFactory, options);
