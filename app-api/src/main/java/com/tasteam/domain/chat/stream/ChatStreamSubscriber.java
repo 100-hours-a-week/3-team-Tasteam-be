@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.RedisStreamCommands.XClaimOptions;
 import org.springframework.data.redis.connection.stream.Consumer;
@@ -74,6 +76,10 @@ public class ChatStreamSubscriber {
 	@PostConstruct
 	public void start() {
 		container.start();
+	}
+
+	@EventListener(ApplicationReadyEvent.class)
+	public void onApplicationReady() {
 		refreshSubscriptions();
 	}
 
@@ -86,7 +92,11 @@ public class ChatStreamSubscriber {
 	public void refreshSubscriptions() {
 		Set<Long> currentRoomIds = Set.copyOf(chatRoomRepository.findActiveRoomIds());
 		for (Long roomId : currentRoomIds) {
-			subscriptions.computeIfAbsent(roomId, this::registerRoomSubscription);
+			try {
+				subscriptions.computeIfAbsent(roomId, this::registerRoomSubscription);
+			} catch (Exception ex) {
+				log.warn("채팅방 구독 등록 실패, 다음 주기에 재시도합니다. roomId={}", roomId, ex);
+			}
 		}
 	}
 

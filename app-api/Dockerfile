@@ -36,4 +36,8 @@ COPY --from=builder /app/app-api/build/libs/*.jar app.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-Xss256k", \
+  "-jar", "/app/app.jar"]
