@@ -263,9 +263,9 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 		if (radiusMeters == null || latitude == null || longitude == null) {
 			return null;
 		}
-		return Expressions.booleanTemplate(
-			"ST_DWithin(geography({0}), geography(ST_MakePoint({1}, {2})), {3})",
-			r.location, longitude, latitude, radiusMeters);
+		return Expressions.numberTemplate(Integer.class,
+			"function('st_dwithin_geo', {0}, {1}, {2}, {3})",
+			r.location, longitude, latitude, radiusMeters).eq(1);
 	}
 
 	private BooleanExpression cursorCondition(SearchCursor cursor, QRestaurant r,
