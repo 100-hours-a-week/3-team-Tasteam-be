@@ -41,4 +41,10 @@ public class RecommendationBusinessException extends BusinessException {
 			RecommendationErrorCode.RECOMMENDATION_RESULT_VALIDATION_FAILED,
 			detail == null ? RecommendationErrorCode.RECOMMENDATION_RESULT_VALIDATION_FAILED.getMessage() : detail);
 	}
+
+	public static RecommendationBusinessException resultPollingTimeout(String detail) {
+		return new RecommendationBusinessException(
+			RecommendationErrorCode.RECOMMENDATION_RESULT_POLLING_TIMEOUT,
+			detail == null ? RecommendationErrorCode.RECOMMENDATION_RESULT_POLLING_TIMEOUT.getMessage() : detail);
+	}
 }

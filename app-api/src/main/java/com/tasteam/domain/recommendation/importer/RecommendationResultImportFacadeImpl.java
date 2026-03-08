@@ -8,20 +8,20 @@ import org.springframework.stereotype.Service;
 
 /**
  * 추천 결과 import 오케스트레이션 파사드.
- * 현재 단계에서는 흐름을 고정하고(요청 -> 대기 -> import), 실제 학습 요청/대기는 후속 티켓에서 구현한다.
+ * 데이터 계약 기준으로 S3 탐색/대기 후 import를 수행한다.
  */
 @Service
 public class RecommendationResultImportFacadeImpl implements RecommendationResultImportFacade {
 
 	private static final Logger log = LoggerFactory.getLogger(RecommendationResultImportFacadeImpl.class);
 
-	private final AiRecommendationJobClient aiRecommendationJobClient;
+	private final S3RecommendationResultPollingService resultPollingService;
 	private final RecommendationResultImportService importService;
 
 	public RecommendationResultImportFacadeImpl(
-		AiRecommendationJobClient aiRecommendationJobClient,
+		S3RecommendationResultPollingService resultPollingService,
 		RecommendationResultImportService importService) {
-		this.aiRecommendationJobClient = aiRecommendationJobClient;
+		this.resultPollingService = resultPollingService;
 		this.importService = importService;
 	}
 
@@ -29,26 +29,17 @@ public class RecommendationResultImportFacadeImpl implements RecommendationResul
 	public RecommendationResultImportResult importResults(RecommendationResultImportFacadeCommand command) {
 		Objects.requireNonNull(command, "command는 null일 수 없습니다.");
 
-		requestRecommendation(command);
 		String resultS3Uri = awaitResult(command);
 		return importService.importResults(
 			new RecommendationResultImportRequest(command.requestedModelVersion(), resultS3Uri, command.requestId()));
 	}
 
-	private void requestRecommendation(RecommendationResultImportFacadeCommand command) {
-		AiRecommendationResponse response = aiRecommendationJobClient.requestRecommendation(
-			new AiRecommendationRequest(command.requestedModelVersion(), command.requestId()));
-		log.info("recommendation import facade request sent. modelVersion={}, requestId={}, jobId={}",
-			command.requestedModelVersion(),
-			command.requestId(),
-			response.jobId());
-	}
-
 	private String awaitResult(RecommendationResultImportFacadeCommand command) {
-		log.info("recommendation import facade waiting skipped (skeleton). modelVersion={}, requestId={}, s3Uri={}",
+		String resolvedS3Uri = resultPollingService.awaitResultS3Uri(command.resultS3Uri(), command.requestId());
+		log.info("recommendation import facade result resolved. modelVersion={}, requestId={}, s3Uri={}",
 			command.requestedModelVersion(),
 			command.requestId(),
-			command.resultS3Uri());
-		return command.resultS3Uri();
+			resolvedS3Uri);
+		return resolvedS3Uri;
 	}
 }
