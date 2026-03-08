@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +22,11 @@ public class TestStorageConfiguration {
 
 	private static final Instant FIXED_NOW = Instant.parse("2099-01-01T00:00:00Z");
 	private static final Instant FIXED_EXPIRES_AT = FIXED_NOW.plusSeconds(300);
+
+	@Bean(name = "searchQueryExecutor")
+	Executor searchQueryExecutor() {
+		return Runnable::run;
+	}
 
 	@Bean
 	StorageClient storageClient() {

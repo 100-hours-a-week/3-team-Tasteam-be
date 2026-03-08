@@ -78,7 +78,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			.where(
 				r.deletedAt.isNull(),
 				nameContains.or(nameSimilar),
-				distanceFilter(distanceExpr, radiusMeters),
+				distanceFilter(r, latitude, longitude, radiusMeters),
 				cursorCondition(cursor, r, totalScore, radiusMeters))
 			.orderBy(scoreOrderSpecifiers(r, totalScore).toArray(OrderSpecifier[]::new))
 			.limit(size)
@@ -108,7 +108,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			.where(
 				r.deletedAt.isNull(),
 				nameContains.or(nameSimilar),
-				distanceFilter(distanceExpr, radiusMeters),
+				distanceFilter(r, latitude, longitude, radiusMeters),
 				cursorCondition(cursor, r, totalScore, radiusMeters))
 			.orderBy(scoreOrderSpecifiers(r, totalScore).toArray(OrderSpecifier[]::new))
 			.limit(properties.getCandidateLimit())
@@ -169,7 +169,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			.where(
 				r.deletedAt.isNull(),
 				nameContains.or(nameSimilar),
-				distanceFilter(distanceExpr, radiusMeters),
+				distanceFilter(r, latitude, longitude, radiusMeters),
 				cursorCondition(cursor, r, totalScore, radiusMeters))
 			.groupBy(r.id)
 			.orderBy(scoreOrderSpecifiers(r, totalScore).toArray(OrderSpecifier[]::new))
@@ -259,11 +259,13 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			distanceMeters, radiusMeters);
 	}
 
-	private BooleanExpression distanceFilter(NumberExpression<Double> distanceMeters, Double radiusMeters) {
-		if (radiusMeters == null) {
+	private BooleanExpression distanceFilter(QRestaurant r, Double latitude, Double longitude, Double radiusMeters) {
+		if (radiusMeters == null || latitude == null || longitude == null) {
 			return null;
 		}
-		return distanceMeters.loe(radiusMeters);
+		return Expressions.numberTemplate(Integer.class,
+			"function('st_dwithin_geo', {0}, {1}, {2}, {3})",
+			r.location, longitude, latitude, radiusMeters).eq(1);
 	}
 
 	private BooleanExpression cursorCondition(SearchCursor cursor, QRestaurant r,
