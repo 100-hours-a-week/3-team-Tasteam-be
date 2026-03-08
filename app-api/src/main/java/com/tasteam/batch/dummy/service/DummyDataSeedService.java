@@ -32,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DummyDataSeedService {
 
 	private static final String DUMMY_EMAIL_SUFFIX = "@dummy.tasteam.kr";
+	private static final String LOADTEST_IDENTIFIER_PREFIX = "test-user-";
 	private static final Random RANDOM = new Random();
 	private static final int DEFAULT_MEMBER_COUNT = 10_000;
 	private static final int DEFAULT_RESTAURANT_COUNT = 10_000;
@@ -241,18 +242,24 @@ public class DummyDataSeedService {
 			int size = end - start;
 			List<String> emails = new ArrayList<>(size);
 			List<String> nicknames = new ArrayList<>(size);
+			List<String> identifiers = new ArrayList<>(size);
 
 			for (int i = 0; i < size; i++) {
 				int seq = start + i + 1;
 				emails.add("dummy-" + runToken + "-" + seq + DUMMY_EMAIL_SUFFIX);
 				nicknames.add("더미유저-" + runToken + "-" + seq);
+				identifiers.add(buildLoadtestIdentifier(seq));
 			}
-			List<Long> chunkIds = dummyRepo.insertMembers(emails, nicknames);
+			List<Long> chunkIds = dummyRepo.insertMembersWithTestOAuthAccounts(emails, nicknames, identifiers);
 			validateStepResult("member insert", chunkIds, size);
 			ids.addAll(chunkIds);
 		}
 		validateInsertedCount("member insert", ids.size(), memberCount);
 		return ids;
+	}
+
+	private String buildLoadtestIdentifier(int seq) {
+		return LOADTEST_IDENTIFIER_PREFIX + "%03d".formatted(seq);
 	}
 
 	private LongIdBuffer insertRestaurants(int restaurantCount, String runToken) {
