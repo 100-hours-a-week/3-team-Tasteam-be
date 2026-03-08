@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
+import com.tasteam.global.aop.ObservedOutbox;
 
 import lombok.RequiredArgsConstructor;
 
@@ -44,6 +45,12 @@ public class NotificationOutboxService {
 		return outboxRepository.findCandidates(limit).stream()
 			.map(entry -> deserializePayload(entry.payloadJson()))
 			.toList();
+	}
+
+	@ObservedOutbox(name = "notification")
+	@Transactional(readOnly = true)
+	public NotificationOutboxSummary summarize() {
+		return outboxRepository.summarize();
 	}
 
 	private String serializePayload(NotificationRequestedPayload payload) {

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import com.tasteam.domain.analytics.dispatch.UserActivityDispatchOutboxDispatcher;
 import com.tasteam.domain.analytics.dispatch.UserActivityDispatchResult;
+import com.tasteam.global.aop.ObservedAsyncPipeline;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ public class UserActivityDispatchScheduler {
 
 	private final UserActivityDispatchOutboxDispatcher dispatcher;
 
+	@ObservedAsyncPipeline(domain = "analytics", stage = "dispatch_batch")
 	@Scheduled(fixedDelayString = "${tasteam.analytics.dispatch.fixed-delay:PT1M}")
 	public void dispatchPendingEvents() {
 		UserActivityDispatchResult result = dispatcher.dispatchPendingPosthog();

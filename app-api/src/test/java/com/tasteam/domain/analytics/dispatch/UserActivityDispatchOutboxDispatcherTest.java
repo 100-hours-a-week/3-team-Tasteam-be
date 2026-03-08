@@ -44,13 +44,15 @@ class UserActivityDispatchOutboxDispatcherTest {
 			3,
 			Duration.ofMinutes(1),
 			Clock.systemUTC());
+		UserActivityDispatchOutboxMetricsCollector metricsCollector = mock(
+			UserActivityDispatchOutboxMetricsCollector.class);
 		UserActivityDispatchOutboxDispatcher dispatcher = new UserActivityDispatchOutboxDispatcher(
 			outboxService,
 			sinkRegistry,
 			circuitBreaker,
 			properties,
 			objectMapper,
-			null);
+			metricsCollector);
 
 		ActivityEvent event = sampleEvent("evt-1");
 		UserActivityDispatchOutboxEntry entry = new UserActivityDispatchOutboxEntry(
@@ -88,13 +90,15 @@ class UserActivityDispatchOutboxDispatcherTest {
 			3,
 			Duration.ofMinutes(1),
 			Clock.systemUTC());
+		UserActivityDispatchOutboxMetricsCollector metricsCollector = mock(
+			UserActivityDispatchOutboxMetricsCollector.class);
 		UserActivityDispatchOutboxDispatcher dispatcher = new UserActivityDispatchOutboxDispatcher(
 			outboxService,
 			sinkRegistry,
 			circuitBreaker,
 			properties,
 			objectMapper,
-			null);
+			metricsCollector);
 
 		UserActivityDispatchOutboxEntry entry = new UserActivityDispatchOutboxEntry(
 			9L,
@@ -137,13 +141,15 @@ class UserActivityDispatchOutboxDispatcherTest {
 			1,
 			Duration.ofMinutes(1),
 			clock);
+		UserActivityDispatchOutboxMetricsCollector metricsCollector = mock(
+			UserActivityDispatchOutboxMetricsCollector.class);
 		UserActivityDispatchOutboxDispatcher dispatcher = new UserActivityDispatchOutboxDispatcher(
 			outboxService,
 			sinkRegistry,
 			circuitBreaker,
 			properties,
 			objectMapper,
-			null);
+			metricsCollector);
 
 		ActivityEvent event = sampleEvent("evt-fail");
 		UserActivityDispatchOutboxEntry first = new UserActivityDispatchOutboxEntry(
@@ -199,13 +205,15 @@ class UserActivityDispatchOutboxDispatcherTest {
 			Duration.ofMinutes(1),
 			clock);
 		circuitBreaker.recordFailure();
+		UserActivityDispatchOutboxMetricsCollector metricsCollector = mock(
+			UserActivityDispatchOutboxMetricsCollector.class);
 		UserActivityDispatchOutboxDispatcher dispatcher = new UserActivityDispatchOutboxDispatcher(
 			outboxService,
 			sinkRegistry,
 			circuitBreaker,
 			properties,
 			objectMapper,
-			null);
+			metricsCollector);
 
 		// when
 		UserActivityDispatchResult result = dispatcher.dispatchPending(UserActivityDispatchTarget.POSTHOG, 100);

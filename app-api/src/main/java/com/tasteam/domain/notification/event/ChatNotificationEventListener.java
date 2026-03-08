@@ -22,7 +22,6 @@ import com.tasteam.domain.notification.service.FcmPushService;
 import com.tasteam.domain.notification.service.NotificationPreferenceService;
 import com.tasteam.domain.notification.service.NotificationService;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,7 +39,7 @@ public class ChatNotificationEventListener {
 	private final NotificationPreferenceService preferenceService;
 	private final ChatRoomPresenceRegistry presenceRegistry;
 	private final FcmPushService fcmPushService;
-	private final MeterRegistry meterRegistry;
+	private final ChatNotificationMetricsCollector metricsCollector;
 
 	@Async("notificationExecutor")
 	@EventListener
@@ -72,8 +71,8 @@ public class ChatNotificationEventListener {
 
 		for (Long memberId : recipientIds) {
 			notificationService.createNotification(memberId, NotificationType.CHAT, title, body, deepLink);
-			meterRegistry.counter("notification.chat.created.total").increment();
 		}
+		metricsCollector.recordChatNotificationCreated(recipientIds.size());
 
 		Map<Long, Boolean> pushEnabled = preferenceService.getEnabledMap(
 			recipientIds, NotificationChannel.PUSH, NotificationType.CHAT);
@@ -89,7 +88,7 @@ public class ChatNotificationEventListener {
 
 		int skipped = pushEligible.size() - pushTargets.size();
 		if (skipped > 0) {
-			meterRegistry.counter("notification.chat.push.skipped.online.total").increment(skipped);
+			metricsCollector.recordPushSkippedOnline(skipped);
 		}
 
 		if (pushTargets.isEmpty()) {
@@ -98,7 +97,7 @@ public class ChatNotificationEventListener {
 
 		try {
 			var response = fcmPushService.sendToMembers(pushTargets, title, body, deepLink);
-			meterRegistry.counter("notification.chat.push.sent.total").increment(response.successCount());
+			metricsCollector.recordPushSent(response.successCount());
 		} catch (Exception ex) {
 			log.error("Failed to send chat push. chatRoomId={}, messageId={}",
 				event.chatRoomId(), event.messageId(), ex);

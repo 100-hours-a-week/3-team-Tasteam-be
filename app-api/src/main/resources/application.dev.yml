@@ -122,6 +122,19 @@ tasteam:
     filters:
       min-http-status: 400
       exclude-error-codes:
+  aop:
+    logging:
+      enabled: true
+      api-logging:
+        enabled: false
+      exception-logging:
+        enabled: true
+      transactional-query-logging:
+        enabled: false
+      service-performance:
+        enabled: false
+      ai-analysis-performance:
+        enabled: false
   firebase:
     enabled: ${FIREBASE_ENABLED:false}
     project-id: ${FIREBASE_PROJECT_ID:}

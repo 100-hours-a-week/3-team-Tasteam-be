@@ -22,7 +22,7 @@ public interface AdminDummyControllerDocs {
 	@Operation(summary = "시딩 진행 상태 조회", description = "현재 시딩 작업의 진행 상태(IDLE/RUNNING/COMPLETED/FAILED/CANCELLED)와 단계별 진행도를 반환합니다.")
 	SuccessResponse<DummySeedStatusResponse> getSeedStatus();
 
-	@Operation(summary = "현재 데이터 개수 조회", description = "각 테이블의 soft-delete 제외 총 레코드 수를 반환합니다.")
+	@Operation(summary = "현재 데이터 개수 조회", description = "더미 데이터가 포함된 주요 테이블의 총 레코드 수를 반환합니다.")
 	SuccessResponse<AdminDataCountResponse> count();
 
 	@Operation(summary = "더미 데이터 전체 삭제", description = "email '%@dummy.tasteam.kr', name '더미그룹-%', '더미식당-%' 패턴으로 식별된 더미 데이터를 삭제합니다.")

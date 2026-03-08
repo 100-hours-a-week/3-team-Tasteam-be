@@ -1,5 +1,6 @@
 package com.tasteam.infra.messagequeue;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +21,7 @@ public class MessageQueueConfig {
 		MessageQueueTraceService traceService,
 		@Nullable
 		StringRedisTemplate stringRedisTemplate) {
-		MessageQueueProviderType providerType = properties.providerType();
+		MessageQueueProviderType providerType = properties.effectiveProviderType();
 		MessageQueueProducer delegate = switch (providerType) {
 			case NONE -> new NoOpMessageQueueProducer();
 			case REDIS_STREAM ->
@@ -36,9 +37,9 @@ public class MessageQueueConfig {
 		MessageQueueTraceService traceService,
 		@Nullable
 		StringRedisTemplate stringRedisTemplate,
-		@Nullable
+		@Nullable @Qualifier("messageQueueStreamListenerContainer")
 		StreamMessageListenerContainer<String, MapRecord<String, String, String>> messageQueueStreamListenerContainer) {
-		MessageQueueProviderType providerType = properties.providerType();
+		MessageQueueProviderType providerType = properties.effectiveProviderType();
 		MessageQueueConsumer delegate = switch (providerType) {
 			case NONE -> new NoOpMessageQueueConsumer();
 			case REDIS_STREAM -> new RedisStreamMessageQueueConsumer(

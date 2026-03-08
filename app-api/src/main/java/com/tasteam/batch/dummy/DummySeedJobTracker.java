@@ -14,7 +14,7 @@ public class DummySeedJobTracker {
 		IDLE, RUNNING, COMPLETED, FAILED, CANCELLED
 	}
 
-	private static final int TOTAL_STEPS = 7;
+	private static final int TOTAL_STEPS = 16;
 
 	private volatile Status status = Status.IDLE;
 	private volatile String currentStep = null;
@@ -34,7 +34,19 @@ public class DummySeedJobTracker {
 		this.cancelRequested = false;
 	}
 
-	public void updateStep(String stepName) {
+	public synchronized boolean tryStart() {
+		if (this.status == Status.RUNNING) {
+			return false;
+		}
+		start();
+		return true;
+	}
+
+	public synchronized void startStep(String stepName) {
+		this.currentStep = stepName;
+	}
+
+	public synchronized void completeStep(String stepName) {
 		this.currentStep = stepName;
 		this.completedSteps++;
 	}
@@ -42,11 +54,18 @@ public class DummySeedJobTracker {
 	public void complete(AdminDummySeedResponse result) {
 		this.lastResult = result;
 		this.status = Status.COMPLETED;
+		this.currentStep = "COMPLETED";
+		this.completedSteps = TOTAL_STEPS;
+	}
+
+	public void fail(String stepName, String message) {
+		this.currentStep = stepName;
+		this.errorMessage = message;
+		this.status = Status.FAILED;
 	}
 
 	public void fail(String message) {
-		this.errorMessage = message;
-		this.status = Status.FAILED;
+		fail(null, message);
 	}
 
 	public void cancel() {

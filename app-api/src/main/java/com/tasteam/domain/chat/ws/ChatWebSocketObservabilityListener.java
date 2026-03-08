@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -15,9 +14,6 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tags;
-import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -26,19 +22,13 @@ public class ChatWebSocketObservabilityListener {
 
 	private static final Duration RECONNECT_WINDOW = Duration.ofMinutes(1);
 
-	private final MeterRegistry meterRegistry;
-	private final Timer sessionLifetimeTimer;
-	private final AtomicInteger activeConnections = new AtomicInteger();
+	private final WebSocketMetricsCollector metricsCollector;
 	private final ConcurrentMap<String, Long> sessionMemberIdBySessionId = new ConcurrentHashMap<>();
 	private final ConcurrentMap<String, Instant> connectedAtBySessionId = new ConcurrentHashMap<>();
 	private final ConcurrentMap<Long, Instant> lastDisconnectedAtByMemberId = new ConcurrentHashMap<>();
 
-	public ChatWebSocketObservabilityListener(MeterRegistry meterRegistry) {
-		this.meterRegistry = meterRegistry;
-		this.sessionLifetimeTimer = Timer.builder("ws.session.lifetime")
-			.publishPercentileHistogram()
-			.register(meterRegistry);
-		meterRegistry.gauge("ws.connections.active", Tags.empty(), activeConnections);
+	public ChatWebSocketObservabilityListener(WebSocketMetricsCollector metricsCollector) {
+		this.metricsCollector = metricsCollector;
 	}
 
 	@EventListener
@@ -48,8 +38,7 @@ public class ChatWebSocketObservabilityListener {
 		Long memberId = resolveMemberId(accessor);
 		Instant now = Instant.now();
 
-		activeConnections.incrementAndGet();
-		meterRegistry.counter("ws.connect.total").increment();
+		metricsCollector.recordConnect();
 		if (sessionId != null) {
 			connectedAtBySessionId.put(sessionId, now);
 			if (memberId != null) {
@@ -61,13 +50,13 @@ public class ChatWebSocketObservabilityListener {
 			Instant lastDisconnectedAt = lastDisconnectedAtByMemberId.get(memberId);
 			if (lastDisconnectedAt != null
 				&& Duration.between(lastDisconnectedAt, now).compareTo(RECONNECT_WINDOW) <= 0) {
-				meterRegistry.counter("ws.reconnect.total").increment();
+				metricsCollector.recordReconnect();
 				log.info("WS RECONNECT detected. memberId={}, sessionId={}", memberId, sessionId);
 			}
 		}
 
 		log.info("WS CONNECTED. memberId={}, sessionId={}, activeConnections={}",
-			memberId, sessionId, activeConnections.get());
+			memberId, sessionId, metricsCollector.currentActiveConnections());
 	}
 
 	@EventListener
@@ -79,17 +68,16 @@ public class ChatWebSocketObservabilityListener {
 			: resolveMemberId(accessor);
 
 		DisconnectReason disconnectReason = classify(event.getCloseStatus());
-		int current = activeConnections.updateAndGet(value -> Math.max(0, value - 1));
-		meterRegistry.counter("ws.disconnect.total").increment();
-		meterRegistry.counter("ws.disconnect.by.reason.total", "reason", disconnectReason.value()).increment();
+		metricsCollector.recordDisconnect();
+		metricsCollector.recordDisconnectByReason(disconnectReason.value());
 		if (disconnectReason == DisconnectReason.HEARTBEAT_TIMEOUT) {
-			meterRegistry.counter("ws.heartbeat.timeout.total").increment();
+			metricsCollector.recordHeartbeatTimeout();
 		}
 
 		Instant connectedAt = sessionId != null ? connectedAtBySessionId.remove(sessionId) : null;
 		if (connectedAt != null) {
 			Duration lifetime = Duration.between(connectedAt, Instant.now());
-			sessionLifetimeTimer.record(lifetime);
+			metricsCollector.recordSessionLifetime(lifetime);
 		}
 
 		if (memberId != null) {
@@ -104,7 +92,7 @@ public class ChatWebSocketObservabilityListener {
 			disconnectReason.value(),
 			closeStatus != null ? closeStatus.getCode() : null,
 			closeStatus != null ? closeStatus.getReason() : null,
-			current);
+			metricsCollector.currentActiveConnections());
 	}
 
 	private Long resolveMemberId(StompHeaderAccessor accessor) {
