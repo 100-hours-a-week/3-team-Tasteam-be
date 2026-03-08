@@ -54,9 +54,7 @@ CLAUDE.md
 /.github/issue
 
 # Scripts
-/scripts/*
-!/scripts/dummy_sql_generator/
-!/scripts/dummy_sql_generator/**
+/scripts
 scripts/create-issues.sh
 
 # Application configuration files
