@@ -16,17 +16,8 @@ BEGIN
             FROM pg_constraint
             WHERE conname = 'uq_subgroup_favorite_subgroup_restaurant'
         ) THEN
-            IF NOT EXISTS (
-                SELECT 1
-                FROM subgroup_favorite_restaurant
-                GROUP BY subgroup_id, restaurant_id
-                HAVING COUNT(*) > 1
-            ) THEN
-                ALTER TABLE subgroup_favorite_restaurant
-                    ADD CONSTRAINT uq_subgroup_favorite_subgroup_restaurant UNIQUE (subgroup_id, restaurant_id);
-            ELSE
-                RAISE NOTICE 'Skip uq_subgroup_favorite_subgroup_restaurant: duplicated (subgroup_id, restaurant_id) exists';
-            END IF;
+            ALTER TABLE subgroup_favorite_restaurant
+                ADD CONSTRAINT uq_subgroup_favorite_subgroup_restaurant UNIQUE (subgroup_id, restaurant_id);
         END IF;
 
         IF NOT EXISTS (
@@ -34,17 +25,8 @@ BEGIN
             FROM pg_constraint
             WHERE conname = 'uq_subgroup_favorite_restaurant_member'
         ) THEN
-            IF NOT EXISTS (
-                SELECT 1
-                FROM subgroup_favorite_restaurant
-                GROUP BY restaurant_id, member_id
-                HAVING COUNT(*) > 1
-            ) THEN
-                ALTER TABLE subgroup_favorite_restaurant
-                    ADD CONSTRAINT uq_subgroup_favorite_restaurant_member UNIQUE (restaurant_id, member_id);
-            ELSE
-                RAISE NOTICE 'Skip uq_subgroup_favorite_restaurant_member: duplicated (restaurant_id, member_id) exists';
-            END IF;
+            ALTER TABLE subgroup_favorite_restaurant
+                ADD CONSTRAINT uq_subgroup_favorite_restaurant_member UNIQUE (restaurant_id, member_id);
         END IF;
 
         IF NOT EXISTS (
