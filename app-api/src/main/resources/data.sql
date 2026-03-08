@@ -216,7 +216,7 @@ INSERT INTO restaurant_comparison (
 INSERT INTO group_auth_code (
   id, group_id, code, created_at
 ) VALUES
-  (9801, 2002, 'LOCAL-1234', now());
+  (9801, 2002, '$2a$06$MgzDiruJtmBBLxWpe1BA9eeLeTk8XSNG434vW2CFxI.PQ6.6KmCBa', now());
 
 -- Additional search history
 INSERT INTO member_search_history (

@@ -28,17 +28,25 @@ public class DummyDataJdbcRepository {
 
 	private static final Time DEFAULT_OPEN_TIME = Time.valueOf("09:00:00");
 	private static final Time DEFAULT_CLOSE_TIME = Time.valueOf("21:00:00");
+	private static final String TEST_OAUTH_PROVIDER = "TEST";
+	private static final String TEST_OAUTH_EMAIL_SUFFIX = "@test.local";
 
 	private final JdbcTemplate jdbcTemplate;
 
 	// ── INSERT methods ────────────────────────────────────────────────────────
 
 	/**
-	 * member 테이블에 더미 멤버를 배치 삽입한다.
+	 * member 테이블에 더미 멤버를 배치 삽입하고,
+	 * 부하테스트 로그인용 TEST OAuth 계정도 함께 생성한다.
 	 * ID는 PostgreSQL sequence(member_seq)에서 직접 소비된다.
 	 */
 	@Transactional
-	public List<Long> insertMembers(List<String> emails, List<String> nicknames) {
+	public List<Long> insertMembersWithTestOAuthAccounts(
+		List<String> emails,
+		List<String> nicknames,
+		List<String> identifiers) {
+
+		validateSameSize(emails, nicknames, identifiers);
 		Timestamp now = ts();
 		int n = emails.size();
 		List<Long> allIds = new ArrayList<>(Math.max(0, n));
@@ -46,7 +54,7 @@ public class DummyDataJdbcRepository {
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
 			int size = end - start;
-			List<Long> chunkIds = preallocateIds("member_seq", size);
+			List<Long> chunkIds = preallocateIds("member_seq", "member", size);
 
 			StringBuilder sql = new StringBuilder(
 				"INSERT INTO member (id, email, nickname, status, role, created_at, updated_at) VALUES ");
@@ -63,9 +71,38 @@ public class DummyDataJdbcRepository {
 				p.add(now);
 			}
 			jdbcTemplate.update(sql.toString(), p.toArray());
+			upsertTestOAuthAccounts(chunkIds, identifiers.subList(start, end), now);
 			allIds.addAll(chunkIds);
 		}
 		return allIds;
+	}
+
+	private void upsertTestOAuthAccounts(List<Long> memberIds, List<String> identifiers, Timestamp now) {
+		syncSequenceToTableMax("member_oauth_account_seq", "member_oauth_account");
+		StringBuilder sql = new StringBuilder(
+			"INSERT INTO member_oauth_account "
+				+ "(id, member_id, provider, provider_user_id, provider_user_email, created_at) VALUES ");
+		List<Object> p = new ArrayList<>(identifiers.size() * 5);
+
+		for (int i = 0; i < identifiers.size(); i++) {
+			if (i > 0) {
+				sql.append(',');
+			}
+			sql.append("(nextval('member_oauth_account_seq'),?,?,?,?,?)");
+			p.add(memberIds.get(i));
+			p.add(TEST_OAUTH_PROVIDER);
+			p.add(identifiers.get(i));
+			p.add(identifiers.get(i) + TEST_OAUTH_EMAIL_SUFFIX);
+			p.add(now);
+		}
+
+		sql.append("""
+			 ON CONFLICT ON CONSTRAINT uk_member_oauth_provider_user
+			 DO UPDATE SET
+			   member_id = EXCLUDED.member_id,
+			   provider_user_email = EXCLUDED.provider_user_email
+			""");
+		jdbcTemplate.update(sql.toString(), p.toArray());
 	}
 
 	/**
@@ -122,7 +159,7 @@ public class DummyDataJdbcRepository {
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
 			int size = end - start;
-			List<Long> chunkIds = preallocateIds("group_seq", size);
+			List<Long> chunkIds = preallocateIds("group_seq", "\"group\"", size);
 
 			StringBuilder sql = new StringBuilder(
 				"INSERT INTO \"group\" (id, name, type, address, location, join_type, status, created_at, updated_at)"
@@ -157,6 +194,7 @@ public class DummyDataJdbcRepository {
 	public void insertGroupMembers(List<long[]> pairs) {
 		Timestamp now = ts();
 		int n = pairs.size();
+		syncSequenceToTableMax("group_member_seq", "group_member");
 
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
@@ -192,7 +230,7 @@ public class DummyDataJdbcRepository {
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
 			int size = end - start;
-			List<Long> chunkIds = preallocateIds("subgroup_seq", size);
+			List<Long> chunkIds = preallocateIds("subgroup_seq", "subgroup", size);
 
 			StringBuilder sql = new StringBuilder(
 				"INSERT INTO subgroup (id, group_id, name, join_type, status, member_count, created_at, updated_at) VALUES ");
@@ -227,7 +265,7 @@ public class DummyDataJdbcRepository {
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
 			int size = end - start;
-			List<Long> chunkIds = preallocateIds("chat_room_id_seq", size);
+			List<Long> chunkIds = preallocateIds("chat_room_id_seq", "chat_room", size);
 
 			StringBuilder sql = new StringBuilder(
 				"INSERT INTO chat_room (id, subgroup_id, created_at) VALUES ");
@@ -255,6 +293,7 @@ public class DummyDataJdbcRepository {
 	public void insertSubgroupMembers(List<long[]> pairs) {
 		Timestamp now = ts();
 		int n = pairs.size();
+		syncSequenceToTableMax("subgroup_member_seq", "subgroup_member");
 
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
@@ -965,6 +1004,18 @@ public class DummyDataJdbcRepository {
 	 * 더미 데이터를 외래키 제약 순서에 맞춰 전부 삭제한다.
 	 */
 	public void deleteDummyData() {
+		// 0-pre0. 더미 멤버의 리프레시 토큰 삭제
+		jdbcTemplate.update("""
+			DELETE FROM refresh_token
+			WHERE member_id IN (SELECT id FROM member WHERE email LIKE '%@dummy.tasteam.kr')
+			""");
+
+		// 0-pre0. 더미 멤버의 OAuth 계정 삭제
+		jdbcTemplate.update("""
+			DELETE FROM member_oauth_account
+			WHERE member_id IN (SELECT id FROM member WHERE email LIKE '%@dummy.tasteam.kr')
+			""");
+
 		// 0-pre1. 더미 멤버의 알림 설정 삭제
 		jdbcTemplate.update("""
 			DELETE FROM member_notification_preference
@@ -1250,9 +1301,13 @@ public class DummyDataJdbcRepository {
 	 * 명시적 시퀀스(member_seq 등)에서 count개의 ID를 한 번에 선점한다.
 	 * INSERT에서 RETURNING id를 제거하고 jdbcTemplate.update()만 사용할 수 있게 한다.
 	 */
-	private List<Long> preallocateIds(String sequenceName, int count) {
-		String sql = "SELECT nextval('" + sequenceName + "') FROM generate_series(1, ?)";
-		return jdbcTemplate.queryForList(sql, Long.class, count);
+	private List<Long> preallocateIds(String sequenceName, String tableName, int count) {
+		syncSequenceToTableMax(sequenceName, tableName);
+		return jdbcTemplate.queryForList(
+			"SELECT nextval(?::regclass) FROM generate_series(1, ?)",
+			Long.class,
+			sequenceName,
+			count);
 	}
 
 	/**
@@ -1260,12 +1315,36 @@ public class DummyDataJdbcRepository {
 	 * pg_get_serial_sequence로 시퀀스 이름을 카탈로그에서 조회한다.
 	 */
 	private List<Long> preallocateIdentityIds(String tableName, int count) {
-		String sql = "SELECT nextval(pg_get_serial_sequence('" + tableName + "', 'id')) FROM generate_series(1, ?)";
-		return jdbcTemplate.queryForList(sql, Long.class, count);
+		String sequenceName = jdbcTemplate.queryForObject(
+			"SELECT pg_get_serial_sequence(?, 'id')",
+			String.class,
+			tableName);
+		if (sequenceName == null || sequenceName.isBlank()) {
+			throw new IllegalStateException(tableName + " 테이블의 ID 시퀀스를 찾을 수 없습니다");
+		}
+		syncSequenceToTableMax(sequenceName, tableName);
+		return jdbcTemplate.queryForList(
+			"SELECT nextval(?::regclass) FROM generate_series(1, ?)",
+			Long.class,
+			sequenceName,
+			count);
+	}
+
+	private void syncSequenceToTableMax(String sequenceName, String tableName) {
+		long maxId = query("SELECT COALESCE(MAX(id), 0) FROM " + tableName);
+		long lastValue = query("SELECT COALESCE(last_value, 0) FROM " + sequenceName);
+		long target = Math.max(maxId, lastValue);
+		jdbcTemplate.queryForObject("SELECT setval(?::regclass, ?, true)", Long.class, sequenceName, target);
 	}
 
 	private Timestamp ts() {
 		return Timestamp.from(Instant.now());
+	}
+
+	private void validateSameSize(List<?> emails, List<?> nicknames, List<?> identifiers) {
+		if (emails.size() != nicknames.size() || emails.size() != identifiers.size()) {
+			throw new IllegalArgumentException("더미 멤버와 TEST OAuth 계정 입력 크기가 서로 다릅니다");
+		}
 	}
 
 	private long query(String sql) {
