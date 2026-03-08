@@ -31,6 +31,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import com.tasteam.domain.chat.config.ChatStreamProperties;
 import com.tasteam.domain.chat.dto.response.ChatMessageItemResponse;
 import com.tasteam.domain.chat.repository.ChatRoomRepository;
 
@@ -53,6 +54,7 @@ public class ChatStreamSubscriber {
 	private final ChatStreamKeyResolver keyResolver;
 	private final ChatStreamGroupNameProvider groupNameProvider;
 	private final SimpMessagingTemplate messagingTemplate;
+	private final ChatStreamProperties chatStreamProperties;
 
 	private final Map<Long, Subscription> subscriptions = new ConcurrentHashMap<>();
 
@@ -64,22 +66,33 @@ public class ChatStreamSubscriber {
 		ChatRoomRepository chatRoomRepository,
 		ChatStreamKeyResolver keyResolver,
 		ChatStreamGroupNameProvider groupNameProvider,
-		SimpMessagingTemplate messagingTemplate) {
+		SimpMessagingTemplate messagingTemplate,
+		ChatStreamProperties chatStreamProperties) {
 		this.container = container;
 		this.stringRedisTemplate = stringRedisTemplate;
 		this.chatRoomRepository = chatRoomRepository;
 		this.keyResolver = keyResolver;
 		this.groupNameProvider = groupNameProvider;
 		this.messagingTemplate = messagingTemplate;
+		this.chatStreamProperties = chatStreamProperties;
 	}
 
 	@PostConstruct
 	public void start() {
+		if (!chatStreamProperties.enabled()) {
+			log.info("채팅 스트림 구독 기능이 비활성화되어 시작을 건너뜁니다.");
+			return;
+		}
 		container.start();
 	}
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void onApplicationReady() {
+		if (!chatStreamProperties.enabled() || !chatStreamProperties.bootstrapEnabled()) {
+			log.info("채팅 스트림 구독 부트스트랩을 건너뜁니다. enabled={}, bootstrapEnabled={}",
+				chatStreamProperties.enabled(), chatStreamProperties.bootstrapEnabled());
+			return;
+		}
 		refreshSubscriptions();
 	}
 
@@ -90,13 +103,42 @@ public class ChatStreamSubscriber {
 
 	@Scheduled(fixedDelayString = "PT30S")
 	public void refreshSubscriptions() {
+		if (!chatStreamProperties.enabled()) {
+			return;
+		}
+		if (chatStreamProperties.maxTotalSubscriptions() <= 0 || chatStreamProperties.bootstrapBatchSize() <= 0) {
+			return;
+		}
+
 		Set<Long> currentRoomIds = Set.copyOf(chatRoomRepository.findActiveRoomIds());
+		int remainingCapacity = Math.min(
+			chatStreamProperties.bootstrapBatchSize(),
+			Math.max(0, chatStreamProperties.maxTotalSubscriptions() - subscriptions.size()));
+		if (remainingCapacity <= 0) {
+			return;
+		}
+
+		int subscribedThisRound = 0;
 		for (Long roomId : currentRoomIds) {
+			if (subscribedThisRound >= remainingCapacity) {
+				break;
+			}
+			if (subscriptions.containsKey(roomId)) {
+				continue;
+			}
+			if (roomId == null) {
+				continue;
+			}
 			try {
 				subscriptions.computeIfAbsent(roomId, this::registerRoomSubscription);
+				subscribedThisRound++;
 			} catch (Exception ex) {
 				log.warn("채팅방 구독 등록 실패, 다음 주기에 재시도합니다. roomId={}", roomId, ex);
 			}
+		}
+
+		if (subscribedThisRound > 0) {
+			log.info("채팅방 구독 부트스트랩 {}건 등록 (현재 구독 수: {})", subscribedThisRound, subscriptions.size());
 		}
 	}
 
