@@ -11,6 +11,7 @@ public final class MetricLabelPolicy {
 		"environment",
 		"instance",
 		"result",
+		"state",
 		"topic",
 		"provider",
 		"target",

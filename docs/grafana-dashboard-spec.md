@@ -1,5 +1,8 @@
 # Grafana 대시보드 명세
 
+> 이 문서는 `3-team-Tasteam-be/docker-compose.monitoring.yml` 기반의 로컬 개발용 스택 기준이다.
+> 클라우드 v2 운영 대시보드 자동 프로비저닝은 `3-team-Tasteam-cloud/v2-docker/monitoring/grafana/`를 기준으로 관리한다.
+
 ## 전제 조건 & 파일 구조
 
 모니터링 스택은 아래 파일로 구성된다.

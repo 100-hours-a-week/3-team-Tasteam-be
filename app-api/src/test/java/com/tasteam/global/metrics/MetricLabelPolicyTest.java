@@ -17,6 +17,7 @@ class MetricLabelPolicyTest {
 	void validate_passesWhitelistedLabels() {
 		assertThatCode(() -> MetricLabelPolicy.validate("metric.sample",
 			"result", "success",
+			"state", "open",
 			"target", "posthog",
 			"executor", "search_history")).doesNotThrowAnyException();
 	}

@@ -259,6 +259,7 @@ HTTP Request
 | `environment` | 전역 태그 (application.yml) |
 | `instance` | 전역 태그 |
 | `result` | 범용 |
+| `state` | 회로 차단기/상태 이벤트 |
 | `topic` | 메시지 큐 관련 |
 | `provider` | 외부 서비스 구분 |
 | `target` | 범용 |
