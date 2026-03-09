@@ -15,7 +15,13 @@ public final class MetricLabelPolicy {
 		"provider",
 		"target",
 		"reason",
-		"executor");
+		"executor",
+		"method",
+		"uri",
+		"domain",
+		"outcome",
+		"read_only",
+		"method_name");
 
 	private static final Set<String> FORBIDDEN_LABELS = Set.of(
 		"eventId",

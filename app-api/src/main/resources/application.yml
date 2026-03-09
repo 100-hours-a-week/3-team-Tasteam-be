@@ -137,6 +137,16 @@ tasteam:
       finish-timeout: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_TIMEOUT:10m}
       finish-check-interval: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_CHECK_INTERVAL:PT1M}
   aop:
+    metrics:
+      enabled: ${METRICS_AOP_ENABLED:true}
+      api-metrics:
+        enabled: ${METRICS_API_ENABLED:true}
+      transaction-metrics:
+        enabled: ${METRICS_TX_ENABLED:true}
+    tracing:
+      enabled: ${TRACING_AOP_ENABLED:false}
+      transaction-tracing:
+        enabled: ${TRACING_TX_ENABLED:false}
     logging:
       enabled: ${TASTEAM_AOP_LOGGING_ENABLED:true}
       api-logging:
@@ -255,6 +265,9 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        tasteam.api.request.duration: true
+        tasteam.transaction.duration: true
+        tasteam.transaction.query.count: true
     tags:
       application: tasteam-api
       environment: ${spring.profiles.active:local}
