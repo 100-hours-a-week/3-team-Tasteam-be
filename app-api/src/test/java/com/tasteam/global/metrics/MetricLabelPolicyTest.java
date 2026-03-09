@@ -32,7 +32,7 @@ class MetricLabelPolicyTest {
 	@Test
 	@DisplayName("화이트리스트에 없는 라벨은 예외가 발생한다")
 	void validate_failsWhenUnknownLabelUsed() {
-		assertThatThrownBy(() -> MetricLabelPolicy.validate("metric.sample", "domain", "notification"))
+		assertThatThrownBy(() -> MetricLabelPolicy.validate("metric.sample", "user_agent", "Mozilla"))
 			.isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("허용되지 않은 메트릭 라벨");
 	}
