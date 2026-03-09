@@ -8,6 +8,11 @@ services:
     privileged: true
     extra_hosts:
       - "host.docker.internal:host-gateway"  # Spring/Redis 호스트 포트 접근용
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
     volumes:
       - ${ALLOY_CONFIG_FILE}:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock  # cAdvisor + 컨테이너 로그 수집용
