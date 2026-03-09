@@ -31,6 +31,10 @@
     - `docs/spec/tech/user-activity/RUNBOOK.md`: 사용자 이벤트 수집 장애 탐지/조사/복구 운영 런북 문서입니다.
     - `docs/spec/tech/user-activity/TRACEABILITY.md`: 이슈/PR/커밋/코드/테스트 추적성과 갭 리포트 문서입니다.
 
+- `docs/troubleshooting/`: 성능 분석·장애 대응·의사결정 기록을 모아둔 공간입니다.
+  - `presigned-url-caching-20260226.md`: Presigned GET URL 캐싱 불가 문제 분석 및 서버 측 Caffeine 캐싱 개선.
+  - `geocode-reverse-cache-virtual-thread-20260309.md`: Reverse Geocode 엔드포인트 Caffeine 캐시 + Virtual Thread 성능 개선.
+
 ## 확장 포인트
 
 현재 `docs/`는 위의 `convention/`, `policy/` 디렉터리를 포함하고 있습니다. 기능, 배포, 아키텍처 등 추가 문서가 필요해지면 이README를 참고하여 새로운 하위 디렉터리를 만들고 이 목록에 추가하시면 됩니다.
