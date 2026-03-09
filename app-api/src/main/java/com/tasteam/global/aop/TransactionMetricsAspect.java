@@ -134,7 +134,7 @@ public class TransactionMetricsAspect {
 		// com.tasteam.domain.<domain>.service.*  → <domain>
 		String[] parts = className.split("\\.");
 		for (int i = 0; i < parts.length - 1; i++) {
-			if ("domain".equals(parts[i]) && i + 1 < parts.length) {
+			if ("domain".equals(parts[i])) {
 				return parts[i + 1];
 			}
 		}
