@@ -7,6 +7,9 @@ server:
 spring:
   application:
     name: tasteam-api
+  threads:
+    virtual:
+      enabled: true
   config:
     import:
       - optional:classpath:application.local.yml
