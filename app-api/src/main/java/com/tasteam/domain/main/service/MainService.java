@@ -2,23 +2,22 @@ package com.tasteam.domain.main.service;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
-import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
-import com.tasteam.domain.group.repository.GroupRepository;
-import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.main.dto.request.MainPageRequest;
 import com.tasteam.domain.main.dto.response.AiRecommendResponse;
 import com.tasteam.domain.main.dto.response.HomePageResponse;
@@ -26,13 +25,10 @@ import com.tasteam.domain.main.dto.response.MainPageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Banners;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Section;
 import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
-import com.tasteam.domain.member.dto.response.MemberGroupSummaryRow;
 import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
 import com.tasteam.domain.promotion.service.PromotionService;
 import com.tasteam.domain.restaurant.entity.RestaurantReviewSummary;
-import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
-import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantReviewSummaryRepository;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
@@ -43,23 +39,31 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MainService {
 
-	private static final List<Long> SENTINEL_EXCLUDE = List.of(-1L);
-
-	private final RestaurantRepository restaurantRepository;
+	private final MainDataService mainDataService;
 	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
 	private final RestaurantReviewSummaryRepository restaurantReviewSummaryRepository;
 	private final GroupMemberRepository groupMemberRepository;
-	private final GroupRepository groupRepository;
 	private final FileService fileService;
 	private final PromotionService promotionService;
+	@Qualifier("mainQueryExecutor")
+	private final Executor mainQueryExecutor;
 
 	@Transactional(readOnly = true)
 	public MainPageResponse getMain(Long memberId, MainPageRequest request) {
 		LocationContext location = resolveLocation(memberId, request);
 
-		List<MainRestaurantDistanceProjection> hotRestaurants = fetchHotSection(location);
-		List<MainRestaurantDistanceProjection> newRestaurants = fetchNewSection(location);
-		List<MainRestaurantDistanceProjection> aiRestaurants = fetchAiRecommendSection(location);
+		CompletableFuture<List<MainRestaurantDistanceProjection>> hotFuture = CompletableFuture.supplyAsync(
+			() -> fetchHotSection(location), mainQueryExecutor);
+		CompletableFuture<List<MainRestaurantDistanceProjection>> newFuture = CompletableFuture.supplyAsync(
+			() -> fetchNewSection(location), mainQueryExecutor);
+		CompletableFuture<List<MainRestaurantDistanceProjection>> aiFuture = CompletableFuture.supplyAsync(
+			() -> fetchAiSection(location), mainQueryExecutor);
+
+		CompletableFuture.allOf(hotFuture, newFuture, aiFuture).join();
+
+		List<MainRestaurantDistanceProjection> hotRestaurants = hotFuture.join();
+		List<MainRestaurantDistanceProjection> newRestaurants = newFuture.join();
+		List<MainRestaurantDistanceProjection> aiRestaurants = aiFuture.join();
 
 		Set<Long> allIdSet = new HashSet<>();
 		Stream.of(hotRestaurants, newRestaurants, aiRestaurants)
@@ -67,9 +71,18 @@ public class MainService {
 			.forEach(r -> allIdSet.add(r.getId()));
 		List<Long> allIds = new ArrayList<>(allIdSet);
 
-		Map<Long, List<String>> categoriesByRestaurant = fetchCategories(allIds);
-		Map<Long, String> thumbnailByRestaurant = fetchThumbnails(allIds);
-		Map<Long, String> summaryByRestaurant = fetchSummaries(allIds);
+		CompletableFuture<Map<Long, List<String>>> catFuture = CompletableFuture.supplyAsync(
+			() -> fetchCategories(allIds), mainQueryExecutor);
+		CompletableFuture<Map<Long, String>> thumbFuture = CompletableFuture.supplyAsync(
+			() -> fetchThumbnails(allIds), mainQueryExecutor);
+		CompletableFuture<Map<Long, String>> summaryFuture = CompletableFuture.supplyAsync(
+			() -> fetchSummaries(allIds), mainQueryExecutor);
+
+		CompletableFuture.allOf(catFuture, thumbFuture, summaryFuture).join();
+
+		Map<Long, List<String>> categoriesByRestaurant = catFuture.join();
+		Map<Long, String> thumbnailByRestaurant = thumbFuture.join();
+		Map<Long, String> summaryByRestaurant = summaryFuture.join();
 
 		List<Section> sections = List.of(
 			new Section("SPONSORED", "Sponsored", List.of()),
@@ -109,8 +122,15 @@ public class MainService {
 	public HomePageResponse getHome(Long memberId, MainPageRequest request) {
 		LocationContext location = resolveLocation(memberId, request);
 
-		List<MainRestaurantDistanceProjection> newRestaurants = fetchNewSection(location);
-		List<MainRestaurantDistanceProjection> hotRestaurants = fetchHotSection(location);
+		CompletableFuture<List<MainRestaurantDistanceProjection>> newFuture = CompletableFuture.supplyAsync(
+			() -> fetchNewSection(location), mainQueryExecutor);
+		CompletableFuture<List<MainRestaurantDistanceProjection>> hotFuture = CompletableFuture.supplyAsync(
+			() -> fetchHotSection(location), mainQueryExecutor);
+
+		CompletableFuture.allOf(newFuture, hotFuture).join();
+
+		List<MainRestaurantDistanceProjection> newRestaurants = newFuture.join();
+		List<MainRestaurantDistanceProjection> hotRestaurants = hotFuture.join();
 
 		Set<Long> allIdSet = new HashSet<>();
 		Stream.of(newRestaurants, hotRestaurants)
@@ -118,9 +138,18 @@ public class MainService {
 			.forEach(r -> allIdSet.add(r.getId()));
 		List<Long> allIds = new ArrayList<>(allIdSet);
 
-		Map<Long, List<String>> categoriesByRestaurant = fetchCategories(allIds);
-		Map<Long, String> thumbnailByRestaurant = fetchThumbnails(allIds);
-		Map<Long, String> summaryByRestaurant = fetchSummaries(allIds);
+		CompletableFuture<Map<Long, List<String>>> catFuture = CompletableFuture.supplyAsync(
+			() -> fetchCategories(allIds), mainQueryExecutor);
+		CompletableFuture<Map<Long, String>> thumbFuture = CompletableFuture.supplyAsync(
+			() -> fetchThumbnails(allIds), mainQueryExecutor);
+		CompletableFuture<Map<Long, String>> summaryFuture = CompletableFuture.supplyAsync(
+			() -> fetchSummaries(allIds), mainQueryExecutor);
+
+		CompletableFuture.allOf(catFuture, thumbFuture, summaryFuture).join();
+
+		Map<Long, List<String>> categoriesByRestaurant = catFuture.join();
+		Map<Long, String> thumbnailByRestaurant = thumbFuture.join();
+		Map<Long, String> summaryByRestaurant = summaryFuture.join();
 
 		List<HomePageResponse.Section> sections = List.of(
 			new HomePageResponse.Section("NEW", "신규 개장",
@@ -136,20 +165,25 @@ public class MainService {
 	public AiRecommendResponse getAiRecommend(Long memberId, MainPageRequest request) {
 		LocationContext location = resolveLocation(memberId, request);
 
-		List<MainRestaurantDistanceProjection> aiRestaurants = fetchAiRecommendSection(location);
+		List<MainRestaurantDistanceProjection> aiRestaurants = fetchAiSection(location);
 
 		List<Long> allIds = aiRestaurants.stream()
 			.map(MainRestaurantDistanceProjection::getId)
 			.toList();
 
-		Map<Long, List<String>> categoriesByRestaurant = fetchCategories(allIds);
-		Map<Long, String> thumbnailByRestaurant = fetchThumbnails(allIds);
-		Map<Long, String> summaryByRestaurant = fetchSummaries(allIds);
+		CompletableFuture<Map<Long, List<String>>> catFuture = CompletableFuture.supplyAsync(
+			() -> fetchCategories(allIds), mainQueryExecutor);
+		CompletableFuture<Map<Long, String>> thumbFuture = CompletableFuture.supplyAsync(
+			() -> fetchThumbnails(allIds), mainQueryExecutor);
+		CompletableFuture<Map<Long, String>> summaryFuture = CompletableFuture.supplyAsync(
+			() -> fetchSummaries(allIds), mainQueryExecutor);
+
+		CompletableFuture.allOf(catFuture, thumbFuture, summaryFuture).join();
 
 		AiRecommendResponse.Section section = new AiRecommendResponse.Section(
 			"AI_RECOMMEND",
 			"AI 추천",
-			toAiSectionItems(aiRestaurants, categoriesByRestaurant, thumbnailByRestaurant, summaryByRestaurant));
+			toAiSectionItems(aiRestaurants, catFuture.join(), thumbFuture.join(), summaryFuture.join()));
 
 		return new AiRecommendResponse(section);
 	}
@@ -160,19 +194,9 @@ public class MainService {
 		}
 
 		if (memberId != null) {
-			List<MemberGroupSummaryRow> groups = groupMemberRepository.findMemberGroupSummaries(
-				memberId, GroupStatus.ACTIVE);
-
-			for (MemberGroupSummaryRow groupSummary : groups) {
-				Group group = groupRepository.findByIdAndDeletedAtIsNull(groupSummary.groupId())
-					.orElse(null);
-				if (group != null && group.getLocation() != null) {
-					return new LocationContext(
-						group.getLocation().getY(),
-						group.getLocation().getX(),
-						true);
-				}
-			}
+			return groupMemberRepository.findFirstGroupLocationByMemberId(memberId)
+				.map(loc -> new LocationContext(loc.getLatitude(), loc.getLongitude(), true))
+				.orElse(new LocationContext(null, null, false));
 		}
 
 		return new LocationContext(null, null, false);
@@ -180,102 +204,23 @@ public class MainService {
 
 	private List<MainRestaurantDistanceProjection> fetchHotSection(LocationContext location) {
 		if (location.hasLocation()) {
-			return fetchWithRadiusExpansion(location, this::queryHotWithLocation);
+			return mainDataService.fetchHotSectionByLocation(location.latitude(), location.longitude());
 		}
-		return fetchWithoutLocation(this::queryHotAll);
+		return mainDataService.fetchHotSectionAll();
 	}
 
 	private List<MainRestaurantDistanceProjection> fetchNewSection(LocationContext location) {
 		if (location.hasLocation()) {
-			return fetchWithRadiusExpansion(location, this::queryNewWithLocation);
+			return mainDataService.fetchNewSectionByLocation(location.latitude(), location.longitude());
 		}
-		return fetchWithoutLocation(this::queryNewAll);
+		return mainDataService.fetchNewSectionAll();
 	}
 
-	private List<MainRestaurantDistanceProjection> fetchAiRecommendSection(LocationContext location) {
+	private List<MainRestaurantDistanceProjection> fetchAiSection(LocationContext location) {
 		if (location.hasLocation()) {
-			return fetchWithRadiusExpansion(location, this::queryAiRecommendWithLocation);
+			return mainDataService.fetchAiSectionByLocation(location.latitude(), location.longitude());
 		}
-		return fetchWithoutLocation(this::queryAiRecommendAll);
-	}
-
-	private List<MainRestaurantDistanceProjection> fetchWithRadiusExpansion(
-		LocationContext location, LocationQuery query) {
-		LinkedHashMap<Long, MainRestaurantDistanceProjection> collected = new LinkedHashMap<>();
-
-		for (int radius : RestaurantSearchPolicy.EXPANDED_RADII) {
-			List<MainRestaurantDistanceProjection> results = query.execute(
-				location.latitude(), location.longitude(), radius, RestaurantSearchPolicy.SECTION_SIZE);
-
-			for (MainRestaurantDistanceProjection r : results) {
-				collected.putIfAbsent(r.getId(), r);
-				if (collected.size() >= RestaurantSearchPolicy.SECTION_SIZE) {
-					return new ArrayList<>(collected.values());
-				}
-			}
-		}
-
-		if (collected.size() < RestaurantSearchPolicy.SECTION_SIZE) {
-			fillWithRandom(collected, RestaurantSearchPolicy.SECTION_SIZE - collected.size());
-		}
-
-		return new ArrayList<>(collected.values());
-	}
-
-	private List<MainRestaurantDistanceProjection> fetchWithoutLocation(NoLocationQuery query) {
-		List<Long> excludeIds = SENTINEL_EXCLUDE;
-		List<MainRestaurantDistanceProjection> results = query.execute(excludeIds, RestaurantSearchPolicy.SECTION_SIZE);
-
-		if (results.size() >= RestaurantSearchPolicy.SECTION_SIZE) {
-			return results;
-		}
-
-		LinkedHashMap<Long, MainRestaurantDistanceProjection> collected = new LinkedHashMap<>();
-		for (MainRestaurantDistanceProjection r : results) {
-			collected.put(r.getId(), r);
-		}
-
-		fillWithRandom(collected, RestaurantSearchPolicy.SECTION_SIZE - collected.size());
-		return new ArrayList<>(collected.values());
-	}
-
-	private void fillWithRandom(LinkedHashMap<Long, MainRestaurantDistanceProjection> collected, int needed) {
-		if (needed <= 0) {
-			return;
-		}
-		List<Long> excludeIds = collected.isEmpty() ? SENTINEL_EXCLUDE : new ArrayList<>(collected.keySet());
-		List<MainRestaurantDistanceProjection> fillers = restaurantRepository.findRandomRestaurants(
-			excludeIds, needed);
-		for (MainRestaurantDistanceProjection r : fillers) {
-			collected.putIfAbsent(r.getId(), r);
-		}
-	}
-
-	private List<MainRestaurantDistanceProjection> queryHotWithLocation(
-		double lat, double lon, int radius, int limit) {
-		return restaurantRepository.findHotRestaurants(lat, lon, radius, limit);
-	}
-
-	private List<MainRestaurantDistanceProjection> queryNewWithLocation(
-		double lat, double lon, int radius, int limit) {
-		return restaurantRepository.findNewRestaurants(lat, lon, radius, limit);
-	}
-
-	private List<MainRestaurantDistanceProjection> queryAiRecommendWithLocation(
-		double lat, double lon, int radius, int limit) {
-		return restaurantRepository.findAiRecommendRestaurants(lat, lon, radius, limit);
-	}
-
-	private List<MainRestaurantDistanceProjection> queryHotAll(List<Long> excludeIds, int limit) {
-		return restaurantRepository.findHotRestaurantsAll(excludeIds, limit);
-	}
-
-	private List<MainRestaurantDistanceProjection> queryNewAll(List<Long> excludeIds, int limit) {
-		return restaurantRepository.findNewRestaurantsAll(excludeIds, limit);
-	}
-
-	private List<MainRestaurantDistanceProjection> queryAiRecommendAll(List<Long> excludeIds, int limit) {
-		return restaurantRepository.findAiRecommendRestaurantsAll(excludeIds, limit);
+		return mainDataService.fetchAiSectionAll();
 	}
 
 	private Map<Long, List<String>> fetchCategories(List<Long> restaurantIds) {
@@ -375,18 +320,5 @@ public class MainService {
 				thumbnailByRestaurant.get(restaurant.getId()),
 				summaryByRestaurant.get(restaurant.getId())))
 			.toList();
-	}
-
-	private record LocationContext(Double latitude, Double longitude, boolean hasLocation) {
-	}
-
-	@FunctionalInterface
-	private interface LocationQuery {
-		List<MainRestaurantDistanceProjection> execute(double lat, double lon, int radius, int limit);
-	}
-
-	@FunctionalInterface
-	private interface NoLocationQuery {
-		List<MainRestaurantDistanceProjection> execute(List<Long> excludeIds, int limit);
 	}
 }
