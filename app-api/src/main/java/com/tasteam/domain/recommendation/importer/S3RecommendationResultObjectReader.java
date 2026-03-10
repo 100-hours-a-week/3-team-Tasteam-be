@@ -3,24 +3,23 @@ package com.tasteam.domain.recommendation.importer;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.S3Object;
 import com.tasteam.domain.recommendation.exception.RecommendationBusinessException;
+import com.tasteam.infra.storage.StorageClient;
 
 @Component
 public class S3RecommendationResultObjectReader implements RecommendationResultObjectReader {
 
-	private final AmazonS3 amazonS3;
+	private final StorageClient storageClient;
 
-	public S3RecommendationResultObjectReader(AmazonS3 amazonS3) {
-		this.amazonS3 = amazonS3;
+	public S3RecommendationResultObjectReader(StorageClient storageClient) {
+		this.storageClient = storageClient;
 	}
 
 	@Override
 	public java.io.InputStream openStream(String s3Uri) {
 		S3Location location = parseS3Uri(s3Uri);
-		S3Object object = amazonS3.getObject(location.bucket(), location.key());
-		return object.getObjectContent();
+		byte[] data = storageClient.downloadObject(location.key());
+		return new java.io.ByteArrayInputStream(data);
 	}
 
 	private S3Location parseS3Uri(String s3Uri) {

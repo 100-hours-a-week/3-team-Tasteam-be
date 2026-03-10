@@ -14,25 +14,22 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.tasteam.domain.recommendation.exception.RecommendationBusinessException;
 import com.tasteam.domain.recommendation.importer.config.RecommendationImportPollingProperties;
+import com.tasteam.infra.storage.StorageClient;
 
 @Component
 public class S3RecommendationResultPollingService {
 
 	private static final Pattern DT_PATTERN = Pattern.compile(".*/dt=(\\d{4}-\\d{2}-\\d{2})/.*");
 
-	private final AmazonS3 amazonS3;
+	private final StorageClient storageClient;
 	private final RecommendationImportPollingProperties pollingProperties;
 
 	public S3RecommendationResultPollingService(
-		AmazonS3 amazonS3,
+		StorageClient storageClient,
 		RecommendationImportPollingProperties pollingProperties) {
-		this.amazonS3 = amazonS3;
+		this.storageClient = storageClient;
 		this.pollingProperties = pollingProperties;
 	}
 
@@ -62,7 +59,7 @@ public class S3RecommendationResultPollingService {
 		String pipelinePrefix,
 		String pipelineVersion) {
 
-		Map<LocalDate, RecommendationBatchFolderState> states = collectBatchStates(bucket, pipelinePrefix);
+		Map<LocalDate, RecommendationBatchFolderState> states = collectBatchStates(pipelinePrefix);
 		return states.entrySet().stream()
 			.filter(entry -> entry.getValue().ready())
 			.max(Map.Entry.comparingByKey())
@@ -73,38 +70,24 @@ public class S3RecommendationResultPollingService {
 			.orElse(null);
 	}
 
-	private Map<LocalDate, RecommendationBatchFolderState> collectBatchStates(String bucket, String pipelinePrefix) {
+	private Map<LocalDate, RecommendationBatchFolderState> collectBatchStates(String pipelinePrefix) {
 		Map<LocalDate, RecommendationBatchFolderState> states = new HashMap<>();
-		String continuationToken = null;
-
-		do {
-			ListObjectsV2Request req = new ListObjectsV2Request()
-				.withBucketName(bucket)
-				.withPrefix(pipelinePrefix)
-				.withContinuationToken(continuationToken)
-				.withMaxKeys(1000);
-
-			ListObjectsV2Result result = amazonS3.listObjectsV2(req);
-			for (S3ObjectSummary summary : result.getObjectSummaries()) {
-				String key = summary.getKey();
-				LocalDate dt = extractBatchDate(key);
-				if (dt == null) {
-					continue;
-				}
-				RecommendationBatchFolderState state = states.computeIfAbsent(
-					dt,
-					ignored -> new RecommendationBatchFolderState());
-				if (key.endsWith("/_SUCCESS")) {
-					state.markSuccess();
-					continue;
-				}
-				if (key.endsWith(".csv")) {
-					state.addCsvKey(key);
-				}
+		for (String key : storageClient.listObjects(pipelinePrefix)) {
+			LocalDate dt = extractBatchDate(key);
+			if (dt == null) {
+				continue;
 			}
-
-			continuationToken = result.isTruncated() ? result.getNextContinuationToken() : null;
-		} while (continuationToken != null);
+			RecommendationBatchFolderState state = states.computeIfAbsent(
+				dt,
+				ignored -> new RecommendationBatchFolderState());
+			if (key.endsWith("/_SUCCESS")) {
+				state.markSuccess();
+				continue;
+			}
+			if (key.endsWith(".csv")) {
+				state.addCsvKey(key);
+			}
+		}
 
 		return states;
 	}
