@@ -21,4 +21,19 @@ public class RecommendationImportPollingProperties {
 	 * 결과 파일 대기 최대 시간.
 	 */
 	private Duration timeout = Duration.ofMinutes(10);
+
+	/**
+	 * 폴링 단계 최대 재시도 횟수(최초 시도 포함).
+	 */
+	private int pollingMaxAttempts = 3;
+
+	/**
+	 * import 단계 최대 재시도 횟수(최초 시도 포함).
+	 */
+	private int importMaxAttempts = 2;
+
+	/**
+	 * 재시도 간격.
+	 */
+	private Duration retryBackoff = Duration.ofSeconds(3);
 }

@@ -36,6 +36,12 @@ public class RecommendationBusinessException extends BusinessException {
 			detail == null ? RecommendationErrorCode.RECOMMENDATION_CSV_FORMAT_INVALID.getMessage() : detail);
 	}
 
+	public static RecommendationBusinessException resultIoError(String detail) {
+		return new RecommendationBusinessException(
+			RecommendationErrorCode.RECOMMENDATION_RESULT_IO_ERROR,
+			detail == null ? RecommendationErrorCode.RECOMMENDATION_RESULT_IO_ERROR.getMessage() : detail);
+	}
+
 	public static RecommendationBusinessException resultValidationFailed(String detail) {
 		return new RecommendationBusinessException(
 			RecommendationErrorCode.RECOMMENDATION_RESULT_VALIDATION_FAILED,

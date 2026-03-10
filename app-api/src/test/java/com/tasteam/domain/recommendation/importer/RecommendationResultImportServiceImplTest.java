@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -29,6 +30,7 @@ import com.tasteam.domain.recommendation.exception.RecommendationBusinessExcepti
 import com.tasteam.domain.recommendation.persistence.RestaurantRecommendationJdbcRepository;
 import com.tasteam.domain.recommendation.persistence.RestaurantRecommendationRow;
 import com.tasteam.domain.recommendation.repository.RestaurantRecommendationModelRepository;
+import com.tasteam.global.exception.code.RecommendationErrorCode;
 
 @UnitTest
 @DisplayName("[유닛](Recommendation) RecommendationResultImportServiceImpl 단위 테스트")
@@ -139,5 +141,44 @@ class RecommendationResultImportServiceImplTest {
 			return callback.doInTransaction(null);
 		});
 		return txOps;
+	}
+
+	@Test
+	@DisplayName("파일 IO 예외는 RESULT_IO_ERROR로 변환한다")
+	void importResults_throwsResultIoErrorWhenIOException() throws Exception {
+		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
+		RestaurantRecommendationModelRepository repository = mock(RestaurantRecommendationModelRepository.class);
+		RestaurantRecommendationJdbcRepository jdbcRepository = mock(RestaurantRecommendationJdbcRepository.class);
+		RecommendationResultObjectReader objectReader = mock(RecommendationResultObjectReader.class);
+		RecommendationResultCsvReader csvReader = mock(RecommendationResultCsvReader.class);
+		RecommendationImportRowValidator validator = mock(RecommendationImportRowValidator.class);
+		TransactionOperations txOps = passthroughTxOps();
+		RestaurantRecommendationModel model = RestaurantRecommendationModel.loading("deepfm-1");
+		ReflectionTestUtils.setField(model, "id", 1L);
+		BatchExecution execution = BatchExecution.start(
+			com.tasteam.domain.batch.entity.BatchType.RECOMMENDATION_IMPORT_ON_DEMAND,
+			java.time.Instant.parse("2026-03-03T09:00:00Z"));
+
+		when(repository.findByVersion("deepfm-1")).thenReturn(Optional.of(model));
+		when(repository.save(model)).thenReturn(model);
+		when(batchExecutionRepository.save(any(BatchExecution.class))).thenReturn(execution);
+		when(objectReader.openStream("s3://bucket/result.csv")).thenReturn(new ByteArrayInputStream(new byte[0]));
+		doAnswer(invocation -> {
+			throw new IOException("network");
+		}).when(csvReader).read(any(), any());
+		RecommendationResultImportServiceImpl service = new RecommendationResultImportServiceImpl(
+			batchExecutionRepository,
+			repository,
+			jdbcRepository,
+			objectReader,
+			csvReader,
+			validator,
+			txOps);
+
+		assertThatThrownBy(() -> service.importResults(
+			new RecommendationResultImportRequest("deepfm-1", "s3://bucket/result.csv", "req-1")))
+			.isInstanceOf(RecommendationBusinessException.class)
+			.extracting(ex -> ((RecommendationBusinessException)ex).getErrorCode())
+			.isEqualTo(RecommendationErrorCode.RECOMMENDATION_RESULT_IO_ERROR.name());
 	}
 }

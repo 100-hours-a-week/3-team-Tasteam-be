@@ -76,66 +76,81 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 			List<RestaurantRecommendationRow> buffer = new ArrayList<>(INSERT_CHUNK_SIZE);
 
 			csvReader.read(inputStream, parsedRow -> {
+				accumulator.markLastLineNumber(parsedRow.lineNumber());
 				accumulator.incrementTotalRows();
-				RestaurantRecommendationRow row = rowValidator.validateAndConvertOrNull(
-					parsedRow,
-					request.requestedModelVersion());
-				if (row == null) {
-					accumulator.incrementSkippedRows();
-					return;
-				}
-				buffer.add(row);
-				if (buffer.size() >= INSERT_CHUNK_SIZE) {
-					accumulator.addInsertedRows(flushBuffer(modelId, buffer));
-					buffer.clear();
+				try {
+					RestaurantRecommendationRow row = rowValidator.validateAndConvertOrNull(
+						parsedRow,
+						request.requestedModelVersion());
+					if (row == null) {
+						accumulator.incrementSkippedRows();
+						return;
+					}
+					buffer.add(row);
+					if (buffer.size() >= INSERT_CHUNK_SIZE) {
+						flushChunk(modelId, buffer, accumulator);
+					}
+				} catch (RuntimeException ex) {
+					accumulator.incrementFailedRows();
+					throw ex;
 				}
 			});
 
 			if (!buffer.isEmpty()) {
-				accumulator.addInsertedRows(flushBuffer(modelId, buffer));
-				buffer.clear();
+				flushChunk(modelId, buffer, accumulator);
 			}
 
+			accumulator.reconcileFailureCount();
+			accumulator.assertInvariant();
 			markReady(model);
-			finishBatchExecutionSuccess(batchExecution, accumulator);
+			finishBatchExecution(batchExecution, accumulator, BatchExecutionStatus.COMPLETED);
 			log.info(
-				"recommendation import completed. batchExecutionId={}, modelVersion={}, requestId={}, totalRows={}, insertedRows={}, skippedRows={}",
+				"recommendation import completed. batchExecutionId={}, modelVersion={}, requestId={}, totalRows={}, insertedRows={}, skippedRows={}, failedRows={}",
 				batchExecution.getId(),
 				model.getVersion(),
 				request.requestId(),
 				accumulator.totalRows,
 				accumulator.insertedRows,
-				accumulator.skippedRows);
+				accumulator.skippedRows,
+				accumulator.failedRows);
 			return new RecommendationResultImportResult(
 				model.getVersion(),
 				accumulator.totalRows,
 				accumulator.insertedRows,
 				accumulator.skippedRows);
 		} catch (IOException ex) {
+			accumulator.reconcileFailureCount();
 			markFailed(model);
-			finishBatchExecutionFailed(batchExecution, accumulator);
+			finishBatchExecution(batchExecution, accumulator, BatchExecutionStatus.FAILED);
 			log.error(
-				"recommendation import failed by io. batchExecutionId={}, modelVersion={}, requestId={}, totalRows={}, insertedRows={}, skippedRows={}, message={}",
+				"recommendation import failed by io. batchExecutionId={}, modelVersion={}, requestId={}, lineNumber={}, totalRows={}, insertedRows={}, skippedRows={}, failedRows={}, errorCode={}, message={}",
 				batchExecution.getId(),
 				model.getVersion(),
 				request.requestId(),
+				accumulator.lastLineNumber,
 				accumulator.totalRows,
 				accumulator.insertedRows,
 				accumulator.skippedRows,
+				accumulator.failedRows,
+				"RECOMMENDATION_RESULT_IO_ERROR",
 				ex.getMessage(),
 				ex);
-			throw RecommendationBusinessException.csvFormatInvalid("추천 결과 파일을 읽는 중 오류가 발생했습니다: " + ex.getMessage());
+			throw RecommendationBusinessException.resultIoError("추천 결과 파일을 읽는 중 오류가 발생했습니다: " + ex.getMessage());
 		} catch (RuntimeException ex) {
+			accumulator.reconcileFailureCount();
 			markFailed(model);
-			finishBatchExecutionFailed(batchExecution, accumulator);
+			finishBatchExecution(batchExecution, accumulator, BatchExecutionStatus.FAILED);
 			log.error(
-				"recommendation import failed. batchExecutionId={}, modelVersion={}, requestId={}, totalRows={}, insertedRows={}, skippedRows={}, message={}",
+				"recommendation import failed. batchExecutionId={}, modelVersion={}, requestId={}, lineNumber={}, totalRows={}, insertedRows={}, skippedRows={}, failedRows={}, errorCode={}, message={}",
 				batchExecution.getId(),
 				model.getVersion(),
 				request.requestId(),
+				accumulator.lastLineNumber,
 				accumulator.totalRows,
 				accumulator.insertedRows,
 				accumulator.skippedRows,
+				accumulator.failedRows,
+				resolveErrorCode(ex),
 				ex.getMessage(),
 				ex);
 			throw ex;
@@ -166,6 +181,17 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 		});
 	}
 
+	private void flushChunk(long modelId, List<RestaurantRecommendationRow> buffer, ImportAccumulator accumulator) {
+		try {
+			accumulator.addInsertedRows(flushBuffer(modelId, buffer));
+		} catch (RuntimeException ex) {
+			accumulator.addFailedRows(buffer.size());
+			throw ex;
+		} finally {
+			buffer.clear();
+		}
+	}
+
 	private int flushBuffer(long modelId, List<RestaurantRecommendationRow> buffer) {
 		Integer inserted = transactionOperations.execute(
 			status -> recommendationJdbcRepository.batchInsert(modelId, buffer));
@@ -184,27 +210,24 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 		return batchExecutionRepository.save(execution);
 	}
 
-	private void finishBatchExecutionSuccess(BatchExecution execution, ImportAccumulator accumulator) {
+	private void finishBatchExecution(BatchExecution execution, ImportAccumulator accumulator,
+		BatchExecutionStatus status) {
+		accumulator.reconcileFailureCount();
 		execution.finish(
 			Instant.now(),
 			(int)accumulator.totalRows,
 			(int)accumulator.insertedRows,
-			0,
+			(int)accumulator.failedRows,
 			(int)accumulator.skippedRows,
-			BatchExecutionStatus.COMPLETED);
+			status);
 		batchExecutionRepository.save(execution);
 	}
 
-	private void finishBatchExecutionFailed(BatchExecution execution, ImportAccumulator accumulator) {
-		long failed = Math.max(0L, accumulator.totalRows - accumulator.insertedRows - accumulator.skippedRows);
-		execution.finish(
-			Instant.now(),
-			(int)accumulator.totalRows,
-			(int)accumulator.insertedRows,
-			(int)failed,
-			(int)accumulator.skippedRows,
-			BatchExecutionStatus.FAILED);
-		batchExecutionRepository.save(execution);
+	private String resolveErrorCode(Throwable throwable) {
+		if (throwable instanceof RecommendationBusinessException recommendationBusinessException) {
+			return recommendationBusinessException.getErrorCode();
+		}
+		return throwable.getClass().getSimpleName();
 	}
 
 	private static final class ImportAccumulator {
@@ -212,6 +235,8 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 		private long totalRows;
 		private long insertedRows;
 		private long skippedRows;
+		private long failedRows;
+		private long lastLineNumber;
 
 		private void incrementTotalRows() {
 			totalRows += 1;
@@ -223,6 +248,32 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 
 		private void incrementSkippedRows() {
 			skippedRows += 1;
+		}
+
+		private void incrementFailedRows() {
+			failedRows += 1;
+		}
+
+		private void addFailedRows(long count) {
+			failedRows += Math.max(0L, count);
+		}
+
+		private void markLastLineNumber(long lineNumber) {
+			lastLineNumber = lineNumber;
+		}
+
+		private void reconcileFailureCount() {
+			long derived = Math.max(0L, totalRows - insertedRows - skippedRows);
+			if (failedRows < derived) {
+				failedRows = derived;
+			}
+		}
+
+		private void assertInvariant() {
+			if (totalRows != insertedRows + skippedRows + failedRows) {
+				throw RecommendationBusinessException.resultValidationFailed(
+					"집계 불변식 위반: totalRows != insertedRows + skippedRows + failedRows");
+			}
 		}
 	}
 }
