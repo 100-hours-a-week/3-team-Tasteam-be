@@ -83,6 +83,7 @@ public class AiBatchFinishService {
 			case VECTOR_UPLOAD_DAILY -> vectorUploadProperties.getFinishTimeout();
 			case REVIEW_ANALYSIS_DAILY -> reviewAnalysisProperties.getFinishTimeout();
 			case RESTAURANT_COMPARISON_WEEKLY -> restaurantComparisonProperties.getFinishTimeout();
+			case RECOMMENDATION_IMPORT_ON_DEMAND -> Duration.ofMinutes(10);
 		};
 	}
 
