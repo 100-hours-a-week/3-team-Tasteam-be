@@ -418,6 +418,156 @@ curl -H "Accept: application/openmetrics-text; version=1.0.0" \
 
 ---
 
+## 대시보드 4: Cache 모니터링
+
+**목적**: Caffeine 캐시별 히트율, 미스율, 크기, 제거 수를 추적하여 캐시 효율성과 TTL 적정성을 판단
+
+### 사전 조건 — 추가 코드 없음
+
+`LocalCacheConfig`에 `recordStats()` + `micrometer-registry-prometheus` 의존성이 충족되어 있으므로
+Spring Boot `CacheMetricsAutoConfiguration`이 자동으로 아래 메트릭을 `/actuator/prometheus`에 노출한다.
+
+| Prometheus 메트릭 | 태그 | 설명 |
+|---|---|---|
+| `cache_gets_total` | `name`, `result=hit\|miss`, `cacheManager` | 히트/미스 누적 수 |
+| `cache_puts_total` | `name`, `cacheManager` | 캐시 저장 누적 수 |
+| `cache_evictions_total` | `name`, `cacheManager` | 만료/제거 누적 수 |
+| `cache_size` | `name`, `cacheManager` | 현재 저장 항목 수 |
+
+노출 확인:
+```bash
+curl -s localhost:8080/actuator/prometheus | grep 'cache_gets_total{.*reverse-geocode'
+# cache_gets_total{cacheManager="caffeineCacheManager",name="reverse-geocode",result="hit",...} 142.0
+# cache_gets_total{cacheManager="caffeineCacheManager",name="reverse-geocode",result="miss",...} 31.0
+```
+
+---
+
+### 패널 1: 캐시별 히트율 (%)
+
+```promql
+100 * (
+  rate(cache_gets_total{result="hit"}[5m])
+  /
+  (rate(cache_gets_total{result="hit"}[5m]) + rate(cache_gets_total{result="miss"}[5m]))
+)
+```
+
+- 패널 유형: **Gauge** (0 ~ 100%)
+- 임계값: 녹색 ≥ 70%, 노란색 50 ~ 70%, 빨간색 < 50%
+- `name` 태그를 legend로 설정하면 캐시별 히트율 동시 표시
+
+---
+
+### 패널 2: 시간대별 히트/미스 추이
+
+```promql
+# 히트 수
+rate(cache_gets_total{name="reverse-geocode", result="hit"}[5m])
+
+# 미스 수
+rate(cache_gets_total{name="reverse-geocode", result="miss"}[5m])
+```
+
+- 패널 유형: **Time series** (line)
+- 두 쿼리를 같은 패널에 표시 (hit=파란색, miss=주황색)
+- 앱 시작 직후 miss가 높다가 워밍업 후 hit가 지배적으로 올라가는 패턴 확인 용도
+
+---
+
+### 패널 3: 초당 Nominatim 실제 호출 수
+
+미스 = 캐시 미스 = 외부 Nominatim API 호출이 발생한 시점이다.
+
+```promql
+rate(cache_gets_total{name="reverse-geocode", result="miss"}[1m])
+```
+
+- 패널 유형: **Time series** (bar)
+- 기대값: 앱 초기 1분 이후 거의 0에 수렴해야 정상
+
+---
+
+### 패널 4: 캐시 현재 크기
+
+```promql
+cache_size{name="reverse-geocode"}
+```
+
+- 패널 유형: **Stat**
+- `maximumSize=1000` 대비 현재 사용률 파악
+- 1000에 근접하면 가장 오래된 항목이 LRU로 제거됨 → `cache_evictions_total` 증가와 함께 확인
+
+---
+
+### 패널 5: 전체 캐시 히트율 비교 (presigned-url vs reverse-geocode)
+
+```promql
+100 * (
+  sum by (name) (rate(cache_gets_total{result="hit"}[5m]))
+  /
+  sum by (name) (rate(cache_gets_total[5m]))
+)
+```
+
+- 패널 유형: **Bar gauge** (horizontal)
+- 캐시별 효율성 한눈에 비교
+
+---
+
+### 예상 히트율 분석
+
+| 시점 | 예상 히트율 | 이유 |
+|------|------------|------|
+| 앱 시작 후 0 ~ 10분 | 0 ~ 20% | 캐시 콜드 스타트 |
+| 운영 정상 상태 | **70 ~ 90%** | 아래 근거 참고 |
+| 심야 (트래픽 저조) | 40 ~ 60% | 캐시 항목 만료 후 재워밍 필요 |
+
+**운영 중 70 ~ 90% 근거**
+
+- 클라이언트는 소수점 3자리 truncate → 약 110 m 반경의 격자 셀이 캐시 키
+- 테이스팀 사용 패턴: 회사 → 점심 식당 → 집 (3 ~ 5개 고정 위치 반복)
+- 같은 건물·블록의 유저들은 동일 캐시 셀을 공유
+- TTL 24h: 하루 동안 재방문할 때마다 히트 → 첫 방문 이후 당일 모든 요청이 캐시 히트
+- 예외: 이동 중 위치 변경(도보/차량) → 셀 전환마다 미스. 전체 비율은 낮음
+
+---
+
+### Grafana 변수 설정 (대시보드 4)
+
+| 변수명 | 유형 | Query | 용도 |
+|--------|------|-------|------|
+| `cache_name` | Query | `label_values(cache_gets_total, name)` | 캐시 선택 필터 |
+
+패널 PromQL에 `{name=~"$cache_name"}` 적용.
+
+---
+
+### 알림 룰 — 캐시 히트율 저하
+
+```yaml
+- alert: CacheHitRateLow
+  expr: |
+    100 * (
+      rate(cache_gets_total{name="reverse-geocode", result="hit"}[10m])
+      /
+      (
+        rate(cache_gets_total{name="reverse-geocode", result="hit"}[10m])
+        + rate(cache_gets_total{name="reverse-geocode", result="miss"}[10m])
+      )
+    ) < 50
+  for: 15m
+  labels:
+    severity: warning
+  annotations:
+    summary: "reverse-geocode 캐시 히트율 50% 미만 (10m 평균)"
+    description: "TTL 조정 또는 캐시 무효화 이슈 확인 필요"
+```
+
+> 히트율이 50% 아래로 15분 이상 지속되면 TTL이 너무 짧거나 트래픽 패턴이 변화한 것. 즉각 확인 필요.
+
+---
+
 ## 알림 룰 예시
 
 ```yaml

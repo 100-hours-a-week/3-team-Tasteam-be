@@ -7,6 +7,9 @@ server:
 spring:
   application:
     name: tasteam-api
+  threads:
+    virtual:
+      enabled: true
   config:
     import:
       - optional:classpath:application.local.yml
@@ -177,6 +180,8 @@ tasteam:
         ttl: 5m
       main-banners:
         ttl: 5m
+      reverse-geocode:
+        ttl: ${LOCAL_CACHE_REVERSE_GEOCODE_TTL:24h}
   webhook:
     enabled: ${WEBHOOK_ENABLED:false}
     provider: ${WEBHOOK_PROVIDER:discord}
