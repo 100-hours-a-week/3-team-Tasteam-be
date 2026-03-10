@@ -41,6 +41,12 @@ public class AsyncConfig implements AsyncConfigurer {
 		return new TaskExecutorAdapter(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
 	}
 
+	@Bean(name = "mainQueryExecutor")
+	@ConditionalOnMissingBean(name = "mainQueryExecutor")
+	public Executor mainQueryExecutor() {
+		return new TaskExecutorAdapter(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
+	}
+
 	@Bean(name = "searchHistoryExecutor")
 	public Executor searchHistoryExecutor(MeterRegistry registry) {
 		String executorName = "search_history";

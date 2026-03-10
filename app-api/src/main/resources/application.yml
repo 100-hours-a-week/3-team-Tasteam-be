@@ -172,6 +172,14 @@ tasteam:
     ttl:
       presigned-url:
         ttl: ${LOCAL_CACHE_PRESIGNED_URL_TTL:240s}
+      main-section-hot-all:
+        ttl: 5m
+      main-section-new-all:
+        ttl: 5m
+      main-section-ai-all:
+        ttl: 5m
+      main-banners:
+        ttl: 5m
       reverse-geocode:
         ttl: ${LOCAL_CACHE_REVERSE_GEOCODE_TTL:24h}
   webhook:

@@ -28,6 +28,11 @@ public class TestStorageConfiguration {
 		return Runnable::run;
 	}
 
+	@Bean(name = "mainQueryExecutor")
+	Executor mainQueryExecutor() {
+		return Runnable::run;
+	}
+
 	@Bean
 	StorageClient storageClient() {
 		return new FakeStorageClient();

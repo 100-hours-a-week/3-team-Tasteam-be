@@ -339,6 +339,65 @@ Grafana → Explore → Tempo → Search:
 
 ---
 
+## 대시보드 4: Cache Intelligence
+
+**목적**: API 계열별 로컬 캐시 TTL, hit ratio, miss rate, size, eviction을 한 화면에서 점검
+
+> 대시보드 소스 파일:
+> `3-team-Tasteam-cloud/monitoring/cache-monito.json`
+
+### 전체 hit ratio (5분)
+
+```promql
+100 *
+sum(increase(tasteam_cache_requests_total{result="hit"}[5m]))
+/
+clamp_min(sum(increase(tasteam_cache_requests_total[5m])), 1)
+```
+
+### 캐시별 TTL
+
+```promql
+max by (cache, uri) (tasteam_cache_ttl_seconds)
+```
+
+### 캐시별 miss rate
+
+```promql
+sum by (cache, uri) (
+  rate(tasteam_cache_requests_total{result="miss"}[5m])
+)
+```
+
+### 캐시별 eviction rate
+
+```promql
+sum by (cache, uri) (
+  rate(tasteam_cache_evictions_total[5m])
+)
+```
+
+### 캐시별 현재 엔트리 수
+
+```promql
+sum by (cache, uri) (tasteam_cache_size)
+```
+
+**필터 변수**: `DS_PROMETHEUS`, `env`, `instance`, `domain`, `uri`, `cache`
+
+#### Grafana 변수 설정 방법
+
+| 변수명 | 유형 | Query |
+|---|---|---|
+| `DS_PROMETHEUS` | Datasource | `prometheus` |
+| `env` | Custom | `prod,stg,dev` |
+| `instance` | Query | `label_values(up{job="spring", environment=~"$env"}, instance)` |
+| `domain` | Query | `label_values(tasteam_cache_requests_total{job="spring", environment=~"$env", instance=~"$instance"}, domain)` |
+| `uri` | Query | `label_values(tasteam_cache_requests_total{job="spring", environment=~"$env", instance=~"$instance", domain=~"$domain"}, uri)` |
+| `cache` | Query | `label_values(tasteam_cache_requests_total{job="spring", environment=~"$env", instance=~"$instance", domain=~"$domain", uri=~"$uri"}, cache)` |
+
+---
+
 ## Exemplar 활성화 확인
 
 Exemplar(히스토그램 이상치 점 → traceId 연결)가 동작하려면 아래 세 조건이 모두 충족되어야 한다:

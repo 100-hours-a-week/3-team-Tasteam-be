@@ -30,6 +30,8 @@
     - `docs/spec/tech/user-activity/README.md`: 사용자 이벤트 수집 모듈의 현재 구현 구조/흐름/설정 계약 문서입니다.
     - `docs/spec/tech/user-activity/RUNBOOK.md`: 사용자 이벤트 수집 장애 탐지/조사/복구 운영 런북 문서입니다.
     - `docs/spec/tech/user-activity/TRACEABILITY.md`: 이슈/PR/커밋/코드/테스트 추적성과 갭 리포트 문서입니다.
+    - `docs/spec/tech/async-event-driven-improvement/README.md`: 비동기 이벤트 드리븐 아키텍처 개선 허브 문서입니다.
+    - `docs/spec/tech/async-event-driven-improvement/*.md`: outbox, 알림, MQ, 사용자 이벤트, 멱등성 개선 상세 문서입니다.
 
 - `docs/troubleshooting/`: 성능 분석·장애 대응·의사결정 기록을 모아둔 공간입니다.
   - `presigned-url-caching-20260226.md`: Presigned GET URL 캐싱 불가 문제 분석 및 서버 측 Caffeine 캐싱 개선.

@@ -10,6 +10,7 @@ public final class MetricLabelPolicy {
 	private static final Set<String> ALLOWED_LABELS = Set.of(
 		"environment",
 		"instance",
+		"cache",
 		"result",
 		"state",
 		"topic",

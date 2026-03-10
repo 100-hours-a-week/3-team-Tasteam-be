@@ -14,6 +14,31 @@
 ##   OTEL_ENDPOINT=http://localhost:4318/v1/traces (로컬 직접 실행 시)
 
 services:
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: tasteam-postgres-exporter
+    command:
+      - --collector.stat_statements
+      - --collector.stat_statements.include_query
+    environment:
+      DATA_SOURCE_URI: ${POSTGRES_EXPORTER_DATA_SOURCE_URI:-db:5432/tasteam?sslmode=disable}
+      DATA_SOURCE_USER: ${POSTGRES_EXPORTER_DATA_SOURCE_USER:-tasteam}
+      DATA_SOURCE_PASS: ${POSTGRES_EXPORTER_DATA_SOURCE_PASS:-tasteam}
+    ports:
+      - "9187:9187"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: tasteam-cadvisor
+    privileged: true
+    ports:
+      - "8088:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+
   prometheus:
     image: prom/prometheus:latest
     container_name: tasteam-prometheus
@@ -51,6 +76,8 @@ services:
     ports:
       - "3001:3000"
     depends_on:
+      - postgres-exporter
+      - cadvisor
       - prometheus
       - tempo
 

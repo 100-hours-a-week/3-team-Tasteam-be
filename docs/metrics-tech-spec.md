@@ -229,6 +229,32 @@ tasteam_api_request_total{...}
 
 ---
 
+### 로컬 캐시 계층 — LocalCacheMetricsBinder
+
+`CaffeineCacheManager`에 등록된 로컬 캐시를 순회하면서, API별 캐시 상태를 Grafana에서 바로 볼 수 있는 메트릭을 추가로 노출한다.
+TTL은 설정값을 Gauge로, hit/miss/eviction은 Caffeine native stats를 기반으로 누적 카운터로 수집한다.
+
+| Java 이름 | Prometheus 노출 이름 | 유형 | 태그 |
+|---|---|---|---|
+| `tasteam.cache.ttl.seconds` | `tasteam_cache_ttl_seconds` | Gauge | `cache`, `domain`, `method`, `uri` |
+| `tasteam.cache.size` | `tasteam_cache_size` | Gauge | 동일 |
+| `tasteam.cache.requests` | `tasteam_cache_requests_total` | Counter (FunctionCounter) | 동일 + `result(hit/miss)` |
+| `tasteam.cache.evictions` | `tasteam_cache_evictions_total` | Counter (FunctionCounter) | `cache`, `domain`, `method`, `uri` |
+
+**현재 API 매핑**:
+
+| cache | domain | method | uri |
+|---|---|---|---|
+| `presigned-url` | `file` | `GET` | `/api/v1/files/{fileUuid}/url` |
+| `main-section-hot-all` | `main` | `GET` | `/api/v1/main,/api/v1/main/home` |
+| `main-section-new-all` | `main` | `GET` | `/api/v1/main,/api/v1/main/home` |
+| `main-section-ai-all` | `main` | `GET` | `/api/v1/main,/api/v1/main/ai-recommend` |
+| `main-banners` | `main` | `GET` | `/api/v1/main` |
+
+> `main-*` 캐시는 정확히 한 URI에만 귀속되지 않고 메인 API 계열에서 공유되므로, 대시보드에서는 `cache + uri` 조합으로 해석한다.
+
+---
+
 ## AOP 적용 순서 (Order)
 
 ```
@@ -258,6 +284,7 @@ HTTP Request
 |---|---|
 | `environment` | 전역 태그 (application.yml) |
 | `instance` | 전역 태그 |
+| `cache` | 로컬 캐시 메트릭 |
 | `result` | 범용 |
 | `state` | 회로 차단기/상태 이벤트 |
 | `topic` | 메시지 큐 관련 |
@@ -346,6 +373,7 @@ OTEL_ENDPOINT=http://tempo:4318/v1/traces       # 컨테이너 간 서비스 이
 | `global/aop/ApiMetricsAspect.java` | Controller API 메트릭 수집 |
 | `global/aop/TransactionMetricsAspect.java` | 트랜잭션 메트릭 + 쿼리 수 수집 |
 | `global/aop/TransactionTracingAspect.java` | 트랜잭션 Distributed Tracing Span |
+| `global/metrics/LocalCacheMetricsBinder.java` | API별 로컬 캐시 TTL/hit/miss/size/eviction 수집 |
 | `global/metrics/MetricLabelPolicy.java` | 허용 라벨 화이트리스트 |
 
 ---

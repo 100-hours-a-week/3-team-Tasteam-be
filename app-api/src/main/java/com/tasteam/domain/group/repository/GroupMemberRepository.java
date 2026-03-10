@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.tasteam.domain.group.dto.GroupMemberListItem;
 import com.tasteam.domain.group.entity.GroupMember;
+import com.tasteam.domain.group.repository.projection.GroupLocationProjection;
 import com.tasteam.domain.group.repository.projection.GroupMemberCountProjection;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.member.dto.response.MemberGroupDetailSummaryRow;
@@ -102,4 +103,19 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 		Long memberId,
 		@Param("activeStatus")
 		GroupStatus activeStatus);
+
+	@Query(value = """
+		SELECT ST_Y(g.location) as latitude, ST_X(g.location) as longitude
+		FROM group_member gm
+		JOIN "group" g ON g.id = gm.group_id
+		WHERE gm.member_id = :memberId
+		  AND gm.deleted_at IS NULL
+		  AND g.deleted_at IS NULL
+		  AND g.status = 'ACTIVE'
+		  AND g.location IS NOT NULL
+		ORDER BY gm.id DESC
+		LIMIT 1
+		""", nativeQuery = true)
+	Optional<GroupLocationProjection> findFirstGroupLocationByMemberId(@Param("memberId")
+	Long memberId);
 }
