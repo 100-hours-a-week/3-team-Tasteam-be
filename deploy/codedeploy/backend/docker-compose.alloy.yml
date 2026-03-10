@@ -3,6 +3,9 @@ services:
     image: grafana/alloy:latest
     container_name: alloy
     restart: unless-stopped
+    cpus: "${ALLOY_CPU_LIMIT:-0.5}"
+    mem_limit: "${ALLOY_MEMORY_LIMIT:-512m}"
+    mem_reservation: "${ALLOY_MEMORY_RESERVATION:-384m}"
     ports:
       - "12345:12345"  # Alloy 자체 텔레메트리 포트
     extra_hosts:
