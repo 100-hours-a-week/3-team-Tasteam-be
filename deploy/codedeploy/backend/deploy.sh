@@ -224,6 +224,145 @@ validate_backend_env() {
   fi
 }
 
+trim_trailing_zeros() {
+  local value="$1"
+  printf '%s' "${value}" | sed -E 's/\.?0+$//'
+}
+
+mcpu_to_cpus() {
+  local milli_cpu="$1"
+  local cpu_value
+
+  cpu_value="$(awk -v m="${milli_cpu}" 'BEGIN { printf "%.3f", m / 1000 }')"
+  trim_trailing_zeros "${cpu_value}"
+}
+
+detect_total_vcpu() {
+  local vcpu
+
+  vcpu="$(getconf _NPROCESSORS_ONLN 2>/dev/null || true)"
+  if [ -z "${vcpu}" ] && command -v nproc >/dev/null 2>&1; then
+    vcpu="$(nproc 2>/dev/null || true)"
+  fi
+
+  if ! printf '%s' "${vcpu}" | grep -Eq '^[0-9]+$'; then
+    vcpu=2
+  fi
+  if [ "${vcpu}" -lt 1 ]; then
+    vcpu=1
+  fi
+
+  printf '%s\n' "${vcpu}"
+}
+
+detect_total_memory_mb() {
+  local mem_kb mem_mb mem_bytes
+
+  mem_kb="$(awk '/MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || true)"
+  if printf '%s' "${mem_kb}" | grep -Eq '^[0-9]+$'; then
+    mem_mb=$((mem_kb / 1024))
+  elif command -v sysctl >/dev/null 2>&1; then
+    mem_bytes="$(sysctl -n hw.memsize 2>/dev/null || true)"
+    if printf '%s' "${mem_bytes}" | grep -Eq '^[0-9]+$'; then
+      mem_mb=$((mem_bytes / 1024 / 1024))
+    fi
+  fi
+
+  if ! printf '%s' "${mem_mb:-}" | grep -Eq '^[0-9]+$'; then
+    mem_mb=4096
+  fi
+  if [ "${mem_mb}" -lt 1024 ]; then
+    mem_mb=1024
+  fi
+
+  printf '%s\n' "${mem_mb}"
+}
+
+set_runtime_resource_limits() {
+  local total_vcpu total_mem_mb
+  local total_mcpu cpu_host_reserve_mcpu cpu_budget_mcpu
+  local backend_mcpu alloy_mcpu
+  local mem_host_reserve_mb mem_budget_mb
+  local backend_mem_mb alloy_mem_mb
+  local backend_mem_reservation_mb alloy_mem_reservation_mb
+  local dev_infra_cpu_reserve_mcpu dev_infra_mem_reserve_mb
+
+  total_vcpu="$(detect_total_vcpu)"
+  total_mem_mb="$(detect_total_memory_mb)"
+
+  if [ "${ENV_NAME}" = "dev" ]; then
+    dev_infra_cpu_reserve_mcpu="${DEV_INFRA_CPU_RESERVE_MCPU:-300}"
+    dev_infra_mem_reserve_mb="${DEV_INFRA_MEMORY_RESERVE_MB:-1024}"
+
+    if ! printf '%s' "${dev_infra_cpu_reserve_mcpu}" | grep -Eq '^[0-9]+$'; then
+      dev_infra_cpu_reserve_mcpu=300
+    fi
+    if ! printf '%s' "${dev_infra_mem_reserve_mb}" | grep -Eq '^[0-9]+$'; then
+      dev_infra_mem_reserve_mb=1024
+    fi
+  else
+    dev_infra_cpu_reserve_mcpu=0
+    dev_infra_mem_reserve_mb=0
+  fi
+
+  total_mcpu=$((total_vcpu * 1000))
+  cpu_host_reserve_mcpu=$((total_mcpu * 15 / 100))
+  if [ "${cpu_host_reserve_mcpu}" -lt 300 ]; then
+    cpu_host_reserve_mcpu=300
+  fi
+  if [ "${cpu_host_reserve_mcpu}" -gt 1200 ]; then
+    cpu_host_reserve_mcpu=1200
+  fi
+  cpu_budget_mcpu=$((total_mcpu - cpu_host_reserve_mcpu - dev_infra_cpu_reserve_mcpu))
+  if [ "${cpu_budget_mcpu}" -lt 500 ]; then
+    cpu_budget_mcpu=500
+  fi
+
+  backend_mcpu=$((cpu_budget_mcpu * 75 / 100))
+  alloy_mcpu=$((cpu_budget_mcpu - backend_mcpu))
+  if [ "${alloy_mcpu}" -lt 200 ] && [ "${cpu_budget_mcpu}" -gt 700 ]; then
+    alloy_mcpu=200
+    backend_mcpu=$((cpu_budget_mcpu - alloy_mcpu))
+  fi
+
+  mem_host_reserve_mb=$((total_mem_mb * 25 / 100))
+  if [ "${mem_host_reserve_mb}" -lt 768 ]; then
+    mem_host_reserve_mb=768
+  fi
+  if [ "${mem_host_reserve_mb}" -gt 4096 ]; then
+    mem_host_reserve_mb=4096
+  fi
+  mem_budget_mb=$((total_mem_mb - mem_host_reserve_mb - dev_infra_mem_reserve_mb))
+  if [ "${mem_budget_mb}" -lt 1024 ]; then
+    mem_budget_mb=$((total_mem_mb * 55 / 100))
+  fi
+
+  backend_mem_mb=$((mem_budget_mb * 70 / 100))
+  alloy_mem_mb=$((mem_budget_mb - backend_mem_mb))
+  if [ "${alloy_mem_mb}" -lt 384 ] && [ "${mem_budget_mb}" -gt 1280 ]; then
+    alloy_mem_mb=384
+    backend_mem_mb=$((mem_budget_mb - alloy_mem_mb))
+  fi
+
+  backend_mem_reservation_mb=$((backend_mem_mb * 75 / 100))
+  alloy_mem_reservation_mb=$((alloy_mem_mb * 75 / 100))
+
+  : "${BACKEND_CPU_LIMIT:=$(mcpu_to_cpus "${backend_mcpu}")}"
+  : "${ALLOY_CPU_LIMIT:=$(mcpu_to_cpus "${alloy_mcpu}")}"
+  : "${BACKEND_MEMORY_LIMIT:=${backend_mem_mb}m}"
+  : "${ALLOY_MEMORY_LIMIT:=${alloy_mem_mb}m}"
+  : "${BACKEND_MEMORY_RESERVATION:=${backend_mem_reservation_mb}m}"
+  : "${ALLOY_MEMORY_RESERVATION:=${alloy_mem_reservation_mb}m}"
+
+  export BACKEND_CPU_LIMIT ALLOY_CPU_LIMIT
+  export BACKEND_MEMORY_LIMIT ALLOY_MEMORY_LIMIT
+  export BACKEND_MEMORY_RESERVATION ALLOY_MEMORY_RESERVATION
+
+  log "resource limits (host=${total_vcpu}vCPU/${total_mem_mb}MiB, dev-infra-reserve=${dev_infra_cpu_reserve_mcpu}mCPU/${dev_infra_mem_reserve_mb}MiB): \
+backend=${BACKEND_CPU_LIMIT} CPU, ${BACKEND_MEMORY_LIMIT} (reserve ${BACKEND_MEMORY_RESERVATION}); \
+alloy=${ALLOY_CPU_LIMIT} CPU, ${ALLOY_MEMORY_LIMIT} (reserve ${ALLOY_MEMORY_RESERVATION})"
+}
+
 compose_up() {
   if docker compose version >/dev/null 2>&1; then
     docker compose "$@"
@@ -380,6 +519,7 @@ deploy_backend() {
   validate_required_backend_env
   validate_backend_env
   start_dev_infra
+  set_runtime_resource_limits
 
   local image
   image="${ECR_REGISTRY}/${ECR_REPO_BACKEND}:${IMAGE_TAG}"
