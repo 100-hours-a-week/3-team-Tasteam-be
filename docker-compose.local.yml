@@ -3,6 +3,12 @@ services:
     image: postgis/postgis:17-3.4
 
     container_name: tasteam-db
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - track_io_timing=on
     env_file:
       - .env.local
     environment:
@@ -49,9 +55,16 @@ services:
       - .env.local
     environment:
       SERVER_PORT: 8080
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/tasteam
-      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://db:5432/tasteam}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-tasteam}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-tasteam}
+      SPRING_FLYWAY_URL: ${SPRING_FLYWAY_URL:-jdbc:postgresql://db:5432/tasteam}
+      SPRING_FLYWAY_USER: ${SPRING_FLYWAY_USER:-tasteam}
+      SPRING_FLYWAY_PASSWORD: ${SPRING_FLYWAY_PASSWORD:-tasteam}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      TASTEAM_SEARCH_QUERY_STRATEGY: ${TASTEAM_SEARCH_QUERY_STRATEGY:-TWO_STEP}
+      TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:-200}
 
 volumes:
   postgres_data:
