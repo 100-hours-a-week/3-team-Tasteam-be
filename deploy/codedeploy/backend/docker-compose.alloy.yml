@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:latest
+    image: grafana/alloy:v1.14.0-rc.1
     container_name: alloy
     restart: unless-stopped
     cpus: "${ALLOY_CPU_LIMIT:-0.5}"
@@ -8,12 +8,22 @@ services:
     mem_reservation: "${ALLOY_MEMORY_RESERVATION:-384m}"
     ports:
       - "12345:12345"  # Alloy 자체 텔레메트리 포트
+    privileged: true
     extra_hosts:
       - "host.docker.internal:host-gateway"  # Spring/Redis 호스트 포트 접근용
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
     volumes:
       - ${ALLOY_CONFIG_FILE}:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock  # cAdvisor + 컨테이너 로그 수집용
       - /var/log/tasteam:/var/log/tasteam:ro         # Spring JSON 로그 읽기
+      - /:/rootfs:ro
+      - /var/run:/var/run
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
     environment:
       - LOKI_HOST=${LOKI_HOST}
       - PROMETHEUS_HOST=${PROMETHEUS_HOST}

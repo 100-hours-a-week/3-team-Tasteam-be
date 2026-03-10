@@ -2,25 +2,20 @@ package com.tasteam.domain.search.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
-import com.tasteam.domain.group.entity.Group;
-import com.tasteam.domain.group.repository.GroupMemberRepository;
-import com.tasteam.domain.group.repository.GroupQueryRepository;
-import com.tasteam.domain.group.repository.projection.GroupMemberCountProjection;
-import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
-import com.tasteam.domain.restaurant.entity.Restaurant;
-import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
-import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
-import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 import com.tasteam.domain.search.dto.request.SearchRequest;
 import com.tasteam.domain.search.dto.response.RecentSearchItem;
@@ -30,54 +25,112 @@ import com.tasteam.domain.search.dto.response.SearchRestaurantItem;
 import com.tasteam.domain.search.entity.MemberSearchHistory;
 import com.tasteam.domain.search.repository.MemberSearchHistoryQueryRepository;
 import com.tasteam.domain.search.repository.MemberSearchHistoryRepository;
-import com.tasteam.domain.search.repository.SearchQueryRepository;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
 import com.tasteam.global.dto.pagination.OffsetPagination;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
 import com.tasteam.global.exception.code.SearchErrorCode;
-import com.tasteam.global.utils.CursorCodec;
 import com.tasteam.global.utils.CursorPageBuilder;
 import com.tasteam.global.validation.KeywordSecurityPolicy;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SearchService {
 
 	private static final int DEFAULT_PAGE_SIZE = 10;
 	private static final int THUMBNAIL_LIMIT = 3;
 	private static final double DEFAULT_RADIUS_KM = 3.0;
 
-	private final GroupQueryRepository groupQueryRepository;
-	private final GroupMemberRepository groupMemberRepository;
 	private final FileService fileService;
 	private final MemberSearchHistoryRepository memberSearchHistoryRepository;
 	private final MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository;
-	private final SearchQueryRepository searchQueryRepository;
-	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
-	private final CursorCodec cursorCodec;
+	private final SearchDataService searchDataService;
 	private final SearchHistoryRecorder searchHistoryRecorder;
+	private final Executor searchQueryExecutor;
 
-	@Transactional(readOnly = true)
+	public SearchService(
+		FileService fileService,
+		MemberSearchHistoryRepository memberSearchHistoryRepository,
+		MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository,
+		SearchDataService searchDataService,
+		SearchHistoryRecorder searchHistoryRecorder,
+		@Qualifier("searchQueryExecutor")
+		Executor searchQueryExecutor) {
+		this.fileService = fileService;
+		this.memberSearchHistoryRepository = memberSearchHistoryRepository;
+		this.memberSearchHistoryQueryRepository = memberSearchHistoryQueryRepository;
+		this.searchDataService = searchDataService;
+		this.searchHistoryRecorder = searchHistoryRecorder;
+		this.searchQueryExecutor = searchQueryExecutor;
+	}
+
 	public SearchResponse search(Long memberId, SearchRequest request) {
 		String keyword = request.keyword().trim();
 		validateSearchKeyword(keyword);
 		int pageSize = request.size() == null ? DEFAULT_PAGE_SIZE : request.size();
-		CursorPageBuilder<SearchCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, request.cursor(),
-			SearchCursor.class);
-		if (pageBuilder.isInvalid()) {
-			return SearchResponse.emptyResponse();
+		Double radiusMeters = resolveRadiusMeters(request);
+
+		CompletableFuture<SearchDataService.GroupData> groupFuture = CompletableFuture.supplyAsync(
+			() -> searchDataService.fetchGroups(keyword, pageSize), searchQueryExecutor);
+		CompletableFuture<SearchDataService.RestaurantPageData> restaurantFuture = CompletableFuture.supplyAsync(
+			() -> searchDataService.fetchRestaurants(
+				keyword, request.cursor(), pageSize,
+				request.latitude(), request.longitude(), radiusMeters),
+			searchQueryExecutor);
+
+		SearchDataService.GroupData groupData;
+		SearchDataService.RestaurantPageData restaurantData;
+		try {
+			groupData = groupFuture.get();
+			restaurantData = restaurantFuture.get();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
+		} catch (ExecutionException e) {
+			Throwable cause = e.getCause();
+			if (cause instanceof BusinessException be) {
+				throw be;
+			}
+			throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
 		}
 
-		List<SearchGroupSummary> groups = searchGroups(keyword, pageSize);
-		CursorPageResponse<SearchRestaurantItem> restaurants = searchRestaurants(keyword, pageBuilder, pageSize,
-			request.latitude(), request.longitude(), request.radiusKm());
+		Map<Long, List<DomainImageItem>> groupLogos = groupData.groupIds().isEmpty()
+			? Map.of()
+			: fileService.getDomainImageUrls(DomainType.GROUP, groupData.groupIds());
+		Map<Long, List<DomainImageItem>> restaurantDomainImages = restaurantData.restaurantIds().isEmpty()
+			? Map.of()
+			: fileService.getDomainImageUrls(DomainType.RESTAURANT, restaurantData.restaurantIds());
 
-		if (!groups.isEmpty() || !restaurants.items().isEmpty()) {
+		List<SearchGroupSummary> groups = groupData.groups().stream()
+			.map(group -> new SearchGroupSummary(
+				group.getId(),
+				group.getName(),
+				firstDomainImageUrl(groupLogos.getOrDefault(group.getId(), List.of())),
+				groupData.memberCounts().getOrDefault(group.getId(), 0L)))
+			.toList();
+
+		Map<Long, List<RestaurantImageDto>> thumbnails = buildThumbnails(restaurantDomainImages);
+		CursorPageBuilder.Page<SearchRestaurantCursorRow> restaurantPage = restaurantData.page();
+		List<SearchRestaurantItem> restaurantItems = restaurantPage.items().stream()
+			.map(SearchRestaurantCursorRow::restaurant)
+			.map(restaurant -> new SearchRestaurantItem(
+				restaurant.getId(),
+				restaurant.getName(),
+				restaurant.getFullAddress(),
+				thumbnailUrl(thumbnails.getOrDefault(restaurant.getId(), List.of())),
+				restaurantData.categories().getOrDefault(restaurant.getId(), List.of())))
+			.toList();
+
+		CursorPageResponse<SearchRestaurantItem> restaurants = new CursorPageResponse<>(
+			restaurantItems,
+			new CursorPageResponse.Pagination(
+				restaurantPage.nextCursor(),
+				restaurantPage.hasNext(),
+				restaurantPage.size()));
+
+		if (!groups.isEmpty() || !restaurantItems.isEmpty()) {
 			try {
 				searchHistoryRecorder.recordSearchHistory(memberId, keyword);
 			} catch (Exception ex) {
@@ -122,100 +175,14 @@ public class SearchService {
 		history.delete();
 	}
 
-	private CursorPageResponse<SearchRestaurantItem> searchRestaurants(
-		String keyword, CursorPageBuilder<SearchCursor> pageBuilder, int pageSize, Double latitude,
-		Double longitude, Double radiusKm) {
-		Double radiusMeters = null;
-		if (latitude != null && longitude != null) {
-			double effectiveRadiusKm = radiusKm == null ? DEFAULT_RADIUS_KM : radiusKm;
-			radiusMeters = effectiveRadiusKm * 1000.0;
+	private Double resolveRadiusMeters(SearchRequest request) {
+		if (request.latitude() == null || request.longitude() == null) {
+			return null;
 		}
-
-		List<SearchRestaurantCursorRow> result = searchQueryRepository.searchRestaurantsByKeyword(
-			keyword,
-			pageBuilder.cursor(),
-			CursorPageBuilder.fetchSize(pageSize),
-			latitude,
-			longitude,
-			radiusMeters);
-
-		CursorPageBuilder.Page<SearchRestaurantCursorRow> page = pageBuilder.build(
-			result,
-			pageSize,
-			last -> new SearchCursor(
-				last.nameExact(),
-				last.nameSimilarity(),
-				last.distanceMeters(),
-				last.categoryMatch(),
-				last.addressMatch(),
-				last.restaurant().getUpdatedAt(),
-				last.restaurant().getId()));
-
-		List<Long> restaurantIds = page.items().stream()
-			.map(SearchRestaurantCursorRow::restaurant)
-			.map(Restaurant::getId)
-			.toList();
-
-		Map<Long, List<RestaurantImageDto>> thumbnails = findRestaurantThumbnails(restaurantIds);
-		Map<Long, List<String>> categories = findCategories(restaurantIds);
-
-		List<SearchRestaurantItem> items = page.items().stream()
-			.map(SearchRestaurantCursorRow::restaurant)
-			.map(restaurant -> new SearchRestaurantItem(
-				restaurant.getId(),
-				restaurant.getName(),
-				restaurant.getFullAddress(),
-				thumbnailUrl(thumbnails.getOrDefault(restaurant.getId(), List.of())),
-				categories.getOrDefault(restaurant.getId(), List.of())))
-			.toList();
-
-		return new CursorPageResponse<>(
-			items,
-			new CursorPageResponse.Pagination(
-				page.nextCursor(),
-				page.hasNext(),
-				page.size()));
+		return (request.radiusKm() == null ? DEFAULT_RADIUS_KM : request.radiusKm()) * 1000.0;
 	}
 
-	private List<SearchGroupSummary> searchGroups(String keyword, int pageSize) {
-		List<Group> groups = groupQueryRepository.searchByKeyword(
-			keyword,
-			GroupStatus.ACTIVE,
-			pageSize);
-
-		List<Long> groupIds = groups.stream()
-			.map(Group::getId)
-			.toList();
-
-		Map<Long, Long> memberCounts = groupIds.isEmpty()
-			? Map.of()
-			: groupMemberRepository.findMemberCounts(groupIds).stream()
-				.collect(Collectors.toMap(
-					GroupMemberCountProjection::getGroupId,
-					GroupMemberCountProjection::getMemberCount));
-
-		Map<Long, List<DomainImageItem>> logos = groupIds.isEmpty()
-			? Map.of()
-			: fileService.getDomainImageUrls(DomainType.GROUP, groupIds);
-
-		return groups.stream()
-			.map(group -> new SearchGroupSummary(
-				group.getId(),
-				group.getName(),
-				firstDomainImageUrl(logos.getOrDefault(group.getId(), List.of())),
-				memberCounts.getOrDefault(group.getId(), 0L)))
-			.toList();
-	}
-
-	private Map<Long, List<RestaurantImageDto>> findRestaurantThumbnails(List<Long> restaurantIds) {
-		if (restaurantIds.isEmpty()) {
-			return Map.of();
-		}
-
-		Map<Long, List<DomainImageItem>> domainImages = fileService.getDomainImageUrls(
-			DomainType.RESTAURANT,
-			restaurantIds);
-
+	private Map<Long, List<RestaurantImageDto>> buildThumbnails(Map<Long, List<DomainImageItem>> domainImages) {
 		return domainImages.entrySet().stream()
 			.collect(Collectors.toMap(
 				Map.Entry::getKey,
@@ -228,16 +195,6 @@ public class SearchService {
 						.map(img -> new RestaurantImageDto(img.imageId(), img.url()))
 						.toList();
 				}));
-	}
-
-	private Map<Long, List<String>> findCategories(List<Long> restaurantIds) {
-		if (restaurantIds.isEmpty()) {
-			return Map.of();
-		}
-		return restaurantFoodCategoryRepository.findCategoriesByRestaurantIds(restaurantIds).stream()
-			.collect(Collectors.groupingBy(
-				RestaurantCategoryProjection::getRestaurantId,
-				Collectors.mapping(RestaurantCategoryProjection::getCategoryName, Collectors.toList())));
 	}
 
 	private String thumbnailUrl(List<RestaurantImageDto> images) {

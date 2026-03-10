@@ -12,5 +12,10 @@ services:
       - "${CONTAINER_PORT:-8080}:8080"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
     volumes:
       - /var/log/tasteam:/var/log/tasteam # Alloy 로그 수집용 호스트 경로 공유

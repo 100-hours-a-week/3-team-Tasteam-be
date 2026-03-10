@@ -10,12 +10,20 @@ public final class MetricLabelPolicy {
 	private static final Set<String> ALLOWED_LABELS = Set.of(
 		"environment",
 		"instance",
+		"cache",
 		"result",
+		"state",
 		"topic",
 		"provider",
 		"target",
 		"reason",
-		"executor");
+		"executor",
+		"method",
+		"uri",
+		"domain",
+		"outcome",
+		"read_only",
+		"method_name");
 
 	private static final Set<String> FORBIDDEN_LABELS = Set.of(
 		"eventId",

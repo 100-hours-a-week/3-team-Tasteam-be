@@ -1,5 +1,6 @@
 package com.tasteam.domain.location.service;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 
@@ -20,6 +21,7 @@ public class GeocodeService {
 
 	private final NominatimClient nominatimClient;
 
+	@Cacheable(cacheNames = "reverse-geocode", key = "T(String).format('%.3f_%.3f', #lat, #lon)")
 	public ReverseGeocodeResponse reverseGeocode(double lat, double lon) {
 		try {
 			NominatimReverseResponse response = nominatimClient.reverse(lat, lon);

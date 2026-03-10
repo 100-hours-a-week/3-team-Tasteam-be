@@ -7,6 +7,9 @@ server:
 spring:
   application:
     name: tasteam-api
+  threads:
+    virtual:
+      enabled: true
   config:
     import:
       - optional:classpath:application.local.yml
@@ -137,6 +140,16 @@ tasteam:
       finish-timeout: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_TIMEOUT:10m}
       finish-check-interval: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_CHECK_INTERVAL:PT1M}
   aop:
+    metrics:
+      enabled: ${METRICS_AOP_ENABLED:true}
+      api-metrics:
+        enabled: ${METRICS_API_ENABLED:true}
+      transaction-metrics:
+        enabled: ${METRICS_TX_ENABLED:true}
+    tracing:
+      enabled: ${TRACING_AOP_ENABLED:false}
+      transaction-tracing:
+        enabled: ${TRACING_TX_ENABLED:false}
     logging:
       enabled: ${TASTEAM_AOP_LOGGING_ENABLED:true}
       api-logging:
@@ -159,6 +172,16 @@ tasteam:
     ttl:
       presigned-url:
         ttl: ${LOCAL_CACHE_PRESIGNED_URL_TTL:240s}
+      main-section-hot-all:
+        ttl: 5m
+      main-section-new-all:
+        ttl: 5m
+      main-section-ai-all:
+        ttl: 5m
+      main-banners:
+        ttl: 5m
+      reverse-geocode:
+        ttl: ${LOCAL_CACHE_REVERSE_GEOCODE_TTL:24h}
   webhook:
     enabled: ${WEBHOOK_ENABLED:false}
     provider: ${WEBHOOK_PROVIDER:discord}
@@ -255,6 +278,9 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        tasteam.api.request.duration: true
+        tasteam.transaction.duration: true
+        tasteam.transaction.query.count: true
     tags:
       application: tasteam-api
       environment: ${spring.profiles.active:local}

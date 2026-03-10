@@ -40,4 +40,22 @@ class UserActivityDispatchOutboxMetricsCollectorTest {
 			.gauge()
 			.value()).isEqualTo(3.0);
 	}
+
+	@Test
+	@DisplayName("Dispatch circuit 상태 메트릭을 예외 없이 기록한다")
+	void recordCircuitState_recordsCounter() {
+		UserActivityDispatchOutboxService outboxService = mock(UserActivityDispatchOutboxService.class);
+		SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+		UserActivityDispatchOutboxMetricsCollector collector = new UserActivityDispatchOutboxMetricsCollector(
+			outboxService,
+			meterRegistry);
+
+		collector.recordCircuitState("open", UserActivityDispatchTarget.POSTHOG);
+
+		assertThat(meterRegistry.get("analytics.user-activity.dispatch.circuit")
+			.tag("state", "open")
+			.tag("target", "posthog")
+			.counter()
+			.count()).isEqualTo(1.0);
+	}
 }

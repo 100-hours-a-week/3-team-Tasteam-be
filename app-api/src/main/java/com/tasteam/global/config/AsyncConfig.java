@@ -5,6 +5,7 @@ import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.support.TaskExecutorAdapter;
@@ -31,6 +32,18 @@ public class AsyncConfig implements AsyncConfigurer {
 
 	@Bean(name = "notificationExecutor")
 	public Executor notificationExecutor() {
+		return new TaskExecutorAdapter(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
+	}
+
+	@Bean(name = "searchQueryExecutor")
+	@ConditionalOnMissingBean(name = "searchQueryExecutor")
+	public Executor searchQueryExecutor() {
+		return new TaskExecutorAdapter(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
+	}
+
+	@Bean(name = "mainQueryExecutor")
+	@ConditionalOnMissingBean(name = "mainQueryExecutor")
+	public Executor mainQueryExecutor() {
 		return new TaskExecutorAdapter(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
 	}
 
