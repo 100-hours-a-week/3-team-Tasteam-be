@@ -9,6 +9,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
@@ -37,6 +38,7 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 	private final RawDataExportSourceJdbcRepository sourceRepository;
 	private final StorageClient storageClient;
 	private final BatchExecutionRepository batchExecutionRepository;
+	private RawDataExportRuntimeDiagnostics runtimeDiagnostics = RawDataExportRuntimeDiagnostics.noop();
 
 	public RawDataExportServiceImpl(
 		RawDataExportSourceJdbcRepository sourceRepository,
@@ -45,6 +47,13 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		this.sourceRepository = sourceRepository;
 		this.storageClient = storageClient;
 		this.batchExecutionRepository = batchExecutionRepository;
+	}
+
+	@Autowired(required = false)
+	void setRuntimeDiagnostics(RawDataExportRuntimeDiagnostics runtimeDiagnostics) {
+		if (runtimeDiagnostics != null) {
+			this.runtimeDiagnostics = runtimeDiagnostics;
+		}
 	}
 
 	@Override
@@ -59,6 +68,7 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		List<RawDataExportItemResult> items = new ArrayList<>();
 		int successCount = 0;
 		int totalJobs = targets.size();
+		runtimeDiagnostics.logSnapshot("start", command, dt, totalJobs, successCount);
 		try {
 			for (RawDataType type : RawDataType.values()) {
 				if (!targets.contains(type)) {
@@ -69,9 +79,11 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 				successCount += 1;
 			}
 			finishBatchExecution(execution, totalJobs, successCount, BatchExecutionStatus.COMPLETED);
+			runtimeDiagnostics.logSnapshot("completed", command, dt, totalJobs, successCount);
 			return new RawDataExportResult(dt, List.copyOf(items));
 		} catch (RuntimeException ex) {
 			finishBatchExecution(execution, totalJobs, successCount, BatchExecutionStatus.FAILED);
+			runtimeDiagnostics.logSnapshot("failed", command, dt, totalJobs, successCount);
 			log.error("raw data export failed. batchExecutionId={}, requestId={}, dt={}, totalJobs={}, successCount={}",
 				execution.getId(), command.requestId(), dt, totalJobs, successCount, ex);
 			throw ex;
