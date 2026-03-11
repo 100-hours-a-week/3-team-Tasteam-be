@@ -91,6 +91,21 @@ public class AsyncConfig implements AsyncConfigurer {
 		return exec;
 	}
 
+	@Bean(name = "rawDataExportExecutor")
+	public Executor rawDataExportExecutor(MeterRegistry registry) {
+		String executorName = "raw_data_export";
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(1);
+		executor.setMaxPoolSize(1);
+		executor.setQueueCapacity(10);
+		executor.setThreadNamePrefix("raw-data-export-");
+		executor.setRejectedExecutionHandler(buildRejectedExecutionHandler(registry, executorName));
+		executor.initialize();
+		ExecutorServiceMetrics.monitor(registry, executor.getThreadPoolExecutor(), executorName);
+		registerQueueUtilizationGauge(registry, executor, executorName);
+		return executor;
+	}
+
 	@Override
 	public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
 		return (ex, method, params) -> log.error("비동기 메서드 {}에서 예외 발생: {}", method.getName(),
