@@ -84,6 +84,7 @@ public class AiBatchFinishService {
 			case REVIEW_ANALYSIS_DAILY -> reviewAnalysisProperties.getFinishTimeout();
 			case RESTAURANT_COMPARISON_WEEKLY -> restaurantComparisonProperties.getFinishTimeout();
 			case RECOMMENDATION_IMPORT_ON_DEMAND -> Duration.ofMinutes(10);
+			case RAW_DATA_EXPORT -> Duration.ofMinutes(10);
 		};
 	}
 
