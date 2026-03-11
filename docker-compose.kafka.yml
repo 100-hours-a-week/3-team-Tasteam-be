@@ -1,48 +1,12 @@
 services:
-  db:
-    image: postgis/postgis:17-3.4
-    container_name: tasteam-dev-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DEV_DB_NAME:-tasteam}
-      POSTGRES_USER: "${DB_USERNAME:?DB_USERNAME is required}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD is required}"
-      TZ: Asia/Seoul
-    ports:
-      - "${DEV_DB_PORT:-5432}:5432"
-    volumes:
-      - /opt/tasteam/dev-infra/postgres-data:/var/lib/postgresql/data
-      - /opt/tasteam/dev-infra/postgres-init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:?DB_USERNAME is required} -d ${DEV_DB_NAME:-tasteam}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  redis:
-    image: redis:7
-    container_name: tasteam-dev-redis
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - /opt/tasteam/dev-infra/redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
   kafka:
     image: confluentinc/cp-kafka:7.6.1
-    container_name: tasteam-dev-kafka
-    restart: unless-stopped
+    container_name: tasteam-kafka
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://${KAFKA_ADVERTISED_HOST:-host.docker.internal}:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
@@ -51,11 +15,13 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
     ports:
-      - "${KAFKA_EXTERNAL_PORT:-29092}:29092"
+      - "9092:9092"
+      - "29092:29092"
     volumes:
-      - /opt/tasteam/dev-infra/kafka-data:/var/lib/kafka/data
+      - kafka_data:/var/lib/kafka/data
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
       interval: 15s
@@ -63,9 +29,11 @@ services:
       retries: 10
 
   kafka-connect:
-    image: confluentinc/cp-kafka-connect:7.6.1
-    container_name: tasteam-dev-kafka-connect
-    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: docker/kafka-connect/Dockerfile
+    image: tasteam-kafka-connect:local
+    container_name: tasteam-kafka-connect
     depends_on:
       kafka:
         condition: service_healthy
@@ -85,14 +53,18 @@ services:
       CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
-      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components
+      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components,/etc/kafka-connect/plugins
       CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
     ports:
-      - "${KAFKA_CONNECT_PORT:-8083}:8083"
+      - "8083:8083"
     volumes:
-      - /opt/tasteam/dev-infra/kafka-connect-data:/var/lib/kafka-connect
+      - connect_data:/var/lib/kafka-connect
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8083/connectors >/dev/null"]
       interval: 15s
       timeout: 10s
       retries: 10
+
+volumes:
+  kafka_data:
+  connect_data:
