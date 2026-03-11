@@ -1,6 +1,10 @@
 package com.tasteam.domain.analytics.export;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -8,6 +12,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -85,8 +90,7 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 				if (!targets.contains(type)) {
 					continue;
 				}
-				RawDataCsvTable table = extract(type);
-				items.add(upload(type, dt, table, command.requestId()));
+				items.add(upload(type, dt, command.requestId()));
 				successCount += 1;
 			}
 			finishBatchExecution(execution, totalJobs, successCount, BatchExecutionStatus.COMPLETED);
@@ -101,14 +105,7 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		}
 	}
 
-	private RawDataCsvTable extract(RawDataType type) {
-		return switch (type) {
-			case RESTAURANTS -> sourceRepository.extractRestaurants();
-			case MENUS -> sourceRepository.extractMenus();
-		};
-	}
-
-	private RawDataExportItemResult upload(RawDataType type, LocalDate dt, RawDataCsvTable table, String requestId) {
+	private RawDataExportItemResult upload(RawDataType type, LocalDate dt, String requestId) {
 		String prefix = BASE_PREFIX + "/" + type.pathSegment() + "/dt=" + dt + "/";
 		String dataObjectKey = prefix + DATA_FILE_NAME;
 		String successObjectKey = prefix + SUCCESS_FILE_NAME;
@@ -126,6 +123,8 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			// 실패 시 미완료 데이터를 완료로 오인하지 않도록 _SUCCESS를 정리한다.
 			safeDeleteSuccessMarker(successObjectKey);
 			throw ex;
+		} finally {
+			safeDeleteTempFile(csvPayload.csvFile());
 		}
 
 		log.info(
@@ -133,25 +132,50 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			requestId,
 			type,
 			dt,
-			table.rowCount(),
+			csvPayload.rowCount(),
 			dataObjectKey,
 			!existingObjects.isEmpty());
 
 		return new RawDataExportItemResult(
 			type,
-			table.rowCount(),
+			csvPayload.rowCount(),
 			dataObjectKey,
 			successObjectKey,
 			!existingObjects.isEmpty());
 	}
 
-	private String toCsv(RawDataCsvTable table) {
-		StringBuilder sb = new StringBuilder();
-		sb.append(join(table.headers())).append('\n');
-		for (List<String> row : table.rows()) {
-			sb.append(join(row)).append('\n');
+	private CsvPayload buildCsvFile(RawDataType type) {
+		AtomicInteger rowCount = new AtomicInteger(0);
+		Path tempFile = createTempCsvFile(type);
+		try (BufferedWriter writer = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8)) {
+			writeRow(writer, headers(type));
+			streamRows(type, row -> {
+				try {
+					writeRow(writer, row);
+				} catch (IOException e) {
+					throw new IllegalStateException("failed to write csv row", e);
+				}
+				rowCount.incrementAndGet();
+			});
+			writer.flush();
+		} catch (IOException e) {
+			throw new IllegalStateException("failed to build csv payload", e);
 		}
-		return sb.toString();
+		return new CsvPayload(tempFile, rowCount.get());
+	}
+
+	private List<String> headers(RawDataType type) {
+		return switch (type) {
+			case RESTAURANTS -> sourceRepository.restaurantHeaders();
+			case MENUS -> sourceRepository.menuHeaders();
+		};
+	}
+
+	private void streamRows(RawDataType type, CsvRowConsumer consumer) {
+		switch (type) {
+			case RESTAURANTS -> sourceRepository.streamRestaurants(consumer);
+			case MENUS -> sourceRepository.streamMenus(consumer);
+		}
 	}
 
 	private String join(List<String> fields) {
@@ -160,6 +184,11 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			escaped.add(escape(field));
 		}
 		return String.join(",", escaped);
+	}
+
+	private void writeRow(BufferedWriter writer, List<String> fields) throws IOException {
+		writer.write(join(fields));
+		writer.newLine();
 	}
 
 	private String escape(String value) {
@@ -221,5 +250,8 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			0,
 			finalStatus);
 		batchExecutionRepository.save(execution);
+	}
+
+	private record CsvPayload(Path csvFile, int rowCount) {
 	}
 }

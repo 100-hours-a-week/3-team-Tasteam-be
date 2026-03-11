@@ -45,9 +45,12 @@ class RawDataExportServiceImplTest {
 		String dataKey = prefix + "part-00001.csv";
 		String successKey = prefix + "_SUCCESS";
 
-		when(sourceRepository.extractRestaurants()).thenReturn(new RawDataCsvTable(
-			List.of("restaurant_id", "restaurant_name"),
-			List.of(List.of("1", "식당A"))));
+		when(sourceRepository.restaurantHeaders()).thenReturn(List.of("restaurant_id", "restaurant_name"));
+		doAnswer(invocation -> {
+			CsvRowConsumer consumer = invocation.getArgument(0);
+			consumer.accept(List.of("1", "식당A"));
+			return null;
+		}).when(sourceRepository).streamRestaurants(any(CsvRowConsumer.class));
 		when(storageClient.listObjects(prefix)).thenReturn(List.of());
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
@@ -84,9 +87,12 @@ class RawDataExportServiceImplTest {
 		LocalDate dt = LocalDate.of(2026, 3, 11);
 		String prefix = "raw/menus/dt=2026-03-11/";
 
-		when(sourceRepository.extractMenus()).thenReturn(new RawDataCsvTable(
-			List.of("restaurant_id", "menu_count"),
-			List.of(List.of("1", "2"))));
+		when(sourceRepository.menuHeaders()).thenReturn(List.of("restaurant_id", "menu_count"));
+		doAnswer(invocation -> {
+			CsvRowConsumer consumer = invocation.getArgument(0);
+			consumer.accept(List.of("1", "2"));
+			return null;
+		}).when(sourceRepository).streamMenus(any(CsvRowConsumer.class));
 		when(storageClient.listObjects(prefix)).thenReturn(List.of(prefix + "part-00001.csv", prefix + "_SUCCESS"));
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
@@ -110,9 +116,12 @@ class RawDataExportServiceImplTest {
 		String prefix = "raw/restaurants/dt=2026-03-11/";
 		String successKey = prefix + "_SUCCESS";
 
-		when(sourceRepository.extractRestaurants()).thenReturn(new RawDataCsvTable(
-			List.of("restaurant_id", "restaurant_name"),
-			List.of(List.of("1", "식당A"))));
+		when(sourceRepository.restaurantHeaders()).thenReturn(List.of("restaurant_id", "restaurant_name"));
+		doAnswer(invocation -> {
+			CsvRowConsumer consumer = invocation.getArgument(0);
+			consumer.accept(List.of("1", "식당A"));
+			return null;
+		}).when(sourceRepository).streamRestaurants(any(CsvRowConsumer.class));
 		when(storageClient.listObjects(prefix)).thenReturn(List.of());
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
