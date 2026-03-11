@@ -1,5 +1,6 @@
 package com.tasteam.infra.storage.dummy;
 
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -63,6 +64,13 @@ public class DummyStorageClient implements StorageClient {
 	public void uploadObject(String objectKey, byte[] data, String contentType) {
 		Assert.hasText(objectKey, "objectKey는 필수입니다");
 		Assert.notNull(data, "data는 필수입니다");
+		Assert.hasText(contentType, "contentType은 필수입니다");
+	}
+
+	@Override
+	public void uploadObject(String objectKey, Path file, String contentType) {
+		Assert.hasText(objectKey, "objectKey는 필수입니다");
+		Assert.notNull(file, "file은 필수입니다");
 		Assert.hasText(contentType, "contentType은 필수입니다");
 	}
 
