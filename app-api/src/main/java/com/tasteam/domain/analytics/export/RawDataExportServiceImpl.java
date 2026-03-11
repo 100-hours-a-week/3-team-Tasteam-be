@@ -110,13 +110,13 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		String dataObjectKey = prefix + DATA_FILE_NAME;
 		String successObjectKey = prefix + SUCCESS_FILE_NAME;
 		List<String> existingObjects = listObjects(prefix);
-		String csv = toCsv(table);
+		CsvPayload csvPayload = buildCsvFile(type);
 
 		try {
 			// 동일 dt 재실행(REPLACE) 시 AI 완료 판정 파일이 남아 있지 않도록 먼저 제거한다.
 			deleteObject(successObjectKey);
-			// 스냅샷 CSV는 동일 키에 overwrite 한다.
-			uploadObject(dataObjectKey, csv.getBytes(StandardCharsets.UTF_8), "text/csv");
+			// 1차는 단일 파일 업로드만 수행한다(멀티파트/분할 업로드는 2차 작업에서 도입).
+			uploadObject(dataObjectKey, csvPayload.csvFile(), "text/csv");
 			// 데이터 파일 업로드가 끝난 뒤 완료 마커를 생성한다.
 			uploadObject(successObjectKey, new byte[0], "text/plain");
 		} catch (RuntimeException ex) {
@@ -216,6 +216,25 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		}
 	}
 
+	private Path createTempCsvFile(RawDataType type) {
+		try {
+			return Files.createTempFile("raw-" + type.pathSegment() + "-", ".csv");
+		} catch (IOException e) {
+			throw new IllegalStateException("failed to create temp csv file", e);
+		}
+	}
+
+	private void safeDeleteTempFile(Path tempFile) {
+		if (tempFile == null) {
+			return;
+		}
+		try {
+			Files.deleteIfExists(tempFile);
+		} catch (IOException e) {
+			log.warn("failed to delete temp csv file. path={}", tempFile, e);
+		}
+	}
+
 	private List<String> listObjects(String prefix) {
 		if (StringUtils.hasText(analyticsBucket)) {
 			return storageClient.listObjects(analyticsBucket, prefix);
@@ -237,6 +256,14 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			return;
 		}
 		storageClient.uploadObject(objectKey, data, contentType);
+	}
+
+	private void uploadObject(String objectKey, Path file, String contentType) {
+		if (StringUtils.hasText(analyticsBucket)) {
+			storageClient.uploadObject(analyticsBucket, objectKey, file, contentType);
+			return;
+		}
+		storageClient.uploadObject(objectKey, file, contentType);
 	}
 
 	private void finishBatchExecution(BatchExecution execution, int totalJobs, int successCount,

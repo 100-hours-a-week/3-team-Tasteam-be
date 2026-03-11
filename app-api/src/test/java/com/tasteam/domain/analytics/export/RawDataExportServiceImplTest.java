@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.List;
@@ -68,7 +70,7 @@ class RawDataExportServiceImplTest {
 		inOrder.verify(storageClient).deleteObject(successKey);
 		inOrder.verify(storageClient).uploadObject(
 			argThat(key -> key.endsWith("part-00001.csv")),
-			any(byte[].class),
+			any(Path.class),
 			anyString());
 		inOrder.verify(storageClient).uploadObject(
 			argThat(key -> key.equals(successKey)),
@@ -126,7 +128,7 @@ class RawDataExportServiceImplTest {
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
 		doThrow(new RuntimeException("upload failed"))
-			.when(storageClient).uploadObject(anyString(), any(byte[].class), anyString());
+			.when(storageClient).uploadObject(anyString(), any(Path.class), anyString());
 
 		assertThatThrownBy(() -> service.export(new RawDataExportCommand(
 			dt, EnumSet.of(RawDataType.RESTAURANTS), "req-3")))
@@ -154,9 +156,12 @@ class RawDataExportServiceImplTest {
 		analyticsProperties.setBucket(bucket);
 		service.setAnalyticsProperties(analyticsProperties);
 
-		when(sourceRepository.extractRestaurants()).thenReturn(new RawDataCsvTable(
-			List.of("restaurant_id", "restaurant_name"),
-			List.of(List.of("1", "식당A"))));
+		when(sourceRepository.restaurantHeaders()).thenReturn(List.of("restaurant_id", "restaurant_name"));
+		doAnswer(invocation -> {
+			CsvRowConsumer consumer = invocation.getArgument(0);
+			consumer.accept(List.of("1", "식당A"));
+			return null;
+		}).when(sourceRepository).streamRestaurants(any(CsvRowConsumer.class));
 		when(storageClient.listObjects(bucket, prefix)).thenReturn(List.of());
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
@@ -165,7 +170,7 @@ class RawDataExportServiceImplTest {
 
 		verify(storageClient).listObjects(bucket, prefix);
 		verify(storageClient).deleteObject(bucket, successKey);
-		verify(storageClient).uploadObject(eq(bucket), eq(dataKey), any(byte[].class), eq("text/csv"));
+		verify(storageClient).uploadObject(eq(bucket), eq(dataKey), any(Path.class), eq("text/csv"));
 		verify(storageClient).uploadObject(eq(bucket), eq(successKey), any(byte[].class), eq("text/plain"));
 		verify(storageClient, never()).uploadObject(eq(dataKey), any(byte[].class), anyString());
 	}
