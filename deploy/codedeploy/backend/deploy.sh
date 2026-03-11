@@ -28,6 +28,9 @@ BACKEND_COMPOSE_FILE="${BACKEND_COMPOSE_FILE:-${SCRIPT_DIR}/docker-compose.backe
 DEV_INFRA_COMPOSE_FILE="${DEV_INFRA_COMPOSE_FILE:-${SCRIPT_DIR}/docker-compose.dev-infra.yml}"
 DEV_INFRA_DB_CONTAINER="${DEV_INFRA_DB_CONTAINER:-tasteam-dev-db}"
 DEV_INFRA_REDIS_CONTAINER="${DEV_INFRA_REDIS_CONTAINER:-tasteam-dev-redis}"
+DEV_INFRA_KAFKA_CONTAINER="${DEV_INFRA_KAFKA_CONTAINER:-tasteam-dev-kafka}"
+DEV_INFRA_KAFKA_CONNECT_CONTAINER="${DEV_INFRA_KAFKA_CONNECT_CONTAINER:-tasteam-dev-kafka-connect}"
+DEV_INFRA_ENABLE_KAFKA="${DEV_INFRA_ENABLE_KAFKA:-}"
 DEV_INFRA_COMPOSE_PROJECT_NAME="${DEV_INFRA_COMPOSE_PROJECT_NAME:-tasteam-dev-infra}"
 MONITORING_ENV_FILE="${MONITORING_ENV_FILE:-${APP_DIR}/monitoring.env}"
 ALLOY_COMPOSE_FILE="${ALLOY_COMPOSE_FILE:-${SCRIPT_DIR}/docker-compose.alloy.yml}"
@@ -196,6 +199,37 @@ validate_required_backend_env() {
       exit 1
     fi
   done
+}
+
+validate_mq_env() {
+  local mq_enabled mq_provider kafka_bootstrap
+  mq_enabled="$(read_env_value "MQ_ENABLED")"
+  mq_provider="$(read_env_value "MQ_PROVIDER")"
+
+  case "${mq_enabled}" in
+    true|TRUE|True|1|yes|YES|on|ON)
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  if [ -z "${mq_provider}" ] || [ "${mq_provider}" = "PLACEHOLDER" ]; then
+    log "MQ_ENABLED=true but MQ_PROVIDER is missing in ${BACKEND_ENV_FILE}"
+    exit 1
+  fi
+
+  case "${mq_provider}" in
+    kafka|KAFKA)
+      kafka_bootstrap="$(read_env_value "KAFKA_BOOTSTRAP_SERVERS")"
+      if [ -z "${kafka_bootstrap}" ] || [ "${kafka_bootstrap}" = "PLACEHOLDER" ]; then
+        log "MQ_PROVIDER=kafka requires KAFKA_BOOTSTRAP_SERVERS in ${BACKEND_ENV_FILE}"
+        exit 1
+      fi
+      ;;
+    *)
+      ;;
+  esac
 }
 
 validate_backend_env() {
@@ -440,6 +474,33 @@ start_dev_infra() {
 
   wait_container_healthy "${DEV_INFRA_DB_CONTAINER}" 60 2
   wait_container_healthy "${DEV_INFRA_REDIS_CONTAINER}" 30 2
+
+  local enable_kafka mq_enabled mq_provider
+  enable_kafka="${DEV_INFRA_ENABLE_KAFKA}"
+  if [ -z "${enable_kafka}" ]; then
+    mq_enabled="$(read_env_value "MQ_ENABLED")"
+    mq_provider="$(read_env_value "MQ_PROVIDER")"
+    if [ "${mq_enabled}" = "true" ] && [ "${mq_provider}" = "kafka" ]; then
+      enable_kafka="true"
+    else
+      enable_kafka="false"
+    fi
+  fi
+
+  if [ "${enable_kafka}" = "true" ]; then
+    log "start dev local infra (kafka/kafka-connect): ${DEV_INFRA_COMPOSE_FILE}"
+    docker rm -f "${DEV_INFRA_KAFKA_CONTAINER}" "${DEV_INFRA_KAFKA_CONNECT_CONTAINER}" >/dev/null 2>&1 || true
+    compose_up \
+      --project-name "${DEV_INFRA_COMPOSE_PROJECT_NAME}" \
+      --env-file "${BACKEND_ENV_FILE}" \
+      -f "${DEV_INFRA_COMPOSE_FILE}" \
+      up -d kafka kafka-connect
+    wait_container_healthy "${DEV_INFRA_KAFKA_CONTAINER}" 60 2
+    wait_container_healthy "${DEV_INFRA_KAFKA_CONNECT_CONTAINER}" 60 2
+  else
+    log "skip kafka dev infra (DEV_INFRA_ENABLE_KAFKA=${enable_kafka})"
+  fi
+
   log "dev local infra is ready"
 }
 
@@ -517,6 +578,7 @@ deploy_backend() {
   fetch_ssm_env "/${ENV_NAME}/tasteam/backend" "${BACKEND_ENV_FILE}"
   upsert_env_value "SPRING_PROFILES_ACTIVE" "${ENV_NAME}"
   validate_required_backend_env
+  validate_mq_env
   validate_backend_env
   start_dev_infra
   set_runtime_resource_limits

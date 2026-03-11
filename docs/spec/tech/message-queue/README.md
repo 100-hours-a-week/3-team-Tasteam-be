@@ -150,6 +150,28 @@ flowchart LR
 
 운영 기본값은 `provider=none`으로 두고, 구현체가 준비된 환경에서만 provider를 활성화한다.
 
+## **[4-1] 공용 변수 vs 도메인 변수**
+
+- 공용(플랫폼) 변수는 인프라 접속/활성화에만 사용한다.
+  - `MQ_ENABLED`, `MQ_PROVIDER`, `MQ_TOPIC_PREFIX`, `MQ_DEFAULT_CONSUMER_GROUP`
+  - `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_CONNECT_URL`
+- 도메인 전용 변수는 접두사로 용도를 명확히 분리한다.
+  - 이벤트 로그 적재: `ANALYTICS_EVENT_LOG_*`
+  - 알림: `NOTIFICATION_MQ_*` (또는 `NOTIFICATION_KAFKA_*`)
+  - 유저활동: `USER_ACTIVITY_MQ_*`
+- 금지 예시:
+  - `KAFKA_TOPIC`, `CONSUMER_GROUP`처럼 도메인 소유가 드러나지 않는 변수명
+
+## **[4-2] 로컬 실행 오버레이**
+
+- 기본 로컬 스택: `docker-compose.local.yml`
+- Kafka/Connect 확장 스택: `docker-compose.kafka.yml`
+- 실행 예시:
+  - `docker compose -f docker-compose.local.yml -f docker-compose.kafka.yml up -d`
+  - `docker compose -f docker-compose.local.yml -f docker-compose.kafka.yml down`
+
+오버레이 분리를 통해 기본 로컬 개발 흐름(DB/Redis/API)과 선택 스택(Kafka/Connect, Monitoring)의 변경 영향을 분리한다.
+
 ---
 
 # **[5] 확장 전략 (Redis Stream -> Kafka)**
@@ -265,3 +287,17 @@ flowchart LR
 - `TracingMessageQueueProducer` / `TracingMessageQueueConsumer`: Decorator 패턴으로 TraceService 호출
 - `MessageQueueMetricsAspect`: TraceService `record*()` 메서드에 `@AfterReturning`으로 메트릭 수집
 - 비즈니스 클래스(`NotificationMessageProcessor`, `NotificationDlqPublisher`)는 마커 어노테이션만 부착
+
+---
+
+# **[9] 환경별 운영 모델**
+
+- `local`
+  - Docker 오버레이로 Kafka/Connect를 선택 실행
+  - 앱은 기본 `MQ_ENABLED=false`, 필요 시에만 `provider` 활성화
+- `dev`
+  - CodeDeploy `docker-compose.dev-infra.yml`에서 DB/Redis + (선택) Kafka/Connect 기동
+  - `MQ_ENABLED=true` + `MQ_PROVIDER=kafka`인 경우 `KAFKA_BOOTSTRAP_SERVERS` 필수
+- `stg`/`prod`
+  - 앱 컨테이너 배포와 Kafka 인프라를 분리 운영
+  - Kafka/Connect는 managed 혹은 별도 운영 스택으로 관리
