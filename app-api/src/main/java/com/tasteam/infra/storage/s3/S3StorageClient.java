@@ -3,6 +3,7 @@ package com.tasteam.infra.storage.s3;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
+import java.nio.file.Path;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -152,6 +153,25 @@ public class S3StorageClient implements StorageClient {
 				objectKey,
 				new java.io.ByteArrayInputStream(data),
 				metadata));
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
+	}
+
+	@Override
+	public void uploadObject(String objectKey, Path file, String contentType) {
+		try {
+			Assert.hasText(objectKey, "objectKey는 필수입니다");
+			Assert.notNull(file, "file은 필수입니다");
+			Assert.hasText(contentType, "contentType은 필수입니다");
+
+			ObjectMetadata metadata = new ObjectMetadata();
+			metadata.setContentType(contentType);
+
+			amazonS3.putObject(new PutObjectRequest(
+				resolveBucket(),
+				objectKey,
+				file.toFile()).withMetadata(metadata));
 		} catch (RuntimeException ex) {
 			throw mapStorageException(ex);
 		}

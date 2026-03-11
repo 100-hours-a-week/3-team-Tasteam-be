@@ -1,6 +1,10 @@
 package com.tasteam.domain.analytics.export;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -8,6 +12,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -74,8 +79,7 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 				if (!targets.contains(type)) {
 					continue;
 				}
-				RawDataCsvTable table = extract(type);
-				items.add(upload(type, dt, table, command.requestId()));
+				items.add(upload(type, dt, command.requestId()));
 				successCount += 1;
 			}
 			finishBatchExecution(execution, totalJobs, successCount, BatchExecutionStatus.COMPLETED);
@@ -90,31 +94,27 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		}
 	}
 
-	private RawDataCsvTable extract(RawDataType type) {
-		return switch (type) {
-			case RESTAURANTS -> sourceRepository.extractRestaurants();
-			case MENUS -> sourceRepository.extractMenus();
-		};
-	}
-
-	private RawDataExportItemResult upload(RawDataType type, LocalDate dt, RawDataCsvTable table, String requestId) {
+	private RawDataExportItemResult upload(RawDataType type, LocalDate dt, String requestId) {
 		String prefix = BASE_PREFIX + "/" + type.pathSegment() + "/dt=" + dt + "/";
 		String dataObjectKey = prefix + DATA_FILE_NAME;
 		String successObjectKey = prefix + SUCCESS_FILE_NAME;
 		List<String> existingObjects = storageClient.listObjects(prefix);
-		String csv = toCsv(table);
+		CsvPayload csvPayload = buildCsvFile(type);
 
 		try {
 			// 동일 dt 재실행(REPLACE) 시 AI 완료 판정 파일이 남아 있지 않도록 먼저 제거한다.
 			storageClient.deleteObject(successObjectKey);
+			// 1차는 단일 파일 업로드만 수행한다(멀티파트/분할 업로드는 2차 작업에서 도입).
 			// 스냅샷 CSV는 동일 키에 overwrite 한다.
-			storageClient.uploadObject(dataObjectKey, csv.getBytes(StandardCharsets.UTF_8), "text/csv");
+			storageClient.uploadObject(dataObjectKey, csvPayload.csvFile(), "text/csv");
 			// 데이터 파일 업로드가 끝난 뒤 완료 마커를 생성한다.
 			storageClient.uploadObject(successObjectKey, new byte[0], "text/plain");
 		} catch (RuntimeException ex) {
 			// 실패 시 미완료 데이터를 완료로 오인하지 않도록 _SUCCESS를 정리한다.
 			safeDeleteSuccessMarker(successObjectKey);
 			throw ex;
+		} finally {
+			safeDeleteTempFile(csvPayload.csvFile());
 		}
 
 		log.info(
@@ -122,25 +122,50 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			requestId,
 			type,
 			dt,
-			table.rowCount(),
+			csvPayload.rowCount(),
 			dataObjectKey,
 			!existingObjects.isEmpty());
 
 		return new RawDataExportItemResult(
 			type,
-			table.rowCount(),
+			csvPayload.rowCount(),
 			dataObjectKey,
 			successObjectKey,
 			!existingObjects.isEmpty());
 	}
 
-	private String toCsv(RawDataCsvTable table) {
-		StringBuilder sb = new StringBuilder();
-		sb.append(join(table.headers())).append('\n');
-		for (List<String> row : table.rows()) {
-			sb.append(join(row)).append('\n');
+	private CsvPayload buildCsvFile(RawDataType type) {
+		AtomicInteger rowCount = new AtomicInteger(0);
+		Path tempFile = createTempCsvFile(type);
+		try (BufferedWriter writer = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8)) {
+			writeRow(writer, headers(type));
+			streamRows(type, row -> {
+				try {
+					writeRow(writer, row);
+				} catch (IOException e) {
+					throw new IllegalStateException("failed to write csv row", e);
+				}
+				rowCount.incrementAndGet();
+			});
+			writer.flush();
+		} catch (IOException e) {
+			throw new IllegalStateException("failed to build csv payload", e);
 		}
-		return sb.toString();
+		return new CsvPayload(tempFile, rowCount.get());
+	}
+
+	private List<String> headers(RawDataType type) {
+		return switch (type) {
+			case RESTAURANTS -> sourceRepository.restaurantHeaders();
+			case MENUS -> sourceRepository.menuHeaders();
+		};
+	}
+
+	private void streamRows(RawDataType type, CsvRowConsumer consumer) {
+		switch (type) {
+			case RESTAURANTS -> sourceRepository.streamRestaurants(consumer);
+			case MENUS -> sourceRepository.streamMenus(consumer);
+		}
 	}
 
 	private String join(List<String> fields) {
@@ -149,6 +174,11 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			escaped.add(escape(field));
 		}
 		return String.join(",", escaped);
+	}
+
+	private void writeRow(BufferedWriter writer, List<String> fields) throws IOException {
+		writer.write(join(fields));
+		writer.newLine();
 	}
 
 	private String escape(String value) {
@@ -176,6 +206,25 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		}
 	}
 
+	private Path createTempCsvFile(RawDataType type) {
+		try {
+			return Files.createTempFile("raw-export-" + type.pathSegment() + "-", ".csv");
+		} catch (IOException e) {
+			throw new IllegalStateException("failed to create temp csv file", e);
+		}
+	}
+
+	private void safeDeleteTempFile(Path file) {
+		if (file == null) {
+			return;
+		}
+		try {
+			Files.deleteIfExists(file);
+		} catch (IOException e) {
+			log.warn("failed to delete temp csv file. path={}", file, e);
+		}
+	}
+
 	private void finishBatchExecution(BatchExecution execution, int totalJobs, int successCount,
 		BatchExecutionStatus finalStatus) {
 		int failedCount = Math.max(0, totalJobs - successCount);
@@ -187,5 +236,8 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			0,
 			finalStatus);
 		batchExecutionRepository.save(execution);
+	}
+
+	private record CsvPayload(Path csvFile, int rowCount) {
 	}
 }

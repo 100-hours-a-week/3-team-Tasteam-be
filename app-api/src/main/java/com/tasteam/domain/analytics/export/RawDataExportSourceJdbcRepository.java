@@ -2,12 +2,14 @@ package com.tasteam.domain.analytics.export;
 
 import java.util.List;
 
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class RawDataExportSourceJdbcRepository {
+
+	private static final int FETCH_SIZE = 500;
 
 	// Contract(4-2) restaurants schema: restaurant_id,restaurant_name,sido,sigungu,eupmyeondong,geohash,food_category_id,food_category_name
 	private static final List<String> RESTAURANT_HEADERS = List.of(
@@ -97,11 +99,22 @@ public class RawDataExportSourceJdbcRepository {
 		this.jdbcTemplate = jdbcTemplate;
 	}
 
-	public RawDataCsvTable extractRestaurants() {
-		List<List<String>> rows = jdbcTemplate.query(
-			SELECT_RESTAURANTS_SQL,
-			new MapSqlParameterSource(),
-			(rs, rowNum) -> List.of(
+	public List<String> restaurantHeaders() {
+		return RESTAURANT_HEADERS;
+	}
+
+	public List<String> menuHeaders() {
+		return MENU_HEADERS;
+	}
+
+	public void streamRestaurants(CsvRowConsumer consumer) {
+		jdbcTemplate.getJdbcTemplate().query(
+			connection -> {
+				var statement = connection.prepareStatement(SELECT_RESTAURANTS_SQL);
+				statement.setFetchSize(FETCH_SIZE);
+				return statement;
+			},
+			(RowCallbackHandler)rs -> consumer.accept(List.of(
 				rs.getString(1),
 				rs.getString(2),
 				rs.getString(3),
@@ -109,17 +122,17 @@ public class RawDataExportSourceJdbcRepository {
 				rs.getString(5),
 				rs.getString(6),
 				rs.getString(7),
-				rs.getString(8)));
-		return new RawDataCsvTable(
-			RESTAURANT_HEADERS,
-			rows);
+				rs.getString(8))));
 	}
 
-	public RawDataCsvTable extractMenus() {
-		List<List<String>> rows = jdbcTemplate.query(
-			SELECT_MENUS_SQL,
-			new MapSqlParameterSource(),
-			(rs, rowNum) -> List.of(
+	public void streamMenus(CsvRowConsumer consumer) {
+		jdbcTemplate.getJdbcTemplate().query(
+			connection -> {
+				var statement = connection.prepareStatement(SELECT_MENUS_SQL);
+				statement.setFetchSize(FETCH_SIZE);
+				return statement;
+			},
+			(RowCallbackHandler)rs -> consumer.accept(List.of(
 				rs.getString(1),
 				rs.getString(2),
 				rs.getString(3),
@@ -128,9 +141,6 @@ public class RawDataExportSourceJdbcRepository {
 				rs.getString(6),
 				rs.getString(7),
 				rs.getString(8),
-				rs.getString(9)));
-		return new RawDataCsvTable(
-			MENU_HEADERS,
-			rows);
+				rs.getString(9))));
 	}
 }
