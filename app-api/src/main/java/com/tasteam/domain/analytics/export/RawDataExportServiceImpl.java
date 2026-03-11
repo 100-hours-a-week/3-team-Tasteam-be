@@ -17,7 +17,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
+import com.tasteam.domain.analytics.config.AnalyticsProperties;
 import com.tasteam.domain.batch.entity.BatchExecution;
 import com.tasteam.domain.batch.entity.BatchExecutionStatus;
 import com.tasteam.domain.batch.entity.BatchType;
@@ -43,6 +45,7 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 	private final RawDataExportSourceJdbcRepository sourceRepository;
 	private final StorageClient storageClient;
 	private final BatchExecutionRepository batchExecutionRepository;
+	private String analyticsBucket;
 	private RawDataExportRuntimeDiagnostics runtimeDiagnostics = RawDataExportRuntimeDiagnostics.noop();
 
 	public RawDataExportServiceImpl(
@@ -58,6 +61,14 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 	void setRuntimeDiagnostics(RawDataExportRuntimeDiagnostics runtimeDiagnostics) {
 		if (runtimeDiagnostics != null) {
 			this.runtimeDiagnostics = runtimeDiagnostics;
+		}
+	}
+
+	@Autowired(required = false)
+	void setAnalyticsProperties(AnalyticsProperties analyticsProperties) {
+		if (analyticsProperties != null && StringUtils.hasText(analyticsProperties.getBucket())) {
+			this.analyticsBucket = analyticsProperties.getBucket();
+			log.info("analytics export bucket resolved. bucket={}", analyticsBucket);
 		}
 	}
 
@@ -98,17 +109,16 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		String prefix = BASE_PREFIX + "/" + type.pathSegment() + "/dt=" + dt + "/";
 		String dataObjectKey = prefix + DATA_FILE_NAME;
 		String successObjectKey = prefix + SUCCESS_FILE_NAME;
-		List<String> existingObjects = storageClient.listObjects(prefix);
+		List<String> existingObjects = listObjects(prefix);
 		CsvPayload csvPayload = buildCsvFile(type);
 
 		try {
 			// 동일 dt 재실행(REPLACE) 시 AI 완료 판정 파일이 남아 있지 않도록 먼저 제거한다.
-			storageClient.deleteObject(successObjectKey);
+			deleteObject(successObjectKey);
 			// 1차는 단일 파일 업로드만 수행한다(멀티파트/분할 업로드는 2차 작업에서 도입).
-			// 스냅샷 CSV는 동일 키에 overwrite 한다.
-			storageClient.uploadObject(dataObjectKey, csvPayload.csvFile(), "text/csv");
+			uploadObject(dataObjectKey, csvPayload.csvFile(), "text/csv");
 			// 데이터 파일 업로드가 끝난 뒤 완료 마커를 생성한다.
-			storageClient.uploadObject(successObjectKey, new byte[0], "text/plain");
+			uploadObject(successObjectKey, new byte[0], "text/plain");
 		} catch (RuntimeException ex) {
 			// 실패 시 미완료 데이터를 완료로 오인하지 않도록 _SUCCESS를 정리한다.
 			safeDeleteSuccessMarker(successObjectKey);
@@ -200,7 +210,7 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 
 	private void safeDeleteSuccessMarker(String successObjectKey) {
 		try {
-			storageClient.deleteObject(successObjectKey);
+			deleteObject(successObjectKey);
 		} catch (RuntimeException ignore) {
 			log.warn("failed to cleanup success marker. key={}", successObjectKey, ignore);
 		}
@@ -208,21 +218,52 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 
 	private Path createTempCsvFile(RawDataType type) {
 		try {
-			return Files.createTempFile("raw-export-" + type.pathSegment() + "-", ".csv");
+			return Files.createTempFile("raw-" + type.pathSegment() + "-", ".csv");
 		} catch (IOException e) {
 			throw new IllegalStateException("failed to create temp csv file", e);
 		}
 	}
 
-	private void safeDeleteTempFile(Path file) {
-		if (file == null) {
+	private void safeDeleteTempFile(Path tempFile) {
+		if (tempFile == null) {
 			return;
 		}
 		try {
-			Files.deleteIfExists(file);
+			Files.deleteIfExists(tempFile);
 		} catch (IOException e) {
-			log.warn("failed to delete temp csv file. path={}", file, e);
+			log.warn("failed to delete temp csv file. path={}", tempFile, e);
 		}
+	}
+
+	private List<String> listObjects(String prefix) {
+		if (StringUtils.hasText(analyticsBucket)) {
+			return storageClient.listObjects(analyticsBucket, prefix);
+		}
+		return storageClient.listObjects(prefix);
+	}
+
+	private void deleteObject(String objectKey) {
+		if (StringUtils.hasText(analyticsBucket)) {
+			storageClient.deleteObject(analyticsBucket, objectKey);
+			return;
+		}
+		storageClient.deleteObject(objectKey);
+	}
+
+	private void uploadObject(String objectKey, byte[] data, String contentType) {
+		if (StringUtils.hasText(analyticsBucket)) {
+			storageClient.uploadObject(analyticsBucket, objectKey, data, contentType);
+			return;
+		}
+		storageClient.uploadObject(objectKey, data, contentType);
+	}
+
+	private void uploadObject(String objectKey, Path file, String contentType) {
+		if (StringUtils.hasText(analyticsBucket)) {
+			storageClient.uploadObject(analyticsBucket, objectKey, file, contentType);
+			return;
+		}
+		storageClient.uploadObject(objectKey, file, contentType);
 	}
 
 	private void finishBatchExecution(BatchExecution execution, int totalJobs, int successCount,

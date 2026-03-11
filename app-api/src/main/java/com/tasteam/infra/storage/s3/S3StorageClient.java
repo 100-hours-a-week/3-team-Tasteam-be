@@ -106,9 +106,33 @@ public class S3StorageClient implements StorageClient {
 	}
 
 	@Override
+	public void deleteObject(String bucket, String objectKey) {
+		try {
+			Assert.hasText(bucket, "bucket은 필수입니다");
+			Assert.hasText(objectKey, "objectKey는 필수입니다");
+			amazonS3.deleteObject(new DeleteObjectRequest(bucket, objectKey));
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
+	}
+
+	@Override
 	public byte[] downloadObject(String objectKey) {
 		Assert.hasText(objectKey, "objectKey는 필수입니다");
 		try (S3Object s3Object = amazonS3.getObject(resolveBucket(), objectKey)) {
+			return IOUtils.toByteArray(s3Object.getObjectContent());
+		} catch (IOException ex) {
+			throw new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
+	}
+
+	@Override
+	public byte[] downloadObject(String bucket, String objectKey) {
+		Assert.hasText(bucket, "bucket은 필수입니다");
+		Assert.hasText(objectKey, "objectKey는 필수입니다");
+		try (S3Object s3Object = amazonS3.getObject(bucket, objectKey)) {
 			return IOUtils.toByteArray(s3Object.getObjectContent());
 		} catch (IOException ex) {
 			throw new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
@@ -125,6 +149,27 @@ public class S3StorageClient implements StorageClient {
 			do {
 				ListObjectsV2Request req = new ListObjectsV2Request()
 					.withBucketName(resolveBucket())
+					.withPrefix(prefix)
+					.withContinuationToken(continuationToken);
+				ListObjectsV2Result result = amazonS3.listObjectsV2(req);
+				result.getObjectSummaries().forEach(s -> keys.add(s.getKey()));
+				continuationToken = result.isTruncated() ? result.getNextContinuationToken() : null;
+			} while (continuationToken != null);
+			return keys;
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
+	}
+
+	@Override
+	public List<String> listObjects(String bucket, String prefix) {
+		try {
+			Assert.hasText(bucket, "bucket은 필수입니다");
+			List<String> keys = new ArrayList<>();
+			String continuationToken = null;
+			do {
+				ListObjectsV2Request req = new ListObjectsV2Request()
+					.withBucketName(bucket)
 					.withPrefix(prefix)
 					.withContinuationToken(continuationToken);
 				ListObjectsV2Result result = amazonS3.listObjectsV2(req);
@@ -170,6 +215,48 @@ public class S3StorageClient implements StorageClient {
 
 			amazonS3.putObject(new PutObjectRequest(
 				resolveBucket(),
+				objectKey,
+				file.toFile()).withMetadata(metadata));
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
+	}
+
+	@Override
+	public void uploadObject(String bucket, String objectKey, byte[] data, String contentType) {
+		try {
+			Assert.hasText(bucket, "bucket은 필수입니다");
+			Assert.hasText(objectKey, "objectKey는 필수입니다");
+			Assert.notNull(data, "data는 필수입니다");
+			Assert.hasText(contentType, "contentType은 필수입니다");
+
+			ObjectMetadata metadata = new ObjectMetadata();
+			metadata.setContentLength(data.length);
+			metadata.setContentType(contentType);
+
+			amazonS3.putObject(new PutObjectRequest(
+				bucket,
+				objectKey,
+				new java.io.ByteArrayInputStream(data),
+				metadata));
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
+	}
+
+	@Override
+	public void uploadObject(String bucket, String objectKey, Path file, String contentType) {
+		try {
+			Assert.hasText(bucket, "bucket은 필수입니다");
+			Assert.hasText(objectKey, "objectKey는 필수입니다");
+			Assert.notNull(file, "file은 필수입니다");
+			Assert.hasText(contentType, "contentType은 필수입니다");
+
+			ObjectMetadata metadata = new ObjectMetadata();
+			metadata.setContentType(contentType);
+
+			amazonS3.putObject(new PutObjectRequest(
+				bucket,
 				objectKey,
 				file.toFile()).withMetadata(metadata));
 		} catch (RuntimeException ex) {

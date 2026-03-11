@@ -11,9 +11,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import com.tasteam.domain.analytics.config.AnalyticsProperties;
 import com.tasteam.domain.recommendation.exception.RecommendationBusinessException;
 import com.tasteam.domain.recommendation.importer.config.RecommendationImportPollingProperties;
 import com.tasteam.infra.storage.StorageClient;
@@ -25,6 +27,7 @@ public class S3RecommendationResultPollingService {
 
 	private final StorageClient storageClient;
 	private final RecommendationImportPollingProperties pollingProperties;
+	private String analyticsBucket;
 
 	public S3RecommendationResultPollingService(
 		StorageClient storageClient,
@@ -33,17 +36,24 @@ public class S3RecommendationResultPollingService {
 		this.pollingProperties = pollingProperties;
 	}
 
+	@Autowired(required = false)
+	void setAnalyticsProperties(AnalyticsProperties analyticsProperties) {
+		if (analyticsProperties != null && StringUtils.hasText(analyticsProperties.getBucket())) {
+			this.analyticsBucket = analyticsProperties.getBucket();
+		}
+	}
+
 	public RecommendationResultS3Target awaitImportTarget(String s3PrefixOrUri, String pipelineVersion,
 		String requestId) {
 		S3Location location = parseS3Uri(s3PrefixOrUri);
-		String pipelinePrefix = resolvePipelinePrefix(location.key(), pipelineVersion);
+		String pipelinePrefix = resolvePipelinePrefix(location.keyPrefix(), pipelineVersion);
 		Duration timeout = defaultIfNonPositive(pollingProperties.getTimeout(), Duration.ofMinutes(10));
 		Duration interval = defaultIfNonPositive(pollingProperties.getInterval(), Duration.ofSeconds(10));
 		Instant deadline = Instant.now().plus(timeout);
+		String bucket = resolveAnalyticsBucket();
 
 		while (!Instant.now().isAfter(deadline)) {
-			RecommendationResultS3Target found = findLatestCompletedTarget(location.bucket(), pipelinePrefix,
-				pipelineVersion);
+			RecommendationResultS3Target found = findLatestCompletedTarget(bucket, pipelinePrefix, pipelineVersion);
 			if (found != null) {
 				return found;
 			}
@@ -71,8 +81,9 @@ public class S3RecommendationResultPollingService {
 	}
 
 	private Map<LocalDate, RecommendationBatchFolderState> collectBatchStates(String pipelinePrefix) {
+		String bucket = resolveAnalyticsBucket();
 		Map<LocalDate, RecommendationBatchFolderState> states = new HashMap<>();
-		for (String key : storageClient.listObjects(pipelinePrefix)) {
+		for (String key : storageClient.listObjects(bucket, pipelinePrefix)) {
 			LocalDate dt = extractBatchDate(key);
 			if (dt == null) {
 				continue;
@@ -136,6 +147,14 @@ public class S3RecommendationResultPollingService {
 		}
 	}
 
+	private String resolveAnalyticsBucket() {
+		if (!StringUtils.hasText(analyticsBucket)) {
+			throw RecommendationBusinessException.resultValidationFailed(
+				"analytics bucket 설정이 비어 있습니다. tasteam.analytics.bucket 값을 확인해 주세요.");
+		}
+		return analyticsBucket;
+	}
+
 	private S3Location parseS3Uri(String s3Uri) {
 		if (!StringUtils.hasText(s3Uri) || !s3Uri.startsWith("s3://")) {
 			throw RecommendationBusinessException.resultValidationFailed("S3 경로 형식이 올바르지 않습니다: " + s3Uri);
@@ -145,7 +164,7 @@ public class S3RecommendationResultPollingService {
 		if (slashIndex <= 0 || slashIndex == remainder.length() - 1) {
 			throw RecommendationBusinessException.resultValidationFailed("S3 경로 형식이 올바르지 않습니다: " + s3Uri);
 		}
-		return new S3Location(remainder.substring(0, slashIndex), remainder.substring(slashIndex + 1));
+		return new S3Location(remainder.substring(slashIndex + 1));
 	}
 
 	private static final class RecommendationBatchFolderState {
@@ -173,6 +192,6 @@ public class S3RecommendationResultPollingService {
 		}
 	}
 
-	private record S3Location(String bucket, String key) {
+	private record S3Location(String keyPrefix) {
 	}
 }
