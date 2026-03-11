@@ -2,7 +2,9 @@ package com.tasteam.domain.recommendation.importer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
@@ -12,6 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.tasteam.config.annotation.UnitTest;
+import com.tasteam.domain.analytics.config.AnalyticsProperties;
 import com.tasteam.domain.recommendation.exception.RecommendationBusinessException;
 import com.tasteam.domain.recommendation.importer.config.RecommendationImportPollingProperties;
 import com.tasteam.infra.storage.StorageClient;
@@ -29,12 +32,16 @@ class S3RecommendationResultPollingServiceTest {
 		properties.setInterval(Duration.ofMillis(10));
 		S3RecommendationResultPollingService service = new S3RecommendationResultPollingService(storageClient,
 			properties);
-		when(storageClient.listObjects("recommendations/pipeline_version=deepfm-1/")).thenReturn(List.of(
-			"recommendations/pipeline_version=deepfm-1/dt=2026-03-07/_SUCCESS",
-			"recommendations/pipeline_version=deepfm-1/dt=2026-03-07/part-00001.csv",
-			"recommendations/pipeline_version=deepfm-1/dt=2026-03-08/_SUCCESS",
-			"recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00003.csv",
-			"recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00001.csv"));
+		AnalyticsProperties analyticsProperties = new AnalyticsProperties();
+		analyticsProperties.setBucket("tasteam-dev-analytics");
+		service.setAnalyticsProperties(analyticsProperties);
+		when(storageClient.listObjects("tasteam-dev-analytics", "recommendations/pipeline_version=deepfm-1/"))
+			.thenReturn(List.of(
+				"recommendations/pipeline_version=deepfm-1/dt=2026-03-07/_SUCCESS",
+				"recommendations/pipeline_version=deepfm-1/dt=2026-03-07/part-00001.csv",
+				"recommendations/pipeline_version=deepfm-1/dt=2026-03-08/_SUCCESS",
+				"recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00003.csv",
+				"recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00001.csv"));
 
 		RecommendationResultS3Target target = service.awaitImportTarget(
 			"s3://tasteam-dev-analytics/recommendations/",
@@ -46,6 +53,8 @@ class S3RecommendationResultPollingServiceTest {
 		assertThat(target.resultFileS3Uri())
 			.isEqualTo(
 				"s3://tasteam-dev-analytics/recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00001.csv");
+		verify(storageClient).listObjects(eq("tasteam-dev-analytics"),
+			eq("recommendations/pipeline_version=deepfm-1/"));
 	}
 
 	@Test
@@ -57,8 +66,12 @@ class S3RecommendationResultPollingServiceTest {
 		properties.setInterval(Duration.ofMillis(10));
 		S3RecommendationResultPollingService service = new S3RecommendationResultPollingService(storageClient,
 			properties);
-		when(storageClient.listObjects("recommendations/pipeline_version=deepfm-1/")).thenReturn(List.of(
-			"recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00001.csv"));
+		AnalyticsProperties analyticsProperties = new AnalyticsProperties();
+		analyticsProperties.setBucket("tasteam-dev-analytics");
+		service.setAnalyticsProperties(analyticsProperties);
+		when(storageClient.listObjects("tasteam-dev-analytics", "recommendations/pipeline_version=deepfm-1/"))
+			.thenReturn(List.of(
+				"recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00001.csv"));
 
 		assertThatThrownBy(() -> service.awaitImportTarget(
 			"s3://tasteam-dev-analytics/recommendations/",
@@ -66,5 +79,21 @@ class S3RecommendationResultPollingServiceTest {
 			"req-2"))
 			.isInstanceOf(RecommendationBusinessException.class)
 			.hasMessageContaining("대기 시간 초과");
+	}
+
+	@Test
+	@DisplayName("analytics bucket 설정이 없으면 실패한다")
+	void awaitImportTarget_failsWhenAnalyticsBucketMissing() {
+		StorageClient storageClient = mock(StorageClient.class);
+		RecommendationImportPollingProperties properties = new RecommendationImportPollingProperties();
+		S3RecommendationResultPollingService service = new S3RecommendationResultPollingService(storageClient,
+			properties);
+
+		assertThatThrownBy(() -> service.awaitImportTarget(
+			"s3://ignored/recommendations/",
+			"deepfm-1",
+			"req-3"))
+			.isInstanceOf(RecommendationBusinessException.class)
+			.hasMessageContaining("analytics bucket 설정이 비어 있습니다");
 	}
 }

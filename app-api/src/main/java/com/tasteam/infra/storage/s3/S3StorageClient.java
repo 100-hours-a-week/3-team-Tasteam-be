@@ -129,6 +129,19 @@ public class S3StorageClient implements StorageClient {
 	}
 
 	@Override
+	public byte[] downloadObject(String bucket, String objectKey) {
+		Assert.hasText(bucket, "bucket은 필수입니다");
+		Assert.hasText(objectKey, "objectKey는 필수입니다");
+		try (S3Object s3Object = amazonS3.getObject(bucket, objectKey)) {
+			return IOUtils.toByteArray(s3Object.getObjectContent());
+		} catch (IOException ex) {
+			throw new BusinessException(FileErrorCode.STORAGE_ERROR, ex.getMessage());
+		} catch (RuntimeException ex) {
+			throw mapStorageException(ex);
+		}
+	}
+
+	@Override
 	public List<String> listObjects(String prefix) {
 		try {
 			List<String> keys = new ArrayList<>();

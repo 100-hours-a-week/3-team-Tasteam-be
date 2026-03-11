@@ -13,6 +13,10 @@ public interface StorageClient {
 
 	byte[] downloadObject(String objectKey);
 
+	default byte[] downloadObject(String bucket, String objectKey) {
+		return downloadObject(objectKey);
+	}
+
 	void uploadObject(String objectKey, byte[] data, String contentType);
 
 	void uploadObject(String objectKey, Path file, String contentType);
