@@ -97,6 +97,18 @@ chat:
       enabled: ${CHAT_WEBSOCKET_HEARTBEAT_ENABLED:true}
       server-to-client: ${CHAT_WEBSOCKET_HEARTBEAT_SERVER_TO_CLIENT:15000}
       client-to-server: ${CHAT_WEBSOCKET_HEARTBEAT_CLIENT_TO_SERVER:15000}
+  stream:
+    enabled: ${CHAT_STREAM_ENABLED:true}
+    bootstrap-enabled: ${CHAT_STREAM_BOOTSTRAP_ENABLED:true}
+    bootstrap-batch-size: ${CHAT_STREAM_BOOTSTRAP_BATCH_SIZE:100}
+    max-total-subscriptions: ${CHAT_STREAM_MAX_TOTAL_SUBSCRIPTIONS:1000}
+    executor-thread-pool-size: ${CHAT_STREAM_EXECUTOR_THREAD_POOL_SIZE:4}
+    executor-queue-capacity: ${CHAT_STREAM_EXECUTOR_QUEUE_CAPACITY:256}
+    partition-count: ${CHAT_STREAM_PARTITION_COUNT:16}
+    max-allowed-partitions: ${CHAT_STREAM_MAX_ALLOWED_PARTITIONS:128}
+    partition-consume-enabled: ${CHAT_STREAM_PARTITION_CONSUME_ENABLED:true}
+    dual-write-enabled: ${CHAT_STREAM_DUAL_WRITE_ENABLED:true}
+    legacy-room-consume-enabled: ${CHAT_STREAM_LEGACY_ROOM_CONSUME_ENABLED:false}
 
 tasteam:
   notification:
