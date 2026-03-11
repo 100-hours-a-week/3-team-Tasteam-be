@@ -1,5 +1,8 @@
 package com.tasteam.config;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -71,6 +74,15 @@ public class TestStorageConfiguration {
 		@Override
 		public void uploadObject(String objectKey, byte[] data, String contentType) {
 			objects.put(objectKey, data == null ? new byte[0] : data);
+		}
+
+		@Override
+		public void uploadObject(String objectKey, Path file, String contentType) {
+			try {
+				objects.put(objectKey, Files.readAllBytes(file));
+			} catch (IOException e) {
+				throw new IllegalStateException("failed to read upload file", e);
+			}
 		}
 
 		@Override

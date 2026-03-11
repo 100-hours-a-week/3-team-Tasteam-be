@@ -111,6 +111,8 @@ tasteam:
     base-url: ${STORAGE_BASE_URL:https://tasteam.kr}
     access-mode: ${STORAGE_ACCESS_MODE:public}
     presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:300}
+  analytics:
+    bucket: ${ANALYTICS_BUCKET:tasteam-dev-analytics}
   webhook:
     enabled: false
     provider: discord

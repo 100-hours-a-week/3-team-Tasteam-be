@@ -136,6 +136,8 @@ tasteam:
     secret-key: ${STORAGE_SECRET_KEY:}
     presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:}
     temp-upload-prefix: ${STORAGE_TEMP_UPLOAD_PREFIX:}
+  analytics:
+    bucket: ${ANALYTICS_BUCKET:tasteam-stg-analytics}
   file:
     cleanup:
       ttl-seconds: ${FILE_CLEANUP_TTL_SECONDS:}
