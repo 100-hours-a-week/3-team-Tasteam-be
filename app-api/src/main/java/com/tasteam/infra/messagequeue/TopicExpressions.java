@@ -21,12 +21,4 @@ public class TopicExpressions {
 	public String notificationRequestedDlq() {
 		return topicNamingPolicy.dlq(QueueTopic.NOTIFICATION_REQUESTED);
 	}
-
-	public String userActivityMain() {
-		return topicNamingPolicy.main(QueueTopic.USER_ACTIVITY);
-	}
-
-	public String analyticsEventLogMain() {
-		return topicNamingPolicy.main(QueueTopic.ANALYTICS_EVENT_LOG);
-	}
 }

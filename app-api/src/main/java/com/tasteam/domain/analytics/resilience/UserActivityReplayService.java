@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.infra.messagequeue.MessageQueueProperties;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
-import com.tasteam.infra.messagequeue.UserActivityMessageQueuePublisher;
+import com.tasteam.infra.messagequeue.UserActivityS3SinkPublisher;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UserActivityReplayService {
 
 	private final UserActivitySourceOutboxService outboxService;
-	private final UserActivityMessageQueuePublisher userActivityMessageQueuePublisher;
+	private final UserActivityS3SinkPublisher userActivityS3SinkPublisher;
 	private final MessageQueueProperties messageQueueProperties;
 	private final ObjectMapper objectMapper;
 
@@ -44,7 +44,7 @@ public class UserActivityReplayService {
 			}
 
 			try {
-				userActivityMessageQueuePublisher.sink(event);
+				userActivityS3SinkPublisher.sink(event);
 				successCount++;
 			} catch (Exception ex) {
 				failedCount++;

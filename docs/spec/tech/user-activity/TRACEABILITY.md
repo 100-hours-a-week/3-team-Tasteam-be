@@ -83,14 +83,14 @@
 
 구현 근거:
 - `app-api/src/main/java/com/tasteam/infra/messagequeue/QueueTopic.java`
-- `app-api/src/main/java/com/tasteam/infra/messagequeue/UserActivityMessageQueuePublisher.java`
-- `app-api/src/main/java/com/tasteam/infra/messagequeue/UserActivityMessageQueueConsumerRegistrar.java`
+- `app-api/src/main/java/com/tasteam/infra/messagequeue/UserActivityS3SinkPublisher.java`
+- `app-api/src/main/java/com/tasteam/infra/messagequeue/Kafka Connect S3 Sink Connector.java`
 - `app-api/src/main/java/com/tasteam/domain/analytics/persistence/UserActivityEventJdbcRepository.java`
 
 검증 근거:
 - `app-api/src/test/java/com/tasteam/infra/messagequeue/UserActivityMessageQueueFlowIntegrationTest.java`
-- `app-api/src/test/java/com/tasteam/infra/messagequeue/UserActivityMessageQueuePublisherTest.java`
-- `app-api/src/test/java/com/tasteam/infra/messagequeue/UserActivityMessageQueueConsumerRegistrarTest.java`
+- `app-api/src/test/java/com/tasteam/infra/messagequeue/UserActivityS3SinkPublisherTest.java`
+- `app-api/src/test/java/com/tasteam/infra/messagequeue/Kafka Connect S3 Sink ConnectorTest.java`
 - `app-api/src/test/java/com/tasteam/domain/analytics/persistence/UserActivityEventJdbcRepositoryTest.java`
 
 ## **[2-4] #353 장애 격리/재처리/운영 지표**
@@ -185,7 +185,7 @@
 | 클래스 | 변경 의도 | 연결 이슈 |
 |---|---|---|
 | `ActivityEventOrchestrator` | 매핑/전달 중심 오케스트레이션 + sink 예외 격리 | #351 |
-| `UserActivityMessageQueuePublisher` | MQ publish + source outbox 상태 갱신 | #352, #353 |
+| `UserActivityS3SinkPublisher` | MQ publish + source outbox 상태 갱신 | #352, #353 |
 | `UserActivityEventStoreService` | 멱등 저장 + 저장 후 hook 확장점 | #352, #354 |
 | `UserActivityReplayService` | source outbox 재처리 경로 | #353 |
 | `UserActivityDispatchOutboxDispatcher` | dispatch 후보 처리 + retry + circuit 연동 | #354 |

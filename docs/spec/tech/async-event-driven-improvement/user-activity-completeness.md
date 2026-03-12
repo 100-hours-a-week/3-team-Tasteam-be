@@ -12,8 +12,8 @@ server-side domain event와 client ingest가 최종 저장소(`user_activity_eve
 | `ActivityDomainEventListener` | `AFTER_COMMIT`에 도메인 이벤트 전달 | 후속 단계 실패가 request 성공과 분리 |
 | `ActivityEventOrchestrator` | mapper -> `ActivitySink` 순회, 예외는 로그 후 계속 | silent gap 가능 |
 | `UserActivitySourceOutboxSink` | 기본 활성 | domain event는 우선 source outbox로 수렴 |
-| `UserActivityMessageQueuePublisher` | MQ on일 때만 활성 | MQ off면 최종 저장까지 가지 않을 수 있음 |
-| `UserActivityMessageQueueConsumerRegistrar` | MQ 소비 후 `UserActivityEventStoreService.store()` | final store 도달 핵심 경로 |
+| `UserActivityS3SinkPublisher` | MQ on일 때만 활성 | MQ off면 최종 저장까지 가지 않을 수 있음 |
+| `Kafka Connect S3 Sink Connector` | MQ 소비 후 `UserActivityEventStoreService.store()` | final store 도달 핵심 경로 |
 | `ClientActivityIngestService` | `UserActivityEventStoreService`로 direct store | client ingest는 final store 기준 완결 |
 
 ## 3. 왜 문제인가

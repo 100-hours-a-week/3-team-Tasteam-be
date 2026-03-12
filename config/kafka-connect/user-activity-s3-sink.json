@@ -1,0 +1,28 @@
+{
+  "name": "user-activity-s3-sink",
+  "config": {
+    "connector.class": "io.confluent.connect.s3.S3SinkConnector",
+    "tasks.max": "8",
+    "topics": "evt.user-activity.s3-ingest.v1",
+    "s3.bucket.name": "${ANALYTICS_S3_BUCKET}",
+    "s3.region": "${AWS_REGION:ap-northeast-2}",
+    "format.class": "io.confluent.connect.s3.format.csv.CsvFormat",
+    "flush.size": "100000",
+    "rotate.interval.ms": "3600000",
+    "rotate.schedule.interval.ms": "3600000",
+    "partitioner.class": "io.confluent.connect.storage.partitioner.TimeBasedPartitioner",
+    "timestamp.extractor": "CreateTime",
+    "path.format": "'raw/events/dt='YYYY-MM-dd",
+    "timezone": "Asia/Seoul",
+    "locale": "ko_KR",
+    "transforms": "unwrapEnvelope",
+    "transforms.unwrapEnvelope.type": "org.apache.kafka.connect.transforms.ExtractField$Value",
+    "transforms.unwrapEnvelope.field": "payload",
+    "errors.tolerance": "all",
+    "errors.deadletterqueue.topic.name": "evt.user-activity.s3-ingest.v1.dlq",
+    "errors.deadletterqueue.topic.replication.factor": "1",
+    "consumer.override.group.id": "cg.user-activity.s3-ingest.v1",
+    "schemas.enable": "false",
+    "storage.class": "io.confluent.connect.s3.storage.S3Storage"
+  }
+}

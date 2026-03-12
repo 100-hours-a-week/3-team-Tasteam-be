@@ -34,15 +34,13 @@ class KafkaMessageQueuePropertiesBindingTest {
 			Map.entry("tasteam.message-queue.kafka.consumer.poll-timeout-millis", "2500"),
 			Map.entry("tasteam.message-queue.kafka.consumer.retry.max-attempts", "4"),
 			Map.entry("tasteam.message-queue.kafka.consumer.retry.backoff-millis", "900"),
-			Map.entry("tasteam.message-queue.kafka.analytics-event-log.topic", "evt.analytics.custom.v1"),
-			Map.entry("tasteam.message-queue.kafka.analytics-event-log.consumer-group", "cg.analytics.custom.v1"),
-			Map.entry("tasteam.message-queue.kafka.analytics-event-log.dlq-topic", "evt.analytics.custom.v1.dlq"),
 			Map.entry("tasteam.message-queue.kafka.notification.topic", "evt.notification.custom.v1"),
 			Map.entry("tasteam.message-queue.kafka.notification.consumer-group", "cg.notification.custom.v1"),
 			Map.entry("tasteam.message-queue.kafka.notification.dlq-topic", "evt.notification.custom.v1.dlq"),
-			Map.entry("tasteam.message-queue.kafka.user-activity.topic", "evt.user-activity.custom.v1"),
-			Map.entry("tasteam.message-queue.kafka.user-activity.consumer-group", "cg.user-activity.custom.v1"),
-			Map.entry("tasteam.message-queue.kafka.user-activity.dlq-topic", "evt.user-activity.custom.v1.dlq"));
+			Map.entry("tasteam.message-queue.kafka.user-activity-s3-ingest.topic",
+				"evt.user-activity.s3-ingest.custom.v1"),
+			Map.entry("tasteam.message-queue.kafka.user-activity-s3-ingest.dlq-topic",
+				"evt.user-activity.s3-ingest.custom.v1.dlq"));
 		Binder binder = new Binder(new MapConfigurationPropertySource(source));
 
 		// when
@@ -64,15 +62,12 @@ class KafkaMessageQueuePropertiesBindingTest {
 		assertThat(properties.getConsumer().getPollTimeoutMillis()).isEqualTo(2500L);
 		assertThat(properties.getConsumer().getRetry().getMaxAttempts()).isEqualTo(4);
 		assertThat(properties.getConsumer().getRetry().getBackoffMillis()).isEqualTo(900L);
-		assertThat(properties.getAnalyticsEventLog().getTopic()).isEqualTo("evt.analytics.custom.v1");
-		assertThat(properties.getAnalyticsEventLog().getConsumerGroup()).isEqualTo("cg.analytics.custom.v1");
-		assertThat(properties.getAnalyticsEventLog().getDlqTopic()).isEqualTo("evt.analytics.custom.v1.dlq");
 		assertThat(properties.getNotification().getTopic()).isEqualTo("evt.notification.custom.v1");
 		assertThat(properties.getNotification().getConsumerGroup()).isEqualTo("cg.notification.custom.v1");
 		assertThat(properties.getNotification().getDlqTopic()).isEqualTo("evt.notification.custom.v1.dlq");
-		assertThat(properties.getUserActivity().getTopic()).isEqualTo("evt.user-activity.custom.v1");
-		assertThat(properties.getUserActivity().getConsumerGroup()).isEqualTo("cg.user-activity.custom.v1");
-		assertThat(properties.getUserActivity().getDlqTopic()).isEqualTo("evt.user-activity.custom.v1.dlq");
+		assertThat(properties.getUserActivityS3Ingest().getTopic()).isEqualTo("evt.user-activity.s3-ingest.custom.v1");
+		assertThat(properties.getUserActivityS3Ingest().getDlqTopic())
+			.isEqualTo("evt.user-activity.s3-ingest.custom.v1.dlq");
 	}
 
 	@Test
@@ -96,8 +91,7 @@ class KafkaMessageQueuePropertiesBindingTest {
 		assertThat(properties.getConsumer().getConcurrency()).isEqualTo(1);
 		assertThat(properties.getConsumer().getRetry().getMaxAttempts()).isEqualTo(3);
 		assertThat(properties.getConsumer().getRetry().getBackoffMillis()).isEqualTo(1000L);
-		assertThat(properties.getAnalyticsEventLog().getTopic()).isEqualTo("evt.analytics.event-log.v1");
 		assertThat(properties.getNotification().getTopic()).isEqualTo("evt.notification.dispatch.v1");
-		assertThat(properties.getUserActivity().getTopic()).isEqualTo("evt.user-activity.ingest.v1");
+		assertThat(properties.getUserActivityS3Ingest().getTopic()).isEqualTo("evt.user-activity.s3-ingest.v1");
 	}
 }

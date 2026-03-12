@@ -145,6 +145,10 @@ tasteam:
       enabled: ${TASTEAM_BATCH_RAW_EXPORT_ENABLED:false}
       cron: ${TASTEAM_BATCH_RAW_EXPORT_CRON:0 15 2 * * ?}
       zone: ${TASTEAM_BATCH_RAW_EXPORT_ZONE:Asia/Seoul}
+    user-activity-s3-success-marker:
+      enabled: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_ENABLED:false}
+      cron: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_CRON:0 30 0 * * ?}
+      zone: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_ZONE:Asia/Seoul}
     review-analysis:
       worker-pool-size: ${TASTEAM_BATCH_REVIEW_ANALYSIS_WORKER_POOL_SIZE:4}
       finish-timeout: ${TASTEAM_BATCH_REVIEW_ANALYSIS_FINISH_TIMEOUT:10m}
@@ -237,18 +241,13 @@ tasteam:
         retry:
           max-attempts: ${KAFKA_CONSUMER_RETRY_MAX_ATTEMPTS:3}
           backoff-millis: ${KAFKA_CONSUMER_RETRY_BACKOFF_MILLIS:1000}
-      analytics-event-log:
-        topic: ${ANALYTICS_EVENT_LOG_TOPIC:evt.analytics.event-log.v1}
-        consumer-group: ${ANALYTICS_EVENT_LOG_CONSUMER_GROUP:cg.analytics.event-log.v1}
-        dlq-topic: ${ANALYTICS_EVENT_LOG_DLQ_TOPIC:evt.analytics.event-log.v1.dlq}
       notification:
         topic: ${NOTIFICATION_MQ_TOPIC:evt.notification.dispatch.v1}
         consumer-group: ${NOTIFICATION_MQ_CONSUMER_GROUP:cg.notification.processor.v1}
         dlq-topic: ${NOTIFICATION_MQ_DLQ_TOPIC:evt.notification.dispatch.v1.dlq}
-      user-activity:
-        topic: ${USER_ACTIVITY_MQ_TOPIC:evt.user-activity.ingest.v1}
-        consumer-group: ${USER_ACTIVITY_MQ_CONSUMER_GROUP:cg.user-activity.ingest.v1}
-        dlq-topic: ${USER_ACTIVITY_MQ_DLQ_TOPIC:evt.user-activity.ingest.v1.dlq}
+      user-activity-s3-ingest:
+        topic: ${USER_ACTIVITY_S3_INGEST_MQ_TOPIC:evt.user-activity.s3-ingest.v1}
+        dlq-topic: ${USER_ACTIVITY_S3_INGEST_MQ_DLQ_TOPIC:evt.user-activity.s3-ingest.v1.dlq}
   notification:
     email:
       provider: ${NOTIFICATION_EMAIL_PROVIDER:log}

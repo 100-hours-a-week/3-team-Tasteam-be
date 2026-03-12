@@ -63,8 +63,8 @@
 | 알림 outbox / 발행 | `NotificationOutboxService`, `NotificationOutboxScanner` | `notification_outbox` 적재와 MQ 발행 |
 | 알림 소비 / 전달 | `NotificationMessageQueueConsumer`, `NotificationDispatcher` | MQ 요청 소비와 채널별 발송 |
 | 레거시 알림 경로 | `GroupMemberJoinedMessageQueuePublisher`, `NotificationMessageQueueConsumerRegistrar` | 그룹 가입 전용 별도 MQ 경로 |
-| 사용자 이벤트 수집 | `ActivityDomainEventListener`, `ActivityEventOrchestrator`, `UserActivitySourceOutboxSink`, `UserActivityMessageQueuePublisher` | 도메인 이벤트 -> source outbox / MQ 발행 |
-| 사용자 이벤트 최종 저장 | `UserActivityMessageQueueConsumerRegistrar`, `UserActivityEventStoreService` | `user_activity_event` 최종 저장 |
+| 사용자 이벤트 수집 | `ActivityDomainEventListener`, `ActivityEventOrchestrator`, `UserActivitySourceOutboxSink`, `UserActivityS3SinkPublisher` | 도메인 이벤트 -> source outbox / MQ 발행 |
+| 사용자 이벤트 최종 저장 | `Kafka Connect S3 Sink Connector`, `UserActivityEventStoreService` | `user_activity_event` 최종 저장 |
 | 외부 분석 전송 | `UserActivityDispatchOutboxEnqueueHook`, `UserActivityDispatchOutboxDispatcher` | PostHog dispatch 격리 |
 | MQ 인프라 | `RedisStreamMessageQueueConsumer`, `RedisStreamMessageQueueProducer` | Redis Stream 기반 발행/구독 |
 
@@ -91,9 +91,9 @@ flowchart LR
     B --> N["ActivityEventOrchestrator"]:::accent
     N --> O["UserActivitySourceOutboxSink"]:::accent
     O --> P["user_activity_source_outbox"]:::primary
-    N --> Q["UserActivityMessageQueuePublisher"]:::accent
+    N --> Q["UserActivityS3SinkPublisher"]:::accent
     Q --> H
-    H --> R["UserActivityMessageQueueConsumerRegistrar"]:::accent
+    H --> R["Kafka Connect S3 Sink Connector"]:::accent
     R --> S["UserActivityEventStoreService"]:::accent
     S --> T["user_activity_event"]:::primary
     S --> U["UserActivityDispatchOutboxEnqueueHook"]:::accent

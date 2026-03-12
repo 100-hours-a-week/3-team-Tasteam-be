@@ -15,9 +15,8 @@ public class KafkaMessageQueueProperties {
 	private String clientId = "tasteam-api";
 	private ProducerProperties producer = new ProducerProperties();
 	private ConsumerProperties consumer = new ConsumerProperties();
-	private AnalyticsEventLogProperties analyticsEventLog = new AnalyticsEventLogProperties();
 	private NotificationProperties notification = new NotificationProperties();
-	private UserActivityProperties userActivity = new UserActivityProperties();
+	private UserActivityS3IngestProperties userActivityS3Ingest = new UserActivityS3IngestProperties();
 
 	@Getter
 	@Setter
@@ -47,14 +46,6 @@ public class KafkaMessageQueueProperties {
 
 	@Getter
 	@Setter
-	public static class AnalyticsEventLogProperties {
-		private String topic = "evt.analytics.event-log.v1";
-		private String consumerGroup = "cg.analytics.event-log.v1";
-		private String dlqTopic = "evt.analytics.event-log.v1.dlq";
-	}
-
-	@Getter
-	@Setter
 	public static class NotificationProperties {
 		private String topic = "evt.notification.dispatch.v1";
 		private String consumerGroup = "cg.notification.processor.v1";
@@ -63,9 +54,8 @@ public class KafkaMessageQueueProperties {
 
 	@Getter
 	@Setter
-	public static class UserActivityProperties {
-		private String topic = "evt.user-activity.ingest.v1";
-		private String consumerGroup = "cg.user-activity.ingest.v1";
-		private String dlqTopic = "evt.user-activity.ingest.v1.dlq";
+	public static class UserActivityS3IngestProperties {
+		private String topic = "evt.user-activity.s3-ingest.v1";
+		private String dlqTopic = "evt.user-activity.s3-ingest.v1.dlq";
 	}
 }
