@@ -1,5 +1,7 @@
 # SearchService - 검색 히스토리 및 그룹 검색 쿼리 트러블슈팅
 
+> 참고: 이 문서는 검색 히스토리 저장을 별도 컴포넌트로 분리하던 당시의 시행착오를 기록한다. 현재 구현에서는 `SearchHistoryRecorder` 대신 `SearchCompletedEvent`와 `SearchHistoryEventListener` 조합으로 후속 처리를 분리했다.
+
 ## 개요
 
 검색 기능 구현 중 발생한 세 가지 주요 문제:

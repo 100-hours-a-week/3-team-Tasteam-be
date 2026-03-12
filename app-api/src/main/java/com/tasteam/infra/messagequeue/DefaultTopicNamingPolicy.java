@@ -51,6 +51,7 @@ public class DefaultTopicNamingPolicy implements TopicNamingPolicy {
 			emptyToDefault(properties.getNotification().getConsumerGroup(), "cg.notification.processor.v1"));
 		groups.put(QueueTopic.USER_ACTIVITY,
 			emptyToDefault(properties.getUserActivity().getConsumerGroup(), "cg.user-activity.ingest.v1"));
+		groups.put(QueueTopic.SEARCH_COMPLETED, "cg.search.completed.v1");
 		groups.put(QueueTopic.ANALYTICS_EVENT_LOG,
 			emptyToDefault(properties.getAnalyticsEventLog().getConsumerGroup(), "cg.analytics.event-log.v1"));
 		consumerGroups = Map.copyOf(groups);
