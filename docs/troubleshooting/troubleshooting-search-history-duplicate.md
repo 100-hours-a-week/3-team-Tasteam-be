@@ -1,5 +1,7 @@
 # SearchService - 검색 히스토리 중복 레코드 문제
 
+> 참고: 이 문서는 중복 레코드 문제를 해결하던 당시 구조를 기록한 문서다. 현재 구현에서는 `SearchHistoryRecorder`가 제거되었고, `SearchCompletedEvent`를 발행한 뒤 `SearchHistoryEventListener`에서 `upsertSearchHistory`를 수행한다.
+
 ## 에러
 
 ```
@@ -72,17 +74,28 @@ void upsertSearchHistory(@Param("memberId") Long memberId, @Param("keyword") Str
 
 ### 3. 서비스 로직 간소화
 
+현재 구현에서는 검색 서비스가 직접 히스토리를 저장하지 않고, 검색 완료 이벤트를 발행한 뒤 리스너가 UPSERT를 수행한다.
+
 ```java
-// SearchService.java - after
-private void recordSearchHistory(Long memberId, String keyword) {
-    if (memberId == null) {
+// SearchService.java - current
+searchEventPublisher.publish(new SearchCompletedEvent(
+    memberId,
+    keyword,
+    groups.size(),
+    restaurantItems.size()));
+
+// SearchHistoryEventListener.java - current
+@Async("searchHistoryExecutor")
+@EventListener
+@Transactional
+public void onSearchCompleted(SearchCompletedEvent event) {
+    if (event.memberId() == null) {
         return;
     }
-    try {
-        memberSearchHistoryRepository.upsertSearchHistory(memberId, keyword);
-    } catch (Exception ex) {
-        log.warn("검색 히스토리 업데이트에 실패했습니다: {}", ex.getMessage());
+    if (event.groupResultCount() == 0 && event.restaurantResultCount() == 0) {
+        return;
     }
+    memberSearchHistoryRepository.upsertSearchHistory(event.memberId(), event.keyword());
 }
 ```
 
