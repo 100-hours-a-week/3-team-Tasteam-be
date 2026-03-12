@@ -7,7 +7,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -17,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 import com.tasteam.infra.messagequeue.QueueMessage;
@@ -33,7 +33,7 @@ class MessageQueueTraceServiceTest {
 		when(repository.save(any(MessageQueueTraceLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
 		MessageQueueTraceService service = new MessageQueueTraceService(repository);
 		QueueMessage message = QueueMessage.of("domain.review.created", "123",
-			"payload".getBytes(StandardCharsets.UTF_8));
+			new ObjectMapper().createObjectNode());
 
 		// when
 		service.recordPublish(message, MessageQueueProviderType.REDIS_STREAM);
@@ -54,7 +54,7 @@ class MessageQueueTraceServiceTest {
 		when(repository.save(any(MessageQueueTraceLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
 		MessageQueueTraceService service = new MessageQueueTraceService(repository);
 		QueueMessage message = QueueMessage.of("domain.group.member-joined", "200",
-			"payload".getBytes(StandardCharsets.UTF_8));
+			new ObjectMapper().createObjectNode());
 
 		// when
 		service.recordConsumeFail(

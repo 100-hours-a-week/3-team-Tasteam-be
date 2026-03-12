@@ -10,6 +10,7 @@ import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
@@ -72,9 +73,10 @@ class MessageQueueConfigTest {
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("none");
 		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
+		ObjectMapper objectMapper = new ObjectMapper();
 
 		// when
-		MessageQueueConsumer consumer = config.messageQueueConsumer(properties, traceService, null, null);
+		MessageQueueConsumer consumer = config.messageQueueConsumer(properties, traceService, objectMapper, null, null);
 
 		// then
 		assertThat(consumer).isInstanceOf(TracingMessageQueueConsumer.class);
@@ -87,12 +89,14 @@ class MessageQueueConfigTest {
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("redis-stream");
 		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
+		ObjectMapper objectMapper = new ObjectMapper();
 		StringRedisTemplate stringRedisTemplate = mock(StringRedisTemplate.class);
 		@SuppressWarnings("unchecked") StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer = mock(
 			StreamMessageListenerContainer.class);
 
 		// when
-		MessageQueueConsumer consumer = config.messageQueueConsumer(properties, traceService, stringRedisTemplate,
+		MessageQueueConsumer consumer = config.messageQueueConsumer(properties, traceService, objectMapper,
+			stringRedisTemplate,
 			listenerContainer);
 
 		// then
@@ -107,10 +111,12 @@ class MessageQueueConfigTest {
 		properties.setEnabled(true);
 		properties.setProvider("redis-stream");
 		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
+		ObjectMapper objectMapper = new ObjectMapper();
 		StringRedisTemplate stringRedisTemplate = mock(StringRedisTemplate.class);
 
 		// when & then
-		assertThatThrownBy(() -> config.messageQueueConsumer(properties, traceService, stringRedisTemplate, null))
+		assertThatThrownBy(
+			() -> config.messageQueueConsumer(properties, traceService, objectMapper, stringRedisTemplate, null))
 			.isInstanceOf(IllegalStateException.class)
 			.hasMessageContaining("StreamMessageListenerContainer");
 	}

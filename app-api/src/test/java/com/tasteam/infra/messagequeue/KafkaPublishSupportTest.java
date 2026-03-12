@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.infra.messagequeue.exception.MessageQueuePublishException;
 import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
@@ -25,14 +26,14 @@ class KafkaPublishSupportTest {
 
 	@Test
 	@DisplayName("Kafka 전송이 성공하면 예외 없이 반환한다")
-	void publish_success_returnsNormally() {
+	void publish_success_returnsNormally() throws Exception {
 		// given
 		@SuppressWarnings("unchecked") KafkaTemplate<String, String> kafkaTemplate = mock(KafkaTemplate.class);
 		QueueMessageSerializer serializer = mock(QueueMessageSerializer.class);
 		QueueMessage message = new QueueMessage(
 			"evt.test",
 			"k1",
-			"{\"ok\":true}".getBytes(),
+			new ObjectMapper().readTree("{\"ok\":true}"),
 			Map.of("eventType", "TEST"),
 			Instant.now(),
 			"msg-1");
@@ -55,14 +56,14 @@ class KafkaPublishSupportTest {
 
 	@Test
 	@DisplayName("Kafka 전송이 실패하면 MessageQueuePublishException으로 래핑한다")
-	void publish_failure_wrapsException() {
+	void publish_failure_wrapsException() throws Exception {
 		// given
 		@SuppressWarnings("unchecked") KafkaTemplate<String, String> kafkaTemplate = mock(KafkaTemplate.class);
 		QueueMessageSerializer serializer = mock(QueueMessageSerializer.class);
 		QueueMessage message = new QueueMessage(
 			"evt.test",
 			"k1",
-			"{\"ok\":false}".getBytes(),
+			new ObjectMapper().readTree("{\"ok\":false}"),
 			Map.of(),
 			Instant.now(),
 			"msg-2");

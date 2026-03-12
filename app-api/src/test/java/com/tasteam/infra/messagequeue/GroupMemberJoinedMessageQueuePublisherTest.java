@@ -13,7 +13,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.group.event.GroupMemberJoinedEvent;
@@ -76,7 +75,7 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 		assertThat(message.occurredAt()).isEqualTo(joinedAt);
 		assertThat(message.headers()).containsEntry("eventType", "GroupMemberJoinedEvent");
 
-		GroupMemberJoinedMessagePayload payload = objectMapper.readValue(
+		GroupMemberJoinedMessagePayload payload = objectMapper.treeToValue(
 			message.payload(),
 			GroupMemberJoinedMessagePayload.class);
 		assertThat(payload.groupId()).isEqualTo(10L);
@@ -94,8 +93,8 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 		properties.setProvider("redis-stream");
 		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		ObjectMapper objectMapper = mock(ObjectMapper.class);
-		when(objectMapper.writeValueAsBytes(org.mockito.ArgumentMatchers.any()))
-			.thenThrow(new JsonProcessingException("failed") {});
+		when(objectMapper.valueToTree(org.mockito.ArgumentMatchers.any()))
+			.thenThrow(new IllegalArgumentException("failed"));
 		GroupMemberJoinedMessageQueuePublisher publisher = new GroupMemberJoinedMessageQueuePublisher(
 			producer,
 			properties,

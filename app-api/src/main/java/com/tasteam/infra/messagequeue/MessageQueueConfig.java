@@ -75,6 +75,7 @@ public class MessageQueueConfig {
 	public MessageQueueConsumer messageQueueConsumer(
 		MessageQueueProperties properties,
 		MessageQueueTraceService traceService,
+		ObjectMapper objectMapper,
 		@Nullable
 		StringRedisTemplate stringRedisTemplate,
 		@Nullable @Qualifier("messageQueueStreamListenerContainer")
@@ -85,7 +86,8 @@ public class MessageQueueConfig {
 			case REDIS_STREAM -> new RedisStreamMessageQueueConsumer(
 				requireRedisTemplate(stringRedisTemplate),
 				requireStreamListenerContainer(messageQueueStreamListenerContainer),
-				properties);
+				properties,
+				objectMapper);
 			case KAFKA -> new UnsupportedMessageQueueConsumer(providerType);
 		};
 		return new TracingMessageQueueConsumer(delegate, providerType, traceService);

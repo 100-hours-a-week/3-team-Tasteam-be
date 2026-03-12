@@ -2,10 +2,9 @@ package com.tasteam.infra.messagequeue.serialization;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.infra.messagequeue.QueueMessage;
 import com.tasteam.infra.messagequeue.exception.MessageQueueNonRetryableException;
@@ -20,8 +19,8 @@ public class JsonQueueMessageSerializer implements QueueMessageSerializer {
 	@Override
 	public QueueMessage createMessage(String topic, String key, Object payload, Map<String, String> headers) {
 		try {
-			byte[] payloadBytes = toPayloadBytes(payload);
-			return new QueueMessage(topic, key, payloadBytes, headers, Instant.now(), null);
+			JsonNode payloadNode = toPayloadNode(payload);
+			return new QueueMessage(topic, key, payloadNode, headers, Instant.now(), null);
 		} catch (Exception ex) {
 			throw new MessageQueueNonRetryableException(
 				"메시지 payload 직렬화에 실패했습니다. topic=%s".formatted(topic),
@@ -37,12 +36,12 @@ public class JsonQueueMessageSerializer implements QueueMessageSerializer {
 			QueueMessageEnvelope envelope = new QueueMessageEnvelope(
 				message.topic(),
 				message.key(),
-				Base64.getEncoder().encodeToString(message.payload()),
+				message.payload(),
 				message.headers(),
 				message.occurredAt().toEpochMilli(),
 				message.messageId());
 			return objectMapper.writeValueAsString(envelope);
-		} catch (JsonProcessingException ex) {
+		} catch (Exception ex) {
 			throw new IllegalArgumentException("메시지 직렬화에 실패했습니다", ex);
 		}
 	}
@@ -55,12 +54,11 @@ public class JsonQueueMessageSerializer implements QueueMessageSerializer {
 
 		try {
 			QueueMessageEnvelope envelope = objectMapper.readValue(serialized, QueueMessageEnvelope.class);
-			byte[] payload = Base64.getDecoder().decode(emptyToDefault(envelope.payloadBase64(), ""));
 
 			return new QueueMessage(
 				emptyToDefault(envelope.topic(), "unknown"),
 				blankToNull(envelope.key()),
-				payload,
+				envelope.payload() != null ? envelope.payload() : objectMapper.nullNode(),
 				envelope.headers() == null ? Map.of() : envelope.headers(),
 				Instant.ofEpochMilli(envelope.occurredAtEpochMillis()),
 				envelope.messageId());
@@ -91,10 +89,10 @@ public class JsonQueueMessageSerializer implements QueueMessageSerializer {
 		return value.substring(0, Math.min(value.length(), 120)) + "...";
 	}
 
-	private byte[] toPayloadBytes(Object payload) throws JsonProcessingException {
-		if (payload instanceof byte[] bytes) {
-			return bytes.clone();
+	private JsonNode toPayloadNode(Object payload) {
+		if (payload instanceof JsonNode jsonNode) {
+			return jsonNode;
 		}
-		return objectMapper.writeValueAsBytes(payload);
+		return objectMapper.valueToTree(payload);
 	}
 }

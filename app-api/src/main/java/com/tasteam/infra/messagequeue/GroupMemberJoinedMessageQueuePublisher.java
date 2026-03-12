@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.group.event.GroupMemberJoinedEvent;
 
@@ -29,7 +29,7 @@ public class GroupMemberJoinedMessageQueuePublisher {
 			return;
 		}
 
-		byte[] payload = serializePayload(event);
+		JsonNode payload = serializePayload(event);
 		QueueMessage message = new QueueMessage(
 			topicNamingPolicy.main(QueueTopic.GROUP_MEMBER_JOINED),
 			String.valueOf(event.memberId()),
@@ -41,15 +41,15 @@ public class GroupMemberJoinedMessageQueuePublisher {
 		messageQueueProducer.publish(message);
 	}
 
-	private byte[] serializePayload(GroupMemberJoinedEvent event) {
+	private JsonNode serializePayload(GroupMemberJoinedEvent event) {
 		GroupMemberJoinedMessagePayload payload = new GroupMemberJoinedMessagePayload(
 			event.groupId(),
 			event.memberId(),
 			event.groupName(),
 			event.joinedAt().toEpochMilli());
 		try {
-			return objectMapper.writeValueAsBytes(payload);
-		} catch (JsonProcessingException ex) {
+			return objectMapper.valueToTree(payload);
+		} catch (IllegalArgumentException ex) {
 			throw new IllegalStateException("GroupMemberJoinedEvent 메시지 직렬화에 실패했습니다", ex);
 		}
 	}

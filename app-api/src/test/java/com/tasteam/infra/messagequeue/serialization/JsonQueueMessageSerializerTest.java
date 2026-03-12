@@ -3,13 +3,13 @@ package com.tasteam.infra.messagequeue.serialization;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.infra.messagequeue.QueueMessage;
@@ -34,18 +34,19 @@ class JsonQueueMessageSerializerTest {
 		assertThat(message.topic()).isEqualTo("evt.notification.dispatch.v1");
 		assertThat(message.key()).isEqualTo("member-1");
 		assertThat(message.headers()).containsEntry("eventType", "NOTIFICATION_CREATED");
-		assertThat(new String(message.payload(), StandardCharsets.UTF_8)).contains("\"type\":\"WELCOME\"");
+		assertThat(message.payload().get("type").asText()).isEqualTo("WELCOME");
 		assertThat(message.messageId()).isNotBlank();
 	}
 
 	@Test
 	@DisplayName("메시지를 직렬화 후 역직렬화하면 핵심 필드가 유지된다")
-	void roundTrip_preservesMessageFields() {
+	void roundTrip_preservesMessageFields() throws Exception {
 		// given
+		JsonNode payload = new ObjectMapper().readTree("{\"type\":\"WELCOME\"}");
 		QueueMessage source = new QueueMessage(
 			"evt.notification.dispatch.v1",
 			"member-1",
-			"{\"type\":\"WELCOME\"}".getBytes(StandardCharsets.UTF_8),
+			payload,
 			Map.of("traceId", "trace-1"),
 			Instant.parse("2026-03-11T12:34:56Z"),
 			"msg-123");
@@ -57,7 +58,7 @@ class JsonQueueMessageSerializerTest {
 		// then
 		assertThat(restored.topic()).isEqualTo(source.topic());
 		assertThat(restored.key()).isEqualTo(source.key());
-		assertThat(restored.payload()).containsExactly(source.payload());
+		assertThat(restored.payload()).isEqualTo(source.payload());
 		assertThat(restored.headers()).isEqualTo(source.headers());
 		assertThat(restored.occurredAt()).isEqualTo(source.occurredAt());
 		assertThat(restored.messageId()).isEqualTo(source.messageId());

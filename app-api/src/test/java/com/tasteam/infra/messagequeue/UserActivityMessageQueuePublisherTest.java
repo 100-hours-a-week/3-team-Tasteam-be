@@ -63,7 +63,7 @@ class UserActivityMessageQueuePublisherTest {
 			.containsEntry("schemaVersion", "v1");
 
 		ActivityEvent payload = JsonMapper.builder().findAndAddModules().build()
-			.readValue(message.payload(), ActivityEvent.class);
+			.treeToValue(message.payload(), ActivityEvent.class);
 		assertThat(payload.eventId()).isEqualTo("evt-1");
 		assertThat(payload.eventName()).isEqualTo("group.joined");
 		assertThat(((Number)payload.properties().get("groupId")).longValue()).isEqualTo(10L);
