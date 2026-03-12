@@ -1,0 +1,1745 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "L1 Caffeine 로컬 캐시와 Redis 계층 상태를 함께 보는 캐시 운영 대시보드. 현재 Redis는 정식 2단 캐시 hit chain이 아니라 shared backend store 보조 신호로 해석한다.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": [],
+      "title": "Cache Overview (캐시 개요)",
+      "type": "row",
+      "description": "지표: L1/L2 캐시 핵심 요약 신호<br/>확인: 히트율, 메모리, 키 수, 단편화 상태를 한눈에 확인<br/>장애 추정: 캐시 품질 저하, Redis 메모리 압박, 키 누적"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red"
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * ((sum(increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\", result=\"hit\"}[5m])) or vector(0)) / clamp_min((sum(increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"}[5m])) or vector(0)), 1))",
+          "instant": true,
+          "legendFormat": "l1_hit_ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "L1 Hit Ratio 5m (L1 히트율)",
+      "type": "stat",
+      "description": "지표: L1 로컬 캐시 hit 비율(5분)<br/>확인: 90% 이하 하락 여부<br/>장애 추정: 캐시 키 불일치, TTL 과도, 워밍 실패"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\", result=\"miss\"}[5m])) or vector(0)",
+          "instant": true,
+          "legendFormat": "l1_miss_rate",
+          "refId": "A"
+        }
+      ],
+      "title": "L1 Miss Rate 5m (L1 미스 처리율)",
+      "type": "stat",
+      "description": "지표: L1 miss 요청 처리율(초당)<br/>확인: 급증 여부<br/>장애 추정: 캐시 스탬피드, TTL 만료 집중, 신규 키 폭증"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (cache) (tasteam_cache_size{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})) or vector(0)",
+          "instant": true,
+          "legendFormat": "l1_entries",
+          "refId": "A"
+        }
+      ],
+      "title": "L1 Entries (L1 엔트리 수)",
+      "type": "stat",
+      "description": "지표: L1 캐시 엔트리 수 합계<br/>확인: 급증/급감 여부<br/>장애 추정: 캐시 무효화 이상, 워밍 실패, 로컬 캐시 누적"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * ((sum(max by (cache) (tasteam_cache_size{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})) or vector(0)) / clamp_min((sum(max by (cache) (tasteam_cache_capacity{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})) or vector(0)), 1))",
+          "instant": true,
+          "legendFormat": "l1_utilization",
+          "refId": "A"
+        }
+      ],
+      "title": "L1 Capacity Usage (L1 용량 사용률)",
+      "type": "stat",
+      "description": "지표: L1 사용량 대비 capacity 비율<br/>확인: 60%/85% 초과 여부<br/>장애 추정: 용량 부족, eviction 증가, hot key 편중"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red"
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * ((sum(rate(redis_keyspace_hits_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m])) or vector(0)) / clamp_min((sum(rate(redis_keyspace_hits_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]) + rate(redis_keyspace_misses_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m])) or vector(0)), 1))",
+          "instant": true,
+          "legendFormat": "l2_hit_ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "L2 Redis Hit Ratio 5m (L2 Redis 히트율)",
+      "type": "stat",
+      "description": "지표: Redis keyspace hit 비율(5분)<br/>확인: L1 하락과 동반 악화 여부<br/>장애 추정: Redis miss 증가, TTL 문제, backend fallback 과다"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 2,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "redis_used_memory",
+          "refId": "A"
+        }
+      ],
+      "title": "L2 Used Memory (L2 사용 메모리)",
+      "type": "stat",
+      "description": "지표: Redis used_memory<br/>확인: 지속 상승, peak 근접 여부<br/>장애 추정: 키 누적, 만료 누락, 메모리 압박"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "redis_keys",
+          "refId": "A"
+        }
+      ],
+      "title": "L2 Keys (L2 키 수)",
+      "type": "stat",
+      "description": "지표: Redis 전체 key 수<br/>확인: 단조 증가 여부<br/>장애 추정: TTL 누락, 정리 실패, 키 설계 문제"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 1.2
+              },
+              {
+                "color": "red",
+                "value": 1.5
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "avg(redis_mem_fragmentation_ratio{environment=~\"$environment\", instance=~\"$redis_instance\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "fragmentation_ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "L2 Fragmentation Ratio (L2 단편화 비율)",
+      "type": "stat",
+      "description": "지표: Redis fragmentation ratio<br/>확인: 1.5 이상 지속 여부<br/>장애 추정: 메모리 파편화, allocator 압박, active defrag 필요"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 10,
+      "panels": [],
+      "title": "L1 Local Cache Caffeine (L1 로컬 캐시)",
+      "type": "row",
+      "description": "지표: Caffeine 로컬 캐시 상세 신호<br/>확인: 캐시별 hit ratio, TTL, capacity, eviction 상태를 확인<br/>장애 추정: 캐시 스탬피드, capacity 부족, TTL 정책 오류"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red"
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 6
+      },
+      "id": 11,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * (sum by (cache) (increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\", result=\"hit\"}[5m])) / clamp_min(sum by (cache) (increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"}[5m])), 1))",
+          "instant": true,
+          "legendFormat": "{{cache}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Hit Ratio by Cache 5m (캐시별 히트율)",
+      "type": "bargauge",
+      "description": "지표: 캐시별 L1 hit 비율(5분)<br/>확인: 특정 캐시만 저하되는지<br/>장애 추정: 개별 캐시 TTL/키 설계 문제"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 6
+      },
+      "id": 12,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * max by (cache) (tasteam_cache_utilization_ratio{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})",
+          "instant": true,
+          "legendFormat": "{{cache}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Capacity Usage by Cache (캐시별 용량 사용률)",
+      "type": "bargauge",
+      "description": "지표: 캐시별 용량 사용률<br/>확인: 상위 캐시 포화 여부<br/>장애 추정: 소수 캐시에 엔트리 편중, capacity 과소"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 6
+      },
+      "id": 13,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "max by (cache) (tasteam_cache_ttl_seconds{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})",
+          "instant": true,
+          "legendFormat": "{{cache}}",
+          "refId": "A"
+        }
+      ],
+      "title": "TTL by Cache (캐시별 TTL)",
+      "type": "bargauge",
+      "description": "지표: 캐시별 TTL<br/>확인: TTL 편차와 비정상 짧은 값 여부<br/>장애 추정: 잘못된 TTL 정책, 잦은 만료"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-BlPu"
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 6
+      },
+      "id": 14,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "max by (cache) (tasteam_cache_size{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})",
+          "instant": true,
+          "legendFormat": "{{cache}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Entries by Cache (캐시별 엔트리 수)",
+      "type": "bargauge",
+      "description": "지표: 캐시별 엔트리 수<br/>확인: 특정 캐시 급증 여부<br/>장애 추정: 키 폭증, 정리 누락, domain 편중"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 14
+      },
+      "id": 15,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * (sum by (cache) (increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\", result=\"hit\"}[$__rate_interval])) / clamp_min(sum by (cache) (increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"}[$__rate_interval])), 1))",
+          "legendFormat": "{{cache}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Hit Ratio Trend by Cache (캐시별 히트율 추이)",
+      "type": "timeseries",
+      "description": "지표: 캐시별 hit 비율 추이<br/>확인: 특정 시간대 급락 여부<br/>장애 추정: 배포 직후 cold start, 워밍 실패"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 3,
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 14
+      },
+      "id": 16,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (cache, result) (rate(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"}[5m]))",
+          "legendFormat": "{{cache}} {{result}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Mix by Cache (캐시별 요청 구성)",
+      "type": "timeseries",
+      "description": "지표: hit/miss 요청 구성<br/>확인: miss 비중 역전 여부<br/>장애 추정: 캐시 품질 하락, fallback 증가"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 3,
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 14
+      },
+      "id": 17,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (cache) (rate(tasteam_cache_evictions_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"}[5m]))",
+          "legendFormat": "{{cache}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Eviction Rate by Cache (캐시별 축출율)",
+      "type": "timeseries",
+      "description": "지표: 캐시별 eviction 처리율<br/>확인: 지속적 eviction 여부<br/>장애 추정: capacity 부족, hot set 확대, 메모리 압박"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 18,
+      "panels": [],
+      "title": "L2 Redis Layer (L2 Redis 계층)",
+      "type": "row",
+      "description": "지표: Redis 계층 메모리, keyspace, clients, fragmentation 신호<br/>확인: shared backend store 상태를 점검<br/>장애 추정: Redis miss 증가, 키 적체, 메모리 단편화"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 3,
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 23
+      },
+      "id": 19,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(redis_keyspace_hits_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "legendFormat": "hits",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(redis_keyspace_misses_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "legendFormat": "misses",
+          "refId": "B"
+        }
+      ],
+      "title": "Redis Keyspace Hit/Miss Rate (Redis Keyspace Hit/Miss 처리율)",
+      "type": "timeseries",
+      "description": "지표: Redis keyspace hit/miss 처리율<br/>확인: miss 급증 여부<br/>장애 추정: Redis 키 누락, TTL 만료 집중, 캐시 오염"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 2,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 23
+      },
+      "id": 20,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "legendFormat": "used",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_peak_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "legendFormat": "peak",
+          "refId": "B"
+        }
+      ],
+      "title": "Redis Used vs Peak Memory (Redis 사용 메모리 vs 최대 메모리)",
+      "type": "timeseries",
+      "description": "지표: used_memory vs used_memory_peak<br/>확인: peak 재경신과 감소 여부<br/>장애 추정: 메모리 누적, 키 정리 미흡"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-BlPu"
+          },
+          "decimals": 2,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 23
+      },
+      "id": 21,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_dataset_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "instant": true,
+          "legendFormat": "dataset",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_overhead_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "instant": true,
+          "legendFormat": "overhead",
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_rss_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "instant": true,
+          "legendFormat": "rss",
+          "refId": "C"
+        }
+      ],
+      "title": "Redis Memory Breakdown (Redis 메모리 구성)",
+      "type": "bargauge",
+      "description": "지표: RSS, allocator, dataset 등 메모리 구성<br/>확인: overhead 비중 과다 여부<br/>장애 추정: 단편화, big key, allocator 비효율"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-BlPu"
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 31
+      },
+      "id": 22,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (db) (redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
+          "instant": true,
+          "legendFormat": "{{db}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Keys by DB (DB별 키 수)",
+      "type": "bargauge",
+      "description": "지표: Redis DB별 key 수<br/>확인: 특정 DB 쏠림 여부<br/>장애 추정: 키 분산 실패, DB별 적체"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 31
+      },
+      "id": 23,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (db) (redis_db_keys_expiring{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
+          "instant": true,
+          "legendFormat": "{{db}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Expiring Keys by DB (DB별 만료 키 수)",
+      "type": "bargauge",
+      "description": "지표: DB별 expiring key 수<br/>확인: expiring key 부족 여부<br/>장애 추정: EXPIRE 누락, stale key 누적"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 0,
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 31
+      },
+      "id": 24,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "max by (db) (redis_db_avg_ttl_seconds{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
+          "instant": true,
+          "legendFormat": "{{db}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Average TTL by DB (DB별 평균 TTL)",
+      "type": "bargauge",
+      "description": "지표: DB별 평균 TTL<br/>확인: 비정상적으로 긴/짧은 TTL 여부<br/>장애 추정: TTL 정책 오류, 조기 만료"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 3,
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 39
+      },
+      "id": 25,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(redis_expired_keys_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "legendFormat": "expired",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(redis_evicted_keys_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "legendFormat": "evicted",
+          "refId": "B"
+        }
+      ],
+      "title": "Expired vs Evicted Keys Rate (만료 vs 축출 처리율)",
+      "type": "timeseries",
+      "description": "지표: expired/evicted 처리율<br/>확인: evicted 지속 발생 여부<br/>장애 추정: 메모리 부족, 캐시 품질 저하"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 2,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 39
+      },
+      "id": 26,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "avg(redis_mem_fragmentation_ratio{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "legendFormat": "fragmentation_ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "Redis Fragmentation Ratio Trend (Redis 단편화 비율 추이)",
+      "type": "timeseries",
+      "description": "지표: fragmentation ratio 추이<br/>확인: 장시간 고점 유지 여부<br/>장애 추정: 메모리 파편화 누적"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 39
+      },
+      "id": 27,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_connected_clients{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "legendFormat": "connected",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_blocked_clients{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "legendFormat": "blocked",
+          "refId": "B"
+        }
+      ],
+      "title": "Redis Clients (Redis 클라이언트 수)",
+      "type": "timeseries",
+      "description": "지표: connected/blocked clients<br/>확인: blocked 상승 여부<br/>장애 추정: 연결 누수, 블로킹 명령, 네트워크 병목"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "style": "dark",
+  "tags": [
+    "spring",
+    "cache",
+    "redis",
+    "tasteam"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(up{job=\"spring\"}, environment)",
+        "includeAll": true,
+        "label": "환경",
+        "multi": true,
+        "name": "environment",
+        "options": [],
+        "query": "label_values(up{job=\"spring\"}, environment)",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(up{job=\"spring\", environment=~\"$environment\"}, instance)",
+        "includeAll": true,
+        "label": "인스턴스",
+        "multi": true,
+        "name": "instance",
+        "options": [],
+        "query": "label_values(up{job=\"spring\", environment=~\"$environment\"}, instance)",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\"}, domain)",
+        "includeAll": true,
+        "label": "도메인",
+        "multi": true,
+        "name": "domain",
+        "options": [],
+        "query": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\"}, domain)",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\"}, uri)",
+        "includeAll": true,
+        "label": "API URI",
+        "multi": true,
+        "name": "uri",
+        "options": [],
+        "query": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\"}, uri)",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\"}, cache)",
+        "includeAll": true,
+        "label": "캐시 이름",
+        "multi": true,
+        "name": "cache",
+        "options": [],
+        "query": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\"}, cache)",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(redis_up{environment=~\"$environment\"}, instance)",
+        "includeAll": true,
+        "label": "Redis 인스턴스",
+        "multi": true,
+        "name": "redis_instance",
+        "options": [],
+        "query": "label_values(redis_up{environment=~\"$environment\"}, instance)",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\"}, db)",
+        "includeAll": true,
+        "label": "Redis DB",
+        "multi": true,
+        "name": "redis_db",
+        "options": [],
+        "query": "label_values(redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\"}, db)",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Tasteam Spring Cache (스프링 캐시)",
+  "uid": "tasteam-spring-cache",
+  "version": 2,
+  "weekStart": ""
+}

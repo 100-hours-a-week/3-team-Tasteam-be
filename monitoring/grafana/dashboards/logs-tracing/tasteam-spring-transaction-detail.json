@@ -1,0 +1,1353 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "API 요청 흐름, 트랜잭션 병목, 쿼리 수, Tempo trace drill-down을 함께 보는 트랜잭션 분석 대시보드.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": [],
+      "title": "API Overview (API 개요)",
+      "type": "row",
+      "description": "지표: API RPS, latency quantile, 5xx 오류율, 상위 지연 URI<br/>확인: 요청 흐름과 사용자 체감 성능을 먼저 확인<br/>장애 추정: 트래픽 급증, API 지연, 오류율 상승"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: 도메인별 API 요청 처리량(RPS)<br/>확인: 특정 domain 급증/급감 여부<br/>장애 추정: 기능 트래픽 편중, 장애로 인한 요청 소실",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (domain) (rate(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method=~\"$method\", outcome=~\"$api_outcome\"}[1m]))",
+          "exemplar": false,
+          "legendFormat": "{{domain}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "RPS by Domain (도메인별 RPS)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: API 응답시간 P50/P95/P99<br/>확인: p95/p99 스파이크 여부<br/>장애 추정: 느린 DB, 외부 연동 지연, 트랜잭션 병목",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(tasteam_api_request_duration_seconds_bucket{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method=~\"$method\", uri=~\"$uri\", outcome=~\"$api_outcome\"}[5m])))",
+          "exemplar": true,
+          "legendFormat": "p50",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(tasteam_api_request_duration_seconds_bucket{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method=~\"$method\", uri=~\"$uri\", outcome=~\"$api_outcome\"}[5m])))",
+          "exemplar": true,
+          "legendFormat": "p95",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(tasteam_api_request_duration_seconds_bucket{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method=~\"$method\", uri=~\"$uri\", outcome=~\"$api_outcome\"}[5m])))",
+          "exemplar": true,
+          "legendFormat": "p99",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "API Latency Quantiles (API 응답시간 분위수)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: 5xx 오류 비율<br/>확인: 3%/5% 초과 여부<br/>장애 추정: 예외 급증, 다운스트림 장애, 타임아웃",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 0.03
+              },
+              {
+                "color": "red",
+                "value": 0.05
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 9
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "(sum(rate(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method=~\"$method\", outcome=\"server_error\"}[1m])) or vector(0)) / clamp_min((sum(rate(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method=~\"$method\"}[1m])) or vector(0)), 1)",
+          "instant": true,
+          "legendFormat": "5xx ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "5xx Error Rate (5xx 오류율)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: 평균 API 응답시간 상위 10 URI<br/>확인: 신규 상위 진입 여부<br/>장애 추정: 특정 엔드포인트 병목, 캐시 미적중, 느린 쿼리",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 3,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 18,
+        "x": 6,
+        "y": 9
+      },
+      "id": 5,
+      "options": {
+        "displayMode": "basic",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "text": {},
+        "valueMode": "color"
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "topk(10, sum by (uri, method) (rate(tasteam_api_request_duration_seconds_sum{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method=~\"$method\", uri=~\"$uri\", outcome=~\"$api_outcome\"}[5m])) / clamp_min(sum by (uri, method) (rate(tasteam_api_request_duration_seconds_count{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method=~\"$method\", uri=~\"$uri\", outcome=~\"$api_outcome\"}[5m])), 0.000001))",
+          "instant": true,
+          "legendFormat": "{{method}} {{uri}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Average API Latency (평균 API 응답시간 상위 10)",
+      "type": "bargauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "id": 6,
+      "panels": [],
+      "title": "Transaction Overview (트랜잭션 개요)",
+      "type": "row",
+      "description": "지표: 트랜잭션 P99, 평균 소요시간, 평균 쿼리 수, readOnly 비율<br/>확인: 서비스 메서드 레벨 병목과 DB 사용 패턴을 확인<br/>장애 추정: 느린 트랜잭션, N+1, 읽기/쓰기 비율 이상"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: 선택된 URI의 메서드별 트랜잭션 P99<br/>확인: 상위 메서드 집중 여부<br/>장애 추정: 특정 서비스 메서드 병목, 락 경합, DB 대기",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, sum by (le, method_name) (rate(tasteam_transaction_duration_seconds_bucket{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", uri=~\"$uri\", domain=~\"$domain\", method_name=~\"$tx_method_name\", read_only=~\"$read_only\", outcome=~\"$tx_outcome\"}[5m])))",
+          "exemplar": true,
+          "legendFormat": "{{method_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Transaction P99 by Method (메서드별 트랜잭션 P99)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: URI/메서드별 평균 트랜잭션 시간<br/>확인: 장기 상승 여부<br/>장애 추정: 비효율 로직, 외부 호출 지연, DB 병목",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (uri, method_name) (rate(tasteam_transaction_duration_seconds_sum{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", uri=~\"$uri\", domain=~\"$domain\", method_name=~\"$tx_method_name\", read_only=~\"$read_only\", outcome=~\"$tx_outcome\"}[5m])) / clamp_min(sum by (uri, method_name) (rate(tasteam_transaction_duration_seconds_count{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", uri=~\"$uri\", domain=~\"$domain\", method_name=~\"$tx_method_name\", read_only=~\"$read_only\", outcome=~\"$tx_outcome\"}[5m])), 0.000001)",
+          "exemplar": false,
+          "legendFormat": "{{method_name}} @ {{uri}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Average Transaction Duration (평균 트랜잭션 시간)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: 평균 쿼리 수 상위 10 메서드<br/>확인: 평소 대비 증가 여부<br/>장애 추정: N+1, 불필요한 연관 로딩, 중복 조회",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 20
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 18,
+        "x": 0,
+        "y": 25
+      },
+      "id": 9,
+      "options": {
+        "displayMode": "basic",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "text": {},
+        "valueMode": "color"
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "topk(10, sum by (uri, method_name) (rate(tasteam_transaction_query_count_sum{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", uri=~\"$uri\", domain=~\"$domain\", method_name=~\"$tx_method_name\", read_only=~\"$read_only\", outcome=~\"$tx_outcome\"}[5m])) / clamp_min(sum by (uri, method_name) (rate(tasteam_transaction_query_count_count{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", uri=~\"$uri\", domain=~\"$domain\", method_name=~\"$tx_method_name\", read_only=~\"$read_only\", outcome=~\"$tx_outcome\"}[5m])), 0.000001))",
+          "instant": true,
+          "legendFormat": "{{method_name}} @ {{uri}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Average Query Count (평균 쿼리 수 상위 10)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: readOnly=true 트랜잭션 비율<br/>확인: 읽기/쓰기 비중 변화 여부<br/>장애 추정: 예상치 못한 쓰기 증가, 읽기 경로 오염",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 0.8
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 25
+      },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "(sum(rate(tasteam_transaction_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", uri=~\"$uri\", domain=~\"$domain\", method_name=~\"$tx_method_name\", outcome=~\"$tx_outcome\", read_only=\"true\"}[1m])) or vector(0)) / clamp_min((sum(rate(tasteam_transaction_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", uri=~\"$uri\", domain=~\"$domain\", method_name=~\"$tx_method_name\", outcome=~\"$tx_outcome\"}[1m])) or vector(0)), 1)",
+          "instant": true,
+          "legendFormat": "readonly ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "ReadOnly Ratio (ReadOnly 비율)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 11,
+      "panels": [],
+      "title": "Transaction Method Detail (트랜잭션 메서드 상세)",
+      "type": "row",
+      "description": "지표: 메서드별 평균/최대 시간과 처리량<br/>확인: 실제 병목 메서드와 핫패스를 식별<br/>장애 추정: 특정 메서드 tail latency, 과도한 처리량 집중"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: 메서드별 평균 트랜잭션 시간 상위 10<br/>확인: 장기 병목 메서드 식별<br/>장애 추정: 반복 쿼리, 외부 의존성 지연, 계산량 증가",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 3,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 33
+      },
+      "id": 12,
+      "options": {
+        "displayMode": "basic",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "text": {},
+        "valueMode": "color"
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$DS_PROMETHEUS"
+          },
+          "expr": "topk(10, sum by (domain, method_name) ({__name__=~\"tasteam_tx_.*_seconds_sum\", job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method_name=~\"$tx_method_name\", read_only=~\"$read_only\"}) / clamp_min(sum by (domain, method_name) ({__name__=~\"tasteam_tx_.*_seconds_count\", job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method_name=~\"$tx_method_name\", read_only=~\"$read_only\"}), 1))",
+          "legendFormat": "{{domain}}/{{method_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Average Transaction Duration by Method (메서드별 평균 트랜잭션 시간 상위 10)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: 메서드별 최대 트랜잭션 시간 상위 10<br/>확인: 긴 tail latency 메서드 식별<br/>장애 추정: 일시적 락 경합, GC pause, 특정 입력 데이터 문제",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 3,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 33
+      },
+      "id": 13,
+      "options": {
+        "displayMode": "basic",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "text": {},
+        "valueMode": "color"
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$DS_PROMETHEUS"
+          },
+          "expr": "topk(10, max by (domain, method_name) ({__name__=~\"tasteam_tx_.*_seconds_max\", job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method_name=~\"$tx_method_name\", read_only=~\"$read_only\"}))",
+          "legendFormat": "{{domain}}/{{method_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Max Transaction Duration by Method (메서드별 최대 트랜잭션 시간 상위 10)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: 메서드별 트랜잭션 처리량(5분)<br/>확인: 고처리량 메서드 집중 여부<br/>장애 추정: 핫패스 과부하, 특정 기능 편중",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 20
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 33
+      },
+      "id": 14,
+      "options": {
+        "displayMode": "basic",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "text": {},
+        "valueMode": "color"
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$DS_PROMETHEUS"
+          },
+          "expr": "topk(10, sum by (domain, method_name) (increase({__name__=~\"tasteam_tx_.*_seconds_count\", job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method_name=~\"$tx_method_name\", read_only=~\"$read_only\"}[$__rate_interval])))",
+          "legendFormat": "{{domain}}/{{method_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Transaction Throughput by Method 5m (메서드별 트랜잭션 처리량)",
+      "type": "bargauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "id": 15,
+      "panels": [],
+      "title": "Trace Drill-down Tempo (Trace 드릴다운)",
+      "type": "row",
+      "description": "지표: Tempo exemplar 기반 trace 진입용 패널 묶음<br/>확인: 이상치 시점에서 trace drill-down 진입 여부를 확인<br/>장애 추정: tracing 연동 문제, exemplar 누락, Tempo 파이프라인 이상"
+    },
+    {
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 42
+      },
+      "id": 16,
+      "options": {
+        "content": "### Tempo Drill-down Flow\n1. `Transaction P99 by Method` 또는 `Trace Entry Point (P99)` 패널에서 이상치 시점의 exemplar를 클릭한다.\n2. 팝업의 `traceId`를 눌러 Tempo로 이동한다.\n3. Tempo waterfall에서 병목 span을 확인한다.\n\n예상 흐름:\n```\nGET /api/v1/search\n  └─ tasteam.tx search\n       ├─ tasteam.tx findRestaurants\n       └─ tasteam.tx findKeywords\n```\n\nTempo Explore 검색 기준:\n- Service Name: `tasteam-api`\n- Span Name: `tasteam.tx <method_name>`\n\nTraceQL 예시:\n```traceql\n{ span.method_name = \"findRestaurants\" && duration > 300ms }\n\n{ resource.service.name = \"tasteam-api\" && span.uri = \"/api/v1/search\" && status = error }\n```",
+        "mode": "markdown"
+      },
+      "pluginVersion": "11.6.0",
+      "title": "Tempo Drill-down Guide (Tempo 드릴다운 가이드)",
+      "type": "text",
+      "description": "지표 없음: Tempo trace drill-down 사용 절차 안내<br/>확인: exemplar 클릭 위치와 조회 순서 확인<br/>장애 추정: trace 미연결 시 exemplar/Tempo 파이프라인 점검"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "지표: 선택된 URI/메서드 기준 P99 진입 패널<br/>확인: 이상치 시점 exemplar 노출 여부<br/>장애 추정: tracing 샘플링 누락, Tempo 연동 문제",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 42
+      },
+      "id": 17,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, sum by (le, uri, method_name) (rate(tasteam_transaction_duration_seconds_bucket{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", uri=~\"$uri\", domain=~\"$domain\", method_name=~\"$tx_method_name\", read_only=~\"$read_only\", outcome=~\"$tx_outcome\"}[5m])))",
+          "exemplar": true,
+          "legendFormat": "{{method_name}} @ {{uri}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Trace Entry Point P99 (Trace 진입점)",
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": [
+    "spring",
+    "tasteam",
+    "transaction",
+    "trace"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "includeAll": false,
+        "label": "데이터소스",
+        "name": "DS_PROMETHEUS",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "local",
+          "value": "local"
+        },
+        "includeAll": false,
+        "label": "환경",
+        "name": "env",
+        "options": [
+          {
+            "selected": false,
+            "text": "prod",
+            "value": "prod"
+          },
+          {
+            "selected": true,
+            "text": "stg",
+            "value": "stg"
+          },
+          {
+            "selected": false,
+            "text": "dev",
+            "value": "dev"
+          }
+        ],
+        "query": "local,dev,stg,prod",
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(up{job=\"spring\", environment=~\"$env\"}, instance)",
+        "includeAll": true,
+        "label": "인스턴스",
+        "multi": true,
+        "name": "instance",
+        "options": [],
+        "query": {
+          "query": "label_values(up{job=\"spring\", environment=~\"$env\"}, instance)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\"}, domain)",
+        "includeAll": true,
+        "label": "도메인",
+        "multi": true,
+        "name": "domain",
+        "options": [],
+        "query": {
+          "query": "label_values(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\"}, domain)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\"}, method)",
+        "includeAll": true,
+        "label": "HTTP 메서드",
+        "multi": true,
+        "name": "method",
+        "options": [],
+        "query": {
+          "query": "label_values(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\"}, method)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method=~\"$method\"}, outcome)",
+        "includeAll": true,
+        "label": "API 결과",
+        "multi": true,
+        "name": "api_outcome",
+        "options": [],
+        "query": {
+          "query": "label_values(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method=~\"$method\"}, outcome)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(tasteam_transaction_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\"}, uri)",
+        "includeAll": true,
+        "label": "URI",
+        "multi": true,
+        "name": "uri",
+        "options": [],
+        "query": {
+          "query": "label_values(tasteam_transaction_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\"}, uri)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(tasteam_transaction_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\"}, method_name)",
+        "includeAll": true,
+        "label": "트랜잭션 메서드",
+        "multi": true,
+        "name": "tx_method_name",
+        "options": [],
+        "query": {
+          "query": "label_values(tasteam_transaction_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\"}, method_name)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "includeAll": true,
+        "label": "읽기 전용",
+        "multi": true,
+        "name": "read_only",
+        "options": [],
+        "query": "true,false",
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "includeAll": true,
+        "label": "트랜잭션 결과",
+        "multi": true,
+        "name": "tx_outcome",
+        "options": [],
+        "query": "success,error",
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Tasteam Spring Transaction Detail (스프링 트랜잭션 상세)",
+  "uid": "tasteam-spring-transaction-detail",
+  "version": 1
+}

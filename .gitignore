@@ -72,3 +72,4 @@ application-*.yaml
 Thumbs.db
 
 /3-team-tasteam-wiki.wiki
+/output/playwright
