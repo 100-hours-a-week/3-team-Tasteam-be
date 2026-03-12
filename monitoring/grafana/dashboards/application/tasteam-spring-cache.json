@@ -39,7 +39,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -106,7 +106,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -171,7 +171,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -220,7 +220,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -287,7 +287,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -341,7 +341,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 * ((sum(rate(redis_keyspace_hits_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m])) or vector(0)) / clamp_min((sum(rate(redis_keyspace_hits_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]) + rate(redis_keyspace_misses_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m])) or vector(0)), 1))",
+          "expr": "100 * ((sum(rate(redis_keyspace_hits_total{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"}[5m])) or vector(0)) / clamp_min((sum(rate(redis_keyspace_hits_total{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]) + rate(redis_keyspace_misses_total{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"}[5m])) or vector(0)), 1))",
           "instant": true,
           "legendFormat": "l2_hit_ratio",
           "refId": "A"
@@ -354,7 +354,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -390,7 +390,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(redis_memory_used_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"}) or vector(0)",
+          "expr": "sum(redis_memory_used_bytes{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"}) or vector(0)",
           "instant": true,
           "legendFormat": "redis_used_memory",
           "refId": "A"
@@ -403,7 +403,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -439,7 +439,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"}) or vector(0)",
+          "expr": "sum(redis_db_keys{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"}) or vector(0)",
           "instant": true,
           "legendFormat": "redis_keys",
           "refId": "A"
@@ -452,7 +452,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -504,7 +504,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "avg(redis_mem_fragmentation_ratio{environment=~\"$environment\", instance=~\"$redis_instance\"}) or vector(0)",
+          "expr": "avg(redis_mem_fragmentation_ratio{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"}) or vector(0)",
           "instant": true,
           "legendFormat": "fragmentation_ratio",
           "refId": "A"
@@ -531,7 +531,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -596,7 +596,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -661,7 +661,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -726,7 +726,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -775,7 +775,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -844,7 +844,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -913,7 +913,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -996,7 +996,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1053,13 +1053,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(redis_keyspace_hits_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "expr": "sum(rate(redis_keyspace_hits_total{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
           "legendFormat": "hits",
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "sum(rate(redis_keyspace_misses_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "expr": "sum(rate(redis_keyspace_misses_total{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
           "legendFormat": "misses",
           "refId": "B"
         }
@@ -1071,7 +1071,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1128,25 +1128,25 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(redis_memory_used_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "expr": "sum(redis_memory_used_bytes{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"})",
           "legendFormat": "used",
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "sum(redis_memory_used_peak_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
-          "legendFormat": "peak",
+          "expr": "sum(redis_memory_max_bytes{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "legendFormat": "max",
           "refId": "B"
         }
       ],
-      "title": "Redis Used vs Peak Memory (Redis 사용 메모리 vs 최대 메모리)",
+      "title": "Redis Used vs Max Memory (Redis 사용 메모리 vs 최대 한도)",
       "type": "timeseries",
-      "description": "지표: used_memory vs used_memory_peak<br/>확인: peak 재경신과 감소 여부<br/>장애 추정: 메모리 누적, 키 정리 미흡"
+      "description": "지표: used_memory vs maxmemory<br/>확인: 최대 한도 근접 여부<br/>장애 추정: 메모리 부족, eviction 증가, 용량 설정 문제"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1182,21 +1182,21 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(redis_memory_used_dataset_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "expr": "sum(redis_memory_used_dataset_bytes{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"})",
           "instant": true,
           "legendFormat": "dataset",
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "sum(redis_memory_used_overhead_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "expr": "sum(redis_memory_used_overhead_bytes{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"})",
           "instant": true,
           "legendFormat": "overhead",
           "refId": "B"
         },
         {
           "editorMode": "code",
-          "expr": "sum(redis_memory_used_rss_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "expr": "sum(redis_memory_used_rss_bytes{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"})",
           "instant": true,
           "legendFormat": "rss",
           "refId": "C"
@@ -1209,7 +1209,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1245,7 +1245,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (db) (redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
+          "expr": "sum by (db) (redis_db_keys{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
           "instant": true,
           "legendFormat": "{{db}}",
           "refId": "A"
@@ -1258,7 +1258,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1294,7 +1294,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (db) (redis_db_keys_expiring{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
+          "expr": "sum by (db) (redis_db_keys_expiring{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
           "instant": true,
           "legendFormat": "{{db}}",
           "refId": "A"
@@ -1307,7 +1307,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1343,7 +1343,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "max by (db) (redis_db_avg_ttl_seconds{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
+          "expr": "max by (db) (redis_db_avg_ttl_seconds{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
           "instant": true,
           "legendFormat": "{{db}}",
           "refId": "A"
@@ -1356,7 +1356,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1413,13 +1413,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(redis_expired_keys_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "expr": "sum(rate(redis_expired_keys_total{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
           "legendFormat": "expired",
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "sum(rate(redis_evicted_keys_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "expr": "sum(rate(redis_evicted_keys_total{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
           "legendFormat": "evicted",
           "refId": "B"
         }
@@ -1431,7 +1431,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1488,7 +1488,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "avg(redis_mem_fragmentation_ratio{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "expr": "avg(redis_mem_fragmentation_ratio{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"})",
           "legendFormat": "fragmentation_ratio",
           "refId": "A"
         }
@@ -1500,7 +1500,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1557,13 +1557,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(redis_connected_clients{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "expr": "sum(redis_connected_clients{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"})",
           "legendFormat": "connected",
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "sum(redis_blocked_clients{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "expr": "sum(redis_blocked_clients{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"})",
           "legendFormat": "blocked",
           "refId": "B"
         }
@@ -1586,21 +1586,36 @@
     "list": [
       {
         "current": {
+          "selected": false,
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "includeAll": false,
+        "label": "datasource",
+        "name": "DS_PROMETHEUS",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      },
+      {
+        "current": {
           "selected": true,
           "text": "All",
           "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "prometheus"
+          "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(up{job=\"spring\"}, environment)",
+        "definition": "label_values(up{job=~\"spring|redis\"}, environment)",
         "includeAll": true,
         "label": "환경",
         "multi": true,
         "name": "environment",
         "options": [],
-        "query": "label_values(up{job=\"spring\"}, environment)",
+        "query": "label_values(up{job=~\"spring|redis\"}, environment)",
         "refresh": 1,
         "sort": 1,
         "type": "query"
@@ -1613,7 +1628,7 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "prometheus"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(up{job=\"spring\", environment=~\"$environment\"}, instance)",
         "includeAll": true,
@@ -1634,7 +1649,7 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "prometheus"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\"}, domain)",
         "includeAll": true,
@@ -1655,7 +1670,7 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "prometheus"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\"}, uri)",
         "includeAll": true,
@@ -1676,7 +1691,7 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "prometheus"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\"}, cache)",
         "includeAll": true,
@@ -1697,15 +1712,15 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "prometheus"
+          "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(redis_up{environment=~\"$environment\"}, instance)",
+        "definition": "label_values(redis_up{job=\"redis\", environment=~\"$environment\"}, instance)",
         "includeAll": true,
         "label": "Redis 인스턴스",
         "multi": true,
         "name": "redis_instance",
         "options": [],
-        "query": "label_values(redis_up{environment=~\"$environment\"}, instance)",
+        "query": "label_values(redis_up{job=\"redis\", environment=~\"$environment\"}, instance)",
         "refresh": 1,
         "sort": 1,
         "type": "query"
@@ -1718,15 +1733,15 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "prometheus"
+          "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\"}, db)",
+        "definition": "label_values(redis_db_keys{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"}, db)",
         "includeAll": true,
         "label": "Redis DB",
         "multi": true,
         "name": "redis_db",
         "options": [],
-        "query": "label_values(redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\"}, db)",
+        "query": "label_values(redis_db_keys{job=\"redis\", environment=~\"$environment\", instance=~\"$redis_instance\"}, db)",
         "refresh": 1,
         "sort": 1,
         "type": "query"
@@ -1740,6 +1755,6 @@
   "timezone": "browser",
   "title": "Tasteam Spring Cache (스프링 캐시)",
   "uid": "tasteam-spring-cache",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
