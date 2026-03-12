@@ -14,6 +14,7 @@ import org.springframework.data.redis.stream.StreamMessageListenerContainer.Stre
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import com.tasteam.domain.chat.config.ChatStreamProperties;
+import com.tasteam.global.aop.ObservedExecutor;
 
 @Configuration
 @EnableConfigurationProperties(ChatStreamProperties.class)
@@ -21,13 +22,13 @@ import com.tasteam.domain.chat.config.ChatStreamProperties;
 public class ChatStreamConfig {
 
 	@Bean(destroyMethod = "shutdown")
+	@ObservedExecutor(name = "chat_stream")
 	public ThreadPoolTaskExecutor chatStreamExecutor(ChatStreamProperties properties) {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 		executor.setCorePoolSize(properties.executorThreadPoolSize());
 		executor.setMaxPoolSize(properties.executorThreadPoolSize());
 		executor.setQueueCapacity(properties.executorQueueCapacity());
 		executor.setThreadNamePrefix("chat-stream-");
-		executor.initialize();
 		return executor;
 	}
 

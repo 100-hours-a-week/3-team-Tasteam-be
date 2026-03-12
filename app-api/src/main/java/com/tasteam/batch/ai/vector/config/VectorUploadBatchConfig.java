@@ -7,18 +7,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import com.tasteam.global.aop.ObservedExecutor;
+
 @Configuration
 @EnableConfigurationProperties(VectorUploadBatchProperties.class)
 public class VectorUploadBatchConfig {
 
 	@Bean(name = "vectorUploadExecutor")
+	@ObservedExecutor(name = "vector_upload")
 	public Executor vectorUploadExecutor(VectorUploadBatchProperties properties) {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 		executor.setCorePoolSize(properties.getWorkerPoolSize());
 		executor.setMaxPoolSize(properties.getWorkerPoolSize());
 		executor.setQueueCapacity(1000);
 		executor.setThreadNamePrefix("vector-upload-");
-		executor.initialize();
 		return executor;
 	}
 }
