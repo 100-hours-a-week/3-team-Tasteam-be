@@ -271,6 +271,7 @@ tasteam:
         batch-size: ${KAFKA_PRODUCER_BATCH_SIZE:16384}
         linger-ms: ${KAFKA_PRODUCER_LINGER_MS:5}
         send-timeout-millis: ${KAFKA_PRODUCER_SEND_TIMEOUT_MILLIS:5000}
+        transaction-id-prefix: ${KAFKA_TX_ID_PREFIX:tasteam-tx-}
       consumer:
         concurrency: ${KAFKA_CONSUMER_CONCURRENCY:1}
         max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS:500}

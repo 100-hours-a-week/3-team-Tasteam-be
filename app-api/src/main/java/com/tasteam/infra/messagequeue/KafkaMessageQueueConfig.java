@@ -8,6 +8,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -20,6 +21,7 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.CommonErrorHandler;
+import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.DeserializationException;
@@ -31,6 +33,10 @@ import com.tasteam.infra.messagequeue.serialization.JsonQueueMessageSerializer;
 import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
 import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Configuration
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "provider", havingValue = "kafka")
@@ -70,12 +76,22 @@ public class KafkaMessageQueueConfig {
 	@Bean
 	public DeadLetterPublishingRecoverer messageQueueDeadLetterPublishingRecoverer(
 		KafkaTemplate<String, String> messageQueueKafkaTemplate,
-		TopicNamingPolicy topicNamingPolicy) {
+		TopicNamingPolicy topicNamingPolicy,
+		MeterRegistry meterRegistry) {
 		return new DeadLetterPublishingRecoverer(
 			messageQueueKafkaTemplate,
 			(record, exception) -> new TopicPartition(
 				topicNamingPolicy.dlq(record.topic()),
-				record.partition()));
+				record.partition())) {
+
+			@Override
+			public void accept(org.apache.kafka.clients.consumer.ConsumerRecord<?, ?> record, Exception ex) {
+				super.accept(record, ex);
+				meterRegistry.counter("notification.consumer.dlq",
+					"topic", record.topic(), "result", "dlt").increment();
+				log.warn("알림 Kafka DLT 발행. topic={}, key={}", record.topic(), record.key(), ex);
+			}
+		};
 	}
 
 	@Bean
@@ -87,9 +103,12 @@ public class KafkaMessageQueueConfig {
 		configs.put(ProducerConfig.RETRIES_CONFIG, properties.getProducer().getRetries());
 		configs.put(ProducerConfig.BATCH_SIZE_CONFIG, properties.getProducer().getBatchSize());
 		configs.put(ProducerConfig.LINGER_MS_CONFIG, properties.getProducer().getLingerMs());
+		configs.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
 		configs.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 		configs.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-		return new DefaultKafkaProducerFactory<>(configs);
+		DefaultKafkaProducerFactory<String, String> factory = new DefaultKafkaProducerFactory<>(configs);
+		factory.setTransactionIdPrefix(properties.getProducer().getTransactionIdPrefix());
+		return factory;
 	}
 
 	@Bean
@@ -108,6 +127,7 @@ public class KafkaMessageQueueConfig {
 		configs.put(ConsumerConfig.CLIENT_ID_CONFIG, properties.getClientId());
 		configs.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, properties.getConsumer().getMaxPollRecords());
 		configs.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+		configs.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
 		configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 		configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 		return new DefaultKafkaConsumerFactory<>(configs);
@@ -122,8 +142,26 @@ public class KafkaMessageQueueConfig {
 		factory.setConsumerFactory(messageQueueKafkaConsumerFactory);
 		factory.setConcurrency(properties.getConsumer().getConcurrency());
 		factory.getContainerProperties().setPollTimeout(properties.getConsumer().getPollTimeoutMillis());
+		factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
 		factory.setCommonErrorHandler(messageQueueKafkaErrorHandler);
 		return factory;
+	}
+
+	@Bean("kafkaMessageQueueProducerDelegate")
+	public MessageQueueProducer kafkaMessageQueueProducer(
+		KafkaTemplate<String, String> messageQueueKafkaTemplate,
+		KafkaMessageQueueProperties kafkaProperties,
+		QueueMessageSerializer queueMessageSerializer) {
+		return new KafkaMessageQueueProducer(messageQueueKafkaTemplate, kafkaProperties, queueMessageSerializer);
+	}
+
+	@Bean("kafkaMessageQueueConsumerDelegate")
+	public MessageQueueConsumer kafkaMessageQueueConsumer(
+		@Qualifier("messageQueueKafkaListenerContainerFactory")
+		ConcurrentKafkaListenerContainerFactory<String, String> containerFactory,
+		QueueMessageSerializer queueMessageSerializer,
+		CommonErrorHandler messageQueueKafkaErrorHandler) {
+		return new KafkaMessageQueueConsumer(containerFactory, queueMessageSerializer, messageQueueKafkaErrorHandler);
 	}
 
 	@Bean

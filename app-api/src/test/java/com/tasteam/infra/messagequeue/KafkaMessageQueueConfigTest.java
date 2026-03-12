@@ -19,7 +19,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
-import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
+
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 @UnitTest
 @DisplayName("[유닛](Message) KafkaMessageQueueConfig 조건부 빈 테스트")
@@ -73,7 +75,7 @@ class KafkaMessageQueueConfigTest {
 	void whenMqEnabledAndProviderKafka_thenKafkaBeansCreated() {
 		contextRunner
 			.withBean(ObjectMapper.class, ObjectMapper::new)
-			.withBean(MessageQueueTraceService.class, () -> org.mockito.Mockito.mock(MessageQueueTraceService.class))
+			.withBean(MeterRegistry.class, SimpleMeterRegistry::new)
 			.withPropertyValues(
 				"tasteam.message-queue.enabled=true",
 				"tasteam.message-queue.provider=kafka",
@@ -99,6 +101,8 @@ class KafkaMessageQueueConfigTest {
 				assertThat(context).hasBean("messageQueueKafkaProducerFactory");
 				assertThat(context).hasBean("messageQueueKafkaConsumerFactory");
 				assertThat(context).hasBean("messageQueueKafkaListenerContainerFactory");
+				assertThat(context).hasBean("kafkaMessageQueueProducerDelegate");
+				assertThat(context).hasBean("kafkaMessageQueueConsumerDelegate");
 
 				DefaultKafkaProducerFactory<?, ?> producerFactory = (DefaultKafkaProducerFactory<?, ?>)context
 					.getBean("messageQueueKafkaProducerFactory");
@@ -106,7 +110,8 @@ class KafkaMessageQueueConfigTest {
 					.containsEntry(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:29092")
 					.containsEntry(ProducerConfig.CLIENT_ID_CONFIG, "tasteam-test-client")
 					.containsEntry(ProducerConfig.ACKS_CONFIG, "1")
-					.containsEntry(ProducerConfig.RETRIES_CONFIG, 7);
+					.containsEntry(ProducerConfig.RETRIES_CONFIG, 7)
+					.containsEntry(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
 
 				DefaultKafkaConsumerFactory<?, ?> consumerFactory = (DefaultKafkaConsumerFactory<?, ?>)context
 					.getBean("messageQueueKafkaConsumerFactory");
@@ -114,7 +119,8 @@ class KafkaMessageQueueConfigTest {
 					.containsEntry(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:29092")
 					.containsEntry(ConsumerConfig.CLIENT_ID_CONFIG, "tasteam-test-client")
 					.containsEntry(ConsumerConfig.GROUP_ID_CONFIG, "cg.tasteam.v1")
-					.containsEntry(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 120);
+					.containsEntry(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 120)
+					.containsEntry(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
 
 				@SuppressWarnings("unchecked") ConcurrentKafkaListenerContainerFactory<String, String> listenerFactory = (ConcurrentKafkaListenerContainerFactory<String, String>)context
 					.getBean(
