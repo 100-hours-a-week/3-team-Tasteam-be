@@ -1,0 +1,7 @@
+.git
+.gradle
+**/build
+logs
+monitoring/grafana/data
+monitoring/prometheus/data
+monitoring/tempo/data
