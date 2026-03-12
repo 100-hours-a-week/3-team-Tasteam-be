@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 public class NoOpMessageQueueConsumer implements MessageQueueConsumer {
 
 	@Override
-	public void subscribe(MessageQueueSubscription subscription, MessageQueueMessageHandler handler) {
+	public void subscribe(MessageQueueSubscription subscription, QueueMessageHandler handler) {
 		log.debug("NoOpMessageQueueConsumer subscribe skipped. topic={}, consumerGroup={}",
 			subscription.topic(), subscription.consumerGroup());
 	}

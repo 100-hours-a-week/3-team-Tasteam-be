@@ -30,20 +30,20 @@ class TracingMessageQueueConsumerTest {
 			traceService);
 		MessageQueueSubscription subscription = new MessageQueueSubscription("domain.group.member-joined", "group-1",
 			"consumer-1");
-		MessageQueueMessage message = MessageQueueMessage.of("domain.group.member-joined", "200", new byte[] {1});
-		AtomicReference<MessageQueueMessageHandler> capturedHandler = new AtomicReference<>();
+		QueueMessage message = QueueMessage.of("domain.group.member-joined", "200", new byte[] {1});
+		AtomicReference<QueueMessageHandler> capturedHandler = new AtomicReference<>();
 		doAnswer(invocation -> {
-			MessageQueueMessageHandler handler = invocation.getArgument(1);
+			QueueMessageHandler handler = invocation.getArgument(1);
 			capturedHandler.set(handler);
 			return null;
-		}).when(delegate).subscribe(any(MessageQueueSubscription.class), any(MessageQueueMessageHandler.class));
+		}).when(delegate).subscribe(any(MessageQueueSubscription.class), any(QueueMessageHandler.class));
 
 		// when
 		consumer.subscribe(subscription, ignored -> {});
 		capturedHandler.get().handle(message);
 
 		// then
-		verify(traceService).recordConsumeSuccess(any(MessageQueueMessage.class), any(MessageQueueProviderType.class),
+		verify(traceService).recordConsumeSuccess(any(QueueMessage.class), any(MessageQueueProviderType.class),
 			any(String.class), any(Long.class));
 	}
 
@@ -59,13 +59,13 @@ class TracingMessageQueueConsumerTest {
 			traceService);
 		MessageQueueSubscription subscription = new MessageQueueSubscription("domain.group.member-joined", "group-1",
 			"consumer-1");
-		MessageQueueMessage message = MessageQueueMessage.of("domain.group.member-joined", "200", new byte[] {1});
-		AtomicReference<MessageQueueMessageHandler> capturedHandler = new AtomicReference<>();
+		QueueMessage message = QueueMessage.of("domain.group.member-joined", "200", new byte[] {1});
+		AtomicReference<QueueMessageHandler> capturedHandler = new AtomicReference<>();
 		doAnswer(invocation -> {
-			MessageQueueMessageHandler handler = invocation.getArgument(1);
+			QueueMessageHandler handler = invocation.getArgument(1);
 			capturedHandler.set(handler);
 			return null;
-		}).when(delegate).subscribe(any(MessageQueueSubscription.class), any(MessageQueueMessageHandler.class));
+		}).when(delegate).subscribe(any(MessageQueueSubscription.class), any(QueueMessageHandler.class));
 
 		// when
 		consumer.subscribe(subscription, ignored -> {
@@ -76,7 +76,7 @@ class TracingMessageQueueConsumerTest {
 		assertThatThrownBy(() -> capturedHandler.get().handle(message))
 			.isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("실패");
-		verify(traceService).recordConsumeFail(any(MessageQueueMessage.class), any(MessageQueueProviderType.class),
+		verify(traceService).recordConsumeFail(any(QueueMessage.class), any(MessageQueueProviderType.class),
 			any(String.class), any(Long.class), any(Exception.class));
 	}
 }

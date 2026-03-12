@@ -63,10 +63,10 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 		publisher.onGroupMemberJoined(event);
 
 		// then
-		ArgumentCaptor<MessageQueueMessage> messageCaptor = ArgumentCaptor.forClass(MessageQueueMessage.class);
+		ArgumentCaptor<QueueMessage> messageCaptor = ArgumentCaptor.forClass(QueueMessage.class);
 		verify(producer).publish(messageCaptor.capture());
 
-		MessageQueueMessage message = messageCaptor.getValue();
+		QueueMessage message = messageCaptor.getValue();
 		assertThat(message.topic()).isEqualTo(MessageQueueTopics.GROUP_MEMBER_JOINED);
 		assertThat(message.key()).isEqualTo("20");
 		assertThat(message.occurredAt()).isEqualTo(joinedAt);

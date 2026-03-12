@@ -53,12 +53,12 @@ class UserActivityMessageQueueFlowIntegrationTest {
 	@DisplayName("ReviewCreated 이벤트를 발행하면 USER_ACTIVITY 메시지를 발행하고 소비 핸들러로 저장된다")
 	void reviewCreatedEvent_publishAndConsumeUserActivity() throws Exception {
 		// given
-		ArgumentCaptor<MessageQueueMessage> publishedMessageCaptor = ArgumentCaptor.forClass(MessageQueueMessage.class);
+		ArgumentCaptor<QueueMessage> publishedMessageCaptor = ArgumentCaptor.forClass(QueueMessage.class);
 		ArgumentCaptor<MessageQueueSubscription> subscriptionCaptor = ArgumentCaptor
 			.forClass(MessageQueueSubscription.class);
-		@SuppressWarnings("unchecked") ArgumentCaptor<MessageQueueMessageHandler> handlerCaptor = ArgumentCaptor
+		@SuppressWarnings("unchecked") ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
 			.forClass(
-				MessageQueueMessageHandler.class);
+				QueueMessageHandler.class);
 		verify(messageQueueConsumer).subscribe(subscriptionCaptor.capture(), handlerCaptor.capture());
 
 		// when
@@ -66,7 +66,7 @@ class UserActivityMessageQueueFlowIntegrationTest {
 
 		// then
 		verify(messageQueueProducer).publish(publishedMessageCaptor.capture());
-		MessageQueueMessage published = publishedMessageCaptor.getValue();
+		QueueMessage published = publishedMessageCaptor.getValue();
 		assertThat(published.topic()).isEqualTo(MessageQueueTopics.USER_ACTIVITY);
 		assertThat(published.messageId()).isNotBlank();
 
@@ -77,7 +77,7 @@ class UserActivityMessageQueueFlowIntegrationTest {
 		assertThat(subscriptionCaptor.getValue().topic()).isEqualTo(MessageQueueTopics.USER_ACTIVITY);
 		assertThat(subscriptionCaptor.getValue().consumerGroup()).isEqualTo("tasteam-api-user-activity");
 
-		handlerCaptor.getValue().handle(MessageQueueMessage.of(
+		handlerCaptor.getValue().handle(QueueMessage.of(
 			MessageQueueTopics.USER_ACTIVITY,
 			published.key(),
 			published.payload()));

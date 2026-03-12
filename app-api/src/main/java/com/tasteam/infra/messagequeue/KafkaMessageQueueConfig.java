@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,10 +18,18 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.CommonErrorHandler;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.DeserializationException;
+import org.springframework.util.backoff.FixedBackOff;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.infra.messagequeue.serialization.JsonMessageQueueMessageSerializer;
-import com.tasteam.infra.messagequeue.serialization.MessageQueueMessageSerializer;
+import com.tasteam.infra.messagequeue.dlq.DefaultDlqTopicNamingPolicy;
+import com.tasteam.infra.messagequeue.dlq.DlqTopicNamingPolicy;
+import com.tasteam.infra.messagequeue.exception.MessageQueueNonRetryableException;
+import com.tasteam.infra.messagequeue.serialization.JsonQueueMessageSerializer;
+import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
 
 @Configuration
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
@@ -29,8 +38,32 @@ import com.tasteam.infra.messagequeue.serialization.MessageQueueMessageSerialize
 public class KafkaMessageQueueConfig {
 
 	@Bean
-	public MessageQueueMessageSerializer messageQueueMessageSerializer(ObjectMapper objectMapper) {
-		return new JsonMessageQueueMessageSerializer(objectMapper);
+	public QueueMessageSerializer queueMessageSerializer(ObjectMapper objectMapper) {
+		return new JsonQueueMessageSerializer(objectMapper);
+	}
+
+	@Bean
+	public DlqTopicNamingPolicy dlqTopicNamingPolicy(KafkaMessageQueueProperties kafkaProperties) {
+		return new DefaultDlqTopicNamingPolicy(kafkaProperties);
+	}
+
+	@Bean
+	public KafkaPublishSupport kafkaPublishSupport(
+		KafkaTemplate<String, String> messageQueueKafkaTemplate,
+		KafkaMessageQueueProperties kafkaProperties,
+		QueueMessageSerializer queueMessageSerializer) {
+		return new KafkaPublishSupport(messageQueueKafkaTemplate, kafkaProperties, queueMessageSerializer);
+	}
+
+	@Bean
+	public DeadLetterPublishingRecoverer messageQueueDeadLetterPublishingRecoverer(
+		KafkaTemplate<String, String> messageQueueKafkaTemplate,
+		DlqTopicNamingPolicy dlqTopicNamingPolicy) {
+		return new DeadLetterPublishingRecoverer(
+			messageQueueKafkaTemplate,
+			(record, exception) -> new TopicPartition(
+				dlqTopicNamingPolicy.resolveDlqTopic(record.topic()),
+				record.partition()));
 	}
 
 	@Bean
@@ -71,11 +104,31 @@ public class KafkaMessageQueueConfig {
 	@Bean
 	public ConcurrentKafkaListenerContainerFactory<String, String> messageQueueKafkaListenerContainerFactory(
 		ConsumerFactory<String, String> messageQueueKafkaConsumerFactory,
+		CommonErrorHandler messageQueueKafkaErrorHandler,
 		KafkaMessageQueueProperties properties) {
 		ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
 		factory.setConsumerFactory(messageQueueKafkaConsumerFactory);
 		factory.setConcurrency(properties.getConsumer().getConcurrency());
 		factory.getContainerProperties().setPollTimeout(properties.getConsumer().getPollTimeoutMillis());
+		factory.setCommonErrorHandler(messageQueueKafkaErrorHandler);
 		return factory;
+	}
+
+	@Bean
+	public CommonErrorHandler messageQueueKafkaErrorHandler(
+		KafkaMessageQueueProperties properties,
+		DeadLetterPublishingRecoverer messageQueueDeadLetterPublishingRecoverer) {
+		long maxAttempts = Math.max(1, properties.getConsumer().getRetry().getMaxAttempts());
+		long backoffMillis = Math.max(0, properties.getConsumer().getRetry().getBackoffMillis());
+
+		DefaultErrorHandler errorHandler = new DefaultErrorHandler(
+			messageQueueDeadLetterPublishingRecoverer,
+			new FixedBackOff(backoffMillis, maxAttempts - 1));
+		errorHandler.addNotRetryableExceptions(
+			MessageQueueNonRetryableException.class,
+			IllegalArgumentException.class,
+			DeserializationException.class,
+			org.apache.kafka.common.errors.SerializationException.class);
+		return errorHandler;
 	}
 }

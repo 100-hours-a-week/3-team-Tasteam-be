@@ -22,10 +22,10 @@ import com.tasteam.domain.notification.entity.NotificationChannel;
 import com.tasteam.domain.notification.entity.NotificationType;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
 import com.tasteam.infra.messagequeue.MessageQueueConsumer;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProducer;
 import com.tasteam.infra.messagequeue.MessageQueueProperties;
 import com.tasteam.infra.messagequeue.MessageQueueTopics;
+import com.tasteam.infra.messagequeue.QueueMessage;
 
 @UnitTest
 @DisplayName("[유닛](Notification) NotificationMessageQueueConsumer 단위 테스트")
@@ -47,7 +47,7 @@ class NotificationMessageQueueConsumerTest {
 			objectMapper);
 		ReflectionTestUtils.setField(consumer, "maxRetries", 3);
 
-		MessageQueueMessage message = MessageQueueMessage.of(
+		QueueMessage message = QueueMessage.of(
 			MessageQueueTopics.NOTIFICATION_REQUESTED,
 			"10",
 			objectMapper.writeValueAsBytes(samplePayload("evt-success")));
@@ -77,14 +77,14 @@ class NotificationMessageQueueConsumerTest {
 		doThrow(new IllegalStateException("fcm 실패"))
 			.when(dispatcher)
 			.dispatch(org.mockito.ArgumentMatchers.any(NotificationRequestedPayload.class));
-		MessageQueueMessage message = MessageQueueMessage.of(
+		QueueMessage message = QueueMessage.of(
 			MessageQueueTopics.NOTIFICATION_REQUESTED,
 			"10",
 			objectMapper.writeValueAsBytes(samplePayload("evt-fail")));
 
 		ReflectionTestUtils.invokeMethod(consumer, "handleMessage", message);
 
-		verify(dlqPublisher).publish(org.mockito.ArgumentMatchers.any(MessageQueueMessage.class));
+		verify(dlqPublisher).publish(org.mockito.ArgumentMatchers.any(QueueMessage.class));
 	}
 
 	@Test
@@ -94,11 +94,11 @@ class NotificationMessageQueueConsumerTest {
 		NotificationDlqPublisher dlqPublisher = new NotificationDlqPublisher(messageQueueProducer);
 		ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 
-		MessageQueueMessage message = MessageQueueMessage.of(
+		QueueMessage message = QueueMessage.of(
 			MessageQueueTopics.NOTIFICATION_REQUESTED,
 			"10",
 			objectMapper.writeValueAsBytes(samplePayload("evt-fail")));
-		org.mockito.ArgumentCaptor<MessageQueueMessage> captor = forClass(MessageQueueMessage.class);
+		org.mockito.ArgumentCaptor<QueueMessage> captor = forClass(QueueMessage.class);
 
 		dlqPublisher.publish(message);
 

@@ -13,11 +13,11 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
 import com.tasteam.infra.messagequeue.MessageQueueConsumer;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProperties;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 import com.tasteam.infra.messagequeue.MessageQueueSubscription;
 import com.tasteam.infra.messagequeue.MessageQueueTopics;
+import com.tasteam.infra.messagequeue.QueueMessage;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -69,7 +69,7 @@ public class NotificationMessageQueueConsumer {
 		}
 	}
 
-	private void handleMessage(MessageQueueMessage message) {
+	private void handleMessage(QueueMessage message) {
 		NotificationRequestedPayload payload = deserializePayload(message.payload());
 		try {
 			messageProcessor.process(payload);

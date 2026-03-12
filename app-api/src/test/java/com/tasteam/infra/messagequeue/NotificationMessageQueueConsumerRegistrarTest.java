@@ -66,15 +66,15 @@ class NotificationMessageQueueConsumerRegistrarTest {
 		// then
 		ArgumentCaptor<MessageQueueSubscription> subscriptionCaptor = ArgumentCaptor
 			.forClass(MessageQueueSubscription.class);
-		@SuppressWarnings("unchecked") ArgumentCaptor<MessageQueueMessageHandler> handlerCaptor = ArgumentCaptor
+		@SuppressWarnings("unchecked") ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
 			.forClass(
-				MessageQueueMessageHandler.class);
+				QueueMessageHandler.class);
 		verify(consumer).subscribe(subscriptionCaptor.capture(), handlerCaptor.capture());
 		assertThat(subscriptionCaptor.getValue().topic()).isEqualTo(MessageQueueTopics.GROUP_MEMBER_JOINED);
 		assertThat(subscriptionCaptor.getValue().consumerGroup()).isEqualTo("tasteam-api");
 
 		GroupMemberJoinedMessagePayload payload = new GroupMemberJoinedMessagePayload(100L, 200L, "스터디 그룹", 1L);
-		handlerCaptor.getValue().handle(MessageQueueMessage.of(
+		handlerCaptor.getValue().handle(QueueMessage.of(
 			MessageQueueTopics.GROUP_MEMBER_JOINED,
 			"200",
 			objectMapper.writeValueAsBytes(payload)));
@@ -101,13 +101,13 @@ class NotificationMessageQueueConsumerRegistrarTest {
 			notificationService,
 			new ObjectMapper());
 		registrar.subscribe();
-		ArgumentCaptor<MessageQueueMessageHandler> handlerCaptor = ArgumentCaptor
-			.forClass(MessageQueueMessageHandler.class);
+		ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
+			.forClass(QueueMessageHandler.class);
 		verify(consumer).subscribe(any(MessageQueueSubscription.class), handlerCaptor.capture());
 
 		// when & then
 		assertThatThrownBy(() -> handlerCaptor.getValue().handle(
-			MessageQueueMessage.of(
+			QueueMessage.of(
 				MessageQueueTopics.GROUP_MEMBER_JOINED,
 				"200",
 				"{\"memberId\":\"invalid\"}".getBytes(StandardCharsets.UTF_8))))

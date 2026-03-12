@@ -2,7 +2,7 @@ package com.tasteam.infra.messagequeue.serialization;
 
 import java.util.Map;
 
-public record MessageQueueEnvelope(
+public record QueueMessageEnvelope(
 	String topic,
 	String key,
 	String payloadBase64,

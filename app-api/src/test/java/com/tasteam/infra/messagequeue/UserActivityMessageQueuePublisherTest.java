@@ -49,9 +49,9 @@ class UserActivityMessageQueuePublisherTest {
 		publisher.sink(event);
 
 		// then
-		ArgumentCaptor<MessageQueueMessage> captor = ArgumentCaptor.forClass(MessageQueueMessage.class);
+		ArgumentCaptor<QueueMessage> captor = ArgumentCaptor.forClass(QueueMessage.class);
 		verify(producer).publish(captor.capture());
-		MessageQueueMessage message = captor.getValue();
+		QueueMessage message = captor.getValue();
 		assertThat(message.topic()).isEqualTo(MessageQueueTopics.USER_ACTIVITY);
 		assertThat(message.key()).isEqualTo("101");
 		assertThat(message.messageId()).isEqualTo("evt-1");
@@ -106,7 +106,7 @@ class UserActivityMessageQueuePublisherTest {
 		MessageQueueProducer producer = mock(MessageQueueProducer.class);
 		org.mockito.Mockito.doThrow(new IllegalStateException("mq publish fail"))
 			.when(producer)
-			.publish(org.mockito.ArgumentMatchers.any(MessageQueueMessage.class));
+			.publish(org.mockito.ArgumentMatchers.any(QueueMessage.class));
 
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setEnabled(true);

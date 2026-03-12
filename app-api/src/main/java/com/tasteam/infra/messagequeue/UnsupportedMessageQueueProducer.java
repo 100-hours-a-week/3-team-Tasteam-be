@@ -9,7 +9,7 @@ public class UnsupportedMessageQueueProducer implements MessageQueueProducer {
 	}
 
 	@Override
-	public void publish(MessageQueueMessage message) {
+	public void publish(QueueMessage message) {
 		throw new UnsupportedOperationException(
 			"message queue provider 구현이 아직 없습니다: " + providerType.value());
 	}

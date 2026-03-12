@@ -12,20 +12,37 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
+import com.tasteam.infra.messagequeue.QueueMessage;
+import com.tasteam.infra.messagequeue.exception.MessageQueueNonRetryableException;
 
 @UnitTest
-@DisplayName("[유닛](Message) JsonMessageQueueMessageSerializer 테스트")
-class JsonMessageQueueMessageSerializerTest {
+@DisplayName("[유닛](Message) JsonQueueMessageSerializer 테스트")
+class JsonQueueMessageSerializerTest {
 
-	private final JsonMessageQueueMessageSerializer serializer = new JsonMessageQueueMessageSerializer(
+	private final JsonQueueMessageSerializer serializer = new JsonQueueMessageSerializer(
 		new ObjectMapper());
+
+	@Test
+	@DisplayName("payload 객체로 QueueMessage를 생성한다")
+	void createMessage_withObjectPayload_createsMessage() {
+		QueueMessage message = serializer.createMessage(
+			"evt.notification.dispatch.v1",
+			"member-1",
+			Map.of("type", "WELCOME"),
+			Map.of("eventType", "NOTIFICATION_CREATED"));
+
+		assertThat(message.topic()).isEqualTo("evt.notification.dispatch.v1");
+		assertThat(message.key()).isEqualTo("member-1");
+		assertThat(message.headers()).containsEntry("eventType", "NOTIFICATION_CREATED");
+		assertThat(new String(message.payload(), StandardCharsets.UTF_8)).contains("\"type\":\"WELCOME\"");
+		assertThat(message.messageId()).isNotBlank();
+	}
 
 	@Test
 	@DisplayName("메시지를 직렬화 후 역직렬화하면 핵심 필드가 유지된다")
 	void roundTrip_preservesMessageFields() {
 		// given
-		MessageQueueMessage source = new MessageQueueMessage(
+		QueueMessage source = new QueueMessage(
 			"evt.notification.dispatch.v1",
 			"member-1",
 			"{\"type\":\"WELCOME\"}".getBytes(StandardCharsets.UTF_8),
@@ -35,7 +52,7 @@ class JsonMessageQueueMessageSerializerTest {
 
 		// when
 		String serialized = serializer.serialize(source);
-		MessageQueueMessage restored = serializer.deserialize(serialized);
+		QueueMessage restored = serializer.deserialize(serialized);
 
 		// then
 		assertThat(restored.topic()).isEqualTo(source.topic());
@@ -50,7 +67,7 @@ class JsonMessageQueueMessageSerializerTest {
 	@DisplayName("빈 문자열 역직렬화는 예외를 던진다")
 	void deserialize_blank_throwsException() {
 		assertThatThrownBy(() -> serializer.deserialize(" "))
-			.isInstanceOf(IllegalArgumentException.class)
+			.isInstanceOf(MessageQueueNonRetryableException.class)
 			.hasMessageContaining("비어 있습니다");
 	}
 
@@ -58,7 +75,7 @@ class JsonMessageQueueMessageSerializerTest {
 	@DisplayName("잘못된 JSON 역직렬화는 예외를 던진다")
 	void deserialize_invalidJson_throwsException() {
 		assertThatThrownBy(() -> serializer.deserialize("{not-json"))
-			.isInstanceOf(IllegalArgumentException.class)
+			.isInstanceOf(MessageQueueNonRetryableException.class)
 			.hasMessageContaining("역직렬화에 실패");
 	}
 }

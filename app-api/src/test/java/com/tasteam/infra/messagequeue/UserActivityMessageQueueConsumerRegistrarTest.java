@@ -48,9 +48,9 @@ class UserActivityMessageQueueConsumerRegistrarTest {
 		// then
 		ArgumentCaptor<MessageQueueSubscription> subscriptionCaptor = ArgumentCaptor
 			.forClass(MessageQueueSubscription.class);
-		@SuppressWarnings("unchecked") ArgumentCaptor<MessageQueueMessageHandler> handlerCaptor = ArgumentCaptor
+		@SuppressWarnings("unchecked") ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
 			.forClass(
-				MessageQueueMessageHandler.class);
+				QueueMessageHandler.class);
 		verify(messageQueueConsumer).subscribe(subscriptionCaptor.capture(), handlerCaptor.capture());
 		assertThat(subscriptionCaptor.getValue().topic()).isEqualTo(MessageQueueTopics.USER_ACTIVITY);
 		assertThat(subscriptionCaptor.getValue().consumerGroup()).isEqualTo("tasteam-api-user-activity");
@@ -64,7 +64,7 @@ class UserActivityMessageQueueConsumerRegistrarTest {
 			null,
 			Map.of("groupId", 99L));
 		handlerCaptor.getValue().handle(
-			MessageQueueMessage.of(MessageQueueTopics.USER_ACTIVITY, "20", objectMapper.writeValueAsBytes(event)));
+			QueueMessage.of(MessageQueueTopics.USER_ACTIVITY, "20", objectMapper.writeValueAsBytes(event)));
 		verify(storeService).store(any(ActivityEvent.class));
 	}
 
@@ -108,14 +108,14 @@ class UserActivityMessageQueueConsumerRegistrarTest {
 
 		registrar.subscribe();
 
-		@SuppressWarnings("unchecked") ArgumentCaptor<MessageQueueMessageHandler> handlerCaptor = ArgumentCaptor
+		@SuppressWarnings("unchecked") ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
 			.forClass(
-				MessageQueueMessageHandler.class);
+				QueueMessageHandler.class);
 		verify(messageQueueConsumer).subscribe(any(MessageQueueSubscription.class), handlerCaptor.capture());
 
 		// when & then
 		assertThatThrownBy(() -> handlerCaptor.getValue().handle(
-			MessageQueueMessage.of(
+			QueueMessage.of(
 				MessageQueueTopics.USER_ACTIVITY,
 				"key",
 				"{\"eventId\":\"evt\"}".getBytes(StandardCharsets.UTF_8))))

@@ -37,7 +37,7 @@ class RedisStreamMessageQueueProducerTest {
 		properties.setTopicPrefix("tasteam");
 		RedisStreamMessageQueueProducer producer = new RedisStreamMessageQueueProducer(redisTemplate, properties);
 
-		MessageQueueMessage message = new MessageQueueMessage(
+		QueueMessage message = new QueueMessage(
 			"order.created",
 			"order-1",
 			"payload".getBytes(StandardCharsets.UTF_8),

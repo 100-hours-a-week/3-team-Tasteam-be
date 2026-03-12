@@ -7,19 +7,34 @@ import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
+import com.tasteam.infra.messagequeue.QueueMessage;
+import com.tasteam.infra.messagequeue.exception.MessageQueueNonRetryableException;
 
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class JsonMessageQueueMessageSerializer implements MessageQueueMessageSerializer {
+public class JsonQueueMessageSerializer implements QueueMessageSerializer {
 
 	private final ObjectMapper objectMapper;
 
 	@Override
-	public String serialize(MessageQueueMessage message) {
+	public QueueMessage createMessage(String topic, String key, Object payload, Map<String, String> headers) {
 		try {
-			MessageQueueEnvelope envelope = new MessageQueueEnvelope(
+			byte[] payloadBytes = toPayloadBytes(payload);
+			return new QueueMessage(topic, key, payloadBytes, headers, Instant.now(), null);
+		} catch (Exception ex) {
+			throw new MessageQueueNonRetryableException(
+				"메시지 payload 직렬화에 실패했습니다. topic=%s".formatted(topic),
+				topic,
+				null,
+				ex);
+		}
+	}
+
+	@Override
+	public String serialize(QueueMessage message) {
+		try {
+			QueueMessageEnvelope envelope = new QueueMessageEnvelope(
 				message.topic(),
 				message.key(),
 				Base64.getEncoder().encodeToString(message.payload()),
@@ -33,27 +48,30 @@ public class JsonMessageQueueMessageSerializer implements MessageQueueMessageSer
 	}
 
 	@Override
-	public MessageQueueMessage deserialize(String serialized) {
+	public QueueMessage deserialize(String serialized) {
 		if (serialized == null || serialized.isBlank()) {
-			throw new IllegalArgumentException("역직렬화할 문자열이 비어 있습니다");
+			throw new MessageQueueNonRetryableException("역직렬화할 문자열이 비어 있습니다", "unknown", null);
 		}
 
 		try {
-			MessageQueueEnvelope envelope = objectMapper.readValue(serialized, MessageQueueEnvelope.class);
+			QueueMessageEnvelope envelope = objectMapper.readValue(serialized, QueueMessageEnvelope.class);
 			byte[] payload = Base64.getDecoder().decode(emptyToDefault(envelope.payloadBase64(), ""));
 
-			return new MessageQueueMessage(
+			return new QueueMessage(
 				emptyToDefault(envelope.topic(), "unknown"),
 				blankToNull(envelope.key()),
 				payload,
 				envelope.headers() == null ? Map.of() : envelope.headers(),
 				Instant.ofEpochMilli(envelope.occurredAtEpochMillis()),
 				envelope.messageId());
-		} catch (IllegalArgumentException ex) {
+		} catch (MessageQueueNonRetryableException ex) {
 			throw ex;
 		} catch (Exception ex) {
-			throw new IllegalArgumentException("메시지 역직렬화에 실패했습니다: "
-				+ truncate(serialized), ex);
+			throw new MessageQueueNonRetryableException(
+				"메시지 역직렬화에 실패했습니다: " + truncate(serialized),
+				"unknown",
+				null,
+				ex);
 		}
 	}
 
@@ -71,5 +89,12 @@ public class JsonMessageQueueMessageSerializer implements MessageQueueMessageSer
 			return value;
 		}
 		return value.substring(0, Math.min(value.length(), 120)) + "...";
+	}
+
+	private byte[] toPayloadBytes(Object payload) throws JsonProcessingException {
+		if (payload instanceof byte[] bytes) {
+			return bytes.clone();
+		}
+		return objectMapper.writeValueAsBytes(payload);
 	}
 }

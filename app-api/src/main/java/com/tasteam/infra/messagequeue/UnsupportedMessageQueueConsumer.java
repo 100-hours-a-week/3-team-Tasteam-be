@@ -9,7 +9,7 @@ public class UnsupportedMessageQueueConsumer implements MessageQueueConsumer {
 	}
 
 	@Override
-	public void subscribe(MessageQueueSubscription subscription, MessageQueueMessageHandler handler) {
+	public void subscribe(MessageQueueSubscription subscription, QueueMessageHandler handler) {
 		throw new UnsupportedOperationException(
 			"message queue provider 구현이 아직 없습니다: " + providerType.value());
 	}

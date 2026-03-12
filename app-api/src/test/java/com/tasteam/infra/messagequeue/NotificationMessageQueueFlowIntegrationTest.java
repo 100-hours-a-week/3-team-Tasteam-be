@@ -52,12 +52,12 @@ class NotificationMessageQueueFlowIntegrationTest {
 	@DisplayName("GroupMemberJoined 이벤트 발행 시 MQ publish와 notification 소비 처리까지 이어진다")
 	void groupMemberJoinedEvent_publishAndConsume() throws Exception {
 		// given
-		ArgumentCaptor<MessageQueueMessage> publishedMessageCaptor = ArgumentCaptor.forClass(MessageQueueMessage.class);
+		ArgumentCaptor<QueueMessage> publishedMessageCaptor = ArgumentCaptor.forClass(QueueMessage.class);
 		ArgumentCaptor<MessageQueueSubscription> subscriptionCaptor = ArgumentCaptor
 			.forClass(MessageQueueSubscription.class);
-		@SuppressWarnings("unchecked") ArgumentCaptor<MessageQueueMessageHandler> handlerCaptor = ArgumentCaptor
+		@SuppressWarnings("unchecked") ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
 			.forClass(
-				MessageQueueMessageHandler.class);
+				QueueMessageHandler.class);
 		verify(messageQueueConsumer).subscribe(subscriptionCaptor.capture(), handlerCaptor.capture());
 
 		// when
@@ -66,7 +66,7 @@ class NotificationMessageQueueFlowIntegrationTest {
 
 		// then
 		verify(messageQueueProducer).publish(publishedMessageCaptor.capture());
-		MessageQueueMessage publishedMessage = publishedMessageCaptor.getValue();
+		QueueMessage publishedMessage = publishedMessageCaptor.getValue();
 		assertThat(publishedMessage.topic()).isEqualTo(MessageQueueTopics.GROUP_MEMBER_JOINED);
 		assertThat(publishedMessage.key()).isEqualTo("20");
 		assertThat(publishedMessage.headers()).containsEntry("eventType", "GroupMemberJoinedEvent");
@@ -82,7 +82,7 @@ class NotificationMessageQueueFlowIntegrationTest {
 		assertThat(subscription.topic()).isEqualTo(MessageQueueTopics.GROUP_MEMBER_JOINED);
 		assertThat(subscription.consumerGroup()).isEqualTo(CONSUMER_GROUP);
 
-		handlerCaptor.getValue().handle(MessageQueueMessage.of(
+		handlerCaptor.getValue().handle(QueueMessage.of(
 			MessageQueueTopics.GROUP_MEMBER_JOINED,
 			"20",
 			objectMapper.writeValueAsBytes(payload)));
@@ -99,13 +99,13 @@ class NotificationMessageQueueFlowIntegrationTest {
 	@DisplayName("잘못된 payload를 수신하면 예외를 반환한다")
 	void consumerHandler_withInvalidPayload_throwsException() {
 		// given
-		ArgumentCaptor<MessageQueueMessageHandler> handlerCaptor = ArgumentCaptor
-			.forClass(MessageQueueMessageHandler.class);
+		ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
+			.forClass(QueueMessageHandler.class);
 		verify(messageQueueConsumer).subscribe(any(MessageQueueSubscription.class), handlerCaptor.capture());
 
 		// when & then
 		org.assertj.core.api.Assertions.assertThatThrownBy(() -> handlerCaptor.getValue().handle(
-			MessageQueueMessage.of(
+			QueueMessage.of(
 				MessageQueueTopics.GROUP_MEMBER_JOINED,
 				"20",
 				"{\"memberId\":\"invalid\"}".getBytes(StandardCharsets.UTF_8))))

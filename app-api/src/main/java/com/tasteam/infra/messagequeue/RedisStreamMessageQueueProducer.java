@@ -21,7 +21,7 @@ public class RedisStreamMessageQueueProducer implements MessageQueueProducer {
 	private final MessageQueueProperties properties;
 
 	@Override
-	public void publish(MessageQueueMessage message) {
+	public void publish(QueueMessage message) {
 		String streamKey = streamKey(message.topic());
 		MapRecord<String, String, String> record = StreamRecords.newRecord()
 			.in(streamKey)
@@ -38,7 +38,7 @@ public class RedisStreamMessageQueueProducer implements MessageQueueProducer {
 		return properties.getTopicPrefix() + ":" + topic;
 	}
 
-	private Map<String, String> toRecordValue(MessageQueueMessage message) {
+	private Map<String, String> toRecordValue(QueueMessage message) {
 		Map<String, String> value = new HashMap<>();
 		value.put("messageId", message.messageId());
 		value.put("topic", message.topic());

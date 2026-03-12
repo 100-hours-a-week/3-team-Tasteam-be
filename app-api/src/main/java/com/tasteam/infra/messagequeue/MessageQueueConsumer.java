@@ -13,7 +13,7 @@ public interface MessageQueueConsumer {
 	 * @param subscription 토픽/컨슈머 그룹/컨슈머 식별 정보를 담은 구독 설정
 	 * @param handler 메시지 수신 시 호출되는 처리기
 	 */
-	void subscribe(MessageQueueSubscription subscription, MessageQueueMessageHandler handler);
+	void subscribe(MessageQueueSubscription subscription, QueueMessageHandler handler);
 
 	/**
 	 * 지정한 구독의 메시지 소비를 중단한다.

@@ -4,9 +4,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.tasteam.global.aop.ObservedMqDlq;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProducer;
 import com.tasteam.infra.messagequeue.MessageQueueTopics;
+import com.tasteam.infra.messagequeue.QueueMessage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,8 +20,8 @@ public class NotificationDlqPublisher {
 	private final MessageQueueProducer messageQueueProducer;
 
 	@ObservedMqDlq(topic = MessageQueueTopics.NOTIFICATION_REQUESTED_DLQ)
-	public void publish(MessageQueueMessage message) {
-		MessageQueueMessage dlqMessage = new MessageQueueMessage(
+	public void publish(QueueMessage message) {
+		QueueMessage dlqMessage = new QueueMessage(
 			MessageQueueTopics.NOTIFICATION_REQUESTED_DLQ,
 			message.key(),
 			message.payload(),

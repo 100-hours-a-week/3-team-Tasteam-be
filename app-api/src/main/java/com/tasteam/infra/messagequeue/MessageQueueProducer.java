@@ -12,7 +12,7 @@ public interface MessageQueueProducer {
 	 *
 	 * @param message 토픽/키/페이로드/메타데이터를 포함한 메시지
 	 */
-	void publish(MessageQueueMessage message);
+	void publish(QueueMessage message);
 
 	/**
 	 * 기본 파라미터로 메시지를 생성하여 발행한다.
@@ -22,6 +22,6 @@ public interface MessageQueueProducer {
 	 * @param payload 직렬화된 메시지 본문
 	 */
 	default void publish(String topic, String key, byte[] payload) {
-		publish(MessageQueueMessage.of(topic, key, payload));
+		publish(QueueMessage.of(topic, key, payload));
 	}
 }

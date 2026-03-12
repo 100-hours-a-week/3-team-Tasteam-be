@@ -26,6 +26,7 @@ public class KafkaMessageQueueProperties {
 		private int retries = 3;
 		private int batchSize = 16384;
 		private int lingerMs = 5;
+		private long sendTimeoutMillis = 5000L;
 	}
 
 	@Getter
@@ -34,6 +35,14 @@ public class KafkaMessageQueueProperties {
 		private int concurrency = 1;
 		private int maxPollRecords = 500;
 		private long pollTimeoutMillis = 1000L;
+		private RetryProperties retry = new RetryProperties();
+	}
+
+	@Getter
+	@Setter
+	public static class RetryProperties {
+		private int maxAttempts = 3;
+		private long backoffMillis = 1000L;
 	}
 
 	@Getter

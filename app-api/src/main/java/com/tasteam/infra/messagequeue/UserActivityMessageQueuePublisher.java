@@ -44,7 +44,7 @@ public class UserActivityMessageQueuePublisher implements ActivitySink {
 		}
 
 		try {
-			MessageQueueMessage message = new MessageQueueMessage(
+			QueueMessage message = new QueueMessage(
 				MessageQueueTopics.USER_ACTIVITY,
 				resolveMessageKey(event),
 				serialize(event),

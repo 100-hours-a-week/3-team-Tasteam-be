@@ -217,10 +217,14 @@ tasteam:
         retries: ${KAFKA_PRODUCER_RETRIES:3}
         batch-size: ${KAFKA_PRODUCER_BATCH_SIZE:16384}
         linger-ms: ${KAFKA_PRODUCER_LINGER_MS:5}
+        send-timeout-millis: ${KAFKA_PRODUCER_SEND_TIMEOUT_MILLIS:5000}
       consumer:
         concurrency: ${KAFKA_CONSUMER_CONCURRENCY:1}
         max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS:500}
         poll-timeout-millis: ${KAFKA_CONSUMER_POLL_TIMEOUT_MILLIS:1000}
+        retry:
+          max-attempts: ${KAFKA_CONSUMER_RETRY_MAX_ATTEMPTS:3}
+          backoff-millis: ${KAFKA_CONSUMER_RETRY_BACKOFF_MILLIS:1000}
       analytics-event-log:
         topic: ${ANALYTICS_EVENT_LOG_TOPIC:evt.analytics.event-log.v1}
         consumer-group: ${ANALYTICS_EVENT_LOG_CONSUMER_GROUP:cg.analytics.event-log.v1}

@@ -113,7 +113,7 @@ class RedisStreamMessageQueueConsumerTest {
 			properties);
 		MessageQueueSubscription subscription = new MessageQueueSubscription("order.created", "group-1", "consumer-1");
 
-		java.util.concurrent.atomic.AtomicReference<MessageQueueMessage> captured = new java.util.concurrent.atomic.AtomicReference<>();
+		java.util.concurrent.atomic.AtomicReference<QueueMessage> captured = new java.util.concurrent.atomic.AtomicReference<>();
 		consumer.subscribe(subscription, captured::set);
 
 		@SuppressWarnings("unchecked") org.mockito.ArgumentCaptor<StreamListener<String, MapRecord<String, String, String>>> listenerCaptor = org.mockito.ArgumentCaptor
@@ -167,7 +167,7 @@ class RedisStreamMessageQueueConsumerTest {
 			properties);
 		MessageQueueSubscription subscription = new MessageQueueSubscription("order.created", "group-1", "consumer-1");
 
-		java.util.concurrent.atomic.AtomicReference<MessageQueueMessage> captured = new java.util.concurrent.atomic.AtomicReference<>();
+		java.util.concurrent.atomic.AtomicReference<QueueMessage> captured = new java.util.concurrent.atomic.AtomicReference<>();
 		consumer.subscribe(subscription, captured::set);
 
 		@SuppressWarnings("unchecked") org.mockito.ArgumentCaptor<StreamListener<String, MapRecord<String, String, String>>> listenerCaptor = org.mockito.ArgumentCaptor

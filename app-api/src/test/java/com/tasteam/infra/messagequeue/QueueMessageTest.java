@@ -12,14 +12,14 @@ import org.junit.jupiter.api.Test;
 import com.tasteam.config.annotation.UnitTest;
 
 @UnitTest
-@DisplayName("[유닛](Message) MessageQueueMessage 단위 테스트")
-class MessageQueueMessageTest {
+@DisplayName("[유닛](Message) QueueMessage 단위 테스트")
+class QueueMessageTest {
 
 	@Test
 	@DisplayName("팩토리 메서드로 메시지를 만들면 기본 헤더와 식별 정보가 채워진다")
 	void of_createsMessageWithDefaults() {
 		// when
-		MessageQueueMessage message = MessageQueueMessage.of("notification.created", "member-1", new byte[] {1, 2, 3});
+		QueueMessage message = QueueMessage.of("notification.created", "member-1", new byte[] {1, 2, 3});
 
 		// then
 		assertThat(message.topic()).isEqualTo("notification.created");
@@ -39,7 +39,7 @@ class MessageQueueMessageTest {
 		headers.put("source", "test");
 
 		// when
-		MessageQueueMessage message = new MessageQueueMessage(
+		QueueMessage message = new QueueMessage(
 			"group.member.joined",
 			"group-1",
 			payload,
@@ -59,7 +59,7 @@ class MessageQueueMessageTest {
 	@DisplayName("topic이 비어 있으면 메시지를 생성할 수 없다")
 	void constructor_blankTopic_throwsException() {
 		// when & then
-		assertThatThrownBy(() -> new MessageQueueMessage(" ", "k", new byte[] {1}, Map.of(), null, null))
+		assertThatThrownBy(() -> new QueueMessage(" ", "k", new byte[] {1}, Map.of(), null, null))
 			.isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("topic은 필수");
 	}

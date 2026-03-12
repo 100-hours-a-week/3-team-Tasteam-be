@@ -8,8 +8,8 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
+import com.tasteam.infra.messagequeue.QueueMessage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ public class MessageQueueTraceService {
 	private final MessageQueueTraceLogRepository traceLogRepository;
 
 	@Transactional
-	public void recordPublish(MessageQueueMessage message, MessageQueueProviderType providerType) {
+	public void recordPublish(QueueMessage message, MessageQueueProviderType providerType) {
 		log.info("메시지큐 발행 추적. topic={}, messageId={}, provider={}",
 			message.topic(), message.messageId(), providerType.value());
 
@@ -35,7 +35,7 @@ public class MessageQueueTraceService {
 
 	@Transactional
 	public void recordConsumeSuccess(
-		MessageQueueMessage message,
+		QueueMessage message,
 		MessageQueueProviderType providerType,
 		String consumerGroup,
 		long processingMillis) {
@@ -53,7 +53,7 @@ public class MessageQueueTraceService {
 
 	@Transactional
 	public void recordConsumeFail(
-		MessageQueueMessage message,
+		QueueMessage message,
 		MessageQueueProviderType providerType,
 		String consumerGroup,
 		long processingMillis,

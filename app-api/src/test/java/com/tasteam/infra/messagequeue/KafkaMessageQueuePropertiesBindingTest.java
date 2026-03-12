@@ -28,9 +28,12 @@ class KafkaMessageQueuePropertiesBindingTest {
 			Map.entry("tasteam.message-queue.kafka.producer.retries", "5"),
 			Map.entry("tasteam.message-queue.kafka.producer.batch-size", "32768"),
 			Map.entry("tasteam.message-queue.kafka.producer.linger-ms", "20"),
+			Map.entry("tasteam.message-queue.kafka.producer.send-timeout-millis", "4500"),
 			Map.entry("tasteam.message-queue.kafka.consumer.concurrency", "3"),
 			Map.entry("tasteam.message-queue.kafka.consumer.max-poll-records", "100"),
 			Map.entry("tasteam.message-queue.kafka.consumer.poll-timeout-millis", "2500"),
+			Map.entry("tasteam.message-queue.kafka.consumer.retry.max-attempts", "4"),
+			Map.entry("tasteam.message-queue.kafka.consumer.retry.backoff-millis", "900"),
 			Map.entry("tasteam.message-queue.kafka.analytics-event-log.topic", "evt.analytics.custom.v1"),
 			Map.entry("tasteam.message-queue.kafka.analytics-event-log.consumer-group", "cg.analytics.custom.v1"),
 			Map.entry("tasteam.message-queue.kafka.analytics-event-log.dlq-topic", "evt.analytics.custom.v1.dlq"),
@@ -55,9 +58,12 @@ class KafkaMessageQueuePropertiesBindingTest {
 		assertThat(properties.getProducer().getRetries()).isEqualTo(5);
 		assertThat(properties.getProducer().getBatchSize()).isEqualTo(32768);
 		assertThat(properties.getProducer().getLingerMs()).isEqualTo(20);
+		assertThat(properties.getProducer().getSendTimeoutMillis()).isEqualTo(4500L);
 		assertThat(properties.getConsumer().getConcurrency()).isEqualTo(3);
 		assertThat(properties.getConsumer().getMaxPollRecords()).isEqualTo(100);
 		assertThat(properties.getConsumer().getPollTimeoutMillis()).isEqualTo(2500L);
+		assertThat(properties.getConsumer().getRetry().getMaxAttempts()).isEqualTo(4);
+		assertThat(properties.getConsumer().getRetry().getBackoffMillis()).isEqualTo(900L);
 		assertThat(properties.getAnalyticsEventLog().getTopic()).isEqualTo("evt.analytics.custom.v1");
 		assertThat(properties.getAnalyticsEventLog().getConsumerGroup()).isEqualTo("cg.analytics.custom.v1");
 		assertThat(properties.getAnalyticsEventLog().getDlqTopic()).isEqualTo("evt.analytics.custom.v1.dlq");
@@ -86,7 +92,10 @@ class KafkaMessageQueuePropertiesBindingTest {
 		assertThat(properties.getClientId()).isEqualTo("tasteam-api");
 		assertThat(properties.getProducer().getAcks()).isEqualTo("all");
 		assertThat(properties.getProducer().getRetries()).isEqualTo(3);
+		assertThat(properties.getProducer().getSendTimeoutMillis()).isEqualTo(5000L);
 		assertThat(properties.getConsumer().getConcurrency()).isEqualTo(1);
+		assertThat(properties.getConsumer().getRetry().getMaxAttempts()).isEqualTo(3);
+		assertThat(properties.getConsumer().getRetry().getBackoffMillis()).isEqualTo(1000L);
 		assertThat(properties.getAnalyticsEventLog().getTopic()).isEqualTo("evt.analytics.event-log.v1");
 		assertThat(properties.getNotification().getTopic()).isEqualTo("evt.notification.dispatch.v1");
 		assertThat(properties.getUserActivity().getTopic()).isEqualTo("evt.user-activity.ingest.v1");

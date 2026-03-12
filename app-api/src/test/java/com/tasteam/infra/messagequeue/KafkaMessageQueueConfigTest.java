@@ -11,11 +11,15 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.CommonErrorHandler;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
-import com.tasteam.infra.messagequeue.serialization.MessageQueueMessageSerializer;
+import com.tasteam.infra.messagequeue.dlq.DlqTopicNamingPolicy;
+import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
 
 @UnitTest
 @DisplayName("[유닛](Message) KafkaMessageQueueConfig 조건부 빈 테스트")
@@ -32,8 +36,12 @@ class KafkaMessageQueueConfigTest {
 				"tasteam.message-queue.enabled=false",
 				"tasteam.message-queue.provider=kafka")
 			.run(context -> {
-				assertThat(context).doesNotHaveBean(MessageQueueMessageSerializer.class);
+				assertThat(context).doesNotHaveBean(QueueMessageSerializer.class);
 				assertThat(context).doesNotHaveBean(KafkaTemplate.class);
+				assertThat(context).doesNotHaveBean(KafkaPublishSupport.class);
+				assertThat(context).doesNotHaveBean(CommonErrorHandler.class);
+				assertThat(context).doesNotHaveBean(DlqTopicNamingPolicy.class);
+				assertThat(context).doesNotHaveBean(DeadLetterPublishingRecoverer.class);
 				assertThat(context).doesNotHaveBean("messageQueueKafkaProducerFactory");
 				assertThat(context).doesNotHaveBean("messageQueueKafkaConsumerFactory");
 				assertThat(context).doesNotHaveBean("messageQueueKafkaListenerContainerFactory");
@@ -48,8 +56,12 @@ class KafkaMessageQueueConfigTest {
 				"tasteam.message-queue.enabled=true",
 				"tasteam.message-queue.provider=redis-stream")
 			.run(context -> {
-				assertThat(context).doesNotHaveBean(MessageQueueMessageSerializer.class);
+				assertThat(context).doesNotHaveBean(QueueMessageSerializer.class);
 				assertThat(context).doesNotHaveBean(KafkaTemplate.class);
+				assertThat(context).doesNotHaveBean(KafkaPublishSupport.class);
+				assertThat(context).doesNotHaveBean(CommonErrorHandler.class);
+				assertThat(context).doesNotHaveBean(DlqTopicNamingPolicy.class);
+				assertThat(context).doesNotHaveBean(DeadLetterPublishingRecoverer.class);
 				assertThat(context).doesNotHaveBean("messageQueueKafkaProducerFactory");
 				assertThat(context).doesNotHaveBean("messageQueueKafkaConsumerFactory");
 				assertThat(context).doesNotHaveBean("messageQueueKafkaListenerContainerFactory");
@@ -69,12 +81,19 @@ class KafkaMessageQueueConfigTest {
 				"tasteam.message-queue.kafka.client-id=tasteam-test-client",
 				"tasteam.message-queue.kafka.producer.acks=1",
 				"tasteam.message-queue.kafka.producer.retries=7",
+				"tasteam.message-queue.kafka.producer.send-timeout-millis=3100",
 				"tasteam.message-queue.kafka.consumer.max-poll-records=120",
 				"tasteam.message-queue.kafka.consumer.concurrency=2",
-				"tasteam.message-queue.kafka.consumer.poll-timeout-millis=2100")
+				"tasteam.message-queue.kafka.consumer.poll-timeout-millis=2100",
+				"tasteam.message-queue.kafka.consumer.retry.max-attempts=4",
+				"tasteam.message-queue.kafka.consumer.retry.backoff-millis=1500")
 			.run(context -> {
-				assertThat(context).hasSingleBean(MessageQueueMessageSerializer.class);
+				assertThat(context).hasSingleBean(QueueMessageSerializer.class);
 				assertThat(context).hasSingleBean(KafkaTemplate.class);
+				assertThat(context).hasSingleBean(KafkaPublishSupport.class);
+				assertThat(context).hasSingleBean(CommonErrorHandler.class);
+				assertThat(context).hasSingleBean(DlqTopicNamingPolicy.class);
+				assertThat(context).hasSingleBean(DeadLetterPublishingRecoverer.class);
 				assertThat(context).hasBean("messageQueueKafkaProducerFactory");
 				assertThat(context).hasBean("messageQueueKafkaConsumerFactory");
 				assertThat(context).hasBean("messageQueueKafkaListenerContainerFactory");
@@ -100,6 +119,12 @@ class KafkaMessageQueueConfigTest {
 						"messageQueueKafkaListenerContainerFactory");
 				assertThat(ReflectionTestUtils.getField(listenerFactory, "concurrency")).isEqualTo(2);
 				assertThat(listenerFactory.getContainerProperties().getPollTimeout()).isEqualTo(2100L);
+				assertThat(ReflectionTestUtils.getField(listenerFactory, "commonErrorHandler"))
+					.isInstanceOf(DefaultErrorHandler.class);
+
+				DefaultErrorHandler errorHandler = (DefaultErrorHandler)context
+					.getBean("messageQueueKafkaErrorHandler");
+				assertThat(errorHandler.isAckAfterHandle()).isTrue();
 			});
 	}
 }

@@ -12,7 +12,7 @@ public class TracingMessageQueueConsumer implements MessageQueueConsumer {
 	private final MessageQueueTraceService traceService;
 
 	@Override
-	public void subscribe(MessageQueueSubscription subscription, MessageQueueMessageHandler handler) {
+	public void subscribe(MessageQueueSubscription subscription, QueueMessageHandler handler) {
 		delegate.subscribe(subscription, message -> {
 			long startedAtNanos = System.nanoTime();
 			try {

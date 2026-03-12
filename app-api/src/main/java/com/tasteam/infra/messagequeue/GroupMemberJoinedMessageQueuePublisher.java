@@ -29,7 +29,7 @@ public class GroupMemberJoinedMessageQueuePublisher {
 		}
 
 		byte[] payload = serializePayload(event);
-		MessageQueueMessage message = new MessageQueueMessage(
+		QueueMessage message = new QueueMessage(
 			MessageQueueTopics.GROUP_MEMBER_JOINED,
 			String.valueOf(event.memberId()),
 			payload,

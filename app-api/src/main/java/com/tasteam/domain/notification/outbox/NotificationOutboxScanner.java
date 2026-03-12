@@ -11,9 +11,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
 import com.tasteam.global.aop.ObservedAsyncPipeline;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProducer;
 import com.tasteam.infra.messagequeue.MessageQueueTopics;
+import com.tasteam.infra.messagequeue.QueueMessage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +42,7 @@ public class NotificationOutboxScanner {
 		for (NotificationRequestedPayload payload : candidates) {
 			try {
 				byte[] payloadBytes = objectMapper.writeValueAsBytes(payload);
-				MessageQueueMessage message = MessageQueueMessage.of(
+				QueueMessage message = QueueMessage.of(
 					MessageQueueTopics.NOTIFICATION_REQUESTED,
 					payload.recipientId().toString(),
 					payloadBytes);

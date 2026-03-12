@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-public record MessageQueueMessage(
+public record QueueMessage(
 	String topic,
 	String key,
 	byte[] payload,
@@ -13,7 +13,7 @@ public record MessageQueueMessage(
 	Instant occurredAt,
 	String messageId) {
 
-	public MessageQueueMessage {
+	public QueueMessage {
 		if (topic == null || topic.isBlank()) {
 			throw new IllegalArgumentException("topic은 필수입니다");
 		}
@@ -25,7 +25,7 @@ public record MessageQueueMessage(
 		messageId = (messageId == null || messageId.isBlank()) ? UUID.randomUUID().toString() : messageId;
 	}
 
-	public static MessageQueueMessage of(String topic, String key, byte[] payload) {
-		return new MessageQueueMessage(topic, key, payload, Map.of(), Instant.now(), null);
+	public static QueueMessage of(String topic, String key, byte[] payload) {
+		return new QueueMessage(topic, key, payload, Map.of(), Instant.now(), null);
 	}
 }
