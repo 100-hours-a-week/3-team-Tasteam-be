@@ -1,0 +1,90 @@
+prometheus.relabel "spring" {
+  forward_to = [prometheus.remote_write.local.receiver]
+
+  rule {
+    target_label = "job"
+    replacement  = "spring"
+  }
+
+  rule {
+    target_label = "instance"
+    replacement  = sys.env("MONITORING_INSTANCE")
+  }
+}
+
+prometheus.scrape "spring" {
+  targets = [{
+    __address__ = sys.env("SPRING_METRICS_TARGET"),
+    application = "tasteam-api",
+  }]
+
+  metrics_path             = "/actuator/prometheus"
+  scrape_interval          = "15s"
+  scrape_timeout           = "10s"
+  scrape_protocols         = ["OpenMetricsText1.0.0", "PrometheusText0.0.4"]
+  scrape_fallback_protocol = "PrometheusText0.0.4"
+  forward_to               = [prometheus.relabel.spring.receiver]
+}
+
+prometheus.remote_write "local" {
+  endpoint {
+    url            = "http://" + sys.env("PROMETHEUS_HOST") + ":9090/api/v1/write"
+    send_exemplars = true
+  }
+
+  external_labels = {
+    environment = sys.env("MONITORING_ENVIRONMENT"),
+    instance    = sys.env("MONITORING_INSTANCE"),
+    role        = "app",
+  }
+}
+
+discovery.docker "local_containers" {
+  host = "unix:///var/run/docker.sock"
+
+  filter {
+    name = "name"
+    values = [
+      "tasteam-api",
+      "tasteam-db",
+      "tasteam-redis",
+      "tasteam-postgres-exporter",
+      "tasteam-redis-exporter",
+      "tasteam-node-exporter",
+      "tasteam-cadvisor",
+      "tasteam-prometheus",
+      "tasteam-grafana",
+      "tasteam-loki",
+      "tasteam-tempo",
+      "tasteam-alloy",
+    ]
+  }
+}
+
+loki.source.docker "local_containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.local_containers.targets
+  forward_to = [loki.process.local_logs.receiver]
+}
+
+loki.process "local_logs" {
+  stage.static_labels {
+    values = {
+      job = "docker",
+    }
+  }
+
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://" + sys.env("LOKI_HOST") + ":3100/loki/api/v1/push"
+  }
+
+  external_labels = {
+    environment = sys.env("MONITORING_ENVIRONMENT"),
+    instance    = sys.env("MONITORING_INSTANCE"),
+    role        = "app",
+  }
+}

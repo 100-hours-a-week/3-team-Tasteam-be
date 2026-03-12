@@ -7,7 +7,7 @@
 
 ## 원인
 - `SearchService.search()`가 `@Transactional(readOnly = true)`로 커넥션 1개 점유.
-- 내부 `SearchHistoryRecorder.recordSearchHistory()`가 `@Transactional(REQUIRES_NEW)` → **추가 커넥션 1개**를 즉시 점유.
+- 당시 내부 `SearchHistoryRecorder.recordSearchHistory()`가 `@Transactional(REQUIRES_NEW)` → **추가 커넥션 1개**를 즉시 점유.
 - 결과: 한 요청이 동시에 2커넥션을 사용 → 풀 50개 기준 실효 동시성 25, 큐 대기 급증.
 - 일부 동시 검색 시 중복 INSERT 경합으로 커넥션 점유 시간이 더 길어짐.
 
@@ -15,6 +15,7 @@
 1) **비동기화로 커넥션 1개로 축소**
    - `SearchHistoryRecorder`: `@Async("searchHistoryExecutor")` + 기본 `@Transactional`, REQUIRES_NEW 제거.
    - 전용 스레드풀 `searchHistoryExecutor` 추가 (core 5 / max 10 / queue 100, prefix `search-history-`).
+   - 이후 후속 리팩터링에서 `SearchHistoryRecorder`는 제거되고, 현재는 `SearchCompletedEvent` + `SearchHistoryEventListener` 구조로 대체되었다.
 2) **DB 유니크 인덱스 추가**
    - `V20260207__add_unique_index_member_search_history.sql`
    - 인덱스: `(member_id, keyword, deleted_at)`로 중복 INSERT/경합 방지.
@@ -25,7 +26,7 @@
    - AOP `transactional-query-logging` 활성화(dev/prod/test/local)로 @Transactional별 쿼리 수/시간 로깅.
 
 ## 적용 파일
-- `app-api/src/main/java/com/tasteam/domain/search/service/SearchHistoryRecorder.java`
+- `app-api/src/main/java/com/tasteam/domain/search/event/SearchHistoryEventListener.java`
 - `app-api/src/main/java/com/tasteam/global/config/AsyncConfig.java`
 - `app-api/src/main/resources/db/migration/V20260207__add_unique_index_member_search_history.sql`
 - `app-api/src/main/resources/application.{dev,prod,local}.yml`

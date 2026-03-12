@@ -13,6 +13,7 @@ import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import com.tasteam.global.aop.ObservedExecutor;
 import com.tasteam.global.metrics.MetricLabelPolicy;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -48,46 +49,35 @@ public class AsyncConfig implements AsyncConfigurer {
 	}
 
 	@Bean(name = "searchHistoryExecutor")
-	public Executor searchHistoryExecutor(MeterRegistry registry) {
-		String executorName = "search_history";
+	@ObservedExecutor(name = "search_history")
+	public Executor searchHistoryExecutor() {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 		executor.setCorePoolSize(5);
 		executor.setMaxPoolSize(10);
 		executor.setQueueCapacity(100);
 		executor.setThreadNamePrefix("search-history-");
-		executor.setRejectedExecutionHandler(buildRejectedExecutionHandler(registry, executorName));
-		executor.initialize();
-		ExecutorServiceMetrics.monitor(registry, executor.getThreadPoolExecutor(), executorName);
-		registerQueueUtilizationGauge(registry, executor, executorName);
 		return executor;
 	}
 
 	@Bean(name = "aiAnalysisExecutor")
-	public Executor aiAnalysisExecutor(MeterRegistry registry) {
-		String executorName = "ai_analysis";
+	@ObservedExecutor(name = "ai_analysis")
+	public Executor aiAnalysisExecutor() {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 		executor.setCorePoolSize(1);
 		executor.setMaxPoolSize(1);
 		executor.setQueueCapacity(200);
 		executor.setThreadNamePrefix("ai-analysis-");
-		executor.setRejectedExecutionHandler(buildRejectedExecutionHandler(registry, executorName));
-		executor.initialize();
-		ExecutorServiceMetrics.monitor(registry, executor.getThreadPoolExecutor(), executorName);
-		registerQueueUtilizationGauge(registry, executor, executorName);
 		return executor;
 	}
 
 	@Bean("dummySeedExecutor")
-	public Executor dummySeedExecutor(MeterRegistry registry) {
-		String executorName = "dummy_seed";
+	@ObservedExecutor(name = "dummy_seed")
+	public Executor dummySeedExecutor() {
 		ThreadPoolTaskExecutor exec = new ThreadPoolTaskExecutor();
 		exec.setCorePoolSize(1);
 		exec.setMaxPoolSize(1);
 		exec.setQueueCapacity(0);
-		exec.setRejectedExecutionHandler(buildRejectedExecutionHandler(registry, executorName));
 		exec.setThreadNamePrefix("dummy-seed-");
-		exec.initialize();
-		registerQueueUtilizationGauge(registry, exec, executorName);
 		return exec;
 	}
 
@@ -119,6 +109,11 @@ public class AsyncConfig implements AsyncConfigurer {
 			registry.counter("executor.rejected.tasks", "executor", executorName).increment();
 			fallback.rejectedExecution(task, threadPoolExecutor);
 		};
+	}
+
+	private void bindExecutorMetrics(MeterRegistry registry, ThreadPoolTaskExecutor executor, String executorName) {
+		ExecutorServiceMetrics.monitor(registry, executor.getThreadPoolExecutor(), executorName);
+		registerQueueUtilizationGauge(registry, executor, executorName);
 	}
 
 	private void registerQueueUtilizationGauge(

@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,6 +25,8 @@ import com.tasteam.domain.search.dto.response.SearchGroupSummary;
 import com.tasteam.domain.search.dto.response.SearchResponse;
 import com.tasteam.domain.search.dto.response.SearchRestaurantItem;
 import com.tasteam.domain.search.entity.MemberSearchHistory;
+import com.tasteam.domain.search.event.SearchCompletedEvent;
+import com.tasteam.domain.search.event.SearchEventPublisher;
 import com.tasteam.domain.search.repository.MemberSearchHistoryQueryRepository;
 import com.tasteam.domain.search.repository.MemberSearchHistoryRepository;
 import com.tasteam.global.dto.pagination.OffsetPageResponse;
@@ -33,21 +37,19 @@ import com.tasteam.global.exception.code.SearchErrorCode;
 import com.tasteam.global.utils.CursorPageBuilder;
 import com.tasteam.global.validation.KeywordSecurityPolicy;
 
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 @Service
 public class SearchService {
 
 	private static final int DEFAULT_PAGE_SIZE = 10;
 	private static final int THUMBNAIL_LIMIT = 3;
 	private static final double DEFAULT_RADIUS_KM = 3.0;
+	private static final long SEARCH_QUERY_TIMEOUT_SECONDS = 3L;
 
 	private final FileService fileService;
 	private final MemberSearchHistoryRepository memberSearchHistoryRepository;
 	private final MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository;
 	private final SearchDataService searchDataService;
-	private final SearchHistoryRecorder searchHistoryRecorder;
+	private final SearchEventPublisher searchEventPublisher;
 	private final Executor searchQueryExecutor;
 
 	public SearchService(
@@ -55,14 +57,14 @@ public class SearchService {
 		MemberSearchHistoryRepository memberSearchHistoryRepository,
 		MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository,
 		SearchDataService searchDataService,
-		SearchHistoryRecorder searchHistoryRecorder,
+		SearchEventPublisher searchEventPublisher,
 		@Qualifier("searchQueryExecutor")
 		Executor searchQueryExecutor) {
 		this.fileService = fileService;
 		this.memberSearchHistoryRepository = memberSearchHistoryRepository;
 		this.memberSearchHistoryQueryRepository = memberSearchHistoryQueryRepository;
 		this.searchDataService = searchDataService;
-		this.searchHistoryRecorder = searchHistoryRecorder;
+		this.searchEventPublisher = searchEventPublisher;
 		this.searchQueryExecutor = searchQueryExecutor;
 	}
 
@@ -83,10 +85,14 @@ public class SearchService {
 		SearchDataService.GroupData groupData;
 		SearchDataService.RestaurantPageData restaurantData;
 		try {
-			groupData = groupFuture.get();
-			restaurantData = restaurantFuture.get();
+			groupData = groupFuture.get(SEARCH_QUERY_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+			restaurantData = restaurantFuture.get(SEARCH_QUERY_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
+			throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
+		} catch (TimeoutException e) {
+			groupFuture.cancel(true);
+			restaurantFuture.cancel(true);
 			throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
 		} catch (ExecutionException e) {
 			Throwable cause = e.getCause();
@@ -130,13 +136,11 @@ public class SearchService {
 				restaurantPage.hasNext(),
 				restaurantPage.size()));
 
-		if (!groups.isEmpty() || !restaurantItems.isEmpty()) {
-			try {
-				searchHistoryRecorder.recordSearchHistory(memberId, keyword);
-			} catch (Exception ex) {
-				log.warn("검색 히스토리 기록 중 예외 발생 (검색 결과에는 영향 없음): {}", ex.getMessage());
-			}
-		}
+		searchEventPublisher.publish(new SearchCompletedEvent(
+			memberId,
+			keyword,
+			groups.size(),
+			restaurantItems.size()));
 
 		return new SearchResponse(groups, restaurants);
 	}

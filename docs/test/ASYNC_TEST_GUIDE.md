@@ -6,7 +6,7 @@
 2. [유형별 테스트 전략](#2-유형별-테스트-전략)
    - 2.1 [@Async + @EventListener (fire-and-forget)](#21-async--eventlistener)
    - 2.2 [@Async + @TransactionalEventListener(AFTER_COMMIT)](#22-async--transactionaleventlistenerafter_commit--핵심)
-   - 2.3 [@Async + @Transactional (SearchHistoryRecorder)](#23-async--transactional)
+   - 2.3 [@Async + @EventListener + @Transactional (SearchHistoryEventListener)](#23-async--eventlistener--transactional)
    - 2.4 [수동 TransactionSynchronization (ReviewEventPublisher)](#24-수동-transactionsynchronization)
    - 2.5 [@TransactionalEventListener + MQ 발행 (GroupMemberJoinedMessageQueuePublisher)](#25-transactionaleventlistener--mq-발행--모범-패턴)
 3. [SyncTaskExecutor 사용 가이드](#3-synctaskexecutor-사용-가이드)
@@ -23,7 +23,7 @@
 
 | 검증 대상 | 예시 | 방법 |
 |-----------|------|------|
-| **비즈니스 로직** | `SearchHistoryRecorder`가 중복 키워드를 카운트업하는가 | 직접 메서드 호출 (동기) |
+| **비즈니스 로직** | `SearchHistoryEventListener`가 검색 히스토리를 upsert 하는가 | 직접 메서드 호출 (동기) |
 | **이벤트 발행-구독 연결** | 리뷰 생성 후 AI 분석이 트리거되는가 | 통합 테스트 (실제 커밋 필요) |
 | **에러 격리** | 웹훅 실패가 메인 플로우에 영향을 주지 않는가 | 직접 호출 + 예외 주입 |
 
@@ -40,7 +40,7 @@
 
 | 컴포넌트 | 유형 | Executor | 테스트 현황 |
 |---------|------|----------|------------|
-| `SearchHistoryRecorder` | `@Async` + `@Transactional` | `searchHistoryExecutor` (ThreadPool) | ❌ 없음 |
+| `SearchHistoryEventListener` | `@Async` + `@EventListener` + `@Transactional` | `searchHistoryExecutor` (ThreadPool) | ✅ 단위 |
 | `NotificationEventListener` | `@Async` + `@EventListener` | `notificationExecutor` (VirtualThread) | ❌ 없음 |
 | `ReviewCreatedAiAnalysisEventListener` | `@Async` + `@TransactionalEventListener(AFTER_COMMIT)` | `aiAnalysisExecutor` (ThreadPool 1-1) | 🟡 Facade만 |
 | `BatchReportWebhookEventListener` | `@Async` + `@TransactionalEventListener(AFTER_COMMIT, fallback)` | `webhookExecutor` (VirtualThread) | ❌ 없음 |
@@ -203,79 +203,73 @@ class ReviewCreatedEventIntegrationTest {
 
 ---
 
-### 2.3 @Async + @Transactional
+### 2.3 @Async + @EventListener + @Transactional
 
-**대상:** `SearchHistoryRecorder`
+**대상:** `SearchHistoryEventListener`
 
 ```java
-// SearchHistoryRecorder.java
+// SearchHistoryEventListener.java
 @Async("searchHistoryExecutor")
+@EventListener
 @Transactional
-public void recordSearchHistory(Long memberId, String keyword) { ... }
+public void onSearchCompleted(SearchCompletedEvent event) { ... }
 ```
 
-**전략:** 직접 메서드 호출로 비즈니스 로직만 검증.
+**전략:** 리스너를 직접 호출해 비즈니스 로직만 검증한다.
 
 ```java
-// SearchHistoryRecorderTest.java
+// SearchHistoryEventListenerTest.java
 @UnitTest
-@DisplayName("SearchHistoryRecorder")
-class SearchHistoryRecorderTest {
+@DisplayName("SearchHistoryEventListener")
+class SearchHistoryEventListenerTest {
 
     @Mock
     MemberSearchHistoryRepository memberSearchHistoryRepository;
 
     @InjectMocks
-    SearchHistoryRecorder recorder;
+    SearchHistoryEventListener listener;
 
     @Test
-    @DisplayName("검색 기록이 없으면 새로 생성된다")
-    void recordSearchHistory_whenNoHistory_createsNew() {
-        Long memberId = 1L;
-        given(memberSearchHistoryRepository.findAllByMemberIdAndKeywordAndDeletedAtIsNull(memberId, "치킨"))
-            .willReturn(List.of());
+    @DisplayName("검색 결과가 있으면 검색 히스토리를 upsert 한다")
+    void onSearchCompleted_whenResultsExist_callsUpsert() {
+        SearchCompletedEvent event = new SearchCompletedEvent(1L, "치킨", 1, 2);
 
-        recorder.recordSearchHistory(memberId, "치킨");  // 직접 호출 — @Async, @Transactional 무시됨
+        listener.onSearchCompleted(event);  // 직접 호출 — @Async, @EventListener, @Transactional 무시됨
 
-        verify(memberSearchHistoryRepository).save(any(MemberSearchHistory.class));
+        verify(memberSearchHistoryRepository).upsertSearchHistory(1L, "치킨");
     }
 
     @Test
-    @DisplayName("같은 키워드가 있으면 카운트를 증가시킨다")
-    void recordSearchHistory_whenExists_incrementsCount() {
-        Long memberId = 1L;
-        MemberSearchHistory existing = MemberSearchHistory.create(memberId, "치킨");
-        given(memberSearchHistoryRepository.findAllByMemberIdAndKeywordAndDeletedAtIsNull(memberId, "치킨"))
-            .willReturn(List.of(existing));
+    @DisplayName("검색 결과가 없으면 검색 히스토리를 저장하지 않는다")
+    void onSearchCompleted_whenNoResults_skips() {
+        listener.onSearchCompleted(new SearchCompletedEvent(1L, "치킨", 0, 0));
 
-        recorder.recordSearchHistory(memberId, "치킨");
-
-        // 기존 레코드를 save하지 않고 incrementCount()만 호출 (JPA 더티체킹)
-        verify(memberSearchHistoryRepository, never()).save(any());
+        verifyNoInteractions(memberSearchHistoryRepository);
     }
 
     @Test
     @DisplayName("memberId가 null이면 스킵한다")
-    void recordSearchHistory_withNullMemberId_skips() {
-        recorder.recordSearchHistory(null, "치킨");
+    void onSearchCompleted_whenMemberIdIsNull_skips() {
+        listener.onSearchCompleted(new SearchCompletedEvent(null, "치킨", 1, 1));
 
         verifyNoInteractions(memberSearchHistoryRepository);
     }
 
     @Test
     @DisplayName("예외가 발생해도 전파되지 않는다")
-    void recordSearchHistory_onException_doesNotPropagate() {
-        given(memberSearchHistoryRepository.findAllByMemberIdAndKeywordAndDeletedAtIsNull(any(), any()))
-            .willThrow(new RuntimeException("DB 오류"));
+    void onSearchCompleted_whenExceptionOccurs_doesNotPropagate() {
+        willThrow(new RuntimeException("DB 오류"))
+            .given(memberSearchHistoryRepository).upsertSearchHistory(anyLong(), anyString());
 
-        assertThatCode(() -> recorder.recordSearchHistory(1L, "치킨")).doesNotThrowAnyException();
+        assertThatCode(() -> listener.onSearchCompleted(new SearchCompletedEvent(1L, "치킨", 1, 1)))
+            .doesNotThrowAnyException();
     }
 }
 ```
 
 **`@RepositoryJpaTest`에서 통합 검증이 필요한 경우 (SyncTaskExecutor 교체):**
 
-이벤트 발행을 통해 `@Async` 리스너가 트리거되는 흐름을 검증해야 할 때 사용한다.
+애플리케이션 이벤트 발행을 통해 `@Async` 리스너가 트리거되는 흐름을 검증해야 할 때 사용한다.
 
 ```java
 @TestConfiguration

@@ -13,8 +13,8 @@ import lombok.Getter;
 @Getter
 public enum RestaurantSwaggerErrorResponseDescription implements SwaggerErrorResponseDescription {
 
-	RESTAURANT_LIST_MOCK(new LinkedHashSet<>(Set.of(
-		CommonErrorCode.INVALID_REQUEST))),
+	RESTAURANT_LIST_DISABLED(new LinkedHashSet<>(Set.of(
+		RestaurantErrorCode.RESTAURANT_LIST_ENDPOINT_DISABLED))),
 	RESTAURANT_DETAIL(new LinkedHashSet<>(Set.of(
 		RestaurantErrorCode.RESTAURANT_NOT_FOUND))),
 	RESTAURANT_CREATE(new LinkedHashSet<>(Set.of(
