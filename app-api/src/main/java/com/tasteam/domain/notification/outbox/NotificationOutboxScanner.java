@@ -7,13 +7,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
 import com.tasteam.global.aop.ObservedAsyncPipeline;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
-import com.tasteam.infra.messagequeue.MessageQueueProducer;
-import com.tasteam.infra.messagequeue.MessageQueueTopics;
+import com.tasteam.infra.messagequeue.QueueEventHeaders;
+import com.tasteam.infra.messagequeue.QueueEventPublisher;
+import com.tasteam.infra.messagequeue.QueueTopic;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,8 +26,7 @@ public class NotificationOutboxScanner {
 	private int batchSize;
 
 	private final NotificationOutboxService outboxService;
-	private final MessageQueueProducer messageQueueProducer;
-	private final ObjectMapper objectMapper;
+	private final QueueEventPublisher queueEventPublisher;
 
 	@ObservedAsyncPipeline(domain = "notification", stage = "outbox_scan")
 	@Scheduled(fixedDelayString = "${tasteam.notification.outbox.scan-delay:30000}")
@@ -41,16 +38,15 @@ public class NotificationOutboxScanner {
 		log.info("알림 아웃박스 스캐너 실행. count={}", candidates.size());
 		for (NotificationRequestedPayload payload : candidates) {
 			try {
-				byte[] payloadBytes = objectMapper.writeValueAsBytes(payload);
-				MessageQueueMessage message = MessageQueueMessage.of(
-					MessageQueueTopics.NOTIFICATION_REQUESTED,
+				queueEventPublisher.publish(
+					QueueTopic.NOTIFICATION_REQUESTED,
 					payload.recipientId().toString(),
-					payloadBytes);
-				messageQueueProducer.publish(message);
+					payload,
+					QueueEventHeaders.builder()
+						.eventType("NotificationRequestedPayload")
+						.schemaVersion("v1")
+						.build());
 				outboxService.markPublished(payload.eventId());
-			} catch (JsonProcessingException ex) {
-				log.error("알림 아웃박스 payload 직렬화 실패. eventId={}", payload.eventId(), ex);
-				outboxService.markFailed(payload.eventId(), ex.getMessage());
 			} catch (Exception ex) {
 				log.error("알림 아웃박스 발행 실패. eventId={}", payload.eventId(), ex);
 				outboxService.markFailed(payload.eventId(), ex.getMessage());

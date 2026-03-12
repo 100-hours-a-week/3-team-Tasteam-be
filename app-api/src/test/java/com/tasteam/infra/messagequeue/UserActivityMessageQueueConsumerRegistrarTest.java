@@ -34,11 +34,13 @@ class UserActivityMessageQueueConsumerRegistrarTest {
 		properties.setEnabled(true);
 		properties.setProvider(MessageQueueProviderType.REDIS_STREAM.value());
 		properties.setDefaultConsumerGroup("tasteam-api");
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
 		ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 		UserActivityMessageQueueConsumerRegistrar registrar = new UserActivityMessageQueueConsumerRegistrar(
 			messageQueueConsumer,
 			properties,
+			topicNamingPolicy,
 			storeService,
 			objectMapper);
 
@@ -48,11 +50,11 @@ class UserActivityMessageQueueConsumerRegistrarTest {
 		// then
 		ArgumentCaptor<MessageQueueSubscription> subscriptionCaptor = ArgumentCaptor
 			.forClass(MessageQueueSubscription.class);
-		@SuppressWarnings("unchecked") ArgumentCaptor<MessageQueueMessageHandler> handlerCaptor = ArgumentCaptor
+		@SuppressWarnings("unchecked") ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
 			.forClass(
-				MessageQueueMessageHandler.class);
+				QueueMessageHandler.class);
 		verify(messageQueueConsumer).subscribe(subscriptionCaptor.capture(), handlerCaptor.capture());
-		assertThat(subscriptionCaptor.getValue().topic()).isEqualTo(MessageQueueTopics.USER_ACTIVITY);
+		assertThat(subscriptionCaptor.getValue().topic()).isEqualTo(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY));
 		assertThat(subscriptionCaptor.getValue().consumerGroup()).isEqualTo("tasteam-api-user-activity");
 
 		ActivityEvent event = new ActivityEvent(
@@ -64,7 +66,8 @@ class UserActivityMessageQueueConsumerRegistrarTest {
 			null,
 			Map.of("groupId", 99L));
 		handlerCaptor.getValue().handle(
-			MessageQueueMessage.of(MessageQueueTopics.USER_ACTIVITY, "20", objectMapper.writeValueAsBytes(event)));
+			QueueMessage.of(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY), "20",
+				objectMapper.writeValueAsBytes(event)));
 		verify(storeService).store(any(ActivityEvent.class));
 	}
 
@@ -76,10 +79,12 @@ class UserActivityMessageQueueConsumerRegistrarTest {
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setEnabled(true);
 		properties.setProvider(MessageQueueProviderType.NONE.value());
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
 		UserActivityMessageQueueConsumerRegistrar registrar = new UserActivityMessageQueueConsumerRegistrar(
 			messageQueueConsumer,
 			properties,
+			topicNamingPolicy,
 			storeService,
 			JsonMapper.builder().findAndAddModules().build());
 
@@ -99,24 +104,26 @@ class UserActivityMessageQueueConsumerRegistrarTest {
 		properties.setEnabled(true);
 		properties.setProvider(MessageQueueProviderType.REDIS_STREAM.value());
 		properties.setDefaultConsumerGroup("tasteam-api");
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
 		UserActivityMessageQueueConsumerRegistrar registrar = new UserActivityMessageQueueConsumerRegistrar(
 			messageQueueConsumer,
 			properties,
+			topicNamingPolicy,
 			storeService,
 			JsonMapper.builder().findAndAddModules().build());
 
 		registrar.subscribe();
 
-		@SuppressWarnings("unchecked") ArgumentCaptor<MessageQueueMessageHandler> handlerCaptor = ArgumentCaptor
+		@SuppressWarnings("unchecked") ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
 			.forClass(
-				MessageQueueMessageHandler.class);
+				QueueMessageHandler.class);
 		verify(messageQueueConsumer).subscribe(any(MessageQueueSubscription.class), handlerCaptor.capture());
 
 		// when & then
 		assertThatThrownBy(() -> handlerCaptor.getValue().handle(
-			MessageQueueMessage.of(
-				MessageQueueTopics.USER_ACTIVITY,
+			QueueMessage.of(
+				topicNamingPolicy.main(QueueTopic.USER_ACTIVITY),
 				"key",
 				"{\"eventId\":\"evt\"}".getBytes(StandardCharsets.UTF_8))))
 			.isInstanceOf(IllegalArgumentException.class)

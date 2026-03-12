@@ -18,8 +18,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 import com.tasteam.config.annotation.UnitTest;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
+import com.tasteam.infra.messagequeue.QueueMessage;
 
 @UnitTest
 @DisplayName("[유닛](Message) MessageQueueTraceService 단위 테스트")
@@ -32,7 +32,7 @@ class MessageQueueTraceServiceTest {
 		MessageQueueTraceLogRepository repository = mock(MessageQueueTraceLogRepository.class);
 		when(repository.save(any(MessageQueueTraceLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
 		MessageQueueTraceService service = new MessageQueueTraceService(repository);
-		MessageQueueMessage message = MessageQueueMessage.of("domain.review.created", "123",
+		QueueMessage message = QueueMessage.of("domain.review.created", "123",
 			"payload".getBytes(StandardCharsets.UTF_8));
 
 		// when
@@ -53,7 +53,7 @@ class MessageQueueTraceServiceTest {
 		MessageQueueTraceLogRepository repository = mock(MessageQueueTraceLogRepository.class);
 		when(repository.save(any(MessageQueueTraceLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
 		MessageQueueTraceService service = new MessageQueueTraceService(repository);
-		MessageQueueMessage message = MessageQueueMessage.of("domain.group.member-joined", "200",
+		QueueMessage message = QueueMessage.of("domain.group.member-joined", "200",
 			"payload".getBytes(StandardCharsets.UTF_8));
 
 		// when

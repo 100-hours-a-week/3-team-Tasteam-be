@@ -1,6 +1,7 @@
 package com.tasteam.infra.messagequeue;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,11 +10,50 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.lang.Nullable;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tasteam.infra.messagequeue.serialization.JsonQueueMessageSerializer;
+import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
 import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
 @Configuration
-@EnableConfigurationProperties(MessageQueueProperties.class)
+@EnableConfigurationProperties({MessageQueueProperties.class, KafkaMessageQueueProperties.class})
 public class MessageQueueConfig {
+
+	@Bean
+	public TopicNamingPolicy topicNamingPolicy(KafkaMessageQueueProperties kafkaMessageQueueProperties) {
+		return new DefaultTopicNamingPolicy(kafkaMessageQueueProperties);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean(QueueMessageSerializer.class)
+	public QueueMessageSerializer queueMessageSerializer(ObjectMapper objectMapper) {
+		return new JsonQueueMessageSerializer(objectMapper);
+	}
+
+	@Bean
+	public MessageBrokerSender messageBrokerSender(MessageQueueProducer messageQueueProducer) {
+		return new DefaultMessageBrokerSender(messageQueueProducer);
+	}
+
+	@Bean
+	public MessageBrokerReceiver messageBrokerReceiver(MessageQueueConsumer messageQueueConsumer) {
+		return new DefaultMessageBrokerReceiver(messageQueueConsumer);
+	}
+
+	@Bean
+	public QueueEventPublisher queueEventPublisher(
+		MessageBrokerSender messageBrokerSender,
+		TopicNamingPolicy topicNamingPolicy,
+		QueueMessageSerializer queueMessageSerializer) {
+		return new DefaultQueueEventPublisher(messageBrokerSender, topicNamingPolicy, queueMessageSerializer);
+	}
+
+	@Bean
+	public QueueEventSubscriber queueEventSubscriber(
+		MessageBrokerReceiver messageBrokerReceiver,
+		TopicNamingPolicy topicNamingPolicy) {
+		return new DefaultQueueEventSubscriber(messageBrokerReceiver, topicNamingPolicy);
+	}
 
 	@Bean
 	public MessageQueueProducer messageQueueProducer(

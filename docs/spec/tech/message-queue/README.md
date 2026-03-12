@@ -38,8 +38,8 @@
 
 - 경로: `app-api/src/main/java/com/tasteam/infra/messagequeue`
 - 핵심 파일
-  - 계약: `MessageQueueProducer`, `MessageQueueConsumer`, `MessageQueueMessageHandler`
-  - 데이터 계약: `MessageQueueMessage`, `MessageQueueSubscription`
+  - 계약: `MessageQueueProducer`, `MessageQueueConsumer`, `QueueMessageHandler`
+  - 데이터 계약: `QueueMessage`, `MessageQueueSubscription`
   - 설정: `MessageQueueConfig`, `MessageQueueProperties`, `MessageQueueProviderType`
   - 구현체: `NoOp*`, `Unsupported*`
 
@@ -57,7 +57,7 @@ flowchart LR
 
     B --> E
     D --> E
-    J["MessageQueueMessage / MessageQueueSubscription"] --> B
+    J["QueueMessage / MessageQueueSubscription"] --> B
     J --> D
 ```
 
@@ -75,11 +75,11 @@ classDiagram
       +unsubscribe(subscription)
     }
 
-    class MessageQueueMessageHandler {
+    class QueueMessageHandler {
       +handle(message)
     }
 
-    class MessageQueueMessage {
+    class QueueMessage {
       +topic
       +key
       +payload
@@ -94,8 +94,8 @@ classDiagram
       +consumerName
     }
 
-    MessageQueueConsumer --> MessageQueueMessageHandler
-    MessageQueueProducer --> MessageQueueMessage
+    MessageQueueConsumer --> QueueMessageHandler
+    MessageQueueProducer --> QueueMessage
     MessageQueueConsumer --> MessageQueueSubscription
 ```
 
@@ -131,7 +131,7 @@ flowchart LR
     B --> C["Provider Implementation"]
     C --> D["MQ Infra (Redis Stream/Kafka)"]
     D --> E["Provider Consumer"]
-    E --> F["MessageQueueMessageHandler.handle(...)"]
+    E --> F["QueueMessageHandler.handle(...)"]
     F --> G["Application Logic"]
 ```
 
@@ -172,6 +172,23 @@ flowchart LR
 
 오버레이 분리를 통해 기본 로컬 개발 흐름(DB/Redis/API)과 선택 스택(Kafka/Connect, Monitoring)의 변경 영향을 분리한다.
 
+## **[4-3] Kafka 실패 처리 정책 (Foundation)**
+
+foundation 단계에서 Kafka consumer 실패 처리는 공통 `DefaultErrorHandler`로 통일한다.
+
+| 실패 유형 | 예외 타입 | 재시도 | 최종 처리 |
+|---|---|---|---|
+| 입력/포맷 불량 | `MessageQueueNonRetryableException` | 하지 않음 | 즉시 DLQ 전송 |
+| 역직렬화/직렬화 실패 | `DeserializationException`, `SerializationException` | 하지 않음 | 즉시 DLQ 전송 |
+| 일시적 인프라/네트워크 실패 | 기타 런타임 예외 | 설정된 횟수만큼 재시도 | 재시도 초과 시 DLQ 전송 |
+
+- 재시도 기본값:
+  - `KAFKA_CONSUMER_RETRY_MAX_ATTEMPTS=3`
+  - `KAFKA_CONSUMER_RETRY_BACKOFF_MILLIS=1000`
+- DLQ 토픽 규칙:
+  - 도메인별 설정 존재 시 해당 DLQ 토픽 사용
+  - 미설정 시 `<source-topic>.dlq`
+
 ---
 
 # **[5] 확장 전략 (Redis Stream -> Kafka)**
@@ -180,7 +197,7 @@ flowchart LR
 
 - 애플리케이션은 인터페이스만 의존하고 구현체를 직접 참조하지 않는다.
 - provider별 구현 추가는 `MessageQueueConfig`의 선택 분기와 구현체 클래스 추가로 한정한다.
-- 메시지 계약(`MessageQueueMessage`, `MessageQueueSubscription`)은 하위 호환을 우선한다.
+- 메시지 계약(`QueueMessage`, `MessageQueueSubscription`)은 하위 호환을 우선한다.
 
 ## **[5-2] 단계**
 
@@ -301,3 +318,28 @@ flowchart LR
 - `stg`/`prod`
   - 앱 컨테이너 배포와 Kafka 인프라를 분리 운영
   - Kafka/Connect는 managed 혹은 별도 운영 스택으로 관리
+
+---
+
+# **[10] Foundation 온보딩 가이드**
+
+## **[10-1] foundation에서 제공하는 것**
+
+- Kafka 공통 설정 빈
+  - `ProducerFactory`, `KafkaTemplate`
+  - `ConsumerFactory`, `ConcurrentKafkaListenerContainerFactory`
+- 메시지 직렬화 공통 인터페이스 및 JSON 기본 구현
+- 공통 에러핸들러 + 재시도/백오프 기본 정책
+- DLQ 토픽 네이밍 정책 인터페이스 및 기본 구현
+
+## **[10-2] Producer PR에서 해야 할 일**
+
+- 도메인 payload를 `QueueMessage`로 매핑
+- 공통 serializer/`KafkaPublishSupport`를 이용해 발행
+- 발행 실패 시 `MessageQueuePublishException` 흐름으로 운영 로그 연결
+
+## **[10-3] Consumer PR에서 해야 할 일**
+
+- Listener 등록과 payload 역직렬화 연결
+- 재시도 가능/불가 예외를 명확히 분리
+- DLQ 토픽 규칙(`TopicNamingPolicy`)을 따르는지 검증

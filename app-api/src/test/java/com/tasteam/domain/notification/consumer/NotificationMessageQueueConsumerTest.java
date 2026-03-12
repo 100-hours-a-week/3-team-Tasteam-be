@@ -21,11 +21,14 @@ import com.tasteam.domain.notification.dispatch.NotificationDispatcher;
 import com.tasteam.domain.notification.entity.NotificationChannel;
 import com.tasteam.domain.notification.entity.NotificationType;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
+import com.tasteam.infra.messagequeue.DefaultTopicNamingPolicy;
+import com.tasteam.infra.messagequeue.KafkaMessageQueueProperties;
 import com.tasteam.infra.messagequeue.MessageQueueConsumer;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProducer;
 import com.tasteam.infra.messagequeue.MessageQueueProperties;
-import com.tasteam.infra.messagequeue.MessageQueueTopics;
+import com.tasteam.infra.messagequeue.QueueMessage;
+import com.tasteam.infra.messagequeue.QueueTopic;
+import com.tasteam.infra.messagequeue.TopicNamingPolicy;
 
 @UnitTest
 @DisplayName("[유닛](Notification) NotificationMessageQueueConsumer 단위 테스트")
@@ -39,16 +42,18 @@ class NotificationMessageQueueConsumerTest {
 		NotificationDlqPublisher dlqPublisher = mock(NotificationDlqPublisher.class);
 		MessageQueueProperties properties = new MessageQueueProperties();
 		ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		NotificationMessageQueueConsumer consumer = new NotificationMessageQueueConsumer(
 			messageQueueConsumer,
 			properties,
+			topicNamingPolicy,
 			messageProcessor,
 			dlqPublisher,
 			objectMapper);
 		ReflectionTestUtils.setField(consumer, "maxRetries", 3);
 
-		MessageQueueMessage message = MessageQueueMessage.of(
-			MessageQueueTopics.NOTIFICATION_REQUESTED,
+		QueueMessage message = QueueMessage.of(
+			QueueTopic.NOTIFICATION_REQUESTED.defaultMainTopic(),
 			"10",
 			objectMapper.writeValueAsBytes(samplePayload("evt-success")));
 
@@ -66,9 +71,11 @@ class NotificationMessageQueueConsumerTest {
 		NotificationDlqPublisher dlqPublisher = mock(NotificationDlqPublisher.class);
 		MessageQueueProperties properties = new MessageQueueProperties();
 		ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		NotificationMessageQueueConsumer consumer = new NotificationMessageQueueConsumer(
 			messageQueueConsumer,
 			properties,
+			topicNamingPolicy,
 			messageProcessor,
 			dlqPublisher,
 			objectMapper);
@@ -77,34 +84,35 @@ class NotificationMessageQueueConsumerTest {
 		doThrow(new IllegalStateException("fcm 실패"))
 			.when(dispatcher)
 			.dispatch(org.mockito.ArgumentMatchers.any(NotificationRequestedPayload.class));
-		MessageQueueMessage message = MessageQueueMessage.of(
-			MessageQueueTopics.NOTIFICATION_REQUESTED,
+		QueueMessage message = QueueMessage.of(
+			QueueTopic.NOTIFICATION_REQUESTED.defaultMainTopic(),
 			"10",
 			objectMapper.writeValueAsBytes(samplePayload("evt-fail")));
 
 		ReflectionTestUtils.invokeMethod(consumer, "handleMessage", message);
 
-		verify(dlqPublisher).publish(org.mockito.ArgumentMatchers.any(MessageQueueMessage.class));
+		verify(dlqPublisher).publish(org.mockito.ArgumentMatchers.any(QueueMessage.class));
 	}
 
 	@Test
 	@DisplayName("DLQ 발행 시 원본 messageId를 유지한다")
 	void dlqPublisher_preservesMessageId() throws Exception {
 		MessageQueueProducer messageQueueProducer = mock(MessageQueueProducer.class);
-		NotificationDlqPublisher dlqPublisher = new NotificationDlqPublisher(messageQueueProducer);
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
+		NotificationDlqPublisher dlqPublisher = new NotificationDlqPublisher(messageQueueProducer, topicNamingPolicy);
 		ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
 
-		MessageQueueMessage message = MessageQueueMessage.of(
-			MessageQueueTopics.NOTIFICATION_REQUESTED,
+		QueueMessage message = QueueMessage.of(
+			QueueTopic.NOTIFICATION_REQUESTED.defaultMainTopic(),
 			"10",
 			objectMapper.writeValueAsBytes(samplePayload("evt-fail")));
-		org.mockito.ArgumentCaptor<MessageQueueMessage> captor = forClass(MessageQueueMessage.class);
+		org.mockito.ArgumentCaptor<QueueMessage> captor = forClass(QueueMessage.class);
 
 		dlqPublisher.publish(message);
 
 		verify(messageQueueProducer).publish(captor.capture());
 		assertThat(captor.getValue().messageId()).isEqualTo(message.messageId());
-		assertThat(captor.getValue().topic()).isEqualTo(MessageQueueTopics.NOTIFICATION_REQUESTED_DLQ);
+		assertThat(captor.getValue().topic()).isEqualTo(topicNamingPolicy.dlq(QueueTopic.NOTIFICATION_REQUESTED));
 		assertThat(captor.getValue().payload()).isEqualTo(message.payload());
 	}
 

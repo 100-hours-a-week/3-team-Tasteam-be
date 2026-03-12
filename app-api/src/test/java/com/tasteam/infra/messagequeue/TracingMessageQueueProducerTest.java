@@ -23,7 +23,7 @@ class TracingMessageQueueProducerTest {
 			delegate,
 			MessageQueueProviderType.REDIS_STREAM,
 			traceService);
-		MessageQueueMessage message = MessageQueueMessage.of("domain.review.created", "123", new byte[] {1});
+		QueueMessage message = QueueMessage.of("domain.review.created", "123", new byte[] {1});
 
 		// when
 		producer.publish(message);

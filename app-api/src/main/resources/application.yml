@@ -208,6 +208,35 @@ tasteam:
     default-consumer-group: ${MQ_DEFAULT_CONSUMER_GROUP:tasteam-api}
     poll-timeout-millis: ${MQ_POLL_TIMEOUT_MILLIS:1000}
     max-retries: ${MQ_MAX_RETRIES:3}
+    kafka:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+      connect-url: ${KAFKA_CONNECT_URL:http://localhost:8083}
+      client-id: ${KAFKA_CLIENT_ID:tasteam-api}
+      producer:
+        acks: ${KAFKA_PRODUCER_ACKS:all}
+        retries: ${KAFKA_PRODUCER_RETRIES:3}
+        batch-size: ${KAFKA_PRODUCER_BATCH_SIZE:16384}
+        linger-ms: ${KAFKA_PRODUCER_LINGER_MS:5}
+        send-timeout-millis: ${KAFKA_PRODUCER_SEND_TIMEOUT_MILLIS:5000}
+      consumer:
+        concurrency: ${KAFKA_CONSUMER_CONCURRENCY:1}
+        max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS:500}
+        poll-timeout-millis: ${KAFKA_CONSUMER_POLL_TIMEOUT_MILLIS:1000}
+        retry:
+          max-attempts: ${KAFKA_CONSUMER_RETRY_MAX_ATTEMPTS:3}
+          backoff-millis: ${KAFKA_CONSUMER_RETRY_BACKOFF_MILLIS:1000}
+      analytics-event-log:
+        topic: ${ANALYTICS_EVENT_LOG_TOPIC:evt.analytics.event-log.v1}
+        consumer-group: ${ANALYTICS_EVENT_LOG_CONSUMER_GROUP:cg.analytics.event-log.v1}
+        dlq-topic: ${ANALYTICS_EVENT_LOG_DLQ_TOPIC:evt.analytics.event-log.v1.dlq}
+      notification:
+        topic: ${NOTIFICATION_MQ_TOPIC:evt.notification.dispatch.v1}
+        consumer-group: ${NOTIFICATION_MQ_CONSUMER_GROUP:cg.notification.processor.v1}
+        dlq-topic: ${NOTIFICATION_MQ_DLQ_TOPIC:evt.notification.dispatch.v1.dlq}
+      user-activity:
+        topic: ${USER_ACTIVITY_MQ_TOPIC:evt.user-activity.ingest.v1}
+        consumer-group: ${USER_ACTIVITY_MQ_CONSUMER_GROUP:cg.user-activity.ingest.v1}
+        dlq-topic: ${USER_ACTIVITY_MQ_DLQ_TOPIC:evt.user-activity.ingest.v1.dlq}
   notification:
     email:
       provider: ${NOTIFICATION_EMAIL_PROVIDER:log}

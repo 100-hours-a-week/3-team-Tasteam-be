@@ -20,6 +20,7 @@ public class GroupMemberJoinedMessageQueuePublisher {
 
 	private final MessageQueueProducer messageQueueProducer;
 	private final MessageQueueProperties messageQueueProperties;
+	private final TopicNamingPolicy topicNamingPolicy;
 	private final ObjectMapper objectMapper;
 
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
@@ -29,8 +30,8 @@ public class GroupMemberJoinedMessageQueuePublisher {
 		}
 
 		byte[] payload = serializePayload(event);
-		MessageQueueMessage message = new MessageQueueMessage(
-			MessageQueueTopics.GROUP_MEMBER_JOINED,
+		QueueMessage message = new QueueMessage(
+			topicNamingPolicy.main(QueueTopic.GROUP_MEMBER_JOINED),
 			String.valueOf(event.memberId()),
 			payload,
 			Map.of("eventType", "GroupMemberJoinedEvent", "schemaVersion", "v1"),

@@ -12,7 +12,7 @@ public class TracingMessageQueueProducer implements MessageQueueProducer {
 	private final MessageQueueTraceService traceService;
 
 	@Override
-	public void publish(MessageQueueMessage message) {
+	public void publish(QueueMessage message) {
 		delegate.publish(message);
 		traceService.recordPublish(message, providerType);
 	}

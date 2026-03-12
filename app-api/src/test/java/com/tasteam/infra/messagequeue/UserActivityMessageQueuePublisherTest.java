@@ -29,10 +29,12 @@ class UserActivityMessageQueuePublisherTest {
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setEnabled(true);
 		properties.setProvider(MessageQueueProviderType.REDIS_STREAM.value());
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		UserActivitySourceOutboxService outboxService = mock(UserActivitySourceOutboxService.class);
 		UserActivityMessageQueuePublisher publisher = new UserActivityMessageQueuePublisher(
 			producer,
 			properties,
+			topicNamingPolicy,
 			JsonMapper.builder().findAndAddModules().build(),
 			outboxService);
 
@@ -49,10 +51,10 @@ class UserActivityMessageQueuePublisherTest {
 		publisher.sink(event);
 
 		// then
-		ArgumentCaptor<MessageQueueMessage> captor = ArgumentCaptor.forClass(MessageQueueMessage.class);
+		ArgumentCaptor<QueueMessage> captor = ArgumentCaptor.forClass(QueueMessage.class);
 		verify(producer).publish(captor.capture());
-		MessageQueueMessage message = captor.getValue();
-		assertThat(message.topic()).isEqualTo(MessageQueueTopics.USER_ACTIVITY);
+		QueueMessage message = captor.getValue();
+		assertThat(message.topic()).isEqualTo(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY));
 		assertThat(message.key()).isEqualTo("101");
 		assertThat(message.messageId()).isEqualTo("evt-1");
 		assertThat(message.headers())
@@ -76,10 +78,12 @@ class UserActivityMessageQueuePublisherTest {
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setEnabled(true);
 		properties.setProvider(MessageQueueProviderType.NONE.value());
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		UserActivitySourceOutboxService outboxService = mock(UserActivitySourceOutboxService.class);
 		UserActivityMessageQueuePublisher publisher = new UserActivityMessageQueuePublisher(
 			producer,
 			properties,
+			topicNamingPolicy,
 			JsonMapper.builder().findAndAddModules().build(),
 			outboxService);
 		ActivityEvent event = new ActivityEvent(
@@ -106,15 +110,17 @@ class UserActivityMessageQueuePublisherTest {
 		MessageQueueProducer producer = mock(MessageQueueProducer.class);
 		org.mockito.Mockito.doThrow(new IllegalStateException("mq publish fail"))
 			.when(producer)
-			.publish(org.mockito.ArgumentMatchers.any(MessageQueueMessage.class));
+			.publish(org.mockito.ArgumentMatchers.any(QueueMessage.class));
 
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setEnabled(true);
 		properties.setProvider(MessageQueueProviderType.REDIS_STREAM.value());
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		UserActivitySourceOutboxService outboxService = mock(UserActivitySourceOutboxService.class);
 		UserActivityMessageQueuePublisher publisher = new UserActivityMessageQueuePublisher(
 			producer,
 			properties,
+			topicNamingPolicy,
 			JsonMapper.builder().findAndAddModules().build(),
 			outboxService);
 

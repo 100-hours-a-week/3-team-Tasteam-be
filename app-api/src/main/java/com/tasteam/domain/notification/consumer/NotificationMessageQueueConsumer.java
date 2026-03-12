@@ -13,11 +13,12 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
 import com.tasteam.infra.messagequeue.MessageQueueConsumer;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProperties;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
 import com.tasteam.infra.messagequeue.MessageQueueSubscription;
-import com.tasteam.infra.messagequeue.MessageQueueTopics;
+import com.tasteam.infra.messagequeue.QueueMessage;
+import com.tasteam.infra.messagequeue.QueueTopic;
+import com.tasteam.infra.messagequeue.TopicNamingPolicy;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -39,6 +40,7 @@ public class NotificationMessageQueueConsumer {
 
 	private final MessageQueueConsumer messageQueueConsumer;
 	private final MessageQueueProperties messageQueueProperties;
+	private final TopicNamingPolicy topicNamingPolicy;
 	private final NotificationMessageProcessor messageProcessor;
 	private final NotificationDlqPublisher dlqPublisher;
 	private final ObjectMapper objectMapper;
@@ -53,12 +55,13 @@ public class NotificationMessageQueueConsumer {
 		}
 
 		subscription = new MessageQueueSubscription(
-			MessageQueueTopics.NOTIFICATION_REQUESTED,
+			topicNamingPolicy.main(QueueTopic.NOTIFICATION_REQUESTED),
 			CONSUMER_GROUP,
 			"notification-processor-" + UUID.randomUUID());
 
 		messageQueueConsumer.subscribe(subscription, this::handleMessage);
-		log.info("알림 메시지큐 구독 등록 완료. topic={}, consumerGroup={}", MessageQueueTopics.NOTIFICATION_REQUESTED,
+		log.info("알림 메시지큐 구독 등록 완료. topic={}, consumerGroup={}",
+			topicNamingPolicy.main(QueueTopic.NOTIFICATION_REQUESTED),
 			CONSUMER_GROUP);
 	}
 
@@ -69,7 +72,7 @@ public class NotificationMessageQueueConsumer {
 		}
 	}
 
-	private void handleMessage(MessageQueueMessage message) {
+	private void handleMessage(QueueMessage message) {
 		NotificationRequestedPayload payload = deserializePayload(message.payload());
 		try {
 			messageProcessor.process(payload);

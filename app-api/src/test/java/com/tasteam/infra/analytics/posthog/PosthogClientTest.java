@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.analytics.api.ActivityEvent;
 
@@ -23,7 +22,7 @@ import okhttp3.mockwebserver.RecordedRequest;
 @DisplayName("[유닛](Posthog) PosthogClient 단위 테스트")
 class PosthogClientTest {
 
-	private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
+	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	@Test
 	@DisplayName("capture 요청의 distinct_id는 event_id로 고정된다")

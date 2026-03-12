@@ -27,6 +27,7 @@ public class UserActivityMessageQueuePublisher implements ActivitySink {
 
 	private final MessageQueueProducer messageQueueProducer;
 	private final MessageQueueProperties messageQueueProperties;
+	private final TopicNamingPolicy topicNamingPolicy;
 	private final ObjectMapper objectMapper;
 	private final UserActivitySourceOutboxService outboxService;
 
@@ -44,8 +45,8 @@ public class UserActivityMessageQueuePublisher implements ActivitySink {
 		}
 
 		try {
-			MessageQueueMessage message = new MessageQueueMessage(
-				MessageQueueTopics.USER_ACTIVITY,
+			QueueMessage message = new QueueMessage(
+				topicNamingPolicy.main(QueueTopic.USER_ACTIVITY),
 				resolveMessageKey(event),
 				serialize(event),
 				buildHeaders(event),

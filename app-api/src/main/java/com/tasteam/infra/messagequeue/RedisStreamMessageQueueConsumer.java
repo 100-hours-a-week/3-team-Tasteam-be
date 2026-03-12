@@ -27,7 +27,7 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 	private final Map<MessageQueueSubscription, Subscription> subscriptions = new ConcurrentHashMap<>();
 
 	@Override
-	public void subscribe(MessageQueueSubscription subscription, MessageQueueMessageHandler handler) {
+	public void subscribe(MessageQueueSubscription subscription, QueueMessageHandler handler) {
 		subscriptions.computeIfAbsent(subscription, key -> registerSubscription(key, handler));
 	}
 
@@ -40,7 +40,7 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 	}
 
 	private Subscription registerSubscription(MessageQueueSubscription subscription,
-		MessageQueueMessageHandler handler) {
+		QueueMessageHandler handler) {
 		String streamKey = streamKey(subscription.topic());
 		ensureGroupExists(streamKey, subscription.consumerGroup());
 		streamListenerContainer.start();
@@ -55,8 +55,8 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 	private void handleRecord(
 		MapRecord<String, String, String> record,
 		MessageQueueSubscription subscription,
-		MessageQueueMessageHandler handler) {
-		MessageQueueMessage message = toMessage(record.getValue());
+		QueueMessageHandler handler) {
+		QueueMessage message = toMessage(record.getValue());
 		long startedAtNanos = System.nanoTime();
 		try {
 			log.info("메시지큐 수신 처리 시작. stream={}, topic={}, messageId={}, consumerGroup={}, consumerName={}",
@@ -75,7 +75,7 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 		}
 	}
 
-	private MessageQueueMessage toMessage(Map<String, String> recordValue) {
+	private QueueMessage toMessage(Map<String, String> recordValue) {
 		String topic = recordValue.getOrDefault("topic", "unknown");
 		String key = emptyToNull(recordValue.get("key"));
 		String messageId = recordValue.get("messageId");
@@ -89,7 +89,7 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 			}
 		});
 
-		return new MessageQueueMessage(topic, key, payload, headers, occurredAt, messageId);
+		return new QueueMessage(topic, key, payload, headers, occurredAt, messageId);
 	}
 
 	private Instant parseOccurredAt(String value) {

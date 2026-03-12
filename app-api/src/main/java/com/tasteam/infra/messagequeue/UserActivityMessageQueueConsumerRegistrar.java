@@ -24,6 +24,7 @@ public class UserActivityMessageQueueConsumerRegistrar {
 
 	private final MessageQueueConsumer messageQueueConsumer;
 	private final MessageQueueProperties messageQueueProperties;
+	private final TopicNamingPolicy topicNamingPolicy;
 	private final UserActivityEventStoreService userActivityEventStoreService;
 	private final ObjectMapper objectMapper;
 
@@ -37,7 +38,7 @@ public class UserActivityMessageQueueConsumerRegistrar {
 		}
 
 		subscription = new MessageQueueSubscription(
-			MessageQueueTopics.USER_ACTIVITY,
+			topicNamingPolicy.main(QueueTopic.USER_ACTIVITY),
 			messageQueueProperties.getDefaultConsumerGroup() + "-user-activity",
 			"user-activity-" + UUID.randomUUID());
 

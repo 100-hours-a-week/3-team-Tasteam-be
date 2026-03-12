@@ -4,9 +4,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.tasteam.global.aop.ObservedMqDlq;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProducer;
-import com.tasteam.infra.messagequeue.MessageQueueTopics;
+import com.tasteam.infra.messagequeue.QueueMessage;
+import com.tasteam.infra.messagequeue.QueueTopic;
+import com.tasteam.infra.messagequeue.TopicNamingPolicy;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,12 +18,15 @@ import lombok.extern.slf4j.Slf4j;
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
 public class NotificationDlqPublisher {
 
-	private final MessageQueueProducer messageQueueProducer;
+	private static final String OBSERVED_DLQ_TOPIC = "evt.notification.v1.dlq";
 
-	@ObservedMqDlq(topic = MessageQueueTopics.NOTIFICATION_REQUESTED_DLQ)
-	public void publish(MessageQueueMessage message) {
-		MessageQueueMessage dlqMessage = new MessageQueueMessage(
-			MessageQueueTopics.NOTIFICATION_REQUESTED_DLQ,
+	private final MessageQueueProducer messageQueueProducer;
+	private final TopicNamingPolicy topicNamingPolicy;
+
+	@ObservedMqDlq(topic = OBSERVED_DLQ_TOPIC)
+	public void publish(QueueMessage message) {
+		QueueMessage dlqMessage = new QueueMessage(
+			topicNamingPolicy.dlq(QueueTopic.NOTIFICATION_REQUESTED),
 			message.key(),
 			message.payload(),
 			message.headers(),

@@ -13,8 +13,8 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import com.tasteam.global.metrics.MetricLabelPolicy;
-import com.tasteam.infra.messagequeue.MessageQueueMessage;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
+import com.tasteam.infra.messagequeue.QueueMessage;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -44,7 +44,7 @@ public class MessageQueueMetricsAspect {
 	// AfterReturning — TraceService pointcut advice
 
 	@AfterReturning("onPublish() && args(message, providerType)")
-	public void afterPublish(MessageQueueMessage message, MessageQueueProviderType providerType) {
+	public void afterPublish(QueueMessage message, MessageQueueProviderType providerType) {
 		if (meterRegistry == null) {
 			return;
 		}
@@ -58,7 +58,7 @@ public class MessageQueueMetricsAspect {
 
 	@AfterReturning("onConsumeSuccess() && args(message, providerType, *, processingMillis)")
 	public void afterConsumeSuccess(
-		MessageQueueMessage message,
+		QueueMessage message,
 		MessageQueueProviderType providerType,
 		long processingMillis) {
 		if (meterRegistry == null) {
@@ -71,7 +71,7 @@ public class MessageQueueMetricsAspect {
 
 	@AfterReturning("onConsumeFail() && args(message, providerType, *, processingMillis, *)")
 	public void afterConsumeFail(
-		MessageQueueMessage message,
+		QueueMessage message,
 		MessageQueueProviderType providerType,
 		long processingMillis) {
 		if (meterRegistry == null) {
@@ -145,7 +145,7 @@ public class MessageQueueMetricsAspect {
 			.record(Duration.ofMillis(processingMillis));
 	}
 
-	private void recordEndToEndLatency(MessageQueueMessage message, MessageQueueProviderType providerType,
+	private void recordEndToEndLatency(QueueMessage message, MessageQueueProviderType providerType,
 		String result) {
 		MetricLabelPolicy.validate("mq.end_to_end.latency", "topic", message.topic(), "provider", providerType.value(),
 			"result", result);

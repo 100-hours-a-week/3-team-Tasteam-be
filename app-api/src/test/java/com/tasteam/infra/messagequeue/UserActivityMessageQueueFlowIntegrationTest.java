@@ -49,16 +49,19 @@ class UserActivityMessageQueueFlowIntegrationTest {
 	@Resource
 	private ObjectMapper objectMapper;
 
+	@Resource
+	private TopicNamingPolicy topicNamingPolicy;
+
 	@Test
 	@DisplayName("ReviewCreated 이벤트를 발행하면 USER_ACTIVITY 메시지를 발행하고 소비 핸들러로 저장된다")
 	void reviewCreatedEvent_publishAndConsumeUserActivity() throws Exception {
 		// given
-		ArgumentCaptor<MessageQueueMessage> publishedMessageCaptor = ArgumentCaptor.forClass(MessageQueueMessage.class);
+		ArgumentCaptor<QueueMessage> publishedMessageCaptor = ArgumentCaptor.forClass(QueueMessage.class);
 		ArgumentCaptor<MessageQueueSubscription> subscriptionCaptor = ArgumentCaptor
 			.forClass(MessageQueueSubscription.class);
-		@SuppressWarnings("unchecked") ArgumentCaptor<MessageQueueMessageHandler> handlerCaptor = ArgumentCaptor
+		@SuppressWarnings("unchecked") ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
 			.forClass(
-				MessageQueueMessageHandler.class);
+				QueueMessageHandler.class);
 		verify(messageQueueConsumer).subscribe(subscriptionCaptor.capture(), handlerCaptor.capture());
 
 		// when
@@ -66,19 +69,19 @@ class UserActivityMessageQueueFlowIntegrationTest {
 
 		// then
 		verify(messageQueueProducer).publish(publishedMessageCaptor.capture());
-		MessageQueueMessage published = publishedMessageCaptor.getValue();
-		assertThat(published.topic()).isEqualTo(MessageQueueTopics.USER_ACTIVITY);
+		QueueMessage published = publishedMessageCaptor.getValue();
+		assertThat(published.topic()).isEqualTo(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY));
 		assertThat(published.messageId()).isNotBlank();
 
 		ActivityEvent payload = objectMapper.readValue(published.payload(), ActivityEvent.class);
 		assertThat(payload.eventName()).isEqualTo("review.created");
 		assertThat(((Number)payload.properties().get("restaurantId")).longValue()).isEqualTo(130L);
 
-		assertThat(subscriptionCaptor.getValue().topic()).isEqualTo(MessageQueueTopics.USER_ACTIVITY);
+		assertThat(subscriptionCaptor.getValue().topic()).isEqualTo(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY));
 		assertThat(subscriptionCaptor.getValue().consumerGroup()).isEqualTo("tasteam-api-user-activity");
 
-		handlerCaptor.getValue().handle(MessageQueueMessage.of(
-			MessageQueueTopics.USER_ACTIVITY,
+		handlerCaptor.getValue().handle(QueueMessage.of(
+			topicNamingPolicy.main(QueueTopic.USER_ACTIVITY),
 			published.key(),
 			published.payload()));
 		verify(userActivityEventStoreService).store(any(ActivityEvent.class));
@@ -99,6 +102,11 @@ class UserActivityMessageQueueFlowIntegrationTest {
 		@Bean
 		ObjectMapper objectMapper() {
 			return JsonMapper.builder().findAndAddModules().build();
+		}
+
+		@Bean
+		TopicNamingPolicy topicNamingPolicy() {
+			return new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		}
 
 		@Bean
@@ -125,11 +133,13 @@ class UserActivityMessageQueueFlowIntegrationTest {
 		UserActivityMessageQueuePublisher userActivityMessageQueuePublisher(
 			MessageQueueProducer messageQueueProducer,
 			MessageQueueProperties messageQueueProperties,
+			TopicNamingPolicy topicNamingPolicy,
 			ObjectMapper objectMapper,
 			UserActivitySourceOutboxService outboxService) {
 			return new UserActivityMessageQueuePublisher(
 				messageQueueProducer,
 				messageQueueProperties,
+				topicNamingPolicy,
 				objectMapper,
 				outboxService);
 		}
@@ -166,11 +176,13 @@ class UserActivityMessageQueueFlowIntegrationTest {
 		UserActivityMessageQueueConsumerRegistrar userActivityMessageQueueConsumerRegistrar(
 			MessageQueueConsumer messageQueueConsumer,
 			MessageQueueProperties messageQueueProperties,
+			TopicNamingPolicy topicNamingPolicy,
 			UserActivityEventStoreService userActivityEventStoreService,
 			ObjectMapper objectMapper) {
 			return new UserActivityMessageQueueConsumerRegistrar(
 				messageQueueConsumer,
 				messageQueueProperties,
+				topicNamingPolicy,
 				userActivityEventStoreService,
 				objectMapper);
 		}
