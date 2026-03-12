@@ -6,7 +6,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import com.tasteam.domain.restaurant.controller.docs.RestaurantControllerDocs;
-import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
 import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.*;
@@ -15,6 +14,8 @@ import com.tasteam.domain.review.dto.request.ReviewCreateRequest;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.domain.review.service.ReviewService;
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.security.jwt.annotation.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
@@ -28,13 +29,9 @@ public class RestaurantController implements RestaurantControllerDocs {
 	private final RestaurantService restaurantService;
 	private final ReviewService reviewService;
 
-	@ResponseStatus(HttpStatus.OK)
 	@GetMapping
-	public SuccessResponse<CursorPageResponse<RestaurantListItem>> getRestaurants(
-		@ModelAttribute @Validated
-		NearbyRestaurantQueryParams queryParams) {
-
-		return SuccessResponse.success(restaurantService.getRestaurants(queryParams));
+	public void getRestaurants() {
+		throw new BusinessException(RestaurantErrorCode.RESTAURANT_LIST_ENDPOINT_DISABLED);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
