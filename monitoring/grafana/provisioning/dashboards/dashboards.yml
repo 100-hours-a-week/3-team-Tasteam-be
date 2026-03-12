@@ -1,0 +1,39 @@
+apiVersion: 1
+
+providers:
+  - name: tasteam-application
+    orgId: 1
+    folder: Tasteam Application
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/dashboards/application
+  - name: tasteam-infrastructure
+    orgId: 1
+    folder: Tasteam Infrastructure
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/dashboards/infrastructure
+  - name: tasteam-logs-tracing
+    orgId: 1
+    folder: Tasteam Logs & Tracing
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/dashboards/logs-tracing
+  - name: tasteam-async-events
+    orgId: 1
+    folder: Tasteam Async & Events
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/dashboards/async-events
