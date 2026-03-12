@@ -4,12 +4,10 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 
-import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
 import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
 import com.tasteam.domain.restaurant.dto.request.ReviewResponse;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
-import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
 import com.tasteam.domain.review.dto.request.ReviewCreateRequest;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
@@ -30,11 +28,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Restaurant", description = "음식점 조회/관리 API")
 public interface RestaurantControllerDocs {
 
-	@Operation(summary = "음식점 목록 조회", description = "지정한 위치 조건으로 주변 음식점을 커서 기반으로 조회합니다.")
-	@ApiResponse(responseCode = "200", description = "조회 성공")
-	SuccessResponse<CursorPageResponse<RestaurantListItem>> getRestaurants(
-		@Validated @ParameterObject
-		NearbyRestaurantQueryParams queryParams);
+	@Operation(summary = "음식점 목록 조회 비활성화", description = "이 엔드포인트는 더 이상 지원하지 않습니다. main/search 계열 API를 사용하세요.")
+	@ApiResponse(responseCode = "410", description = "지원 종료")
+	@CustomErrorResponseDescription(value = RestaurantSwaggerErrorResponseDescription.class, group = "RESTAURANT_LIST_DISABLED")
+	void getRestaurants();
 
 	@Operation(summary = "음식점 상세 조회", description = "음식점 상세 정보를 조회합니다.")
 	@ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = RestaurantDetailResponse.class)))

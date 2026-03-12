@@ -27,7 +27,6 @@ import com.tasteam.domain.restaurant.dto.response.RestaurantAiSentimentResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantAiSummaryResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantDetailResponse;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
-import com.tasteam.domain.restaurant.dto.response.RestaurantListItem;
 import com.tasteam.domain.review.dto.response.ReviewCreateResponse;
 import com.tasteam.fixture.RestaurantRequestFixture;
 
@@ -39,144 +38,15 @@ class RestaurantControllerTest extends BaseControllerWebMvcTest {
 	class GetRestaurants {
 
 		@Test
-		@DisplayName("성공 응답은 고정 포맷을 따른다")
-		void 음식점_목록_조회_성공_응답_포맷_검증() throws Exception {
-			// given
-			CursorPageResponse<RestaurantListItem> response = new CursorPageResponse<>(
-				List.of(new RestaurantListItem(
-					1L,
-					"맛집식당",
-					"서울시 강남구",
-					500.0,
-					List.of("한식"),
-					List.of(new RestaurantImageDto(1L, "https://example.com/img.jpg")),
-					"맛집으로 유명한 식당입니다.")),
-				new CursorPageResponse.Pagination(null, false, 20));
-
-			given(restaurantService.getRestaurants(any())).willReturn(response);
-
-			// when & then
+		@DisplayName("목록 엔드포인트는 410 Gone으로 차단된다")
+		void 음식점_목록_엔드포인트_차단() throws Exception {
 			mockMvc.perform(get("/api/v1/restaurants")
 				.param("latitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LAT))
 				.param("longitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LNG)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.items").isArray())
-				.andExpect(jsonPath("$.data.pagination").exists());
-		}
-
-		@Test
-		@DisplayName("좌표로 음식점 목록을 조회하면 커서 페이징 결과를 반환한다")
-		void 음식점_목록_조회_성공() throws Exception {
-			// given
-			CursorPageResponse<RestaurantListItem> response = new CursorPageResponse<>(
-				List.of(new RestaurantListItem(
-					1L,
-					"맛집식당",
-					"서울시 강남구",
-					500.0,
-					List.of("한식"),
-					List.of(new RestaurantImageDto(1L, "https://example.com/img.jpg")),
-					"맛집으로 유명한 식당입니다.")),
-				new CursorPageResponse.Pagination(null, false, 20));
-
-			given(restaurantService.getRestaurants(any())).willReturn(response);
-
-			// when & then
-			mockMvc.perform(get("/api/v1/restaurants")
-				.param("latitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LAT))
-				.param("longitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LNG))
-				.param("radius", String.valueOf(RestaurantRequestFixture.DEFAULT_RADIUS))
-				.param("size", String.valueOf(RestaurantRequestFixture.DEFAULT_SIZE)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.items[0].id").value(1))
-				.andExpect(jsonPath("$.data.items[0].name").value("맛집식당"))
-				.andExpect(jsonPath("$.data.pagination.hasNext").value(false));
-		}
-
-		@Test
-		@DisplayName("groupId 없이도 음식점 목록을 조회할 수 있다")
-		void groupId_없이_조회_성공() throws Exception {
-			// given
-			CursorPageResponse<RestaurantListItem> response = new CursorPageResponse<>(
-				List.of(new RestaurantListItem(
-					1L,
-					"맛집식당",
-					"서울시 강남구",
-					500.0,
-					List.of("한식"),
-					List.of(new RestaurantImageDto(1L, "https://example.com/img.jpg")),
-					"맛집으로 유명한 식당입니다.")),
-				new CursorPageResponse.Pagination(null, false, 20));
-
-			given(restaurantService.getRestaurants(any())).willReturn(response);
-
-			// when & then
-			mockMvc.perform(get("/api/v1/restaurants")
-				.param("latitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LAT))
-				.param("longitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LNG)))
-				.andExpect(status().isOk());
-		}
-
-		@Test
-		@DisplayName("위도가 없으면 400 에러를 반환한다")
-		void 위도_누락시_400_에러() throws Exception {
-			// when & then
-			mockMvc.perform(get("/api/v1/restaurants")
-				.param("longitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LNG)))
-				.andExpect(status().isBadRequest());
-		}
-
-		@Test
-		@DisplayName("경도가 없으면 400 에러를 반환한다")
-		void 경도_누락시_400_에러() throws Exception {
-			// when & then
-			mockMvc.perform(get("/api/v1/restaurants")
-				.param("latitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LAT)))
-				.andExpect(status().isBadRequest());
-		}
-
-		@Test
-		@DisplayName("위도 타입이 올바르지 않으면 400 에러를 반환한다")
-		void 위도_타입_오류시_400_에러() throws Exception {
-			// when & then
-			mockMvc.perform(get("/api/v1/restaurants")
-				.param("latitude", "abc")
-				.param("longitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LNG)))
-				.andExpect(status().isBadRequest());
-		}
-
-		@Test
-		@DisplayName("좌표 범위를 벗어나면 400 에러를 반환한다")
-		void 좌표_범위_검증_실패시_400_에러() throws Exception {
-			// when & then
-			mockMvc.perform(get("/api/v1/restaurants")
-				.param("latitude", "200")
-				.param("longitude", "200"))
-				.andExpect(status().isBadRequest());
-		}
-
-		@Test
-		@DisplayName("size가 0이면 400 에러를 반환한다")
-		void size가_0이면_400_에러() throws Exception {
-			// when & then
-			mockMvc.perform(get("/api/v1/restaurants")
-				.param("latitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LAT))
-				.param("longitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LNG))
-				.param("size", "0"))
-				.andExpect(status().isBadRequest());
-		}
-
-		@Test
-		@DisplayName("size가 음수면 400 에러를 반환한다")
-		void size가_음수면_400_에러() throws Exception {
-			// when & then
-			mockMvc.perform(get("/api/v1/restaurants")
-				.param("latitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LAT))
-				.param("longitude", String.valueOf(RestaurantRequestFixture.DEFAULT_LNG))
-				.param("size", "-1"))
-				.andExpect(status().isBadRequest());
+				.andExpect(status().isGone())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("RESTAURANT_LIST_ENDPOINT_DISABLED"))
+				.andExpect(jsonPath("$.message").value("음식점 목록 조회 API는 더 이상 지원하지 않습니다."));
 		}
 	}
 
