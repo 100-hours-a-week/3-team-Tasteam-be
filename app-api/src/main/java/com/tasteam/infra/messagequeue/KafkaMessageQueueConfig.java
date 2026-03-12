@@ -18,11 +18,20 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tasteam.infra.messagequeue.serialization.JsonMessageQueueMessageSerializer;
+import com.tasteam.infra.messagequeue.serialization.MessageQueueMessageSerializer;
+
 @Configuration
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "provider", havingValue = "kafka")
 @EnableConfigurationProperties({MessageQueueProperties.class, KafkaMessageQueueProperties.class})
 public class KafkaMessageQueueConfig {
+
+	@Bean
+	public MessageQueueMessageSerializer messageQueueMessageSerializer(ObjectMapper objectMapper) {
+		return new JsonMessageQueueMessageSerializer(objectMapper);
+	}
 
 	@Bean
 	public ProducerFactory<String, String> messageQueueKafkaProducerFactory(KafkaMessageQueueProperties properties) {

@@ -13,7 +13,9 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
+import com.tasteam.infra.messagequeue.serialization.MessageQueueMessageSerializer;
 
 @UnitTest
 @DisplayName("[유닛](Message) KafkaMessageQueueConfig 조건부 빈 테스트")
@@ -30,6 +32,7 @@ class KafkaMessageQueueConfigTest {
 				"tasteam.message-queue.enabled=false",
 				"tasteam.message-queue.provider=kafka")
 			.run(context -> {
+				assertThat(context).doesNotHaveBean(MessageQueueMessageSerializer.class);
 				assertThat(context).doesNotHaveBean(KafkaTemplate.class);
 				assertThat(context).doesNotHaveBean("messageQueueKafkaProducerFactory");
 				assertThat(context).doesNotHaveBean("messageQueueKafkaConsumerFactory");
@@ -45,6 +48,7 @@ class KafkaMessageQueueConfigTest {
 				"tasteam.message-queue.enabled=true",
 				"tasteam.message-queue.provider=redis-stream")
 			.run(context -> {
+				assertThat(context).doesNotHaveBean(MessageQueueMessageSerializer.class);
 				assertThat(context).doesNotHaveBean(KafkaTemplate.class);
 				assertThat(context).doesNotHaveBean("messageQueueKafkaProducerFactory");
 				assertThat(context).doesNotHaveBean("messageQueueKafkaConsumerFactory");
@@ -56,6 +60,7 @@ class KafkaMessageQueueConfigTest {
 	@DisplayName("MQ 활성화 + provider=kafka이면 Kafka 공통 빈을 만든다")
 	void whenMqEnabledAndProviderKafka_thenKafkaBeansCreated() {
 		contextRunner
+			.withBean(ObjectMapper.class, ObjectMapper::new)
 			.withPropertyValues(
 				"tasteam.message-queue.enabled=true",
 				"tasteam.message-queue.provider=kafka",
@@ -68,6 +73,7 @@ class KafkaMessageQueueConfigTest {
 				"tasteam.message-queue.kafka.consumer.concurrency=2",
 				"tasteam.message-queue.kafka.consumer.poll-timeout-millis=2100")
 			.run(context -> {
+				assertThat(context).hasSingleBean(MessageQueueMessageSerializer.class);
 				assertThat(context).hasSingleBean(KafkaTemplate.class);
 				assertThat(context).hasBean("messageQueueKafkaProducerFactory");
 				assertThat(context).hasBean("messageQueueKafkaConsumerFactory");
