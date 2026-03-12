@@ -29,7 +29,7 @@ class MessageQueueConfigTest {
 		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
 
 		// when
-		MessageQueueProducer producer = config.messageQueueProducer(properties, traceService, null);
+		MessageQueueProducer producer = config.messageQueueProducer(properties, traceService, null, null);
 
 		// then
 		assertThat(producer).isInstanceOf(TracingMessageQueueProducer.class);
@@ -45,7 +45,8 @@ class MessageQueueConfigTest {
 		StringRedisTemplate stringRedisTemplate = mock(StringRedisTemplate.class);
 
 		// when
-		MessageQueueProducer producer = config.messageQueueProducer(properties, traceService, stringRedisTemplate);
+		MessageQueueProducer producer = config.messageQueueProducer(properties, traceService, stringRedisTemplate,
+			null);
 
 		// then
 		assertThat(producer).isInstanceOf(TracingMessageQueueProducer.class);
@@ -61,7 +62,7 @@ class MessageQueueConfigTest {
 		MessageQueueTraceService traceService = mock(MessageQueueTraceService.class);
 
 		// when & then
-		assertThatThrownBy(() -> config.messageQueueProducer(properties, traceService, null))
+		assertThatThrownBy(() -> config.messageQueueProducer(properties, traceService, null, null))
 			.isInstanceOf(IllegalStateException.class)
 			.hasMessageContaining("StringRedisTemplate");
 	}
@@ -76,7 +77,8 @@ class MessageQueueConfigTest {
 		ObjectMapper objectMapper = new ObjectMapper();
 
 		// when
-		MessageQueueConsumer consumer = config.messageQueueConsumer(properties, traceService, objectMapper, null, null);
+		MessageQueueConsumer consumer = config.messageQueueConsumer(properties, traceService, objectMapper, null, null,
+			null);
 
 		// then
 		assertThat(consumer).isInstanceOf(TracingMessageQueueConsumer.class);
@@ -96,8 +98,7 @@ class MessageQueueConfigTest {
 
 		// when
 		MessageQueueConsumer consumer = config.messageQueueConsumer(properties, traceService, objectMapper,
-			stringRedisTemplate,
-			listenerContainer);
+			stringRedisTemplate, listenerContainer, null);
 
 		// then
 		assertThat(consumer).isInstanceOf(TracingMessageQueueConsumer.class);
@@ -116,7 +117,7 @@ class MessageQueueConfigTest {
 
 		// when & then
 		assertThatThrownBy(
-			() -> config.messageQueueConsumer(properties, traceService, objectMapper, stringRedisTemplate, null))
+			() -> config.messageQueueConsumer(properties, traceService, objectMapper, stringRedisTemplate, null, null))
 			.isInstanceOf(IllegalStateException.class)
 			.hasMessageContaining("StreamMessageListenerContainer");
 	}
