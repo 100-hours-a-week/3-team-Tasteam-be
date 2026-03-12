@@ -21,7 +21,7 @@
       }
     ]
   },
-  "description": "API \uc694\uccad \ud750\ub984, \ud2b8\ub79c\uc7ad\uc158 \ubcd1\ubaa9, Tempo trace drill-down\uc744 \ud55c \ud654\uba74\uc5d0\uc11c \ubcf4\ub294 \ub300\uc2dc\ubcf4\ub4dc",
+  "description": "API 요청 흐름, 트랜잭션 병목, 쿼리 수, Tempo trace drill-down을 함께 보는 트랜잭션 분석 대시보드.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -38,15 +38,16 @@
       },
       "id": 1,
       "panels": [],
-      "title": "API Overview",
-      "type": "row"
+      "title": "API Overview (API 개요)",
+      "type": "row",
+      "description": "지표: API RPS, latency quantile, 5xx 오류율, 상위 지연 URI<br/>확인: 요청 흐름과 사용자 체감 성능을 먼저 확인<br/>장애 추정: 트래픽 급증, API 지연, 오류율 상승"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "\ucd08\ub2f9 API \uc694\uccad \uc218\ub97c domain \ub2e8\uc704\ub85c \ubcf8\ub2e4.",
+      "description": "지표: 도메인별 API 요청 처리량(RPS)<br/>확인: 특정 domain 급증/급감 여부<br/>장애 추정: 기능 트래픽 편중, 장애로 인한 요청 소실",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -125,7 +126,7 @@
           "refId": "A"
         }
       ],
-      "title": "RPS by Domain",
+      "title": "RPS by Domain (도메인별 RPS)",
       "type": "timeseries"
     },
     {
@@ -133,7 +134,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "\uc120\ud0dd\ud55c \uc870\uac74 \uae30\uc900 API \uc751\ub2f5\uc2dc\uac04 P50/P95/P99. Exemplar\ub97c \ucf1c\uc11c \uc774\uc0c1\uce58 \uc2dc\uc810\uc5d0\uc11c trace drill-down \uc9c4\uc785\uc774 \uac00\ub2a5\ud558\ub2e4.",
+      "description": "지표: API 응답시간 P50/P95/P99<br/>확인: p95/p99 스파이크 여부<br/>장애 추정: 느린 DB, 외부 연동 지연, 트랜잭션 병목",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -231,7 +232,7 @@
           "refId": "C"
         }
       ],
-      "title": "API Latency Quantiles",
+      "title": "API Latency Quantiles (API 응답시간 분위수)",
       "type": "timeseries"
     },
     {
@@ -239,7 +240,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "5xx \ube44\uc728. \uc704\ud0a4 \uc2a4\ud399\ub300\ub85c server_error \uae30\uc900\uc73c\ub85c \uacc4\uc0b0\ud55c\ub2e4.",
+      "description": "지표: 5xx 오류 비율<br/>확인: 3%/5% 초과 여부<br/>장애 추정: 예외 급증, 다운스트림 장애, 타임아웃",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -309,7 +310,7 @@
           "refId": "A"
         }
       ],
-      "title": "5xx Error Rate",
+      "title": "5xx Error Rate (5xx 오류율)",
       "type": "stat"
     },
     {
@@ -317,7 +318,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "URI/HTTP method \uae30\uc900 \ud3c9\uade0 \uc751\ub2f5\uc2dc\uac04 \uc0c1\uc704 10\uac1c.",
+      "description": "지표: 평균 API 응답시간 상위 10 URI<br/>확인: 신규 상위 진입 여부<br/>장애 추정: 특정 엔드포인트 병목, 캐시 미적중, 느린 쿼리",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -387,7 +388,7 @@
           "refId": "A"
         }
       ],
-      "title": "Top 10 Avg API Latency",
+      "title": "Top 10 Average API Latency (평균 API 응답시간 상위 10)",
       "type": "bargauge"
     },
     {
@@ -400,15 +401,16 @@
       },
       "id": 6,
       "panels": [],
-      "title": "Transaction Overview",
-      "type": "row"
+      "title": "Transaction Overview (트랜잭션 개요)",
+      "type": "row",
+      "description": "지표: 트랜잭션 P99, 평균 소요시간, 평균 쿼리 수, readOnly 비율<br/>확인: 서비스 메서드 레벨 병목과 DB 사용 패턴을 확인<br/>장애 추정: 느린 트랜잭션, N+1, 읽기/쓰기 비율 이상"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "\uc120\ud0dd\ud55c URI\uc5d0\uc11c \uba54\uc11c\ub4dc\ubcc4 \ud2b8\ub79c\uc7ad\uc158 P99. \ubcd1\ubaa9 \uba54\uc11c\ub4dc\ub97c \ube60\ub974\uac8c \ucc3e\uae30 \uc704\ud55c \ud575\uc2ec \ud328\ub110.",
+      "description": "지표: 선택된 URI의 메서드별 트랜잭션 P99<br/>확인: 상위 메서드 집중 여부<br/>장애 추정: 특정 서비스 메서드 병목, 락 경합, DB 대기",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -490,7 +492,7 @@
           "refId": "A"
         }
       ],
-      "title": "Transaction P99 by Method",
+      "title": "Transaction P99 by Method (메서드별 트랜잭션 P99)",
       "type": "timeseries"
     },
     {
@@ -498,7 +500,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "URI/\uba54\uc11c\ub4dc\ubcc4 \ud3c9\uade0 \ud2b8\ub79c\uc7ad\uc158 \uc18c\uc694\uc2dc\uac04.",
+      "description": "지표: URI/메서드별 평균 트랜잭션 시간<br/>확인: 장기 상승 여부<br/>장애 추정: 비효율 로직, 외부 호출 지연, DB 병목",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -580,7 +582,7 @@
           "refId": "A"
         }
       ],
-      "title": "Avg Transaction Duration",
+      "title": "Average Transaction Duration (평균 트랜잭션 시간)",
       "type": "timeseries"
     },
     {
@@ -588,7 +590,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "\ud3c9\uade0 \ucffc\ub9ac \uc218 \uc0c1\uc704 10\uac1c. N+1 \uc758\uc2ec \uc9c0\uc810\uc744 \ube60\ub974\uac8c \ucc3e\ub294\ub2e4.",
+      "description": "지표: 평균 쿼리 수 상위 10 메서드<br/>확인: 평소 대비 증가 여부<br/>장애 추정: N+1, 불필요한 연관 로딩, 중복 조회",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -658,7 +660,7 @@
           "refId": "A"
         }
       ],
-      "title": "Top 10 Avg Query Count",
+      "title": "Top 10 Average Query Count (평균 쿼리 수 상위 10)",
       "type": "bargauge"
     },
     {
@@ -666,7 +668,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "readOnly=true \ube44\uc728. write \ud2b8\ub79c\uc7ad\uc158\uacfc read \ud2b8\ub79c\uc7ad\uc158\uc758 \uad6c\uc131\uc744 \ubcf8\ub2e4.",
+      "description": "지표: readOnly=true 트랜잭션 비율<br/>확인: 읽기/쓰기 비중 변화 여부<br/>장애 추정: 예상치 못한 쓰기 증가, 읽기 경로 오염",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -732,7 +734,7 @@
           "refId": "A"
         }
       ],
-      "title": "ReadOnly Ratio",
+      "title": "ReadOnly Ratio (ReadOnly 비율)",
       "type": "stat"
     },
     {
@@ -745,15 +747,16 @@
       },
       "id": 11,
       "panels": [],
-      "title": "Transaction Method Detail",
-      "type": "row"
+      "title": "Transaction Method Detail (트랜잭션 메서드 상세)",
+      "type": "row",
+      "description": "지표: 메서드별 평균/최대 시간과 처리량<br/>확인: 실제 병목 메서드와 핫패스를 식별<br/>장애 추정: 특정 메서드 tail latency, 과도한 처리량 집중"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "URI/HTTP method \uae30\uc900 \ud3c9\uade0 \uc751\ub2f5\uc2dc\uac04 \uc0c1\uc704 10\uac1c.",
+      "description": "지표: 메서드별 평균 트랜잭션 시간 상위 10<br/>확인: 장기 병목 메서드 식별<br/>장애 추정: 반복 쿼리, 외부 의존성 지연, 계산량 증가",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -825,7 +828,7 @@
           "refId": "A"
         }
       ],
-      "title": "Top Tx Avg Duration by Method",
+      "title": "Top 10 Average Transaction Duration by Method (메서드별 평균 트랜잭션 시간 상위 10)",
       "type": "bargauge"
     },
     {
@@ -833,7 +836,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "URI/HTTP method \uae30\uc900 \ud3c9\uade0 \uc751\ub2f5\uc2dc\uac04 \uc0c1\uc704 10\uac1c.",
+      "description": "지표: 메서드별 최대 트랜잭션 시간 상위 10<br/>확인: 긴 tail latency 메서드 식별<br/>장애 추정: 일시적 락 경합, GC pause, 특정 입력 데이터 문제",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -905,7 +908,7 @@
           "refId": "A"
         }
       ],
-      "title": "Top Tx Max Duration by Method",
+      "title": "Top 10 Max Transaction Duration by Method (메서드별 최대 트랜잭션 시간 상위 10)",
       "type": "bargauge"
     },
     {
@@ -913,7 +916,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "\ud3c9\uade0 \ucffc\ub9ac \uc218 \uc0c1\uc704 10\uac1c. N+1 \uc758\uc2ec \uc9c0\uc810\uc744 \ube60\ub974\uac8c \ucc3e\ub294\ub2e4.",
+      "description": "지표: 메서드별 트랜잭션 처리량(5분)<br/>확인: 고처리량 메서드 집중 여부<br/>장애 추정: 핫패스 과부하, 특정 기능 편중",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -985,7 +988,7 @@
           "refId": "A"
         }
       ],
-      "title": "Top Tx Throughput (5m) by Method",
+      "title": "Transaction Throughput by Method 5m (메서드별 트랜잭션 처리량)",
       "type": "bargauge"
     },
     {
@@ -998,8 +1001,9 @@
       },
       "id": 15,
       "panels": [],
-      "title": "Trace Drill-down (Tempo)",
-      "type": "row"
+      "title": "Trace Drill-down Tempo (Trace 드릴다운)",
+      "type": "row",
+      "description": "지표: Tempo exemplar 기반 trace 진입용 패널 묶음<br/>확인: 이상치 시점에서 trace drill-down 진입 여부를 확인<br/>장애 추정: tracing 연동 문제, exemplar 누락, Tempo 파이프라인 이상"
     },
     {
       "gridPos": {
@@ -1010,19 +1014,20 @@
       },
       "id": 16,
       "options": {
-        "content": "### Tempo Drill-down Flow\n1. `Transaction P99 by Method` \ub610\ub294 `Trace Entry Point (P99)` \ud328\ub110\uc5d0\uc11c \uc774\uc0c1\uce58 \uc2dc\uc810\uc758 exemplar\ub97c \ud074\ub9ad\ud55c\ub2e4.\n2. \ud31d\uc5c5\uc758 `traceId`\ub97c \ub20c\ub7ec Tempo\ub85c \uc774\ub3d9\ud55c\ub2e4.\n3. Tempo waterfall\uc5d0\uc11c \ubcd1\ubaa9 span\uc744 \ud655\uc778\ud55c\ub2e4.\n\n\uc608\uc0c1 \ud750\ub984:\n```\nGET /api/v1/search\n  \u2514\u2500 tasteam.tx search\n       \u251c\u2500 tasteam.tx findRestaurants\n       \u2514\u2500 tasteam.tx findKeywords\n```\n\nTempo Explore \uac80\uc0c9 \uae30\uc900:\n- Service Name: `tasteam-api`\n- Span Name: `tasteam.tx <method_name>`\n\nTraceQL \uc608\uc2dc:\n```traceql\n{ span.method_name = \"findRestaurants\" && duration > 300ms }\n\n{ resource.service.name = \"tasteam-api\" && span.uri = \"/api/v1/search\" && status = error }\n```",
+        "content": "### Tempo Drill-down Flow\n1. `Transaction P99 by Method` 또는 `Trace Entry Point (P99)` 패널에서 이상치 시점의 exemplar를 클릭한다.\n2. 팝업의 `traceId`를 눌러 Tempo로 이동한다.\n3. Tempo waterfall에서 병목 span을 확인한다.\n\n예상 흐름:\n```\nGET /api/v1/search\n  └─ tasteam.tx search\n       ├─ tasteam.tx findRestaurants\n       └─ tasteam.tx findKeywords\n```\n\nTempo Explore 검색 기준:\n- Service Name: `tasteam-api`\n- Span Name: `tasteam.tx <method_name>`\n\nTraceQL 예시:\n```traceql\n{ span.method_name = \"findRestaurants\" && duration > 300ms }\n\n{ resource.service.name = \"tasteam-api\" && span.uri = \"/api/v1/search\" && status = error }\n```",
         "mode": "markdown"
       },
       "pluginVersion": "11.6.0",
-      "title": "Tempo Drill-down Guide",
-      "type": "text"
+      "title": "Tempo Drill-down Guide (Tempo 드릴다운 가이드)",
+      "type": "text",
+      "description": "지표 없음: Tempo trace drill-down 사용 절차 안내<br/>확인: exemplar 클릭 위치와 조회 순서 확인<br/>장애 추정: trace 미연결 시 exemplar/Tempo 파이프라인 점검"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "exemplar \ud074\ub9ad\uc744 \uc704\ud55c \uc9c4\uc785 \ud328\ub110. \uc120\ud0dd\ub41c URI/\uba54\uc11c\ub4dc \uae30\uc900 P99\ub97c \ubcf4\uc5ec\uc900\ub2e4.",
+      "description": "지표: 선택된 URI/메서드 기준 P99 진입 패널<br/>확인: 이상치 시점 exemplar 노출 여부<br/>장애 추정: tracing 샘플링 누락, Tempo 연동 문제",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1104,7 +1109,7 @@
           "refId": "A"
         }
       ],
-      "title": "Trace Entry Point (P99)",
+      "title": "Trace Entry Point P99 (Trace 진입점)",
       "type": "timeseries"
     }
   ],
@@ -1126,7 +1131,7 @@
           "value": "prometheus"
         },
         "includeAll": false,
-        "label": "datasource",
+        "label": "데이터소스",
         "name": "DS_PROMETHEUS",
         "options": [],
         "query": "prometheus",
@@ -1140,7 +1145,7 @@
           "value": "local"
         },
         "includeAll": false,
-        "label": "\ud658\uacbd",
+        "label": "환경",
         "name": "env",
         "options": [
           {
@@ -1174,7 +1179,7 @@
         },
         "definition": "label_values(up{job=\"spring\", environment=~\"$env\"}, instance)",
         "includeAll": true,
-        "label": "Instance",
+        "label": "인스턴스",
         "multi": true,
         "name": "instance",
         "options": [],
@@ -1198,7 +1203,7 @@
         },
         "definition": "label_values(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\"}, domain)",
         "includeAll": true,
-        "label": "Domain",
+        "label": "도메인",
         "multi": true,
         "name": "domain",
         "options": [],
@@ -1222,7 +1227,7 @@
         },
         "definition": "label_values(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\"}, method)",
         "includeAll": true,
-        "label": "HTTP Method",
+        "label": "HTTP 메서드",
         "multi": true,
         "name": "method",
         "options": [],
@@ -1246,7 +1251,7 @@
         },
         "definition": "label_values(tasteam_api_request_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", method=~\"$method\"}, outcome)",
         "includeAll": true,
-        "label": "API Outcome",
+        "label": "API 결과",
         "multi": true,
         "name": "api_outcome",
         "options": [],
@@ -1294,7 +1299,7 @@
         },
         "definition": "label_values(tasteam_transaction_total{job=\"spring\", environment=~\"$env\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\"}, method_name)",
         "includeAll": true,
-        "label": "Tx Method",
+        "label": "트랜잭션 메서드",
         "multi": true,
         "name": "tx_method_name",
         "options": [],
@@ -1313,7 +1318,7 @@
           "value": "$__all"
         },
         "includeAll": true,
-        "label": "Read Only",
+        "label": "읽기 전용",
         "multi": true,
         "name": "read_only",
         "options": [],
@@ -1327,7 +1332,7 @@
           "value": "$__all"
         },
         "includeAll": true,
-        "label": "Tx Outcome",
+        "label": "트랜잭션 결과",
         "multi": true,
         "name": "tx_outcome",
         "options": [],
@@ -1342,7 +1347,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Tasteam Spring Transaction Detail",
+  "title": "Tasteam Spring Transaction Detail (스프링 트랜잭션 상세)",
   "uid": "tasteam-spring-transaction-detail",
   "version": 1
 }

@@ -135,7 +135,7 @@ API latency와 transaction latency/query count를 drill-down 하는 보드다.
 
 - inventory table 2개는 설계 검토/감사용으로는 유용하지만 일상 운영 보드로는 과하다.
 
-### Tasteam Spring Cache
+### Tasteam Spring Cache (스프링 캐시)
 
 유지/이동:
 

@@ -21,7 +21,7 @@
       }
     ]
   },
-  "description": "Dashboard for PostgreSQL AWS RDS ",
+  "description": "PostgreSQL과 AWS RDS 관련 지표를 함께 보며 DB 성능, 연결, I/O, 스토리지 상태를 확인하는 대시보드.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -39,7 +39,8 @@
       "id": 34,
       "panels": [],
       "title": "General Counters (일반 지표)",
-      "type": "row"
+      "type": "row",
+      "description": "지표: 버전, 시작 시각, 현재 fetch/insert/update, 연결 수, CPU/메모리/스토리지 개요<br/>확인: DB 재시작 여부와 자원 상태를 빠르게 확인<br/>장애 추정: 인스턴스 재기동, CPU 과부하, 메모리 부족, 스토리지 압박"
     },
     {
       "datasource": {
@@ -890,7 +891,8 @@
       "id": 32,
       "panels": [],
       "title": "Settings (설정)",
-      "type": "row"
+      "type": "row",
+      "description": "지표: shared buffers, work mem, WAL, worker 등 주요 PostgreSQL 설정값<br/>확인: 환경별 설정 차이와 비정상 값 여부<br/>장애 추정: 튜닝 누락, 설정 불일치, 쿼리 성능 저하"
     },
     {
       "datasource": {
@@ -1634,7 +1636,8 @@
       "id": 30,
       "panels": [],
       "title": "Database Stats (데이터베이스 통계)",
-      "type": "row"
+      "type": "row",
+      "description": "지표: 행 처리량, 연결, 세션, QPS, 트랜잭션, 락, 캐시 적중률<br/>확인: 실제 DB 부하와 병목 위치를 파악<br/>장애 추정: 세션 적체, 락 경합, QPS 급증, 캐시 효율 저하"
     },
     {
       "datasource": {
@@ -3766,7 +3769,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Tasteam - PostgreSQL RDS Database (v2)",
+  "title": "Tasteam PostgreSQL RDS Database (PostgreSQL RDS 데이터베이스)",
   "uid": "0e70be98-03e0-46ec-b354-a6363a695988",
   "version": 0
 }

@@ -54,8 +54,9 @@
       },
       "id": 261,
       "panels": [],
-      "title": "Quick CPU / Mem / Disk",
-      "type": "row"
+      "title": "Quick CPU / Mem / Disk (빠른 CPU / 메모리 / 디스크)",
+      "type": "row",
+      "description": "지표: CPU, 메모리, SWAP, RootFS 핵심 요약<br/>확인: 급격한 자원 이상 여부를 빠르게 확인<br/>장애 추정: 시스템 과부하, 메모리 압박, 디스크 포화"
     },
     {
       "datasource": {
@@ -172,7 +173,7 @@
           "step": 240
         }
       ],
-      "title": "Pressure",
+      "title": "Pressure (압력)",
       "type": "bargauge"
     },
     {
@@ -255,7 +256,7 @@
           "step": 240
         }
       ],
-      "title": "CPU Busy",
+      "title": "CPU Busy (CPU 사용률)",
       "type": "gauge"
     },
     {
@@ -338,7 +339,7 @@
           "step": 240
         }
       ],
-      "title": "Sys Load",
+      "title": "Sys Load (시스템 로드)",
       "type": "gauge"
     },
     {
@@ -411,7 +412,7 @@
           "step": 240
         }
       ],
-      "title": "RAM Used",
+      "title": "RAM Used (RAM 사용률)",
       "type": "gauge"
     },
     {
@@ -493,7 +494,7 @@
           "step": 240
         }
       ],
-      "title": "SWAP Used",
+      "title": "SWAP Used (SWAP 사용률)",
       "type": "gauge"
     },
     {
@@ -576,7 +577,7 @@
           "step": 240
         }
       ],
-      "title": "Root FS Used",
+      "title": "Root FS Used (Root FS 사용률)",
       "type": "gauge"
     },
     {
@@ -584,7 +585,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "",
+      "description": "지표: 호스트 CPU 코어 수<br/>확인: 인스턴스 스펙 변경 여부<br/>장애 추정: 노드 교체, 잘못된 스케일링, 리소스 프로파일 변경",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -650,7 +651,7 @@
           "refId": "A"
         }
       ],
-      "title": "CPU Cores",
+      "title": "CPU Cores (CPU 코어 수)",
       "type": "stat"
     },
     {
@@ -658,7 +659,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "",
+      "description": "지표: 호스트 전체 RAM 용량<br/>확인: 메모리 스펙 변경 여부<br/>장애 추정: 인스턴스 타입 변경, 메모리 축소 배포",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -729,7 +730,7 @@
           "step": 240
         }
       ],
-      "title": "RAM Total",
+      "title": "RAM Total (전체 RAM)",
       "type": "stat"
     },
     {
@@ -737,7 +738,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "",
+      "description": "지표: 호스트 전체 SWAP 용량<br/>확인: SWAP 구성 여부와 크기 확인<br/>장애 추정: OS 설정 변경, SWAP 비활성화, 메모리 압박 대응 실패",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -808,7 +809,7 @@
           "step": 240
         }
       ],
-      "title": "SWAP Total",
+      "title": "SWAP Total (전체 SWAP)",
       "type": "stat"
     },
     {
@@ -816,7 +817,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "",
+      "description": "지표: 루트 파일시스템 전체 용량<br/>확인: 디스크 스펙 변경 여부<br/>장애 추정: 스토리지 축소, 볼륨 마운트 변경, 디스크 인식 이상",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -892,7 +893,7 @@
           "step": 240
         }
       ],
-      "title": "RootFS Total",
+      "title": "RootFS Total (전체 RootFS)",
       "type": "stat"
     },
     {
@@ -900,7 +901,7 @@
         "type": "prometheus",
         "uid": "${ds_prometheus}"
       },
-      "description": "",
+      "description": "지표: 호스트 가동 시간<br/>확인: 값 리셋 시점 확인<br/>장애 추정: 서버 재부팅, 노드 재생성, 커널 패닉 후 복구",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -971,7 +972,7 @@
           "step": 240
         }
       ],
-      "title": "Uptime",
+      "title": "Uptime (가동 시간)",
       "type": "stat"
     },
     {
@@ -984,8 +985,9 @@
       },
       "id": 263,
       "panels": [],
-      "title": "Basic CPU / Mem / Net / Disk",
-      "type": "row"
+      "title": "Basic CPU / Mem / Net / Disk (기본 CPU / 메모리 / 네트워크 / 디스크)",
+      "type": "row",
+      "description": "지표: 호스트 핵심 리소스 기본 추세<br/>확인: CPU, 메모리, 네트워크, 디스크 추세 변화를 함께 확인<br/>장애 추정: 인프라 병목, 비정상 트래픽, 자원 사용 급증"
     },
     {
       "datasource": {
@@ -1202,7 +1204,7 @@
           "step": 240
         }
       ],
-      "title": "CPU Basic",
+      "title": "CPU Basic (기본 CPU)",
       "type": "timeseries"
     },
     {
@@ -1405,7 +1407,7 @@
           "step": 240
         }
       ],
-      "title": "Memory Basic",
+      "title": "Memory Basic (기본 메모리)",
       "type": "timeseries"
     },
     {
@@ -1520,7 +1522,7 @@
           "step": 240
         }
       ],
-      "title": "Network Traffic Basic",
+      "title": "Network Traffic Basic (기본 네트워크 트래픽)",
       "type": "timeseries"
     },
     {
@@ -1615,7 +1617,7 @@
           "step": 240
         }
       ],
-      "title": "Disk Space Used Basic",
+      "title": "Disk Space Used Basic (기본 디스크 사용량)",
       "type": "timeseries"
     },
     {
@@ -1947,7 +1949,7 @@
               "step": 240
             }
           ],
-          "title": "CPU",
+          "title": "CPU (CPU 상세)",
           "type": "timeseries"
         },
         {
@@ -2419,7 +2421,7 @@
               "step": 240
             }
           ],
-          "title": "Memory",
+          "title": "Memory (메모리 상세)",
           "type": "timeseries"
         },
         {
@@ -2538,7 +2540,7 @@
               "step": 240
             }
           ],
-          "title": "Network Traffic",
+          "title": "Network Traffic (네트워크 트래픽)",
           "type": "timeseries"
         },
         {
@@ -2657,7 +2659,7 @@
               "step": 240
             }
           ],
-          "title": "Network Saturation",
+          "title": "Network Saturation (네트워크 포화도)",
           "type": "timeseries"
         },
         {
@@ -2774,7 +2776,7 @@
               "step": 240
             }
           ],
-          "title": "Disk IOps",
+          "title": "Disk IOps (디스크 IOPS)",
           "type": "timeseries"
         },
         {
@@ -2893,7 +2895,7 @@
               "step": 240
             }
           ],
-          "title": "Disk Throughput",
+          "title": "Disk Throughput (디스크 처리량)",
           "type": "timeseries"
         },
         {
@@ -3012,7 +3014,7 @@
               "step": 240
             }
           ],
-          "title": "Filesystem Space Available",
+          "title": "Filesystem Space Available (파일시스템 가용 공간)",
           "type": "timeseries"
         },
         {
@@ -3110,7 +3112,7 @@
               "step": 240
             }
           ],
-          "title": "Filesystem Used",
+          "title": "Filesystem Used (파일시스템 사용률)",
           "type": "timeseries"
         },
         {
@@ -3209,7 +3211,7 @@
               "step": 240
             }
           ],
-          "title": "Disk I/O Utilization",
+          "title": "Disk I/O Utilization (디스크 I/O 사용률)",
           "type": "timeseries"
         },
         {
@@ -3376,12 +3378,13 @@
               "step": 240
             }
           ],
-          "title": "Pressure Stall Information",
+          "title": "Pressure Stall Information (압력 대기 정보)",
           "type": "timeseries"
         }
       ],
-      "title": "CPU / Memory / Net / Disk",
-      "type": "row"
+      "title": "CPU / Memory / Net / Disk (CPU / 메모리 / 네트워크 / 디스크)",
+      "type": "row",
+      "description": "지표: 시스템 리소스 상세 추세<br/>확인: 어느 자원 축에서 병목이 발생하는지 구분<br/>장애 추정: CPU 포화, 메모리 누수, 네트워크 혼잡, 디스크 병목"
     },
     {
       "collapsed": true,
@@ -3518,7 +3521,7 @@
               "step": 240
             }
           ],
-          "title": "Memory Committed",
+          "title": "Memory Committed (커밋 메모리)",
           "type": "timeseries"
         },
         {
@@ -3643,7 +3646,7 @@
               "step": 240
             }
           ],
-          "title": "Memory Writeback and Dirty",
+          "title": "Memory Writeback and Dirty (Writeback / Dirty 메모리)",
           "type": "timeseries"
         },
         {
@@ -3750,7 +3753,7 @@
               "step": 240
             }
           ],
-          "title": "Memory Slab",
+          "title": "Memory Slab (Slab 메모리)",
           "type": "timeseries"
         },
         {
@@ -3878,7 +3881,7 @@
               "step": 240
             }
           ],
-          "title": "Memory Shared and Mapped",
+          "title": "Memory Shared and Mapped (공유 / 매핑 메모리)",
           "type": "timeseries"
         },
         {
@@ -4017,7 +4020,7 @@
               "step": 240
             }
           ],
-          "title": "Memory LRU Active / Inactive (%)",
+          "title": "Memory LRU Active / Inactive (%) (LRU 활성 / 비활성 비율)",
           "type": "timeseries"
         },
         {
@@ -4143,7 +4146,7 @@
               "step": 240
             }
           ],
-          "title": "Memory LRU Active / Inactive Detail",
+          "title": "Memory LRU Active / Inactive Detail (LRU 활성 / 비활성 상세)",
           "type": "timeseries"
         },
         {
@@ -4262,7 +4265,7 @@
               "step": 240
             }
           ],
-          "title": "Memory Kernel / CPU / IO",
+          "title": "Memory Kernel / CPU / IO (커널 / CPU / IO 메모리)",
           "type": "timeseries"
         },
         {
@@ -4408,7 +4411,7 @@
               "step": 240
             }
           ],
-          "title": "Memory Vmalloc",
+          "title": "Memory Vmalloc (Vmalloc 메모리)",
           "type": "timeseries"
         },
         {
@@ -4515,7 +4518,7 @@
               "step": 240
             }
           ],
-          "title": "Memory Anonymous",
+          "title": "Memory Anonymous (Anonymous 메모리)",
           "type": "timeseries"
         },
         {
@@ -4639,7 +4642,7 @@
               "step": 240
             }
           ],
-          "title": "Memory Unevictable and MLocked",
+          "title": "Memory Unevictable and MLocked (Unevictable / MLocked 메모리)",
           "type": "timeseries"
         },
         {
@@ -5032,7 +5035,7 @@
               "step": 240
             }
           ],
-          "title": "Memory DirectMap",
+          "title": "Memory DirectMap (DirectMap 메모리)",
           "type": "timeseries"
         },
         {
@@ -5157,12 +5160,13 @@
               "step": 240
             }
           ],
-          "title": "Memory HugePages",
+          "title": "Memory HugePages (HugePages 메모리)",
           "type": "timeseries"
         }
       ],
-      "title": "Memory Meminfo",
-      "type": "row"
+      "title": "Memory Meminfo (메모리 상세 정보)",
+      "type": "row",
+      "description": "지표: meminfo 기반 메모리 구성 상세<br/>확인: slab, shared, anonymous 등 메모리 성격별 변화 확인<br/>장애 추정: 커널 메모리 증가, 캐시 압박, 비정상 점유"
     },
     {
       "collapsed": true,
@@ -5290,7 +5294,7 @@
               "step": 240
             }
           ],
-          "title": "Memory Pages In / Out",
+          "title": "Memory Pages In / Out (메모리 페이지 입출력)",
           "type": "timeseries"
         },
         {
@@ -5409,7 +5413,7 @@
               "step": 240
             }
           ],
-          "title": "Memory Pages Swap In / Out",
+          "title": "Memory Pages Swap In / Out (SWAP 페이지 입출력)",
           "type": "timeseries"
         },
         {
@@ -5563,7 +5567,7 @@
               "step": 240
             }
           ],
-          "title": "Memory Page Faults",
+          "title": "Memory Page Faults (페이지 폴트)",
           "type": "timeseries"
         },
         {
@@ -5678,12 +5682,13 @@
               "step": 240
             }
           ],
-          "title": "OOM Killer",
+          "title": "OOM Killer (OOM Killer)",
           "type": "timeseries"
         }
       ],
-      "title": "Memory Vmstat",
-      "type": "row"
+      "title": "Memory Vmstat (메모리 Vmstat)",
+      "type": "row",
+      "description": "지표: paging, swap, fault 등 vmstat 계열 메모리 이벤트<br/>확인: page in/out, swap in/out, fault 급증 여부<br/>장애 추정: 메모리 압박, swap thrashing, page fault 증가"
     },
     {
       "collapsed": true,
@@ -5810,7 +5815,7 @@
               "step": 240
             }
           ],
-          "title": "Time Synchronized Drift",
+          "title": "Time Synchronized Drift (시간 동기화 오차)",
           "type": "timeseries"
         },
         {
@@ -5908,7 +5913,7 @@
               "step": 240
             }
           ],
-          "title": "Time PLL Adjust",
+          "title": "Time PLL Adjust (PLL 보정)",
           "type": "timeseries"
         },
         {
@@ -6038,7 +6043,7 @@
               "step": 240
             }
           ],
-          "title": "Time Synchronized Status",
+          "title": "Time Synchronized Status (시간 동기화 상태)",
           "type": "timeseries"
         },
         {
@@ -6146,7 +6151,7 @@
               "step": 240
             }
           ],
-          "title": "PPS Frequency / Stability",
+          "title": "PPS Frequency / Stability (PPS 주파수 / 안정성)",
           "type": "timeseries"
         },
         {
@@ -6254,7 +6259,7 @@
               "step": 240
             }
           ],
-          "title": "PPS Time Accuracy",
+          "title": "PPS Time Accuracy (PPS 시간 정확도)",
           "type": "timeseries"
         },
         {
@@ -6386,12 +6391,13 @@
               "step": 240
             }
           ],
-          "title": "PPS Sync Events",
+          "title": "PPS Sync Events (PPS 동기화 이벤트)",
           "type": "timeseries"
         }
       ],
-      "title": "System Timesync",
-      "type": "row"
+      "title": "System Timesync (시스템 시간 동기화)",
+      "type": "row",
+      "description": "지표: 시간 동기화 상태와 오차<br/>확인: drift, sync 상태, PPS 이상 여부<br/>장애 추정: NTP 이상, 시간 오차 누적, 인증/로그 타임라인 문제"
     },
     {
       "collapsed": true,
@@ -6511,7 +6517,7 @@
               "step": 240
             }
           ],
-          "title": "Processes Status",
+          "title": "Processes Status (프로세스 상태)",
           "type": "timeseries"
         },
         {
@@ -6695,7 +6701,7 @@
               "step": 240
             }
           ],
-          "title": "Processes Detailed States",
+          "title": "Processes Detailed States (프로세스 상세 상태)",
           "type": "timeseries"
         },
         {
@@ -6793,7 +6799,7 @@
               "step": 240
             }
           ],
-          "title": "Processes Forks",
+          "title": "Processes Forks (프로세스 포크 수)",
           "type": "timeseries"
         },
         {
@@ -6930,7 +6936,7 @@
               "step": 240
             }
           ],
-          "title": "CPU Saturation per Core",
+          "title": "CPU Saturation per Core (코어별 CPU 포화도)",
           "type": "timeseries"
         },
         {
@@ -7069,7 +7075,7 @@
               "step": 240
             }
           ],
-          "title": "PIDs Number and Limit",
+          "title": "PIDs Number and Limit (PID 개수 / 한도)",
           "type": "timeseries"
         },
         {
@@ -7208,12 +7214,13 @@
               "step": 240
             }
           ],
-          "title": "Threads Number and Limit",
+          "title": "Threads Number and Limit (스레드 개수 / 한도)",
           "type": "timeseries"
         }
       ],
-      "title": "System Processes",
-      "type": "row"
+      "title": "System Processes (시스템 프로세스)",
+      "type": "row",
+      "description": "지표: 프로세스, 스레드, PID 상태<br/>확인: 프로세스 상태 분포와 한도 근접 여부<br/>장애 추정: 프로세스 폭증, 스레드 누수, PID 고갈"
     },
     {
       "collapsed": true,
@@ -7329,7 +7336,7 @@
               "step": 240
             }
           ],
-          "title": "Context Switches / Interrupts",
+          "title": "Context Switches / Interrupts (컨텍스트 스위치 / 인터럽트)",
           "type": "timeseries"
         },
         {
@@ -7484,7 +7491,7 @@
               "step": 240
             }
           ],
-          "title": "System Load",
+          "title": "System Load (시스템 로드)",
           "type": "timeseries"
         },
         {
@@ -7669,7 +7676,7 @@
               "step": 240
             }
           ],
-          "title": "CPU Frequency Scaling",
+          "title": "CPU Frequency Scaling (CPU 주파수 스케일링)",
           "type": "timeseries"
         },
         {
@@ -7767,7 +7774,7 @@
               "step": 240
             }
           ],
-          "title": "CPU Schedule Timeslices",
+          "title": "CPU Schedule Timeslices (CPU 스케줄 타임슬라이스)",
           "type": "timeseries"
         },
         {
@@ -7866,7 +7873,7 @@
               "step": 240
             }
           ],
-          "title": "IRQ Detail",
+          "title": "IRQ Detail (IRQ 상세)",
           "type": "timeseries"
         },
         {
@@ -8003,12 +8010,13 @@
               "step": 240
             }
           ],
-          "title": "Entropy",
+          "title": "Entropy (엔트로피)",
           "type": "timeseries"
         }
       ],
-      "title": "System Misc",
-      "type": "row"
+      "title": "System Misc (시스템 기타)",
+      "type": "row",
+      "description": "지표: load, context switch, IRQ, entropy 등 기타 시스템 신호<br/>확인: 전체 시스템 건강 상태의 보조 신호 확인<br/>장애 추정: 커널 부하 증가, 인터럽트 폭주, 엔트로피 부족"
     },
     {
       "collapsed": true,
@@ -8173,7 +8181,7 @@
               "step": 240
             }
           ],
-          "title": "Hardware Temperature Monitor",
+          "title": "Hardware Temperature Monitor (하드웨어 온도)",
           "type": "timeseries"
         },
         {
@@ -8291,7 +8299,7 @@
               "step": 240
             }
           ],
-          "title": "Cooling Device Utilization",
+          "title": "Cooling Device Utilization (냉각 장치 사용률)",
           "type": "timeseries"
         },
         {
@@ -8393,7 +8401,7 @@
               "step": 240
             }
           ],
-          "title": "Power Supply",
+          "title": "Power Supply (전원 공급 상태)",
           "type": "timeseries"
         },
         {
@@ -8503,12 +8511,13 @@
               "step": 240
             }
           ],
-          "title": "Hardware Fan Speed",
+          "title": "Hardware Fan Speed (팬 속도)",
           "type": "timeseries"
         }
       ],
-      "title": "Hardware Misc",
-      "type": "row"
+      "title": "Hardware Misc (하드웨어 기타)",
+      "type": "row",
+      "description": "지표: 온도, 냉각, 전원, 팬 속도 등 하드웨어 신호<br/>확인: 발열과 냉각 상태 이상 여부<br/>장애 추정: 온도 상승, 팬 장애, 전원 불안정"
     },
     {
       "collapsed": true,
@@ -8731,7 +8740,7 @@
               "step": 240
             }
           ],
-          "title": "Systemd Units State",
+          "title": "Systemd Units State (systemd 유닛 상태)",
           "type": "timeseries"
         },
         {
@@ -8830,7 +8839,7 @@
               "step": 240
             }
           ],
-          "title": "Systemd Sockets Current",
+          "title": "Systemd Sockets Current (현재 systemd 소켓)",
           "type": "timeseries"
         },
         {
@@ -8929,7 +8938,7 @@
               "step": 240
             }
           ],
-          "title": "Systemd Sockets Accepted",
+          "title": "Systemd Sockets Accepted (systemd 소켓 수락)",
           "type": "timeseries"
         },
         {
@@ -9028,12 +9037,13 @@
               "step": 240
             }
           ],
-          "title": "Systemd Sockets Refused",
+          "title": "Systemd Sockets Refused (systemd 소켓 거부)",
           "type": "timeseries"
         }
       ],
-      "title": "Systemd",
-      "type": "row"
+      "title": "Systemd (systemd)",
+      "type": "row",
+      "description": "지표: systemd 유닛과 소켓 상태<br/>확인: 유닛 상태 변화와 소켓 거부 증가 여부<br/>장애 추정: 서비스 시작 실패, 소켓 backlog, systemd 레벨 문제"
     },
     {
       "collapsed": false,
@@ -9045,8 +9055,9 @@
       },
       "id": 270,
       "panels": [],
-      "title": "Storage Disk",
-      "type": "row"
+      "title": "Storage Disk (스토리지 디스크)",
+      "type": "row",
+      "description": "지표: 디스크 I/O, 대기, 큐, discard/flush 상세<br/>확인: 디스크 병목과 대기열 적체 여부<br/>장애 추정: 스토리지 지연, 디스크 포화, I/O 경합"
     },
     {
       "datasource": {
@@ -9177,7 +9188,7 @@
           "step": 240
         }
       ],
-      "title": "Disk Read/Write IOps",
+      "title": "Disk Read/Write IOps (디스크 읽기 / 쓰기 IOPS)",
       "type": "timeseries"
     },
     {
@@ -9313,7 +9324,7 @@
           "step": 240
         }
       ],
-      "title": "Disk Read/Write Data",
+      "title": "Disk Read/Write Data (디스크 읽기 / 쓰기 데이터)",
       "type": "timeseries"
     },
     {
@@ -9447,7 +9458,7 @@
           "step": 240
         }
       ],
-      "title": "Disk Average Wait Time",
+      "title": "Disk Average Wait Time (디스크 평균 대기 시간)",
       "type": "timeseries"
     },
     {
@@ -9561,7 +9572,7 @@
           "step": 240
         }
       ],
-      "title": "Average Queue Size",
+      "title": "Average Queue Size (평균 큐 크기)",
       "type": "timeseries"
     },
     {
@@ -9693,7 +9704,7 @@
           "step": 240
         }
       ],
-      "title": "Disk R/W Merged",
+      "title": "Disk R/W Merged (디스크 읽기 / 쓰기 병합)",
       "type": "timeseries"
     },
     {
@@ -9825,7 +9836,7 @@
           "step": 240
         }
       ],
-      "title": "Time Spent Doing I/Os",
+      "title": "Time Spent Doing I/Os (I/O 처리 시간)",
       "type": "timeseries"
     },
     {
@@ -9956,7 +9967,7 @@
           "step": 240
         }
       ],
-      "title": "Disk Ops Discards / Flush",
+      "title": "Disk Ops Discards / Flush (디스크 Discard / Flush)",
       "type": "timeseries"
     },
     {
@@ -10069,7 +10080,7 @@
           "step": 240
         }
       ],
-      "title": "Disk Sectors Discarded Successfully",
+      "title": "Disk Sectors Discarded Successfully (Discard 성공 섹터 수)",
       "type": "timeseries"
     },
     {
@@ -10183,7 +10194,7 @@
           "step": 240
         }
       ],
-      "title": "Instantaneous Queue Size",
+      "title": "Instantaneous Queue Size (순간 큐 크기)",
       "type": "timeseries"
     },
     {
@@ -10330,7 +10341,7 @@
               "step": 240
             }
           ],
-          "title": "File Descriptor",
+          "title": "File Descriptor (파일 디스크립터)",
           "type": "timeseries"
         },
         {
@@ -10428,7 +10439,7 @@
               "step": 240
             }
           ],
-          "title": "File Nodes Free",
+          "title": "File Nodes Free (가용 파일 노드)",
           "type": "timeseries"
         },
         {
@@ -10537,7 +10548,7 @@
               "step": 240
             }
           ],
-          "title": "Filesystem in ReadOnly / Error",
+          "title": "Filesystem in ReadOnly / Error (읽기 전용 / 오류 파일시스템)",
           "type": "timeseries"
         },
         {
@@ -10635,12 +10646,13 @@
               "step": 240
             }
           ],
-          "title": "File Nodes Size",
+          "title": "File Nodes Size (파일 노드 수)",
           "type": "timeseries"
         }
       ],
-      "title": "Storage Filesystem",
-      "type": "row"
+      "title": "Storage Filesystem (스토리지 파일시스템)",
+      "type": "row",
+      "description": "지표: 파일시스템 용량, inode, readonly/error 상태<br/>확인: 공간 부족과 파일시스템 오류 여부<br/>장애 추정: 디스크 고갈, inode 부족, 파일시스템 손상"
     },
     {
       "collapsed": true,
@@ -10771,7 +10783,7 @@
               "step": 240
             }
           ],
-          "title": "Network Traffic by Packets",
+          "title": "Network Traffic by Packets (패킷 기준 네트워크 트래픽)",
           "type": "timeseries"
         },
         {
@@ -10891,7 +10903,7 @@
               "step": 240
             }
           ],
-          "title": "Network Traffic Errors",
+          "title": "Network Traffic Errors (네트워크 트래픽 오류)",
           "type": "timeseries"
         },
         {
@@ -11011,7 +11023,7 @@
               "step": 240
             }
           ],
-          "title": "Network Traffic Drop",
+          "title": "Network Traffic Drop (네트워크 트래픽 드롭)",
           "type": "timeseries"
         },
         {
@@ -11131,7 +11143,7 @@
               "step": 240
             }
           ],
-          "title": "Network Traffic Compressed",
+          "title": "Network Traffic Compressed (압축 네트워크 트래픽)",
           "type": "timeseries"
         },
         {
@@ -11242,7 +11254,7 @@
               "step": 240
             }
           ],
-          "title": "Network Traffic Multicast",
+          "title": "Network Traffic Multicast (멀티캐스트 트래픽)",
           "type": "timeseries"
         },
         {
@@ -11353,7 +11365,7 @@
               "step": 240
             }
           ],
-          "title": "Network Traffic NoHandler",
+          "title": "Network Traffic NoHandler (NoHandler 트래픽)",
           "type": "timeseries"
         },
         {
@@ -11464,7 +11476,7 @@
               "step": 240
             }
           ],
-          "title": "Network Traffic Frame",
+          "title": "Network Traffic Frame (프레임 오류 트래픽)",
           "type": "timeseries"
         },
         {
@@ -11584,7 +11596,7 @@
               "step": 240
             }
           ],
-          "title": "Network Traffic Fifo",
+          "title": "Network Traffic Fifo (FIFO 오류 트래픽)",
           "type": "timeseries"
         },
         {
@@ -11695,7 +11707,7 @@
               "step": 240
             }
           ],
-          "title": "Network Traffic Collision",
+          "title": "Network Traffic Collision (충돌 트래픽)",
           "type": "timeseries"
         },
         {
@@ -11793,7 +11805,7 @@
               "step": 240
             }
           ],
-          "title": "Network Traffic Carrier Errors",
+          "title": "Network Traffic Carrier Errors (Carrier 오류 트래픽)",
           "type": "timeseries"
         },
         {
@@ -11891,7 +11903,7 @@
               "step": 240
             }
           ],
-          "title": "ARP Entries",
+          "title": "ARP Entries (ARP 엔트리)",
           "type": "timeseries"
         },
         {
@@ -12028,7 +12040,7 @@
               "step": 240
             }
           ],
-          "title": "NF Conntrack",
+          "title": "NF Conntrack (NF Conntrack)",
           "type": "timeseries"
         },
         {
@@ -12135,7 +12147,7 @@
               "refId": "B"
             }
           ],
-          "title": "Network Operational Status",
+          "title": "Network Operational Status (네트워크 동작 상태)",
           "type": "timeseries"
         },
         {
@@ -12209,7 +12221,7 @@
               "step": 240
             }
           ],
-          "title": "Speed",
+          "title": "Speed (속도)",
           "type": "bargauge"
         },
         {
@@ -12282,12 +12294,13 @@
               "step": 240
             }
           ],
-          "title": "MTU",
+          "title": "MTU (MTU)",
           "type": "bargauge"
         }
       ],
-      "title": "Network Traffic",
-      "type": "row"
+      "title": "Network Traffic (네트워크 트래픽)",
+      "type": "row",
+      "description": "지표: NIC 트래픽, 에러, 드롭, 상태 정보<br/>확인: 트래픽 급증과 오류 패턴 확인<br/>장애 추정: 패킷 드롭, NIC 오류, 네트워크 혼잡"
     },
     {
       "collapsed": true,
@@ -12426,7 +12439,7 @@
               "step": 240
             }
           ],
-          "title": "Sockstat TCP",
+          "title": "Sockstat TCP (TCP 소켓 통계)",
           "type": "timeseries"
         },
         {
@@ -12536,7 +12549,7 @@
               "step": 240
             }
           ],
-          "title": "Sockstat UDP",
+          "title": "Sockstat UDP (UDP 소켓 통계)",
           "type": "timeseries"
         },
         {
@@ -12636,7 +12649,7 @@
               "step": 240
             }
           ],
-          "title": "Sockstat Used",
+          "title": "Sockstat Used (사용 중인 소켓)",
           "type": "timeseries"
         },
         {
@@ -12746,7 +12759,7 @@
               "step": 240
             }
           ],
-          "title": "Sockstat FRAG / RAW",
+          "title": "Sockstat FRAG / RAW (FRAG / RAW 소켓)",
           "type": "timeseries"
         },
         {
@@ -12864,7 +12877,7 @@
               "refId": "C"
             }
           ],
-          "title": "Sockstat Memory Size",
+          "title": "Sockstat Memory Size (소켓 메모리 크기)",
           "type": "timeseries"
         },
         {
@@ -12974,7 +12987,7 @@
               "step": 240
             }
           ],
-          "title": "Sockstat Average Socket Memory",
+          "title": "Sockstat Average Socket Memory (평균 소켓 메모리)",
           "type": "timeseries"
         },
         {
@@ -13084,7 +13097,7 @@
               "step": 240
             }
           ],
-          "title": "TCP/UDP Kernel Buffer Memory Pages",
+          "title": "TCP/UDP Kernel Buffer Memory Pages (TCP/UDP 커널 버퍼 메모리)",
           "type": "timeseries"
         },
         {
@@ -13206,7 +13219,7 @@
               "step": 240
             }
           ],
-          "title": "Softnet Packets",
+          "title": "Softnet Packets (Softnet 패킷)",
           "type": "timeseries"
         },
         {
@@ -13309,7 +13322,7 @@
               "step": 240
             }
           ],
-          "title": "Softnet Out of Quota",
+          "title": "Softnet Out of Quota (Softnet quota 초과)",
           "type": "timeseries"
         },
         {
@@ -13438,12 +13451,13 @@
               "step": 240
             }
           ],
-          "title": "Softnet RPS",
+          "title": "Softnet RPS (Softnet RPS)",
           "type": "timeseries"
         }
       ],
-      "title": "Network Sockstat",
-      "type": "row"
+      "title": "Network Sockstat (네트워크 소켓 통계)",
+      "type": "row",
+      "description": "지표: 소켓 사용량과 커널 버퍼 메모리<br/>확인: 소켓 수와 메모리 증가 여부<br/>장애 추정: 연결 폭증, 버퍼 고갈, 소켓 누수"
     },
     {
       "collapsed": true,
@@ -13573,7 +13587,7 @@
               "step": 240
             }
           ],
-          "title": "Netstat IP In / Out Octets",
+          "title": "Netstat IP In / Out Octets (IP 입출력 옥텟)",
           "type": "timeseries"
         },
         {
@@ -13705,7 +13719,7 @@
               "step": 240
             }
           ],
-          "title": "TCP In / Out",
+          "title": "TCP In / Out (TCP 입출력)",
           "type": "timeseries"
         },
         {
@@ -13826,7 +13840,7 @@
               "step": 240
             }
           ],
-          "title": "UDP In / Out",
+          "title": "UDP In / Out (UDP 입출력)",
           "type": "timeseries"
         },
         {
@@ -13951,7 +13965,7 @@
               "step": 240
             }
           ],
-          "title": "ICMP In / Out",
+          "title": "ICMP In / Out (ICMP 입출력)",
           "type": "timeseries"
         },
         {
@@ -14118,7 +14132,7 @@
               "refId": "I"
             }
           ],
-          "title": "TCP Errors",
+          "title": "TCP Errors (TCP 오류)",
           "type": "timeseries"
         },
         {
@@ -14258,7 +14272,7 @@
               "step": 240
             }
           ],
-          "title": "UDP Errors",
+          "title": "UDP Errors (UDP 오류)",
           "type": "timeseries"
         },
         {
@@ -14369,7 +14383,7 @@
               "step": 240
             }
           ],
-          "title": "ICMP Errors",
+          "title": "ICMP Errors (ICMP 오류)",
           "type": "timeseries"
         },
         {
@@ -14503,7 +14517,7 @@
               "step": 240
             }
           ],
-          "title": "TCP SynCookie",
+          "title": "TCP SynCookie (TCP SynCookie)",
           "type": "timeseries"
         },
         {
@@ -14642,7 +14656,7 @@
               "step": 240
             }
           ],
-          "title": "TCP Connections",
+          "title": "TCP Connections (TCP 연결)",
           "type": "timeseries"
         },
         {
@@ -14750,7 +14764,7 @@
               "step": 240
             }
           ],
-          "title": "UDP Queue",
+          "title": "UDP Queue (UDP 큐)",
           "type": "timeseries"
         },
         {
@@ -14859,7 +14873,7 @@
               "step": 240
             }
           ],
-          "title": "TCP Direct Transition",
+          "title": "TCP Direct Transition (TCP 직접 전이)",
           "type": "timeseries"
         },
         {
@@ -14999,12 +15013,13 @@
               "step": 240
             }
           ],
-          "title": "TCP Stat",
+          "title": "TCP Stat (TCP 통계)",
           "type": "timeseries"
         }
       ],
-      "title": "Network Netstat",
-      "type": "row"
+      "title": "Network Netstat (네트워크 Netstat)",
+      "type": "row",
+      "description": "지표: TCP/UDP/ICMP 프로토콜 레벨 통계<br/>확인: 연결 수, 오류, 큐 적체 여부<br/>장애 추정: 네트워크 오류, 연결 폭주, 프로토콜 레벨 이상"
     },
     {
       "collapsed": true,
@@ -15115,7 +15130,7 @@
               "step": 240
             }
           ],
-          "title": "Node Exporter Scrape Time",
+          "title": "Node Exporter Scrape Time (Scrape 시간)",
           "type": "timeseries"
         },
         {
@@ -15213,7 +15228,7 @@
               "step": 240
             }
           ],
-          "title": "Exporter Process CPU Usage",
+          "title": "Exporter Process CPU Usage (Exporter 프로세스 CPU 사용량)",
           "type": "timeseries"
         },
         {
@@ -15374,7 +15389,7 @@
               "step": 240
             }
           ],
-          "title": "Exporter Processes Memory",
+          "title": "Exporter Processes Memory (Exporter 프로세스 메모리)",
           "type": "timeseries"
         },
         {
@@ -15535,7 +15550,7 @@
               "step": 240
             }
           ],
-          "title": "Exporter File Descriptor Usage",
+          "title": "Exporter File Descriptor Usage (Exporter 파일 디스크립터 사용률)",
           "type": "timeseries"
         },
         {
@@ -15625,12 +15640,13 @@
               "step": 240
             }
           ],
-          "title": "Node Exporter Scrape",
+          "title": "Node Exporter Scrape (Scrape 상태)",
           "type": "bargauge"
         }
       ],
-      "title": "Node Exporter",
-      "type": "row"
+      "title": "Node Exporter (Node Exporter)",
+      "type": "row",
+      "description": "지표: exporter 자체 scrape와 프로세스 상태<br/>확인: scrape 지연과 exporter 자원 사용량 확인<br/>장애 추정: exporter 과부하, scrape 실패, 수집 누락"
     }
   ],
   "preload": false,
@@ -15737,7 +15753,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Node Exporter Full",
+  "title": "Tasteam Server Infrastructure (서버 인프라 상세)",
   "uid": "rYdddlPWk",
-  "version": 7
+  "version": 7,
+  "description": "노드 익스포터 기준으로 호스트 CPU, 메모리, 디스크, 네트워크 상태를 상세하게 보는 인프라 대시보드."
 }

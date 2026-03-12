@@ -49,17 +49,17 @@ docker compose -f docker-compose.local.yml -f docker-compose.local-monitoring.ym
 
 ## 포함된 이관 대시보드
 
-- `Tasteam Application`: Spring Core, Spring Cache(L1 Caffeine + Redis 계층)
-- `Tasteam Infrastructure`: Node Exporter, Redis, PostgreSQL RDS
-- `Tasteam Logs & Tracing`: Spring Transaction Detail, Server Logs
-- `Tasteam Async & Events`: Spring Async
+- `Tasteam Application`: Spring Core (스프링 핵심 운영), Spring Cache (스프링 캐시)
+- `Tasteam Infrastructure`: Server Infrastructure (서버 인프라 상세), Redis Cache (Redis 캐시), PostgreSQL RDS Database (PostgreSQL RDS 데이터베이스)
+- `Tasteam Logs & Tracing`: Spring Transaction Detail (스프링 트랜잭션 상세), Server Logs (서버 로그)
+- `Tasteam Async & Events`: Spring Async (스프링 비동기)
 
 현재 Spring 중심 운영 대시보드는 아래 4개로 축소했다.
 
-- `Tasteam Spring Core`
-- `Tasteam Spring Async`
-- `Tasteam Spring Cache`
-- `Tasteam Spring Transaction Detail`
+- `Tasteam Spring Core (스프링 핵심 운영)`
+- `Tasteam Spring Async (스프링 비동기)`
+- `Tasteam Spring Cache (스프링 캐시)`
+- `Tasteam Spring Transaction Detail (스프링 트랜잭션 상세)`
 
 ## 참고
 

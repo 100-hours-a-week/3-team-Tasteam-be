@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Redis Dashboard for Prometheus Redis Exporter 1.x",
+  "description": "Redis exporter 기준으로 메모리, keyspace, hit/miss, 클라이언트 상태를 확인하는 Redis 운영 대시보드.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -103,7 +103,7 @@
           "step": 1800
         }
       ],
-      "title": "Max Uptime",
+      "title": "Max Uptime (최대 가동 시간)",
       "description": "지표: 재기동 감지<br/>확인: 값 리셋 시점 확인<br/>장애 추정: Redis 재시작, OOM Kill, failover 전환",
       "type": "stat"
     },
@@ -189,7 +189,7 @@
         }
       ],
       "timeFrom": "1m",
-      "title": "Clients",
+      "title": "Clients (클라이언트 수)",
       "description": "지표: 연결 수<br/>확인: 평소 대비 급증/급락 확인<br/>장애 추정: 연결 누수, 재시도 폭주, 네트워크 단절",
       "type": "stat"
     },
@@ -278,7 +278,7 @@
         }
       ],
       "timeFrom": "1m",
-      "title": "Memory Usage",
+      "title": "Memory Usage (메모리 사용률)",
       "description": "지표: 메모리 사용률<br/>확인: 80%/90% 임계 초과 여부<br/>장애 추정: eviction 증가, OOM 위험, 응답 지연 증가",
       "type": "gauge"
     },
@@ -380,7 +380,7 @@
           "step": 240
         }
       ],
-      "title": "Total Commands / sec",
+      "title": "Total Commands / sec (초당 전체 명령 수)",
       "description": "지표: 명령 처리량(cmd별)<br/>확인: 특정 cmd 급증 여부<br/>장애 추정: 핫키 집중, 잘못된 루프 호출, 비정상 배치",
       "type": "timeseries"
     },
@@ -501,7 +501,7 @@
           "target": ""
         }
       ],
-      "title": "Hits / Misses per Sec",
+      "title": "Hits / Misses per Sec (초당 Hit / Miss)",
       "description": "지표: 캐시 hit/miss<br/>확인: miss가 hit에 근접/역전 여부<br/>장애 추정: 캐시 스탬피드, TTL 설정 문제, 캐시 키 누락",
       "type": "timeseries"
     },
@@ -633,7 +633,7 @@
           "step": 240
         }
       ],
-      "title": "Total Memory Usage",
+      "title": "Total Memory Usage (전체 메모리 사용량)",
       "description": "지표: used vs max 절대량<br/>확인: used의 급상승, max 근접 여부<br/>장애 추정: 키 폭증, no-expire 키 누적, 메모리 압박",
       "type": "timeseries"
     },
@@ -746,7 +746,7 @@
           "step": 240
         }
       ],
-      "title": "Network I/O",
+      "title": "Network I/O (네트워크 입출력)",
       "description": "지표: 입력/출력 바이트<br/>확인: 명령량 대비 I/O 과다 여부<br/>장애 추정: big key 전송, 과도한 SCAN/HGETALL, 복제 트래픽 급증",
       "type": "timeseries"
     },
@@ -871,7 +871,7 @@
           "target": ""
         }
       ],
-      "title": "Total Items per DB",
+      "title": "Total Items per DB (DB별 전체 키 수)",
       "description": "지표: DB별 key 개수<br/>확인: 단조 증가 지속 여부<br/>장애 추정: TTL 누락, 정리 배치 실패, 키 설계 문제",
       "type": "timeseries"
     },
@@ -987,7 +987,7 @@
           "step": 240
         }
       ],
-      "title": "Expiring vs Not-Expiring Keys",
+      "title": "Expiring vs Not-Expiring Keys (만료 / 비만료 키)",
       "description": "지표: 만료/비만료 키 비율<br/>확인: non-expiring 비율 과다 여부<br/>장애 추정: EXPIRE 미적용, 장기 stale 데이터, 메모리 고착",
       "type": "timeseries"
     },
@@ -1150,7 +1150,7 @@
           "step": 240
         }
       ],
-      "title": "Expired/Evicted Keys",
+      "title": "Expired/Evicted Keys (만료 / 축출 키)",
       "description": "지표: 만료/축출 속도<br/>확인: evicted 지속 발생 여부<br/>장애 추정: 메모리 부족, 캐시 품질 하락, DB fallback 증가",
       "type": "timeseries"
     },
@@ -1260,7 +1260,7 @@
           "refId": "B"
         }
       ],
-      "title": "Connected/Blocked Clients",
+      "title": "Connected/Blocked Clients (연결 / 블로킹 클라이언트)",
       "description": "지표: connected/blocked<br/>확인: blocked 상승 여부<br/>장애 추정: 블로킹 명령, 긴 Lua 실행, 느린 I/O 병목",
       "type": "timeseries"
     },
@@ -1383,7 +1383,7 @@
           "step": 240
         }
       ],
-      "title": "Average Time Spent by Command / sec",
+      "title": "Average Time Spent by Command / sec (명령별 평균 처리 시간)",
       "description": "지표: cmd 1회 평균시간<br/>확인: 특정 cmd 지연 스파이크<br/>장애 추정: 명령 병목, big key 접근, 비효율 쿼리 패턴",
       "type": "timeseries"
     },
@@ -1485,7 +1485,7 @@
           "step": 240
         }
       ],
-      "title": "Total Time Spent by Command / sec",
+      "title": "Total Time Spent by Command / sec (명령별 전체 처리 시간)",
       "description": "지표: cmd 총 점유시간<br/>확인: 소수 cmd 점유율 편중<br/>장애 추정: 핫패스 과부하, 비효율 호출 경로, 우선 최적화 대상",
       "type": "timeseries"
     }
@@ -1577,7 +1577,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Tasteam - Redis",
+  "title": "Tasteam Redis Cache (Redis 캐시)",
   "version": 0,
   "uid": "46cbf6bb-bbc2-42fb-8401-83c27d0422f5"
 }

@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Tasteam Spring Boot Dashboard \u2014 19004 \uae30\ubc18, environment/role/instance \ub808\uc774\ube14 \uc0ac\uc6a9",
+  "description": "스프링 애플리케이션의 가동 상태, JVM/DB 풀, 관측 파이프라인 상태를 한 화면에서 확인하는 핵심 운영 대시보드.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -32,15 +32,16 @@
       },
       "id": 1,
       "panels": [],
-      "title": "Service Health",
-      "type": "row"
+      "title": "Service Health (서비스 상태)",
+      "type": "row",
+      "description": "지표: 가동 시간, 시작 시각, up, metric family 수 등 서비스 생존 신호<br/>확인: 앱 재시작과 scrape 상태를 빠르게 확인<br/>장애 추정: 애플리케이션 다운, 반복 재기동, 관측 누락"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "\uc9c0\ud45c: \uc560\ud50c\ub9ac\ucf00\uc774\uc158 \uac00\ub3d9 \uc2dc\uac04<br/>\ud655\uc778: \uac12 \ub9ac\uc14b \uc2dc\uc810 \ud655\uc778<br/>\uc7a5\uc560 \ucd94\uc815: \ud504\ub85c\uc138\uc2a4 \uc7ac\uc2dc\uc791, OOM \uc7ac\uae30\ub3d9, \ubc30\ud3ec/\ud06c\ub798\uc2dc",
+      "description": "지표: 애플리케이션 가동 시간<br/>확인: 값 리셋 시점 확인<br/>장애 추정: 프로세스 재시작, OOM 재기동, 배포/크래시",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -110,7 +111,7 @@
           "refId": "A"
         }
       ],
-      "title": "Uptime",
+      "title": "Uptime (가동 시간)",
       "type": "stat"
     },
     {
@@ -118,7 +119,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "\uc9c0\ud45c: \ud504\ub85c\uc138\uc2a4 \uc2dc\uc791 \uc2dc\uac01<br/>\ud655\uc778: \uac12 \ubcc0\uacbd \uc5ec\ubd80<br/>\uc7a5\uc560 \ucd94\uc815: \ube44\uc815\uc0c1 \uc7ac\uc2dc\uc791, \ubc18\ubcf5 \ubc30\ud3ec, \uc778\uc2a4\ud134\uc2a4 \uad50\uccb4",
+      "description": "지표: 프로세스 시작 시각<br/>확인: 값 변경 여부<br/>장애 추정: 비정상 재시작, 반복 배포, 인스턴스 교체",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -184,7 +185,7 @@
           "refId": "A"
         }
       ],
-      "title": "Start Time",
+      "title": "Start Time (시작 시각)",
       "type": "stat"
     },
     {
@@ -257,8 +258,9 @@
           "refId": "A"
         }
       ],
-      "title": "Spring Target Up",
-      "type": "stat"
+      "title": "Spring Target Up (스프링 타깃 상태)",
+      "type": "stat",
+      "description": "지표: Prometheus scrape 대상 up 값<br/>확인: 0 전환 여부<br/>장애 추정: 앱 다운, 포트 미응답, scrape 실패"
     },
     {
       "datasource": {
@@ -304,8 +306,9 @@
           "refId": "A"
         }
       ],
-      "title": "Scraped Metric Families",
-      "type": "stat"
+      "title": "Scraped Metric Families (수집 메트릭 패밀리 수)",
+      "type": "stat",
+      "description": "지표: 스프링 대상에서 수집된 metric family 수<br/>확인: 평소 대비 급감 여부<br/>장애 추정: actuator 노출 변경, binder 비활성화, scrape 누락"
     },
     {
       "collapsed": false,
@@ -317,15 +320,16 @@
       },
       "id": 6,
       "panels": [],
-      "title": "JVM / Runtime",
-      "type": "row"
+      "title": "JVM / Runtime (JVM / 런타임)",
+      "type": "row",
+      "description": "지표: Heap, Non-Heap, CPU, Load, 스레드, GC 등 런타임 신호<br/>확인: JVM 내부 병목과 자원 압박 여부를 확인<br/>장애 추정: 메모리 누수, CPU 포화, GC 지연, 스레드 증가"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "\uc9c0\ud45c: Heap \uc0ac\uc6a9\ub960<br/>\ud655\uc778: \uace0\uc810 \uc720\uc9c0/\uc9c0\uc18d \uc0c1\uc2b9 \uc5ec\ubd80<br/>\uc7a5\uc560 \ucd94\uc815: \uba54\ubaa8\ub9ac \ub204\uc218, GC \uc555\ubc15, OOM \uc704\ud5d8",
+      "description": "지표: Heap 사용률<br/>확인: 고점 유지/지속 상승 여부<br/>장애 추정: 메모리 누수, GC 압박, OOM 위험",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -399,7 +403,7 @@
           "refId": "A"
         }
       ],
-      "title": "Heap Used",
+      "title": "Heap Used (Heap 사용량)",
       "type": "gauge"
     },
     {
@@ -407,7 +411,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "\uc9c0\ud45c: Non-Heap \uc0ac\uc6a9\ub960<br/>\ud655\uc778: \uc7a5\uc2dc\uac04 \uc6b0\uc0c1\ud5a5 \uc5ec\ubd80<br/>\uc7a5\uc560 \ucd94\uc815: Metaspace \uc99d\uac00, \ud074\ub798\uc2a4 \ub85c\ub354 \ub204\uc218, \ub124\uc774\ud2f0\ube0c \uba54\ubaa8\ub9ac \uc555\ubc15",
+      "description": "지표: Non-Heap 사용률<br/>확인: 장시간 우상향 여부<br/>장애 추정: Metaspace 증가, 클래스 로더 누수, 네이티브 메모리 압박",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -491,7 +495,7 @@
           "refId": "A"
         }
       ],
-      "title": "Non-Heap Used",
+      "title": "Non-Heap Used (Non-Heap 사용량)",
       "type": "gauge"
     },
     {
@@ -499,7 +503,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "\uc9c0\ud45c: \uc2dc\uc2a4\ud15c/\ud504\ub85c\uc138\uc2a4 CPU \uc0ac\uc6a9\ub7c9<br/>\ud655\uc778: \uace0\uc0ac\uc6a9 \uc9c0\uc18d \uc5ec\ubd80<br/>\uc7a5\uc560 \ucd94\uc815: \ubb34\ud55c \ub8e8\ud504, GC \uacfc\ubd80\ud558, \ud2b8\ub798\ud53d \uae09\uc99d",
+      "description": "지표: 시스템/프로세스 CPU 사용량<br/>확인: 고사용 지속 여부<br/>장애 추정: 무한 루프, GC 과부하, 트래픽 급증",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -597,7 +601,7 @@
           "refId": "B"
         }
       ],
-      "title": "CPU Usage",
+      "title": "CPU Usage (CPU 사용률)",
       "type": "timeseries"
     },
     {
@@ -605,7 +609,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "\uc9c0\ud45c: 1\ubd84 Load vs CPU \ucf54\uc5b4 \uc218<br/>\ud655\uc778: Load\uac00 \ucf54\uc5b4 \uc218\ub97c \uc9c0\uc18d \ucd08\uacfc\ud558\ub294\uc9c0<br/>\uc7a5\uc560 \ucd94\uc815: CPU \ud3ec\ud654, \ub7f0\ud050 \uc801\uccb4, \uc751\ub2f5 \uc9c0\uc5f0",
+      "description": "지표: 1분 Load vs CPU 코어 수<br/>확인: Load가 코어 수를 지속 초과하는지<br/>장애 추정: CPU 포화, 런큐 적체, 응답 지연",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -703,7 +707,7 @@
           "refId": "B"
         }
       ],
-      "title": "Load / CPU Cores",
+      "title": "Load / CPU Cores (Load / CPU 코어)",
       "type": "timeseries"
     },
     {
@@ -711,7 +715,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "\uc9c0\ud45c: Live/Daemon/Peak \uc2a4\ub808\ub4dc \uc218<br/>\ud655\uc778: Live \uc2a4\ub808\ub4dc\uc758 \ube44\uc815\uc0c1 \uc99d\uac00 \uc5ec\ubd80<br/>\uc7a5\uc560 \ucd94\uc815: \uc2a4\ub808\ub4dc \ub204\uc218, \ube14\ub85c\ud0b9 \ub300\uae30 \uc99d\uac00, \ub370\ub4dc\ub77d \uc704\ud5d8",
+      "description": "지표: Live/Daemon/Peak 스레드 수<br/>확인: Live 스레드의 비정상 증가 여부<br/>장애 추정: 스레드 누수, 블로킹 대기 증가, 데드락 위험",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -818,7 +822,7 @@
           "refId": "C"
         }
       ],
-      "title": "JVM Threads",
+      "title": "JVM Threads (JVM 스레드)",
       "type": "timeseries"
     },
     {
@@ -826,7 +830,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "\uc9c0\ud45c: GC pause \uc2dc\uac04 \ud569\uacc4/\ucd94\uc138<br/>\ud655\uc778: \uc7a5\uc2dc\uac04 pause \uad6c\uac04 \uc874\uc7ac \uc5ec\ubd80<br/>\uc7a5\uc560 \ucd94\uc815: Stop-the-world \uc9c0\uc5f0, p95/p99 \uc545\ud654",
+      "description": "지표: GC pause 시간 합계/추세<br/>확인: 장시간 pause 구간 존재 여부<br/>장애 추정: Stop-the-world 지연, p95/p99 악화",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -914,7 +918,7 @@
           "refId": "A"
         }
       ],
-      "title": "GC Pause Duration",
+      "title": "GC Pause Duration (GC Pause 시간)",
       "type": "timeseries"
     },
     {
@@ -927,15 +931,16 @@
       },
       "id": 13,
       "panels": [],
-      "title": "DB Pool",
-      "type": "row"
+      "title": "DB Pool (DB 풀)",
+      "type": "row",
+      "description": "지표: HikariCP 커넥션 수와 획득/사용 시간<br/>확인: DB 연결 병목과 풀 고갈 여부를 확인<br/>장애 추정: 느린 쿼리, 커넥션 경합, DB 응답 지연"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "\uc9c0\ud45c: Total/Active/Idle/Pending \ucee4\ub125\uc158<br/>\ud655\uc778: Active \uace0\uc815 + Pending \uc99d\uac00 \uc5ec\ubd80<br/>\uc7a5\uc560 \ucd94\uc815: \ucee4\ub125\uc158 \ud480 \uace0\uac08, \ub290\ub9b0 \ucffc\ub9ac, DB \ubcd1\ubaa9",
+      "description": "지표: Total/Active/Idle/Pending 커넥션<br/>확인: Active 고정 + Pending 증가 여부<br/>장애 추정: 커넥션 풀 고갈, 느린 쿼리, DB 병목",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1051,7 +1056,7 @@
           "refId": "D"
         }
       ],
-      "title": "HikariCP Connections",
+      "title": "HikariCP Connections (HikariCP 커넥션)",
       "type": "timeseries"
     },
     {
@@ -1059,7 +1064,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "\uc9c0\ud45c: \uc0dd\uc131/\ud68d\ub4dd/\uc0ac\uc6a9 \uc2dc\uac04<br/>\ud655\uc778: Acquire/Usage \uc2dc\uac04 \uc0c1\uc2b9 \uc5ec\ubd80<br/>\uc7a5\uc560 \ucd94\uc815: DB \uc751\ub2f5 \uc9c0\uc5f0, \ud480 \uacbd\ud569, \ud2b8\ub79c\uc7ad\uc158 \uc7a5\uae30 \uc810\uc720",
+      "description": "지표: 생성/획득/사용 시간<br/>확인: Acquire/Usage 시간 상승 여부<br/>장애 추정: DB 응답 지연, 풀 경합, 트랜잭션 장기 점유",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1165,7 +1170,7 @@
           "refId": "C"
         }
       ],
-      "title": "HikariCP Connection Timing",
+      "title": "HikariCP Connection Timing (HikariCP 커넥션 시간)",
       "type": "timeseries"
     },
     {
@@ -1178,8 +1183,9 @@
       },
       "id": 16,
       "panels": [],
-      "title": "Observability Health",
-      "type": "row"
+      "title": "Observability Health (관측 파이프라인)",
+      "type": "row",
+      "description": "지표: Alloy 샘플 전달량과 Spring 파이프라인 처리량<br/>확인: 메트릭 수집 경로가 정상인지 확인<br/>장애 추정: scrape 누락, Alloy 파이프라인 문제, 전송 정체"
     },
     {
       "datasource": {
@@ -1225,8 +1231,9 @@
           "refId": "A"
         }
       ],
-      "title": "Alloy Forwarded Samples/s",
-      "type": "stat"
+      "title": "Alloy Forwarded Samples/s (Alloy 전달 샘플 수/s)",
+      "type": "stat",
+      "description": "지표: Alloy가 전달하는 샘플 수<br/>확인: 급감 또는 0 여부<br/>장애 추정: Alloy 파이프라인 정지, scrape 누락, 전송 오류"
     },
     {
       "datasource": {
@@ -1280,8 +1287,9 @@
           "refId": "B"
         }
       ],
-      "title": "Alloy Spring Pipeline Throughput",
-      "type": "timeseries"
+      "title": "Alloy Spring Pipeline Throughput (Alloy Spring 파이프라인 처리량)",
+      "type": "timeseries",
+      "description": "지표: Alloy 내부 spring 파이프라인 처리량<br/>확인: 입력 대비 급감 여부<br/>장애 추정: discovery 누락, relabel 오류, 파이프라인 병목"
     }
   ],
   "preload": false,
@@ -1301,7 +1309,7 @@
           "value": "local"
         },
         "includeAll": false,
-        "label": "Environment",
+        "label": "환경",
         "name": "environment",
         "options": [
           {
@@ -1335,7 +1343,7 @@
         },
         "definition": "label_values(process_uptime_seconds{job=\"spring\", environment=~\"$environment\"}, instance)",
         "includeAll": true,
-        "label": "Instance",
+        "label": "인스턴스",
         "multi": true,
         "name": "instance",
         "options": [],
@@ -1359,7 +1367,7 @@
         },
         "definition": "label_values(hikaricp_connections{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\"}, pool)",
         "includeAll": true,
-        "label": "HikariCP Pool",
+        "label": "HikariCP 풀",
         "name": "hikaricp",
         "options": [],
         "query": {
@@ -1389,7 +1397,7 @@
     ]
   },
   "timezone": "Asia/Seoul",
-  "title": "Tasteam Spring Core",
+  "title": "Tasteam Spring Core (스프링 핵심 운영)",
   "uid": "tasteam-spring-core",
   "version": 1
 }
