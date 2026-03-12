@@ -23,7 +23,10 @@ public final class MetricLabelPolicy {
 		"domain",
 		"outcome",
 		"read_only",
-		"method_name");
+		"method_name",
+		"partitionId",
+		"streamKey",
+		"errorType");
 
 	private static final Set<String> FORBIDDEN_LABELS = Set.of(
 		"eventId",

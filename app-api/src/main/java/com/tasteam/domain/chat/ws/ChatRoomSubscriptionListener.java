@@ -5,6 +5,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 
+import com.tasteam.domain.chat.config.ChatStreamProperties;
 import com.tasteam.domain.chat.stream.ChatStreamSubscriber;
 
 import lombok.RequiredArgsConstructor;
@@ -16,9 +17,14 @@ public class ChatRoomSubscriptionListener {
 	private static final String DESTINATION_PREFIX = "/topic/chat-rooms/";
 
 	private final ChatStreamSubscriber chatStreamSubscriber;
+	private final ChatStreamProperties chatStreamProperties;
 
 	@EventListener
 	public void handleSubscribe(SessionSubscribeEvent event) {
+		if (!chatStreamProperties.legacyRoomConsumeEnabled()) {
+			return;
+		}
+
 		String destination = SimpMessageHeaderAccessor.wrap(event.getMessage()).getDestination();
 		if (destination == null || !destination.startsWith(DESTINATION_PREFIX)) {
 			return;

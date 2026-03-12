@@ -7,6 +7,7 @@ import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import com.tasteam.domain.chat.config.ChatStreamProperties;
 import com.tasteam.domain.chat.dto.response.ChatMessageItemResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -19,14 +20,23 @@ public class ChatStreamPublisher {
 
 	private final StringRedisTemplate stringRedisTemplate;
 	private final ChatStreamKeyResolver keyResolver;
+	private final ChatStreamProperties chatStreamProperties;
 
 	public void publish(Long chatRoomId, ChatMessageItemResponse message) {
-		String streamKey = keyResolver.roomStreamKey(chatRoomId);
 		ChatStreamPayload payload = ChatStreamPayload.from(chatRoomId, message);
-		MapRecord<String, String, String> record = StreamRecords.newRecord()
-			.in(streamKey)
-			.ofMap(payload.toMap());
+		if (chatStreamProperties.partitionConsumeEnabled()) {
+			int partitionId = keyResolver.resolvePartition(chatRoomId, chatStreamProperties.partitionCount());
+			publishTo(keyResolver.partitionStreamKey(partitionId), payload);
+			if (chatStreamProperties.dualWriteEnabled()) {
+				publishTo(keyResolver.roomStreamKey(chatRoomId), payload);
+			}
+			return;
+		}
+		publishTo(keyResolver.roomStreamKey(chatRoomId), payload);
+	}
 
+	private void publishTo(String streamKey, ChatStreamPayload payload) {
+		MapRecord<String, String, String> record = StreamRecords.newRecord().in(streamKey).ofMap(payload.toMap());
 		stringRedisTemplate.opsForStream().add(
 			record,
 			XAddOptions.maxlen(MAX_STREAM_LENGTH).approximateTrimming(true));
