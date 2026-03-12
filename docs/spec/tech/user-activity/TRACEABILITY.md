@@ -82,7 +82,7 @@
 - `ON CONFLICT(event_id) DO NOTHING`
 
 구현 근거:
-- `app-api/src/main/java/com/tasteam/infra/messagequeue/MessageQueueTopics.java`
+- `app-api/src/main/java/com/tasteam/infra/messagequeue/QueueTopic.java`
 - `app-api/src/main/java/com/tasteam/infra/messagequeue/UserActivityMessageQueuePublisher.java`
 - `app-api/src/main/java/com/tasteam/infra/messagequeue/UserActivityMessageQueueConsumerRegistrar.java`
 - `app-api/src/main/java/com/tasteam/domain/analytics/persistence/UserActivityEventJdbcRepository.java`

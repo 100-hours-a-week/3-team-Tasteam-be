@@ -18,7 +18,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
-import com.tasteam.infra.messagequeue.dlq.DlqTopicNamingPolicy;
 import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
 
 @UnitTest
@@ -40,7 +39,7 @@ class KafkaMessageQueueConfigTest {
 				assertThat(context).doesNotHaveBean(KafkaTemplate.class);
 				assertThat(context).doesNotHaveBean(KafkaPublishSupport.class);
 				assertThat(context).doesNotHaveBean(CommonErrorHandler.class);
-				assertThat(context).doesNotHaveBean(DlqTopicNamingPolicy.class);
+				assertThat(context).doesNotHaveBean(TopicNamingPolicy.class);
 				assertThat(context).doesNotHaveBean(DeadLetterPublishingRecoverer.class);
 				assertThat(context).doesNotHaveBean("messageQueueKafkaProducerFactory");
 				assertThat(context).doesNotHaveBean("messageQueueKafkaConsumerFactory");
@@ -60,7 +59,7 @@ class KafkaMessageQueueConfigTest {
 				assertThat(context).doesNotHaveBean(KafkaTemplate.class);
 				assertThat(context).doesNotHaveBean(KafkaPublishSupport.class);
 				assertThat(context).doesNotHaveBean(CommonErrorHandler.class);
-				assertThat(context).doesNotHaveBean(DlqTopicNamingPolicy.class);
+				assertThat(context).doesNotHaveBean(TopicNamingPolicy.class);
 				assertThat(context).doesNotHaveBean(DeadLetterPublishingRecoverer.class);
 				assertThat(context).doesNotHaveBean("messageQueueKafkaProducerFactory");
 				assertThat(context).doesNotHaveBean("messageQueueKafkaConsumerFactory");
@@ -92,7 +91,7 @@ class KafkaMessageQueueConfigTest {
 				assertThat(context).hasSingleBean(KafkaTemplate.class);
 				assertThat(context).hasSingleBean(KafkaPublishSupport.class);
 				assertThat(context).hasSingleBean(CommonErrorHandler.class);
-				assertThat(context).hasSingleBean(DlqTopicNamingPolicy.class);
+				assertThat(context).hasSingleBean(TopicNamingPolicy.class);
 				assertThat(context).hasSingleBean(DeadLetterPublishingRecoverer.class);
 				assertThat(context).hasBean("messageQueueKafkaProducerFactory");
 				assertThat(context).hasBean("messageQueueKafkaConsumerFactory");

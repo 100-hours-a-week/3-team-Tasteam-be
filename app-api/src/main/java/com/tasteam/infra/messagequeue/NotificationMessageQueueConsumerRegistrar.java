@@ -24,6 +24,7 @@ public class NotificationMessageQueueConsumerRegistrar {
 
 	private final MessageQueueConsumer messageQueueConsumer;
 	private final MessageQueueProperties messageQueueProperties;
+	private final TopicNamingPolicy topicNamingPolicy;
 	private final NotificationService notificationService;
 	private final ObjectMapper objectMapper;
 
@@ -37,7 +38,7 @@ public class NotificationMessageQueueConsumerRegistrar {
 		}
 
 		subscription = new MessageQueueSubscription(
-			MessageQueueTopics.GROUP_MEMBER_JOINED,
+			topicNamingPolicy.main(QueueTopic.GROUP_MEMBER_JOINED),
 			messageQueueProperties.getDefaultConsumerGroup(),
 			"notification-" + UUID.randomUUID());
 

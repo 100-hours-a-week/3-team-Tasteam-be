@@ -444,7 +444,7 @@ class NotificationMessageQueueFlowIntegrationTest {
         // 발행된 메시지 구조 검증...
 
         // 컨슈머 핸들러도 직접 호출해 역직렬화 + 알림 생성까지 검증
-        handlerCaptor.getValue().handle(MessageQueueMessage.of(...));
+        handlerCaptor.getValue().handle(QueueMessage.of(...));
         verify(notificationService).createNotification(...);
     }
 

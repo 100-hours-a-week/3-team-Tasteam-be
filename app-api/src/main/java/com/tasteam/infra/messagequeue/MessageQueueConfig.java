@@ -12,8 +12,13 @@ import org.springframework.lang.Nullable;
 import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
 @Configuration
-@EnableConfigurationProperties(MessageQueueProperties.class)
+@EnableConfigurationProperties({MessageQueueProperties.class, KafkaMessageQueueProperties.class})
 public class MessageQueueConfig {
+
+	@Bean
+	public TopicNamingPolicy topicNamingPolicy(KafkaMessageQueueProperties kafkaMessageQueueProperties) {
+		return new DefaultTopicNamingPolicy(kafkaMessageQueueProperties);
+	}
 
 	@Bean
 	public MessageQueueProducer messageQueueProducer(

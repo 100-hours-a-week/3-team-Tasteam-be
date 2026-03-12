@@ -67,7 +67,7 @@ class NotificationMessageQueueFlowIntegrationTest {
 		// then
 		verify(messageQueueProducer).publish(publishedMessageCaptor.capture());
 		QueueMessage publishedMessage = publishedMessageCaptor.getValue();
-		assertThat(publishedMessage.topic()).isEqualTo(MessageQueueTopics.GROUP_MEMBER_JOINED);
+		assertThat(publishedMessage.topic()).isEqualTo(QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic());
 		assertThat(publishedMessage.key()).isEqualTo("20");
 		assertThat(publishedMessage.headers()).containsEntry("eventType", "GroupMemberJoinedEvent");
 
@@ -79,11 +79,11 @@ class NotificationMessageQueueFlowIntegrationTest {
 		assertThat(payload.groupName()).isEqualTo("스터디 그룹");
 
 		MessageQueueSubscription subscription = subscriptionCaptor.getValue();
-		assertThat(subscription.topic()).isEqualTo(MessageQueueTopics.GROUP_MEMBER_JOINED);
+		assertThat(subscription.topic()).isEqualTo(QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic());
 		assertThat(subscription.consumerGroup()).isEqualTo(CONSUMER_GROUP);
 
 		handlerCaptor.getValue().handle(QueueMessage.of(
-			MessageQueueTopics.GROUP_MEMBER_JOINED,
+			QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic(),
 			"20",
 			objectMapper.writeValueAsBytes(payload)));
 
@@ -106,7 +106,7 @@ class NotificationMessageQueueFlowIntegrationTest {
 		// when & then
 		org.assertj.core.api.Assertions.assertThatThrownBy(() -> handlerCaptor.getValue().handle(
 			QueueMessage.of(
-				MessageQueueTopics.GROUP_MEMBER_JOINED,
+				QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic(),
 				"20",
 				"{\"memberId\":\"invalid\"}".getBytes(StandardCharsets.UTF_8))))
 			.isInstanceOf(IllegalArgumentException.class)
@@ -131,6 +131,11 @@ class NotificationMessageQueueFlowIntegrationTest {
 		}
 
 		@Bean
+		TopicNamingPolicy topicNamingPolicy() {
+			return new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
+		}
+
+		@Bean
 		MessageQueueProducer messageQueueProducer() {
 			return Mockito.mock(MessageQueueProducer.class);
 		}
@@ -149,8 +154,10 @@ class NotificationMessageQueueFlowIntegrationTest {
 		GroupMemberJoinedMessageQueuePublisher groupMemberJoinedMessageQueuePublisher(
 			MessageQueueProducer messageQueueProducer,
 			MessageQueueProperties messageQueueProperties,
+			TopicNamingPolicy topicNamingPolicy,
 			ObjectMapper objectMapper) {
 			return new GroupMemberJoinedMessageQueuePublisher(messageQueueProducer, messageQueueProperties,
+				topicNamingPolicy,
 				objectMapper);
 		}
 
@@ -158,11 +165,13 @@ class NotificationMessageQueueFlowIntegrationTest {
 		NotificationMessageQueueConsumerRegistrar notificationMessageQueueConsumerRegistrar(
 			MessageQueueConsumer messageQueueConsumer,
 			MessageQueueProperties messageQueueProperties,
+			TopicNamingPolicy topicNamingPolicy,
 			NotificationService notificationService,
 			ObjectMapper objectMapper) {
 			return new NotificationMessageQueueConsumerRegistrar(
 				messageQueueConsumer,
 				messageQueueProperties,
+				topicNamingPolicy,
 				notificationService,
 				objectMapper);
 		}

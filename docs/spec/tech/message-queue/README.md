@@ -342,4 +342,4 @@ foundation 단계에서 Kafka consumer 실패 처리는 공통 `DefaultErrorHand
 
 - Listener 등록과 payload 역직렬화 연결
 - 재시도 가능/불가 예외를 명확히 분리
-- DLQ 토픽 규칙(`DlqTopicNamingPolicy`)을 따르는지 검증
+- DLQ 토픽 규칙(`TopicNamingPolicy`)을 따르는지 검증

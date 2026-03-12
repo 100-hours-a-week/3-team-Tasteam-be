@@ -30,10 +30,12 @@ class NotificationMessageQueueConsumerRegistrarTest {
 		MessageQueueConsumer consumer = mock(MessageQueueConsumer.class);
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("none");
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		NotificationService notificationService = mock(NotificationService.class);
 		NotificationMessageQueueConsumerRegistrar registrar = new NotificationMessageQueueConsumerRegistrar(
 			consumer,
 			properties,
+			topicNamingPolicy,
 			notificationService,
 			new ObjectMapper());
 
@@ -52,11 +54,13 @@ class NotificationMessageQueueConsumerRegistrarTest {
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("redis-stream");
 		properties.setDefaultConsumerGroup("tasteam-api");
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		NotificationService notificationService = mock(NotificationService.class);
 		ObjectMapper objectMapper = new ObjectMapper();
 		NotificationMessageQueueConsumerRegistrar registrar = new NotificationMessageQueueConsumerRegistrar(
 			consumer,
 			properties,
+			topicNamingPolicy,
 			notificationService,
 			objectMapper);
 
@@ -70,12 +74,12 @@ class NotificationMessageQueueConsumerRegistrarTest {
 			.forClass(
 				QueueMessageHandler.class);
 		verify(consumer).subscribe(subscriptionCaptor.capture(), handlerCaptor.capture());
-		assertThat(subscriptionCaptor.getValue().topic()).isEqualTo(MessageQueueTopics.GROUP_MEMBER_JOINED);
+		assertThat(subscriptionCaptor.getValue().topic()).isEqualTo(QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic());
 		assertThat(subscriptionCaptor.getValue().consumerGroup()).isEqualTo("tasteam-api");
 
 		GroupMemberJoinedMessagePayload payload = new GroupMemberJoinedMessagePayload(100L, 200L, "스터디 그룹", 1L);
 		handlerCaptor.getValue().handle(QueueMessage.of(
-			MessageQueueTopics.GROUP_MEMBER_JOINED,
+			QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic(),
 			"200",
 			objectMapper.writeValueAsBytes(payload)));
 
@@ -94,10 +98,12 @@ class NotificationMessageQueueConsumerRegistrarTest {
 		MessageQueueConsumer consumer = mock(MessageQueueConsumer.class);
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("redis-stream");
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		NotificationService notificationService = mock(NotificationService.class);
 		NotificationMessageQueueConsumerRegistrar registrar = new NotificationMessageQueueConsumerRegistrar(
 			consumer,
 			properties,
+			topicNamingPolicy,
 			notificationService,
 			new ObjectMapper());
 		registrar.subscribe();
@@ -108,7 +114,7 @@ class NotificationMessageQueueConsumerRegistrarTest {
 		// when & then
 		assertThatThrownBy(() -> handlerCaptor.getValue().handle(
 			QueueMessage.of(
-				MessageQueueTopics.GROUP_MEMBER_JOINED,
+				QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic(),
 				"200",
 				"{\"memberId\":\"invalid\"}".getBytes(StandardCharsets.UTF_8))))
 			.isInstanceOf(IllegalArgumentException.class)

@@ -8,6 +8,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -25,8 +26,6 @@ import org.springframework.kafka.support.serializer.DeserializationException;
 import org.springframework.util.backoff.FixedBackOff;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.infra.messagequeue.dlq.DefaultDlqTopicNamingPolicy;
-import com.tasteam.infra.messagequeue.dlq.DlqTopicNamingPolicy;
 import com.tasteam.infra.messagequeue.exception.MessageQueueNonRetryableException;
 import com.tasteam.infra.messagequeue.serialization.JsonQueueMessageSerializer;
 import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
@@ -43,8 +42,9 @@ public class KafkaMessageQueueConfig {
 	}
 
 	@Bean
-	public DlqTopicNamingPolicy dlqTopicNamingPolicy(KafkaMessageQueueProperties kafkaProperties) {
-		return new DefaultDlqTopicNamingPolicy(kafkaProperties);
+	@ConditionalOnMissingBean(TopicNamingPolicy.class)
+	public TopicNamingPolicy topicNamingPolicy(KafkaMessageQueueProperties kafkaProperties) {
+		return new DefaultTopicNamingPolicy(kafkaProperties);
 	}
 
 	@Bean
@@ -58,11 +58,11 @@ public class KafkaMessageQueueConfig {
 	@Bean
 	public DeadLetterPublishingRecoverer messageQueueDeadLetterPublishingRecoverer(
 		KafkaTemplate<String, String> messageQueueKafkaTemplate,
-		DlqTopicNamingPolicy dlqTopicNamingPolicy) {
+		TopicNamingPolicy topicNamingPolicy) {
 		return new DeadLetterPublishingRecoverer(
 			messageQueueKafkaTemplate,
 			(record, exception) -> new TopicPartition(
-				dlqTopicNamingPolicy.resolveDlqTopic(record.topic()),
+				topicNamingPolicy.dlq(record.topic()),
 				record.partition()));
 	}
 

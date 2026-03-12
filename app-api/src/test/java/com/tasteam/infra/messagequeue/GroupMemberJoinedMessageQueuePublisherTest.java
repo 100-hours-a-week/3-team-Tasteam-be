@@ -29,10 +29,12 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 		MessageQueueProducer producer = mock(MessageQueueProducer.class);
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("none");
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		ObjectMapper objectMapper = new ObjectMapper();
 		GroupMemberJoinedMessageQueuePublisher publisher = new GroupMemberJoinedMessageQueuePublisher(
 			producer,
 			properties,
+			topicNamingPolicy,
 			objectMapper);
 		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(10L, 20L, "테스트 그룹",
 			Instant.parse("2000-01-01T00:00:00Z"));
@@ -51,10 +53,12 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 		MessageQueueProducer producer = mock(MessageQueueProducer.class);
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("redis-stream");
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		ObjectMapper objectMapper = new ObjectMapper();
 		GroupMemberJoinedMessageQueuePublisher publisher = new GroupMemberJoinedMessageQueuePublisher(
 			producer,
 			properties,
+			topicNamingPolicy,
 			objectMapper);
 		Instant joinedAt = Instant.parse("2026-02-15T00:00:00Z");
 		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(10L, 20L, "테스트 그룹", joinedAt);
@@ -67,7 +71,7 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 		verify(producer).publish(messageCaptor.capture());
 
 		QueueMessage message = messageCaptor.getValue();
-		assertThat(message.topic()).isEqualTo(MessageQueueTopics.GROUP_MEMBER_JOINED);
+		assertThat(message.topic()).isEqualTo(QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic());
 		assertThat(message.key()).isEqualTo("20");
 		assertThat(message.occurredAt()).isEqualTo(joinedAt);
 		assertThat(message.headers()).containsEntry("eventType", "GroupMemberJoinedEvent");
@@ -88,12 +92,14 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 		MessageQueueProducer producer = mock(MessageQueueProducer.class);
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider("redis-stream");
+		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		ObjectMapper objectMapper = mock(ObjectMapper.class);
 		when(objectMapper.writeValueAsBytes(org.mockito.ArgumentMatchers.any()))
 			.thenThrow(new JsonProcessingException("failed") {});
 		GroupMemberJoinedMessageQueuePublisher publisher = new GroupMemberJoinedMessageQueuePublisher(
 			producer,
 			properties,
+			topicNamingPolicy,
 			objectMapper);
 		GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(10L, 20L, "테스트 그룹",
 			Instant.parse("2000-01-01T00:00:00Z"));
