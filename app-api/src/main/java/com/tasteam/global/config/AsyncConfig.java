@@ -18,6 +18,7 @@ import com.tasteam.global.metrics.MetricLabelPolicy;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -93,6 +94,11 @@ public class AsyncConfig implements AsyncConfigurer {
 			registry.counter("executor.rejected.tasks", "executor", executorName).increment();
 			fallback.rejectedExecution(task, threadPoolExecutor);
 		};
+	}
+
+	private void bindExecutorMetrics(MeterRegistry registry, ThreadPoolTaskExecutor executor, String executorName) {
+		ExecutorServiceMetrics.monitor(registry, executor.getThreadPoolExecutor(), executorName);
+		registerQueueUtilizationGauge(registry, executor, executorName);
 	}
 
 	private void registerQueueUtilizationGauge(
