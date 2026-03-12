@@ -13,7 +13,7 @@ Redis Stream consumer group 기반 소비에서 실패 메시지의 재처리, D
 | `NotificationMessageQueueConsumer` | `retryCountMap`으로 retry count 관리 | 메모리 기반이라 재기동/scale-out 취약 |
 | `NotificationMessageQueueConsumer` | max retry 초과 시 DLQ publish | 현재 프로세스 관점 실패 횟수 |
 | `consumed_notification_event` | `(consumer_group, event_id)` PK | 성공/실패/claim 상태 표현 불가 |
-| `UserActivityMessageQueueConsumerRegistrar` | `UserActivityEventStoreService.store()` 호출 | pending 고착 시 최종 저장 누락 가능 |
+| `Kafka Connect S3 Sink Connector` | `UserActivityEventStoreService.store()` 호출 | pending 고착 시 최종 저장 누락 가능 |
 
 ## 3. 왜 문제인가
 

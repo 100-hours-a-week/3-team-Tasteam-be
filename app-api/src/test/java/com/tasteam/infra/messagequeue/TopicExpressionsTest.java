@@ -20,6 +20,5 @@ class TopicExpressionsTest {
 		assertThat(expressions.groupMemberJoinedMain()).isEqualTo(policy.main(QueueTopic.GROUP_MEMBER_JOINED));
 		assertThat(expressions.notificationRequestedMain()).isEqualTo(policy.main(QueueTopic.NOTIFICATION_REQUESTED));
 		assertThat(expressions.notificationRequestedDlq()).isEqualTo(policy.dlq(QueueTopic.NOTIFICATION_REQUESTED));
-		assertThat(expressions.userActivityMain()).isEqualTo(policy.main(QueueTopic.USER_ACTIVITY));
 	}
 }

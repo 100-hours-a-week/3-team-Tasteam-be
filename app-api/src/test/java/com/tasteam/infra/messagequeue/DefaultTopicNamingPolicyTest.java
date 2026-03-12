@@ -42,15 +42,39 @@ class DefaultTopicNamingPolicyTest {
 	@DisplayName("source topic 기반 DLQ 해석은 설정값 또는 suffix 규칙을 따른다")
 	void dlq_withSourceTopic_usesConfiguredOrSuffix() {
 		KafkaMessageQueueProperties properties = new KafkaMessageQueueProperties();
-		properties.getUserActivity().setTopic("evt.user.activity.v2");
-		properties.getUserActivity().setDlqTopic("evt.user.activity.v2.dead");
+		properties.getNotification().setTopic("evt.notification.v2");
+		properties.getNotification().setDlqTopic("evt.notification.v2.dead");
 
 		DefaultTopicNamingPolicy policy = new DefaultTopicNamingPolicy(properties);
 
-		assertThat(policy.dlq("evt.user.activity.v2")).isEqualTo("evt.user.activity.v2.dead");
+		assertThat(policy.dlq("evt.notification.v2")).isEqualTo("evt.notification.v2.dead");
 		assertThat(policy.dlq("evt.unknown.v1")).isEqualTo("evt.unknown.v1.dlq");
 		assertThat(policy.dlq("evt.unknown.v1.dlq")).isEqualTo("evt.unknown.v1.dlq");
 		assertThat(policy.dlq((String)null)).isEqualTo("unknown.dlq");
+	}
+
+	@Test
+	@DisplayName("USER_ACTIVITY_S3_INGEST topic/dlq를 기본값으로 해석한다")
+	void resolve_userActivityS3Ingest_returnsDefaultTopicSet() {
+		DefaultTopicNamingPolicy policy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
+
+		TopicSet topicSet = policy.resolve(QueueTopic.USER_ACTIVITY_S3_INGEST);
+
+		assertThat(topicSet.main()).isEqualTo("evt.user-activity.s3-ingest.v1");
+		assertThat(topicSet.dlq()).isEqualTo("evt.user-activity.s3-ingest.v1.dlq");
+	}
+
+	@Test
+	@DisplayName("USER_ACTIVITY_S3_INGEST override 설정이 있으면 해당 값을 우선 사용한다")
+	void resolve_userActivityS3IngestWithOverrides_prioritizesConfiguredValues() {
+		KafkaMessageQueueProperties properties = new KafkaMessageQueueProperties();
+		properties.getUserActivityS3Ingest().setTopic("evt.user-activity.s3-ingest.custom");
+		properties.getUserActivityS3Ingest().setDlqTopic("evt.user-activity.s3-ingest.custom.dlq");
+
+		DefaultTopicNamingPolicy policy = new DefaultTopicNamingPolicy(properties);
+
+		assertThat(policy.main(QueueTopic.USER_ACTIVITY_S3_INGEST)).isEqualTo("evt.user-activity.s3-ingest.custom");
+		assertThat(policy.dlq(QueueTopic.USER_ACTIVITY_S3_INGEST)).isEqualTo("evt.user-activity.s3-ingest.custom.dlq");
 	}
 
 	@Test

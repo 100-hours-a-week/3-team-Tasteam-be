@@ -20,7 +20,7 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.infra.messagequeue.MessageQueueProperties;
 import com.tasteam.infra.messagequeue.MessageQueueProviderType;
-import com.tasteam.infra.messagequeue.UserActivityMessageQueuePublisher;
+import com.tasteam.infra.messagequeue.UserActivityS3SinkPublisher;
 
 @UnitTest
 @DisplayName("[유닛](UserActivity) UserActivityReplayService 단위 테스트")
@@ -31,7 +31,7 @@ class UserActivityReplayServiceTest {
 	void replayPending_skipsWhenProviderNone() {
 		// given
 		UserActivitySourceOutboxService outboxService = mock(UserActivitySourceOutboxService.class);
-		UserActivityMessageQueuePublisher publisher = mock(UserActivityMessageQueuePublisher.class);
+		UserActivityS3SinkPublisher publisher = mock(UserActivityS3SinkPublisher.class);
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider(MessageQueueProviderType.NONE.value());
 		UserActivityReplayService replayService = new UserActivityReplayService(
@@ -53,7 +53,7 @@ class UserActivityReplayServiceTest {
 	void replayPending_republishesCandidates() throws Exception {
 		// given
 		UserActivitySourceOutboxService outboxService = mock(UserActivitySourceOutboxService.class);
-		UserActivityMessageQueuePublisher publisher = mock(UserActivityMessageQueuePublisher.class);
+		UserActivityS3SinkPublisher publisher = mock(UserActivityS3SinkPublisher.class);
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider(MessageQueueProviderType.REDIS_STREAM.value());
 		ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
@@ -99,7 +99,7 @@ class UserActivityReplayServiceTest {
 	void replayPending_marksFailedWhenPayloadInvalid() {
 		// given
 		UserActivitySourceOutboxService outboxService = mock(UserActivitySourceOutboxService.class);
-		UserActivityMessageQueuePublisher publisher = mock(UserActivityMessageQueuePublisher.class);
+		UserActivityS3SinkPublisher publisher = mock(UserActivityS3SinkPublisher.class);
 		MessageQueueProperties properties = new MessageQueueProperties();
 		properties.setProvider(MessageQueueProviderType.REDIS_STREAM.value());
 		UserActivityReplayService replayService = new UserActivityReplayService(

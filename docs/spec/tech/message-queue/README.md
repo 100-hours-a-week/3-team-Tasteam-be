@@ -156,9 +156,8 @@ flowchart LR
   - `MQ_ENABLED`, `MQ_PROVIDER`, `MQ_TOPIC_PREFIX`, `MQ_DEFAULT_CONSUMER_GROUP`
   - `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_CONNECT_URL`
 - 도메인 전용 변수는 접두사로 용도를 명확히 분리한다.
-  - 이벤트 로그 적재: `ANALYTICS_EVENT_LOG_*`
   - 알림: `NOTIFICATION_MQ_*` (또는 `NOTIFICATION_KAFKA_*`)
-  - 유저활동: `USER_ACTIVITY_MQ_*`
+  - 유저활동 S3 적재: `USER_ACTIVITY_S3_INGEST_MQ_*`
 - 금지 예시:
   - `KAFKA_TOPIC`, `CONSUMER_GROUP`처럼 도메인 소유가 드러나지 않는 변수명
 

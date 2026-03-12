@@ -54,7 +54,7 @@
 | `com.tasteam.domain.analytics.application` | 도메인 이벤트 매핑 및 sink 오케스트레이션 | `ActivityDomainEventListener`, `ActivityEventOrchestrator`, `ActivityEventMapperRegistry` |
 | `com.tasteam.domain.analytics.persistence` | 최종 이벤트 저장 및 저장 후 hook 확장점 | `UserActivityEventStoreService`, `UserActivityEventJdbcRepository`, `UserActivityStoredHook` |
 | `com.tasteam.domain.analytics.resilience` | source outbox 저장/상태관리/재처리 | `UserActivitySourceOutboxService`, `UserActivityReplayService`, `UserActivitySourceOutboxJdbcRepository` |
-| `com.tasteam.infra.messagequeue` | MQ 발행/구독/관리 API/스케줄러 | `UserActivityMessageQueuePublisher`, `UserActivityMessageQueueConsumerRegistrar`, `UserActivityOutboxAdminController` |
+| `com.tasteam.infra.messagequeue` | MQ 발행/구독/관리 API/스케줄러 | `UserActivityS3SinkPublisher`, `Kafka Connect S3 Sink Connector`, `UserActivityOutboxAdminController` |
 | `com.tasteam.domain.analytics.dispatch` | dispatch outbox/재시도/서킷브레이커 | `UserActivityDispatchOutboxDispatcher`, `UserActivityDispatchOutboxService`, `UserActivityDispatchCircuitBreaker` |
 | `com.tasteam.infra.analytics.posthog` | PostHog 어댑터 | `PosthogClient`, `PosthogSink`, `UserActivityDispatchOutboxEnqueueHook` |
 | `com.tasteam.domain.analytics.ingest` | 클라이언트 ingest API 정책/검증/레이트리밋 | `ClientActivityIngestController`, `ClientActivityIngestService`, `ClientActivityIngestRateLimiter` |
@@ -84,13 +84,13 @@ flowchart LR
 
     subgraph Sinks[ActivitySink Implementations]
       S1["UserActivitySourceOutboxSink"]
-      S2["UserActivityMessageQueuePublisher"]
+      S2["UserActivityS3SinkPublisher"]
     end
 
     subgraph Infra[Infra + Storage]
       SO[("user_activity_source_outbox")]
       MQ["domain.user.activity topic"]
-      C["UserActivityMessageQueueConsumerRegistrar"]
+      C["Kafka Connect S3 Sink Connector"]
       ST["UserActivityEventStoreService"]
       EV[("user_activity_event")]
       HOOK["UserActivityStoredHook"]
@@ -126,7 +126,7 @@ flowchart LR
 - 매핑: registry에서 이벤트 타입별 mapper 조회
 - sink 전달: 등록된 `ActivitySink` 순회, sink별 예외 격리
 - source outbox 적재: `UserActivitySourceOutboxSink`
-- MQ 발행: `UserActivityMessageQueuePublisher`
+- MQ 발행: `UserActivityS3SinkPublisher`
 - 최종 저장: consumer -> `UserActivityEventStoreService` -> `user_activity_event`
 - 저장 후 hook: PostHog 활성 시 dispatch outbox enqueue
 
@@ -138,9 +138,9 @@ sequenceDiagram
     participant Orch as ActivityEventOrchestrator
     participant Mapper as ActivityEventMapper
     participant SourceOutbox as UserActivitySourceOutboxSink
-    participant MqPub as UserActivityMessageQueuePublisher
+    participant MqPub as UserActivityS3SinkPublisher
     participant MQ as Redis Stream Topic(domain.user.activity)
-    participant MqCon as UserActivityMessageQueueConsumerRegistrar
+    participant MqCon as Kafka Connect S3 Sink Connector
     participant Store as UserActivityEventStoreService
     participant EventDB as user_activity_event
 

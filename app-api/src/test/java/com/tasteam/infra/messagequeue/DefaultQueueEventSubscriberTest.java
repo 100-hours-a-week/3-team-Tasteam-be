@@ -22,13 +22,13 @@ class DefaultQueueEventSubscriberTest {
 		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		DefaultQueueEventSubscriber subscriber = new DefaultQueueEventSubscriber(brokerReceiver, topicNamingPolicy);
 
-		MessageQueueSubscription subscription = subscriber.subscribe(QueueTopic.USER_ACTIVITY, message -> {});
+		MessageQueueSubscription subscription = subscriber.subscribe(QueueTopic.NOTIFICATION_REQUESTED, message -> {});
 
 		ArgumentCaptor<MessageQueueSubscription> captor = ArgumentCaptor.forClass(MessageQueueSubscription.class);
 		verify(brokerReceiver).subscribe(captor.capture(), any(QueueMessageHandler.class));
-		assertThat(captor.getValue().topic()).isEqualTo(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY));
+		assertThat(captor.getValue().topic()).isEqualTo(topicNamingPolicy.main(QueueTopic.NOTIFICATION_REQUESTED));
 		assertThat(captor.getValue().consumerGroup())
-			.isEqualTo(topicNamingPolicy.consumerGroup(QueueTopic.USER_ACTIVITY));
+			.isEqualTo(topicNamingPolicy.consumerGroup(QueueTopic.NOTIFICATION_REQUESTED));
 		assertThat(subscription).isEqualTo(captor.getValue());
 	}
 }

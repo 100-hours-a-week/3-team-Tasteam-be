@@ -25,21 +25,14 @@ public class DefaultTopicNamingPolicy implements TopicNamingPolicy {
 					+ DLQ_SUFFIX));
 		sets.put(QueueTopic.NOTIFICATION_REQUESTED, notification);
 
-		TopicSet userActivity = new TopicSet(
-			emptyToDefault(properties.getUserActivity().getTopic(), QueueTopic.USER_ACTIVITY.defaultMainTopic()),
-			emptyToDefault(properties.getUserActivity().getDlqTopic(),
-				emptyToDefault(properties.getUserActivity().getTopic(), QueueTopic.USER_ACTIVITY.defaultMainTopic())
+		TopicSet userActivityS3Ingest = new TopicSet(
+			emptyToDefault(properties.getUserActivityS3Ingest().getTopic(),
+				QueueTopic.USER_ACTIVITY_S3_INGEST.defaultMainTopic()),
+			emptyToDefault(properties.getUserActivityS3Ingest().getDlqTopic(),
+				emptyToDefault(properties.getUserActivityS3Ingest().getTopic(),
+					QueueTopic.USER_ACTIVITY_S3_INGEST.defaultMainTopic())
 					+ DLQ_SUFFIX));
-		sets.put(QueueTopic.USER_ACTIVITY, userActivity);
-
-		TopicSet analytics = new TopicSet(
-			emptyToDefault(properties.getAnalyticsEventLog().getTopic(),
-				QueueTopic.ANALYTICS_EVENT_LOG.defaultMainTopic()),
-			emptyToDefault(properties.getAnalyticsEventLog().getDlqTopic(),
-				emptyToDefault(properties.getAnalyticsEventLog().getTopic(),
-					QueueTopic.ANALYTICS_EVENT_LOG.defaultMainTopic())
-					+ DLQ_SUFFIX));
-		sets.put(QueueTopic.ANALYTICS_EVENT_LOG, analytics);
+		sets.put(QueueTopic.USER_ACTIVITY_S3_INGEST, userActivityS3Ingest);
 
 		topicSets = Map.copyOf(sets);
 		dlqByMainTopic = topicSets.values().stream()
@@ -49,10 +42,6 @@ public class DefaultTopicNamingPolicy implements TopicNamingPolicy {
 		groups.put(QueueTopic.GROUP_MEMBER_JOINED, "cg.group.member-joined.v1");
 		groups.put(QueueTopic.NOTIFICATION_REQUESTED,
 			emptyToDefault(properties.getNotification().getConsumerGroup(), "cg.notification.processor.v1"));
-		groups.put(QueueTopic.USER_ACTIVITY,
-			emptyToDefault(properties.getUserActivity().getConsumerGroup(), "cg.user-activity.ingest.v1"));
-		groups.put(QueueTopic.ANALYTICS_EVENT_LOG,
-			emptyToDefault(properties.getAnalyticsEventLog().getConsumerGroup(), "cg.analytics.event-log.v1"));
 		consumerGroups = Map.copyOf(groups);
 	}
 
