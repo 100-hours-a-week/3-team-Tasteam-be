@@ -2,10 +2,12 @@ package com.tasteam.infra.messagequeue.serialization;
 
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 public record QueueMessageEnvelope(
 	String topic,
 	String key,
-	String payloadBase64,
+	JsonNode payload,
 	Map<String, String> headers,
 	long occurredAtEpochMillis,
 	String messageId) {

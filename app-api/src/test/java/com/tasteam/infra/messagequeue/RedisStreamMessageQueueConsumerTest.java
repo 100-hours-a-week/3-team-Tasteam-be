@@ -8,9 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
@@ -50,7 +48,8 @@ class RedisStreamMessageQueueConsumerTest {
 		RedisStreamMessageQueueConsumer consumer = new RedisStreamMessageQueueConsumer(
 			redisTemplate,
 			listenerContainer,
-			properties);
+			properties,
+			new com.fasterxml.jackson.databind.ObjectMapper());
 		MessageQueueSubscription subscription = new MessageQueueSubscription("order.created", "group-1", "consumer-1");
 
 		// when
@@ -78,7 +77,8 @@ class RedisStreamMessageQueueConsumerTest {
 		RedisStreamMessageQueueConsumer consumer = new RedisStreamMessageQueueConsumer(
 			redisTemplate,
 			listenerContainer,
-			properties);
+			properties,
+			new com.fasterxml.jackson.databind.ObjectMapper());
 		MessageQueueSubscription subscription = new MessageQueueSubscription("order.created", "group-1", "consumer-1");
 		consumer.subscribe(subscription, message -> {});
 
@@ -110,7 +110,8 @@ class RedisStreamMessageQueueConsumerTest {
 		RedisStreamMessageQueueConsumer consumer = new RedisStreamMessageQueueConsumer(
 			redisTemplate,
 			listenerContainer,
-			properties);
+			properties,
+			new com.fasterxml.jackson.databind.ObjectMapper());
 		MessageQueueSubscription subscription = new MessageQueueSubscription("order.created", "group-1", "consumer-1");
 
 		java.util.concurrent.atomic.AtomicReference<QueueMessage> captured = new java.util.concurrent.atomic.AtomicReference<>();
@@ -128,7 +129,7 @@ class RedisStreamMessageQueueConsumerTest {
 			"topic", "order.created",
 			"key", "order-1",
 			"occurredAt", String.valueOf(Instant.parse("2026-02-14T00:00:00Z").toEpochMilli()),
-			"payload", Base64.getEncoder().encodeToString("payload".getBytes(StandardCharsets.UTF_8)),
+			"payload", "\"payload\"",
 			"header.source", "test"));
 
 		// when
@@ -138,7 +139,7 @@ class RedisStreamMessageQueueConsumerTest {
 		assertThat(captured.get()).isNotNull();
 		assertThat(captured.get().topic()).isEqualTo("order.created");
 		assertThat(captured.get().key()).isEqualTo("order-1");
-		assertThat(new String(captured.get().payload(), StandardCharsets.UTF_8)).isEqualTo("payload");
+		assertThat(captured.get().payload().asText()).isEqualTo("payload");
 		assertThat(captured.get().headers()).containsEntry("source", "test");
 		verify(streamOperations).acknowledge(eq("tasteam:order.created"), eq("group-1"), eq(RecordId.of("1-0")));
 	}
@@ -164,7 +165,8 @@ class RedisStreamMessageQueueConsumerTest {
 		RedisStreamMessageQueueConsumer consumer = new RedisStreamMessageQueueConsumer(
 			redisTemplate,
 			listenerContainer,
-			properties);
+			properties,
+			new com.fasterxml.jackson.databind.ObjectMapper());
 		MessageQueueSubscription subscription = new MessageQueueSubscription("order.created", "group-1", "consumer-1");
 
 		java.util.concurrent.atomic.AtomicReference<QueueMessage> captured = new java.util.concurrent.atomic.AtomicReference<>();
@@ -182,7 +184,7 @@ class RedisStreamMessageQueueConsumerTest {
 			"topic", "order.created",
 			"key", "order-2",
 			"occurredAt", "invalid-number",
-			"payload", Base64.getEncoder().encodeToString("payload".getBytes(StandardCharsets.UTF_8))));
+			"payload", "\"payload\""));
 
 		// when
 		listenerCaptor.getValue().onMessage(record);
@@ -211,7 +213,8 @@ class RedisStreamMessageQueueConsumerTest {
 		RedisStreamMessageQueueConsumer consumer = new RedisStreamMessageQueueConsumer(
 			redisTemplate,
 			listenerContainer,
-			properties);
+			properties,
+			new com.fasterxml.jackson.databind.ObjectMapper());
 		MessageQueueSubscription subscription = new MessageQueueSubscription("order.created", "group-1", "consumer-1");
 		consumer.subscribe(subscription, message -> {
 			throw new IllegalStateException("처리 실패");
@@ -228,7 +231,7 @@ class RedisStreamMessageQueueConsumerTest {
 			"topic", "order.created",
 			"key", "order-3",
 			"occurredAt", String.valueOf(Instant.parse("2026-02-14T00:00:00Z").toEpochMilli()),
-			"payload", Base64.getEncoder().encodeToString("payload".getBytes(StandardCharsets.UTF_8))));
+			"payload", "\"payload\""));
 
 		// when
 		listenerCaptor.getValue().onMessage(record);

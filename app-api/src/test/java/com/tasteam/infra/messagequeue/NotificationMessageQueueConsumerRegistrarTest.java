@@ -9,7 +9,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.DisplayName;
@@ -80,7 +79,7 @@ class NotificationMessageQueueConsumerRegistrarTest {
 		capturedHandler.get().handle(QueueMessage.of(
 			QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic(),
 			"200",
-			objectMapper.writeValueAsBytes(payload)));
+			objectMapper.valueToTree(payload)));
 
 		verify(notificationService).createNotification(
 			eq(200L),
@@ -119,7 +118,7 @@ class NotificationMessageQueueConsumerRegistrarTest {
 			QueueMessage.of(
 				QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic(),
 				"200",
-				"{\"memberId\":\"invalid\"}".getBytes(StandardCharsets.UTF_8))))
+				new ObjectMapper().createObjectNode().put("memberId", "invalid"))))
 			.isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("역직렬화");
 	}

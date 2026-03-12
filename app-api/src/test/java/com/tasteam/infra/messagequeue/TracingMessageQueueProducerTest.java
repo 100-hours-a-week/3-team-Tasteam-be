@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
@@ -23,7 +24,7 @@ class TracingMessageQueueProducerTest {
 			delegate,
 			MessageQueueProviderType.REDIS_STREAM,
 			traceService);
-		QueueMessage message = QueueMessage.of("domain.review.created", "123", new byte[] {1});
+		QueueMessage message = QueueMessage.of("domain.review.created", "123", new ObjectMapper().createObjectNode());
 
 		// when
 		producer.publish(message);

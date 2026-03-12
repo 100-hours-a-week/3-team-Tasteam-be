@@ -1,12 +1,12 @@
 package com.tasteam.infra.messagequeue;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.domain.analytics.persistence.UserActivityEventStoreService;
@@ -43,8 +43,8 @@ public class UserActivityMessageQueueConsumerRegistrar {
 			"user-activity-" + UUID.randomUUID());
 
 		messageQueueConsumer.subscribe(subscription, message -> {
-			ActivityEvent payload = deserializePayload(message.payload());
-			userActivityEventStoreService.store(payload);
+			ActivityEvent event = deserializePayload(message.payload());
+			userActivityEventStoreService.store(event);
 		});
 	}
 
@@ -55,12 +55,11 @@ public class UserActivityMessageQueueConsumerRegistrar {
 		}
 	}
 
-	private ActivityEvent deserializePayload(byte[] payload) {
+	private ActivityEvent deserializePayload(JsonNode payload) {
 		try {
-			return objectMapper.readValue(payload, ActivityEvent.class);
-		} catch (IOException ex) {
-			String payloadAsString = new String(payload, StandardCharsets.UTF_8);
-			throw new IllegalArgumentException("UserActivity 메시지 역직렬화에 실패했습니다. payload=" + payloadAsString, ex);
+			return objectMapper.treeToValue(payload, ActivityEvent.class);
+		} catch (JsonProcessingException ex) {
+			throw new IllegalArgumentException("UserActivity 메시지 역직렬화에 실패했습니다. payload=" + payload, ex);
 		}
 	}
 }

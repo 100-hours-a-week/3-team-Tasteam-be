@@ -55,7 +55,7 @@ class NotificationMessageQueueConsumerTest {
 		QueueMessage message = QueueMessage.of(
 			QueueTopic.NOTIFICATION_REQUESTED.defaultMainTopic(),
 			"10",
-			objectMapper.writeValueAsBytes(samplePayload("evt-success")));
+			objectMapper.valueToTree(samplePayload("evt-success")));
 
 		ReflectionTestUtils.invokeMethod(consumer, "handleMessage", message);
 
@@ -87,7 +87,7 @@ class NotificationMessageQueueConsumerTest {
 		QueueMessage message = QueueMessage.of(
 			QueueTopic.NOTIFICATION_REQUESTED.defaultMainTopic(),
 			"10",
-			objectMapper.writeValueAsBytes(samplePayload("evt-fail")));
+			objectMapper.valueToTree(samplePayload("evt-fail")));
 
 		ReflectionTestUtils.invokeMethod(consumer, "handleMessage", message);
 
@@ -105,7 +105,7 @@ class NotificationMessageQueueConsumerTest {
 		QueueMessage message = QueueMessage.of(
 			QueueTopic.NOTIFICATION_REQUESTED.defaultMainTopic(),
 			"10",
-			objectMapper.writeValueAsBytes(samplePayload("evt-fail")));
+			objectMapper.valueToTree(samplePayload("evt-fail")));
 		org.mockito.ArgumentCaptor<QueueMessage> captor = forClass(QueueMessage.class);
 
 		dlqPublisher.publish(message);

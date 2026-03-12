@@ -19,9 +19,9 @@ public interface MessageQueueProducer {
 	 *
 	 * @param topic 메시지 라우팅 토픽
 	 * @param key 파티셔닝 또는 식별에 사용하는 키
-	 * @param payload 직렬화된 메시지 본문
+	 * @param payload JSON 페이로드
 	 */
-	default void publish(String topic, String key, byte[] payload) {
+	default void publish(String topic, String key, com.fasterxml.jackson.databind.JsonNode payload) {
 		publish(QueueMessage.of(topic, key, payload));
 	}
 }

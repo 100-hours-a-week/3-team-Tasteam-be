@@ -44,7 +44,7 @@ public class RedisStreamMessageQueueProducer implements MessageQueueProducer {
 		value.put("topic", message.topic());
 		value.put("key", message.key() == null ? "" : message.key());
 		value.put("occurredAt", String.valueOf(message.occurredAt().toEpochMilli()));
-		value.put("payload", java.util.Base64.getEncoder().encodeToString(message.payload()));
+		value.put("payload", message.payload().toString());
 
 		message.headers().forEach((headerKey, headerValue) -> value.put("header." + headerKey, headerValue));
 		return value;

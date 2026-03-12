@@ -73,7 +73,7 @@ class UserActivityMessageQueueFlowIntegrationTest {
 		assertThat(published.topic()).isEqualTo(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY));
 		assertThat(published.messageId()).isNotBlank();
 
-		ActivityEvent payload = objectMapper.readValue(published.payload(), ActivityEvent.class);
+		ActivityEvent payload = objectMapper.treeToValue(published.payload(), ActivityEvent.class);
 		assertThat(payload.eventName()).isEqualTo("review.created");
 		assertThat(((Number)payload.properties().get("restaurantId")).longValue()).isEqualTo(130L);
 

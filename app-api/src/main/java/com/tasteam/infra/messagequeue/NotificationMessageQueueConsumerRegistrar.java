@@ -1,11 +1,10 @@
 package com.tasteam.infra.messagequeue;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.notification.entity.NotificationType;
 import com.tasteam.domain.notification.service.NotificationService;
@@ -53,12 +52,11 @@ public class NotificationMessageQueueConsumerRegistrar {
 		}
 	}
 
-	private GroupMemberJoinedMessagePayload deserializePayload(byte[] payload) {
+	private GroupMemberJoinedMessagePayload deserializePayload(JsonNode payload) {
 		try {
-			return objectMapper.readValue(payload, GroupMemberJoinedMessagePayload.class);
-		} catch (IOException ex) {
-			String payloadAsString = new String(payload, StandardCharsets.UTF_8);
-			throw new IllegalArgumentException("GroupMemberJoined 메시지 역직렬화에 실패했습니다. payload=" + payloadAsString, ex);
+			return objectMapper.treeToValue(payload, GroupMemberJoinedMessagePayload.class);
+		} catch (JsonProcessingException ex) {
+			throw new IllegalArgumentException("GroupMemberJoined 메시지 역직렬화에 실패했습니다. payload=" + payload, ex);
 		}
 	}
 

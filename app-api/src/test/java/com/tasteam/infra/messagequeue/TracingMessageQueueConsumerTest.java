@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
@@ -30,7 +31,8 @@ class TracingMessageQueueConsumerTest {
 			traceService);
 		MessageQueueSubscription subscription = new MessageQueueSubscription("domain.group.member-joined", "group-1",
 			"consumer-1");
-		QueueMessage message = QueueMessage.of("domain.group.member-joined", "200", new byte[] {1});
+		QueueMessage message = QueueMessage.of("domain.group.member-joined", "200",
+			new ObjectMapper().createObjectNode());
 		AtomicReference<QueueMessageHandler> capturedHandler = new AtomicReference<>();
 		doAnswer(invocation -> {
 			QueueMessageHandler handler = invocation.getArgument(1);
@@ -59,7 +61,8 @@ class TracingMessageQueueConsumerTest {
 			traceService);
 		MessageQueueSubscription subscription = new MessageQueueSubscription("domain.group.member-joined", "group-1",
 			"consumer-1");
-		QueueMessage message = QueueMessage.of("domain.group.member-joined", "200", new byte[] {1});
+		QueueMessage message = QueueMessage.of("domain.group.member-joined", "200",
+			new ObjectMapper().createObjectNode());
 		AtomicReference<QueueMessageHandler> capturedHandler = new AtomicReference<>();
 		doAnswer(invocation -> {
 			QueueMessageHandler handler = invocation.getArgument(1);

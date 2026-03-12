@@ -9,7 +9,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.domain.analytics.api.ActivitySink;
@@ -60,12 +60,8 @@ public class UserActivityMessageQueuePublisher implements ActivitySink {
 		}
 	}
 
-	private byte[] serialize(ActivityEvent event) {
-		try {
-			return objectMapper.writeValueAsBytes(event);
-		} catch (JsonProcessingException ex) {
-			throw new IllegalStateException("사용자 이벤트 메시지 직렬화에 실패했습니다", ex);
-		}
+	private JsonNode serialize(ActivityEvent event) {
+		return objectMapper.valueToTree(event);
 	}
 
 	private Map<String, String> buildHeaders(ActivityEvent event) {

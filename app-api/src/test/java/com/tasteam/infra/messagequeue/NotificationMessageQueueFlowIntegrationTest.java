@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 import org.junit.jupiter.api.DisplayName;
@@ -72,7 +71,7 @@ class NotificationMessageQueueFlowIntegrationTest {
 		assertThat(publishedMessage.key()).isEqualTo("20");
 		assertThat(publishedMessage.headers()).containsEntry("eventType", "GroupMemberJoinedEvent");
 
-		GroupMemberJoinedMessagePayload payload = objectMapper.readValue(
+		GroupMemberJoinedMessagePayload payload = objectMapper.treeToValue(
 			publishedMessage.payload(),
 			GroupMemberJoinedMessagePayload.class);
 		assertThat(payload.groupId()).isEqualTo(10L);
@@ -87,7 +86,7 @@ class NotificationMessageQueueFlowIntegrationTest {
 		handlerCaptor.getValue().handle(QueueMessage.of(
 			QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic(),
 			"20",
-			objectMapper.writeValueAsBytes(payload)));
+			objectMapper.valueToTree(payload)));
 
 		verify(notificationService).createNotification(
 			eq(20L),
@@ -110,7 +109,7 @@ class NotificationMessageQueueFlowIntegrationTest {
 			QueueMessage.of(
 				QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic(),
 				"20",
-				"{\"memberId\":\"invalid\"}".getBytes(StandardCharsets.UTF_8))))
+				objectMapper.readTree("{\"memberId\":\"invalid\"}"))))
 			.isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("역직렬화");
 	}

@@ -14,6 +14,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.Subscription;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.NullNode;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,6 +28,7 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 	private final StringRedisTemplate stringRedisTemplate;
 	private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamListenerContainer;
 	private final MessageQueueProperties properties;
+	private final ObjectMapper objectMapper;
 	private final Map<MessageQueueSubscription, Subscription> subscriptions = new ConcurrentHashMap<>();
 
 	@Override
@@ -80,7 +85,7 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 		String key = emptyToNull(recordValue.get("key"));
 		String messageId = recordValue.get("messageId");
 		Instant occurredAt = parseOccurredAt(recordValue.get("occurredAt"));
-		byte[] payload = java.util.Base64.getDecoder().decode(recordValue.getOrDefault("payload", ""));
+		JsonNode payload = parsePayload(recordValue.get("payload"));
 
 		Map<String, String> headers = new HashMap<>();
 		recordValue.forEach((field, value) -> {
@@ -90,6 +95,18 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 		});
 
 		return new QueueMessage(topic, key, payload, headers, occurredAt, messageId);
+	}
+
+	private JsonNode parsePayload(String value) {
+		if (value == null || value.isBlank()) {
+			return NullNode.getInstance();
+		}
+		try {
+			return objectMapper.readTree(value);
+		} catch (Exception ex) {
+			log.warn("메시지큐 레코드의 payload JSON 파싱 실패. value={}", value);
+			return NullNode.getInstance();
+		}
 	}
 
 	private Instant parseOccurredAt(String value) {

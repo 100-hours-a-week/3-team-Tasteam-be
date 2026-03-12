@@ -7,7 +7,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
 
@@ -67,7 +66,7 @@ class UserActivityMessageQueueConsumerRegistrarTest {
 			Map.of("groupId", 99L));
 		handlerCaptor.getValue().handle(
 			QueueMessage.of(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY), "20",
-				objectMapper.writeValueAsBytes(event)));
+				objectMapper.valueToTree(event)));
 		verify(storeService).store(any(ActivityEvent.class));
 	}
 
@@ -125,7 +124,7 @@ class UserActivityMessageQueueConsumerRegistrarTest {
 			QueueMessage.of(
 				topicNamingPolicy.main(QueueTopic.USER_ACTIVITY),
 				"key",
-				"{\"eventId\":\"evt\"}".getBytes(StandardCharsets.UTF_8))))
+				new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"eventId\":\"evt\"}"))))
 			.isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("역직렬화");
 		verifyNoInteractions(storeService);

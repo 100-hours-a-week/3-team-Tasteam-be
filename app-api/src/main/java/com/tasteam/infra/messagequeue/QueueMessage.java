@@ -5,10 +5,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 public record QueueMessage(
 	String topic,
 	String key,
-	byte[] payload,
+	JsonNode payload,
 	Map<String, String> headers,
 	Instant occurredAt,
 	String messageId) {
@@ -19,13 +21,12 @@ public record QueueMessage(
 		}
 		Objects.requireNonNull(payload, "payload는 필수입니다");
 
-		payload = payload.clone();
 		headers = headers == null ? Map.of() : Map.copyOf(headers);
 		occurredAt = occurredAt == null ? Instant.now() : occurredAt;
 		messageId = (messageId == null || messageId.isBlank()) ? UUID.randomUUID().toString() : messageId;
 	}
 
-	public static QueueMessage of(String topic, String key, byte[] payload) {
+	public static QueueMessage of(String topic, String key, JsonNode payload) {
 		return new QueueMessage(topic, key, payload, Map.of(), Instant.now(), null);
 	}
 }

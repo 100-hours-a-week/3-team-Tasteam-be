@@ -1,7 +1,6 @@
 package com.tasteam.domain.notification.consumer;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.domain.notification.payload.NotificationRequestedPayload;
 import com.tasteam.infra.messagequeue.MessageQueueConsumer;
@@ -89,12 +89,11 @@ public class NotificationMessageQueueConsumer {
 		}
 	}
 
-	private NotificationRequestedPayload deserializePayload(byte[] payload) {
+	private NotificationRequestedPayload deserializePayload(JsonNode payload) {
 		try {
-			return objectMapper.readValue(payload, NotificationRequestedPayload.class);
+			return objectMapper.treeToValue(payload, NotificationRequestedPayload.class);
 		} catch (IOException ex) {
-			String payloadAsString = new String(payload, StandardCharsets.UTF_8);
-			throw new IllegalArgumentException("알림 메시지 역직렬화 실패. payload=" + payloadAsString, ex);
+			throw new IllegalArgumentException("알림 메시지 역직렬화 실패. payload=" + payload, ex);
 		}
 	}
 }
