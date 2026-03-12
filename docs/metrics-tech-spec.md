@@ -389,7 +389,7 @@ OTEL_ENDPOINT=http://tempo:4318/v1/traces       # 컨테이너 간 서비스 이
 
 ```bash
 # 1. 모니터링 스택 시작
-docker-compose -f docker-compose.local.yml -f docker-compose.monitoring.yml up -d
+docker-compose -f docker-compose.local.yml -f docker-compose.local-monitoring.yml up -d
 
 # 2. 애플리케이션 실행 (트레이싱 활성화)
 TRACING_AOP_ENABLED=true TRACING_TX_ENABLED=true TRACING_ENABLED=true \
