@@ -8,6 +8,7 @@ public class DefaultTopicNamingPolicy implements TopicNamingPolicy {
 	private static final String DLQ_SUFFIX = ".dlq";
 	private final Map<QueueTopic, TopicSet> topicSets;
 	private final Map<String, String> dlqByMainTopic;
+	private final Map<QueueTopic, String> consumerGroups;
 
 	public DefaultTopicNamingPolicy(KafkaMessageQueueProperties properties) {
 		Map<QueueTopic, TopicSet> sets = new EnumMap<>(QueueTopic.class);
@@ -43,6 +44,16 @@ public class DefaultTopicNamingPolicy implements TopicNamingPolicy {
 		topicSets = Map.copyOf(sets);
 		dlqByMainTopic = topicSets.values().stream()
 			.collect(java.util.stream.Collectors.toUnmodifiableMap(TopicSet::main, TopicSet::dlq));
+
+		Map<QueueTopic, String> groups = new EnumMap<>(QueueTopic.class);
+		groups.put(QueueTopic.GROUP_MEMBER_JOINED, "cg.group.member-joined.v1");
+		groups.put(QueueTopic.NOTIFICATION_REQUESTED,
+			emptyToDefault(properties.getNotification().getConsumerGroup(), "cg.notification.processor.v1"));
+		groups.put(QueueTopic.USER_ACTIVITY,
+			emptyToDefault(properties.getUserActivity().getConsumerGroup(), "cg.user-activity.ingest.v1"));
+		groups.put(QueueTopic.ANALYTICS_EVENT_LOG,
+			emptyToDefault(properties.getAnalyticsEventLog().getConsumerGroup(), "cg.analytics.event-log.v1"));
+		consumerGroups = Map.copyOf(groups);
 	}
 
 	@Override
@@ -67,6 +78,15 @@ public class DefaultTopicNamingPolicy implements TopicNamingPolicy {
 			return sourceTopic;
 		}
 		return sourceTopic + DLQ_SUFFIX;
+	}
+
+	@Override
+	public String consumerGroup(QueueTopic topic) {
+		String group = consumerGroups.get(topic);
+		if (group == null || group.isBlank()) {
+			throw new IllegalArgumentException("지원하지 않는 QueueTopic consumerGroup입니다: " + topic);
+		}
+		return group;
 	}
 
 	private String emptyToDefault(String value, String defaultValue) {

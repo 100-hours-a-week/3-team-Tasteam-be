@@ -37,6 +37,7 @@ import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
 public class KafkaMessageQueueConfig {
 
 	@Bean
+	@ConditionalOnMissingBean(QueueMessageSerializer.class)
 	public QueueMessageSerializer queueMessageSerializer(ObjectMapper objectMapper) {
 		return new JsonQueueMessageSerializer(objectMapper);
 	}

@@ -12,5 +12,7 @@ public interface TopicNamingPolicy {
 		return resolve(topic).dlq();
 	}
 
+	String consumerGroup(QueueTopic topic);
+
 	String dlq(String sourceTopic);
 }

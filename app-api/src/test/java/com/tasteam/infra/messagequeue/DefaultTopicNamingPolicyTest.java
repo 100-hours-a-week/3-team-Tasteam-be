@@ -22,6 +22,7 @@ class DefaultTopicNamingPolicyTest {
 		assertThat(notification.main()).isEqualTo("evt.notification.dispatch.v1");
 		assertThat(notification.dlq()).isEqualTo("evt.notification.dispatch.v1.dlq");
 		assertThat(notification.retry(2)).isEqualTo("evt.notification.dispatch.v1.retry.2");
+		assertThat(policy.consumerGroup(QueueTopic.NOTIFICATION_REQUESTED)).isEqualTo("cg.notification.processor.v1");
 	}
 
 	@Test

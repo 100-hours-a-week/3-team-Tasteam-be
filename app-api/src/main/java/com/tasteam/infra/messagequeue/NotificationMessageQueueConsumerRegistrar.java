@@ -2,7 +2,6 @@ package com.tasteam.infra.messagequeue;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -22,9 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
 public class NotificationMessageQueueConsumerRegistrar {
 
-	private final MessageQueueConsumer messageQueueConsumer;
+	private final QueueEventSubscriber queueEventSubscriber;
 	private final MessageQueueProperties messageQueueProperties;
-	private final TopicNamingPolicy topicNamingPolicy;
 	private final NotificationService notificationService;
 	private final ObjectMapper objectMapper;
 
@@ -37,12 +35,7 @@ public class NotificationMessageQueueConsumerRegistrar {
 			return;
 		}
 
-		subscription = new MessageQueueSubscription(
-			topicNamingPolicy.main(QueueTopic.GROUP_MEMBER_JOINED),
-			messageQueueProperties.getDefaultConsumerGroup(),
-			"notification-" + UUID.randomUUID());
-
-		messageQueueConsumer.subscribe(subscription, message -> {
+		subscription = queueEventSubscriber.subscribe(QueueTopic.GROUP_MEMBER_JOINED, message -> {
 			GroupMemberJoinedMessagePayload payload = deserializePayload(message.payload());
 			notificationService.createNotification(
 				payload.memberId(),
@@ -56,7 +49,7 @@ public class NotificationMessageQueueConsumerRegistrar {
 	@PreDestroy
 	public void unsubscribe() {
 		if (subscription != null) {
-			messageQueueConsumer.unsubscribe(subscription);
+			queueEventSubscriber.unsubscribe(subscription);
 		}
 	}
 

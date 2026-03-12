@@ -31,8 +31,6 @@ import jakarta.annotation.Resource;
 @DisplayName("[통합](Notification) NotificationMessageQueueFlow 통합 테스트")
 class NotificationMessageQueueFlowIntegrationTest {
 
-	private static final String CONSUMER_GROUP = "tasteam-api";
-
 	@Resource
 	private ApplicationEventPublisher applicationEventPublisher;
 
@@ -47,6 +45,9 @@ class NotificationMessageQueueFlowIntegrationTest {
 
 	@Resource
 	private ObjectMapper objectMapper;
+
+	@Resource
+	private TopicNamingPolicy topicNamingPolicy;
 
 	@Test
 	@DisplayName("GroupMemberJoined 이벤트 발행 시 MQ publish와 notification 소비 처리까지 이어진다")
@@ -80,7 +81,8 @@ class NotificationMessageQueueFlowIntegrationTest {
 
 		MessageQueueSubscription subscription = subscriptionCaptor.getValue();
 		assertThat(subscription.topic()).isEqualTo(QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic());
-		assertThat(subscription.consumerGroup()).isEqualTo(CONSUMER_GROUP);
+		assertThat(subscription.consumerGroup())
+			.isEqualTo(topicNamingPolicy.consumerGroup(QueueTopic.GROUP_MEMBER_JOINED));
 
 		handlerCaptor.getValue().handle(QueueMessage.of(
 			QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic(),
@@ -163,17 +165,24 @@ class NotificationMessageQueueFlowIntegrationTest {
 
 		@Bean
 		NotificationMessageQueueConsumerRegistrar notificationMessageQueueConsumerRegistrar(
-			MessageQueueConsumer messageQueueConsumer,
+			QueueEventSubscriber queueEventSubscriber,
 			MessageQueueProperties messageQueueProperties,
-			TopicNamingPolicy topicNamingPolicy,
 			NotificationService notificationService,
 			ObjectMapper objectMapper) {
 			return new NotificationMessageQueueConsumerRegistrar(
-				messageQueueConsumer,
+				queueEventSubscriber,
 				messageQueueProperties,
-				topicNamingPolicy,
 				notificationService,
 				objectMapper);
+		}
+
+		@Bean
+		QueueEventSubscriber queueEventSubscriber(
+			MessageQueueConsumer messageQueueConsumer,
+			TopicNamingPolicy topicNamingPolicy) {
+			return new DefaultQueueEventSubscriber(
+				new DefaultMessageBrokerReceiver(messageQueueConsumer),
+				topicNamingPolicy);
 		}
 	}
 }
