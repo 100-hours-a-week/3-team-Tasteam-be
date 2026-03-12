@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.ToDoubleFunction;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
@@ -11,7 +13,6 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.stereotype.Component;
 
-import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.tasteam.global.config.LocalCacheProperties;
 
 import io.micrometer.core.instrument.FunctionCounter;
@@ -36,6 +37,7 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 	private final CacheManager cacheManager;
 
 	private final LocalCacheProperties localCacheProperties;
+	private final Map<String, CacheMetricsProbe> probes = new ConcurrentHashMap<>();
 
 	@Override
 	public void bindTo(MeterRegistry registry) {
@@ -49,7 +51,8 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 			return;
 		}
 
-		var nativeCache = caffeineCache.getNativeCache();
+		CacheMetricsProbe probe = probes.computeIfAbsent(cacheName,
+			ignored -> new CacheMetricsProbe(cacheManager, cacheName));
 		Tags baseTags = metadata.baseTags();
 
 		validate(METRIC_TTL, baseTags);
@@ -57,19 +60,21 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 			.description("API별 로컬 캐시 TTL")
 			.baseUnit("seconds")
 			.tags(baseTags)
+			.strongReference(true)
 			.register(registry);
 
 		validate(METRIC_SIZE, baseTags);
-		Gauge.builder(METRIC_SIZE, nativeCache, cacheRef -> cacheRef.estimatedSize())
+		Gauge.builder(METRIC_SIZE, probe, CacheMetricsProbe::estimatedSize)
 			.description("API별 로컬 캐시 예상 엔트리 수")
 			.tags(baseTags)
+			.strongReference(true)
 			.register(registry);
 
-		registerRequestCounter(registry, baseTags, nativeCache::stats, "hit", CacheStats::hitCount);
-		registerRequestCounter(registry, baseTags, nativeCache::stats, "miss", CacheStats::missCount);
+		registerRequestCounter(registry, baseTags, probe, "hit", CacheMetricsProbe::hitCount);
+		registerRequestCounter(registry, baseTags, probe, "miss", CacheMetricsProbe::missCount);
 
 		validate(METRIC_EVICTIONS, baseTags);
-		FunctionCounter.builder(METRIC_EVICTIONS, nativeCache, cacheRef -> cacheRef.stats().evictionCount())
+		FunctionCounter.builder(METRIC_EVICTIONS, probe, CacheMetricsProbe::evictionCount)
 			.description("API별 로컬 캐시 eviction 누적 수")
 			.tags(baseTags)
 			.register(registry);
@@ -78,12 +83,12 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 	private void registerRequestCounter(
 		MeterRegistry registry,
 		Tags baseTags,
-		StatsSupplier statsSupplier,
+		CacheMetricsProbe probe,
 		String result,
-		StatsExtractor extractor) {
+		ToDoubleFunction<CacheMetricsProbe> extractor) {
 		Tags tags = baseTags.and("result", result);
 		validate(METRIC_REQUESTS, tags);
-		FunctionCounter.builder(METRIC_REQUESTS, statsSupplier, supplier -> extractor.extract(supplier.get()))
+		FunctionCounter.builder(METRIC_REQUESTS, probe, extractor)
 			.description("API별 로컬 캐시 hit/miss 누적 요청 수")
 			.tags(tags)
 			.register(registry);
@@ -103,6 +108,8 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 
 		return switch (cacheName) {
 			case "presigned-url" -> new CacheMetadata(cacheName, "file", "GET", "/api/v1/files/{fileUuid}/url", ttl);
+			case "reverse-geocode" -> new CacheMetadata(cacheName, "location", "GET", "/api/v1/geocode/reverse",
+				ttl);
 			case "main-section-hot-all" -> new CacheMetadata(cacheName, "main", "GET",
 				"/api/v1/main,/api/v1/main/home", ttl);
 			case "main-section-new-all" -> new CacheMetadata(cacheName, "main", "GET",
@@ -152,13 +159,33 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 		}
 	}
 
-	@FunctionalInterface
-	private interface StatsSupplier {
-		CacheStats get();
+	private record CacheMetricsProbe(
+		CacheManager cacheManager,
+		String cacheName) {
+
+		private double estimatedSize() {
+			return nativeCache().map(cache -> (double)cache.estimatedSize()).orElse(0.0);
+		}
+
+		private double hitCount() {
+			return nativeCache().map(cache -> (double)cache.stats().hitCount()).orElse(0.0);
+		}
+
+		private double missCount() {
+			return nativeCache().map(cache -> (double)cache.stats().missCount()).orElse(0.0);
+		}
+
+		private double evictionCount() {
+			return nativeCache().map(cache -> (double)cache.stats().evictionCount()).orElse(0.0);
+		}
+
+		private java.util.Optional<com.github.benmanes.caffeine.cache.Cache<?, ?>> nativeCache() {
+			Cache cache = cacheManager.getCache(cacheName);
+			if (cache instanceof CaffeineCache caffeineCache) {
+				return java.util.Optional.of(caffeineCache.getNativeCache());
+			}
+			return java.util.Optional.empty();
+		}
 	}
 
-	@FunctionalInterface
-	private interface StatsExtractor {
-		double extract(CacheStats cacheStats);
-	}
 }
