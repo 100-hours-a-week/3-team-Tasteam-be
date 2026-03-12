@@ -34,6 +34,7 @@ class LocalCacheMetricsBinderTest {
 				.build());
 
 		LocalCacheProperties properties = new LocalCacheProperties();
+		properties.getCaffeine().setMaximumSize(100);
 		LocalCacheProperties.CacheTtl cacheTtl = new LocalCacheProperties.CacheTtl();
 		cacheTtl.setTtl(Duration.ofHours(24));
 		properties.getTtl().put("reverse-geocode", cacheTtl);
@@ -66,14 +67,26 @@ class LocalCacheMetricsBinderTest {
 			.tags("cache", "reverse-geocode", "domain", "location", "method", "GET", "uri",
 				"/api/v1/geocode/reverse")
 			.gauge();
+		Gauge capacityGauge = registry.find("tasteam.cache.capacity")
+			.tags("cache", "reverse-geocode", "domain", "location", "method", "GET", "uri",
+				"/api/v1/geocode/reverse")
+			.gauge();
+		Gauge utilizationGauge = registry.find("tasteam.cache.utilization.ratio")
+			.tags("cache", "reverse-geocode", "domain", "location", "method", "GET", "uri",
+				"/api/v1/geocode/reverse")
+			.gauge();
 
 		assertThat(hitCounter).isNotNull();
 		assertThat(missCounter).isNotNull();
 		assertThat(ttlGauge).isNotNull();
 		assertThat(sizeGauge).isNotNull();
+		assertThat(capacityGauge).isNotNull();
+		assertThat(utilizationGauge).isNotNull();
 		assertThat(hitCounter.count()).isEqualTo(1.0);
 		assertThat(missCounter.count()).isEqualTo(1.0);
 		assertThat(ttlGauge.value()).isEqualTo(Duration.ofHours(24).toSeconds());
 		assertThat(sizeGauge.value()).isEqualTo(1.0);
+		assertThat(capacityGauge.value()).isEqualTo(100.0);
+		assertThat(utilizationGauge.value()).isEqualTo(0.01);
 	}
 }

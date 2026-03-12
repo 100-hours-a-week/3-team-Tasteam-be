@@ -49,7 +49,7 @@ docker compose -f docker-compose.local.yml -f docker-compose.local-monitoring.ym
 
 ## 포함된 이관 대시보드
 
-- `Tasteam Application`: Spring Core, Spring Cache
+- `Tasteam Application`: Spring Core, Spring Cache(L1 Caffeine + Redis 계층)
 - `Tasteam Infrastructure`: Node Exporter, Redis, PostgreSQL RDS
 - `Tasteam Logs & Tracing`: Spring Transaction Detail, Server Logs
 - `Tasteam Async & Events`: Spring Async

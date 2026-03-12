@@ -15,11 +15,26 @@
       }
     ]
   },
+  "description": "L1 Caffeine 로컬 캐시와 Redis 계층을 함께 보는 캐시 대시보드. 현재 앱 코드는 RedisCacheManager 기반 정식 2단 캐시를 쓰지 않으므로, Redis 패널은 shared backend store 관점의 보조 신호로 해석해야 한다. 로컬 Redis maxmemory=0 환경에서는 메모리 패널을 bytes/peak 기준으로 본다.",
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
+  "graphTooltip": 1,
+  "id": null,
   "links": [],
   "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": [],
+      "title": "Cache Overview",
+      "type": "row"
+    },
     {
       "datasource": {
         "type": "prometheus",
@@ -30,22 +45,22 @@
           "color": {
             "mode": "thresholds"
           },
+          "decimals": 1,
           "max": 100,
           "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
-                "value": null
+                "color": "red"
               },
               {
                 "color": "orange",
-                "value": 50
+                "value": 70
               },
               {
                 "color": "green",
-                "value": 80
+                "value": 90
               }
             ]
           },
@@ -54,15 +69,15 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 8,
+        "h": 4,
+        "w": 3,
         "x": 0,
-        "y": 0
+        "y": 1
       },
-      "id": 1,
+      "id": 2,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -71,19 +86,83 @@
           ],
           "fields": "",
           "values": false
-        }
+        },
+        "textMode": "auto"
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "100 * (sum(increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", cache=~\"$cache\", result=\"hit\"}[5m])) / clamp_min(sum(increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", cache=~\"$cache\"}[5m])), 1))",
+          "editorMode": "code",
+          "expr": "100 * ((sum(increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\", result=\"hit\"}[5m])) or vector(0)) / clamp_min((sum(increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"}[5m])) or vector(0)), 1))",
+          "instant": true,
+          "legendFormat": "l1_hit_ratio",
           "refId": "A"
         }
       ],
-      "title": "Cache Hit Ratio",
+      "title": "L1 Hit Ratio (5m)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\", result=\"miss\"}[5m])) or vector(0)",
+          "instant": true,
+          "legendFormat": "l1_miss_rate",
+          "refId": "A"
+        }
+      ],
+      "title": "L1 Miss Rate (5m)",
       "type": "stat"
     },
     {
@@ -96,40 +175,655 @@
           "color": {
             "mode": "palette-classic"
           },
-          "unit": "ops"
+          "decimals": 0,
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 7
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 1
       },
       "id": 4,
       "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (cache) (tasteam_cache_size{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})) or vector(0)",
+          "instant": true,
+          "legendFormat": "l1_entries",
+          "refId": "A"
+        }
+      ],
+      "title": "L1 Entries",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * ((sum(max by (cache) (tasteam_cache_size{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})) or vector(0)) / clamp_min((sum(max by (cache) (tasteam_cache_capacity{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})) or vector(0)), 1))",
+          "instant": true,
+          "legendFormat": "l1_utilization",
+          "refId": "A"
+        }
+      ],
+      "title": "L1 Capacity Usage",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red"
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * ((sum(rate(redis_keyspace_hits_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m])) or vector(0)) / clamp_min((sum(rate(redis_keyspace_hits_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]) + rate(redis_keyspace_misses_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m])) or vector(0)), 1))",
+          "instant": true,
+          "legendFormat": "l2_hit_ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "L2 Redis Hit Ratio (5m)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 2,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "redis_used_memory",
+          "refId": "A"
+        }
+      ],
+      "title": "L2 Used Memory",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "redis_keys",
+          "refId": "A"
+        }
+      ],
+      "title": "L2 Keys",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 1.2
+              },
+              {
+                "color": "red",
+                "value": 1.5
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "avg(redis_mem_fragmentation_ratio{environment=~\"$environment\", instance=~\"$redis_instance\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "fragmentation_ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "L2 Fragmentation",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 10,
+      "panels": [],
+      "title": "L1 Local Cache (Caffeine)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red"
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 6
+      },
+      "id": 11,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * (sum by (cache) (increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\", result=\"hit\"}[5m])) / clamp_min(sum by (cache) (increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"}[5m])), 1))",
+          "instant": true,
+          "legendFormat": "{{cache}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Hit Ratio by Cache (5m)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 6
+      },
+      "id": 12,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * max by (cache) (tasteam_cache_utilization_ratio{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})",
+          "instant": true,
+          "legendFormat": "{{cache}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Capacity Usage by Cache",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 6
+      },
+      "id": 13,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "max by (cache) (tasteam_cache_ttl_seconds{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})",
+          "instant": true,
+          "legendFormat": "{{cache}}",
+          "refId": "A"
+        }
+      ],
+      "title": "TTL by Cache",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-BlPu"
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 6
+      },
+      "id": 14,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "max by (cache) (tasteam_cache_size{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"})",
+          "instant": true,
+          "legendFormat": "{{cache}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Entries by Cache",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 14
+      },
+      "id": 15,
+      "options": {
         "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (cache, result) (rate(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", cache=~\"$cache\"}[5m]))",
-          "legendFormat": "{{cache}} {{result}}",
+          "editorMode": "code",
+          "expr": "100 * (sum by (cache) (increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\", result=\"hit\"}[$__rate_interval])) / clamp_min(sum by (cache) (increase(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"}[$__rate_interval])), 1))",
+          "legendFormat": "{{cache}}",
           "refId": "A"
         }
       ],
-      "title": "Cache Hit and Miss Rate",
+      "title": "Hit Ratio Trend by Cache",
       "type": "timeseries"
     },
     {
@@ -142,19 +836,319 @@
           "color": {
             "mode": "palette-classic"
           },
-          "unit": "short"
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 3,
+          "unit": "ops"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 8,
         "x": 8,
-        "y": 0
+        "y": 14
       },
-      "id": 2,
+      "id": 16,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (cache, result) (rate(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"}[5m]))",
+          "legendFormat": "{{cache}} {{result}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Mix by Cache",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 3,
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 14
+      },
+      "id": 17,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (cache) (rate(tasteam_cache_evictions_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\", cache=~\"$cache\"}[5m]))",
+          "legendFormat": "{{cache}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Eviction Rate by Cache",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 18,
+      "panels": [],
+      "title": "L2 Redis Layer",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 3,
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 23
+      },
+      "id": 19,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(redis_keyspace_hits_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "legendFormat": "hits",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(redis_keyspace_misses_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "legendFormat": "misses",
+          "refId": "B"
+        }
+      ],
+      "title": "Redis Keyspace Hit / Miss Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 2,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 23
+      },
+      "id": 20,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "legendFormat": "used",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_peak_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "legendFormat": "peak",
+          "refId": "B"
+        }
+      ],
+      "title": "Redis Used vs Peak Memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-BlPu"
+          },
+          "decimals": 2,
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 23
+      },
+      "id": 21,
       "options": {
         "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
@@ -167,16 +1161,172 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_dataset_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "instant": true,
+          "legendFormat": "dataset",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_overhead_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "instant": true,
+          "legendFormat": "overhead",
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_memory_used_rss_bytes{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "instant": true,
+          "legendFormat": "rss",
+          "refId": "C"
+        }
+      ],
+      "title": "Redis Memory Breakdown",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-BlPu"
           },
-          "expr": "sum by (cache) (tasteam_cache_size{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", cache=~\"$cache\"})",
-          "legendFormat": "{{cache}}",
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 31
+      },
+      "id": 22,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (db) (redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
+          "instant": true,
+          "legendFormat": "{{db}}",
           "refId": "A"
         }
       ],
-      "title": "Cache Size",
+      "title": "Keys by DB",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 31
+      },
+      "id": 23,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (db) (redis_db_keys_expiring{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
+          "instant": true,
+          "legendFormat": "{{db}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Expiring Keys by DB",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "decimals": 0,
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 31
+      },
+      "id": 24,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "max by (db) (redis_db_avg_ttl_seconds{environment=~\"$environment\", instance=~\"$redis_instance\", db=~\"$redis_db\"})",
+          "instant": true,
+          "legendFormat": "{{db}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg TTL by DB",
       "type": "bargauge"
     },
     {
@@ -189,42 +1339,211 @@
           "color": {
             "mode": "palette-classic"
           },
-          "unit": "s"
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 3,
+          "unit": "ops"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 16,
-        "y": 0
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 39
       },
-      "id": 3,
+      "id": 25,
       "options": {
-        "displayMode": "gradient",
-        "orientation": "horizontal",
-        "reduceOptions": {
+        "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "max"
           ],
-          "fields": "",
-          "values": false
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "showUnfilled": true
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
+          "editorMode": "code",
+          "expr": "sum(rate(redis_expired_keys_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "legendFormat": "expired",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(redis_evicted_keys_total{environment=~\"$environment\", instance=~\"$redis_instance\"}[5m]))",
+          "legendFormat": "evicted",
+          "refId": "B"
+        }
+      ],
+      "title": "Expired vs Evicted Keys Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
           },
-          "expr": "max by (cache) (tasteam_cache_ttl_seconds{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", cache=~\"$cache\"})",
-          "legendFormat": "{{cache}}",
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 2,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 39
+      },
+      "id": 26,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "avg(redis_mem_fragmentation_ratio{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "legendFormat": "fragmentation_ratio",
           "refId": "A"
         }
       ],
-      "title": "Cache TTL",
-      "type": "bargauge"
+      "title": "Redis Fragmentation Ratio Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 39
+      },
+      "id": 27,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_connected_clients{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "legendFormat": "connected",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(redis_blocked_clients{environment=~\"$environment\", instance=~\"$redis_instance\"})",
+          "legendFormat": "blocked",
+          "refId": "B"
+        }
+      ],
+      "title": "Redis Clients",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",
@@ -233,13 +1552,14 @@
   "tags": [
     "spring",
     "cache",
+    "redis",
     "tasteam"
   ],
   "templating": {
     "list": [
       {
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "All",
           "value": "$__all"
         },
@@ -248,7 +1568,6 @@
           "uid": "prometheus"
         },
         "definition": "label_values(up{job=\"spring\"}, environment)",
-        "hide": 0,
         "includeAll": true,
         "label": "environment",
         "multi": true,
@@ -261,7 +1580,7 @@
       },
       {
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "All",
           "value": "$__all"
         },
@@ -270,7 +1589,6 @@
           "uid": "prometheus"
         },
         "definition": "label_values(up{job=\"spring\", environment=~\"$environment\"}, instance)",
-        "hide": 0,
         "includeAll": true,
         "label": "instance",
         "multi": true,
@@ -283,7 +1601,7 @@
       },
       {
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "All",
           "value": "$__all"
         },
@@ -291,14 +1609,97 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\"}, cache)",
-        "hide": 0,
+        "definition": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\"}, domain)",
+        "includeAll": true,
+        "label": "domain",
+        "multi": true,
+        "name": "domain",
+        "options": [],
+        "query": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\"}, domain)",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\"}, uri)",
+        "includeAll": true,
+        "label": "uri",
+        "multi": true,
+        "name": "uri",
+        "options": [],
+        "query": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\"}, uri)",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\"}, cache)",
         "includeAll": true,
         "label": "cache",
         "multi": true,
         "name": "cache",
         "options": [],
-        "query": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\"}, cache)",
+        "query": "label_values(tasteam_cache_requests_total{job=\"spring\", environment=~\"$environment\", instance=~\"$instance\", domain=~\"$domain\", uri=~\"$uri\"}, cache)",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(redis_up{environment=~\"$environment\"}, instance)",
+        "includeAll": true,
+        "label": "redis_instance",
+        "multi": true,
+        "name": "redis_instance",
+        "options": [],
+        "query": "label_values(redis_up{environment=~\"$environment\"}, instance)",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\"}, db)",
+        "includeAll": true,
+        "label": "redis_db",
+        "multi": true,
+        "name": "redis_db",
+        "options": [],
+        "query": "label_values(redis_db_keys{environment=~\"$environment\", instance=~\"$redis_instance\"}, db)",
         "refresh": 1,
         "sort": 1,
         "type": "query"
@@ -309,9 +1710,9 @@
     "from": "now-6h",
     "to": "now"
   },
-  "timezone": "",
+  "timezone": "browser",
   "title": "Tasteam Spring Cache",
   "uid": "tasteam-spring-cache",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

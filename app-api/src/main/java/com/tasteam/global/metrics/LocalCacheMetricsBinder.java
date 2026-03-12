@@ -30,6 +30,8 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 
 	private static final String METRIC_TTL = "tasteam.cache.ttl.seconds";
 	private static final String METRIC_SIZE = "tasteam.cache.size";
+	private static final String METRIC_CAPACITY = "tasteam.cache.capacity";
+	private static final String METRIC_UTILIZATION = "tasteam.cache.utilization.ratio";
 	private static final String METRIC_REQUESTS = "tasteam.cache.requests";
 	private static final String METRIC_EVICTIONS = "tasteam.cache.evictions";
 
@@ -70,6 +72,20 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 			.strongReference(true)
 			.register(registry);
 
+		validate(METRIC_CAPACITY, baseTags);
+		Gauge.builder(METRIC_CAPACITY, metadata, ignored -> metadata.capacity())
+			.description("API별 로컬 캐시 최대 엔트리 수")
+			.tags(baseTags)
+			.strongReference(true)
+			.register(registry);
+
+		validate(METRIC_UTILIZATION, baseTags);
+		Gauge.builder(METRIC_UTILIZATION, probe, ignored -> probe.utilizationRatio(metadata.capacity()))
+			.description("API별 로컬 캐시 엔트리 점유율")
+			.tags(baseTags)
+			.strongReference(true)
+			.register(registry);
+
 		registerRequestCounter(registry, baseTags, probe, "hit", CacheMetricsProbe::hitCount);
 		registerRequestCounter(registry, baseTags, probe, "miss", CacheMetricsProbe::missCount);
 
@@ -105,19 +121,21 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 
 	private CacheMetadata resolveMetadata(String cacheName) {
 		Duration ttl = resolveTtl(cacheName);
+		long capacity = localCacheProperties.getCaffeine().getMaximumSize();
 
 		return switch (cacheName) {
-			case "presigned-url" -> new CacheMetadata(cacheName, "file", "GET", "/api/v1/files/{fileUuid}/url", ttl);
+			case "presigned-url" -> new CacheMetadata(cacheName, "file", "GET", "/api/v1/files/{fileUuid}/url", ttl,
+				capacity);
 			case "reverse-geocode" -> new CacheMetadata(cacheName, "location", "GET", "/api/v1/geocode/reverse",
-				ttl);
+				ttl, capacity);
 			case "main-section-hot-all" -> new CacheMetadata(cacheName, "main", "GET",
-				"/api/v1/main,/api/v1/main/home", ttl);
+				"/api/v1/main,/api/v1/main/home", ttl, capacity);
 			case "main-section-new-all" -> new CacheMetadata(cacheName, "main", "GET",
-				"/api/v1/main,/api/v1/main/home", ttl);
+				"/api/v1/main,/api/v1/main/home", ttl, capacity);
 			case "main-section-ai-all" -> new CacheMetadata(cacheName, "main", "GET",
-				"/api/v1/main,/api/v1/main/ai-recommend", ttl);
-			case "main-banners" -> new CacheMetadata(cacheName, "main", "GET", "/api/v1/main", ttl);
-			default -> new CacheMetadata(cacheName, "unknown", "UNKNOWN", "unmapped", ttl);
+				"/api/v1/main,/api/v1/main/ai-recommend", ttl, capacity);
+			case "main-banners" -> new CacheMetadata(cacheName, "main", "GET", "/api/v1/main", ttl, capacity);
+			default -> new CacheMetadata(cacheName, "unknown", "UNKNOWN", "unmapped", ttl, capacity);
 		};
 	}
 
@@ -144,7 +162,8 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 		String domain,
 		String method,
 		String uri,
-		Duration ttl) {
+		Duration ttl,
+		long capacity) {
 
 		private Tags baseTags() {
 			return Tags.of(
@@ -157,6 +176,7 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 		private double ttlSeconds() {
 			return ttl.toSeconds();
 		}
+
 	}
 
 	private record CacheMetricsProbe(
@@ -177,6 +197,13 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 
 		private double evictionCount() {
 			return nativeCache().map(cache -> (double)cache.stats().evictionCount()).orElse(0.0);
+		}
+
+		private double utilizationRatio(double capacity) {
+			if (capacity <= 0) {
+				return 0.0;
+			}
+			return estimatedSize() / capacity;
 		}
 
 		private java.util.Optional<com.github.benmanes.caffeine.cache.Cache<?, ?>> nativeCache() {
