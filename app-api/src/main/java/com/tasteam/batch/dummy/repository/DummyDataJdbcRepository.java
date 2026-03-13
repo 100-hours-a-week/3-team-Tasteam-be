@@ -730,7 +730,7 @@ public class DummyDataJdbcRepository {
 		Timestamp now = ts();
 		int n = restaurantIds.size();
 		// JSONB 리터럴 — 더미 고정값이므로 SQL 상수로 임베드
-		String jsonbLiteral = "'{\"summary\":\"더미 리뷰 요약입니다.\",\"highlights\":[\"맛있다\",\"친절하다\"]}'::jsonb";
+		String jsonbLiteral = "'{\"overall_summary\":\"더미 리뷰 요약입니다.\",\"categories\":{}}'::jsonb";
 
 		for (int start = 0; start < n; start += CHUNK) {
 			int end = Math.min(start + CHUNK, n);
