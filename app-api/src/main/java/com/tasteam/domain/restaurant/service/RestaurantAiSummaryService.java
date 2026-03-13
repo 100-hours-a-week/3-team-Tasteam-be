@@ -60,21 +60,23 @@ public class RestaurantAiSummaryService {
 			.stream()
 			.collect(Collectors.toMap(
 				s -> s.getRestaurantId(),
-				s -> toSummaryString(s.getSummaryJson())));
+				s -> toSummaryStringOrFallback(s.getSummaryJson()),
+				(existing, replacement) -> existing,
+				LinkedHashMap::new));
 
 		return restaurantIds.stream()
 			.collect(Collectors.toMap(
 				restaurantId -> restaurantId,
-				restaurantId -> summaries.getOrDefault(restaurantId, REVIEW_SUMMARY_FALLBACK)));
+				restaurantId -> summaries.getOrDefault(restaurantId, REVIEW_SUMMARY_FALLBACK),
+				(existing, replacement) -> existing,
+				LinkedHashMap::new));
 	}
 
 	private RestaurantAiSummary toRestaurantAiSummary(Map<String, Object> summaryJson) {
 		if (summaryJson == null) {
 			return null;
 		}
-		String overallSummary = summaryJson.get("overall_summary") != null
-			? summaryJson.get("overall_summary").toString()
-			: null;
+		String overallSummary = extractSummaryText(summaryJson);
 		@SuppressWarnings("unchecked") Map<String, Object> categoriesRaw = (Map<String, Object>)summaryJson
 			.get("categories");
 		Map<AiReviewCategory, RestaurantAiCategorySummary> categoryDetails = parseCategorySummaries(categoriesRaw);
@@ -250,10 +252,29 @@ public class RestaurantAiSummaryService {
 	}
 
 	private static String toSummaryString(Map<String, Object> summaryJson) {
-		if (summaryJson == null) {
+		return extractSummaryText(summaryJson);
+	}
+
+	private static String toSummaryStringOrFallback(Map<String, Object> summaryJson) {
+		String summary = toSummaryString(summaryJson);
+		return summary != null ? summary : REVIEW_SUMMARY_FALLBACK;
+	}
+
+	private static String extractSummaryText(Map<String, Object> summaryJson) {
+		if (summaryJson == null || summaryJson.isEmpty()) {
 			return null;
 		}
+
 		Object overall = summaryJson.get("overall_summary");
-		return overall != null ? overall.toString() : null;
+		if (overall != null && !overall.toString().isBlank()) {
+			return overall.toString();
+		}
+
+		Object legacy = summaryJson.get("summary");
+		if (legacy != null && !legacy.toString().isBlank()) {
+			return legacy.toString();
+		}
+
+		return null;
 	}
 }
