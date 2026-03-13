@@ -17,7 +17,8 @@ public enum NotificationErrorCode implements ErrorCode {
 	INVALID_NOTIFICATION_PREFERENCE(HttpStatus.BAD_REQUEST, "유효하지 않은 알림 선호도 설정입니다"),
 	EMAIL_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."),
 	EMAIL_BLOCKED_24H(HttpStatus.TOO_MANY_REQUESTS, "요청이 너무 많아 24시간 동안 차단되었습니다."),
-	EMAIL_RATE_LIMITER_UNAVAILABLE(HttpStatus.TOO_MANY_REQUESTS, "잠시 후 다시 시도해 주세요.");
+	EMAIL_RATE_LIMITER_UNAVAILABLE(HttpStatus.TOO_MANY_REQUESTS, "잠시 후 다시 시도해 주세요."),
+	MESSAGE_QUEUE_DISABLED(HttpStatus.BAD_REQUEST, "메시지 큐가 비활성 상태입니다. message-queue.enabled=true 로 설정 후 사용하세요.");
 
 	private final HttpStatus httpStatus;
 	private final String message;
