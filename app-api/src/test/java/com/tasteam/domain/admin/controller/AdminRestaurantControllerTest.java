@@ -20,38 +20,23 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.admin.dto.request.AdminRestaurantCreateRequest;
 import com.tasteam.domain.admin.dto.request.AdminRestaurantSearchCondition;
 import com.tasteam.domain.admin.dto.request.AdminRestaurantUpdateRequest;
 import com.tasteam.domain.admin.dto.response.AdminRestaurantDetailResponse;
 import com.tasteam.domain.admin.dto.response.AdminRestaurantListItem;
-import com.tasteam.domain.admin.service.AdminRestaurantService;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 
-@ControllerWebMvcTest(AdminRestaurantController.class)
 @DisplayName("[유닛](Admin) AdminRestaurantController 단위 테스트")
-class AdminRestaurantControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private AdminRestaurantService adminRestaurantService;
+class AdminRestaurantControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("음식점 목록 조회")

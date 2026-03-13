@@ -7,17 +7,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 
-@ControllerWebMvcTest(AdminSpaFallbackController.class)
 @DisplayName("[유닛](Admin) AdminSpaFallbackController 단위 테스트")
-class AdminSpaFallbackControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
+class AdminSpaFallbackControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("관리자 SPA 직접 라우팅")

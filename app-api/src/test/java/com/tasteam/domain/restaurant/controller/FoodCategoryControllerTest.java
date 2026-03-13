@@ -9,23 +9,12 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.response.FoodCategoryResponse;
-import com.tasteam.domain.restaurant.service.FoodCategoryService;
 
-@ControllerWebMvcTest(FoodCategoryController.class)
 @DisplayName("[유닛](Restaurant) FoodCategoryController 단위 테스트")
-class FoodCategoryControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private FoodCategoryService foodCategoryService;
+class FoodCategoryControllerTest extends BaseControllerWebMvcTest {
 
 	@Test
 	@DisplayName("음식 카테고리 목록을 조회하면 카테고리 목록을 반환한다")

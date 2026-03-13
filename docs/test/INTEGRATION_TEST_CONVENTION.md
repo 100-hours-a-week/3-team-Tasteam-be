@@ -1,163 +1,137 @@
-# 통합 테스트 컨벤션 (Integration Test)
+# 통합 계열 테스트 컨벤션
 
-> 대상: `@IntegrationTest`, `@ServiceIntegrationTest`, `@JobIntegrationTest` 기반 통합 테스트
-> 예: `RestaurantServiceIntegrationTest`, `ReviewServiceIntegrationTest`, `AdminGroupImageIntegrationTest` 등
+> 대상: `@IntegrationTest`, `@ServiceIntegrationTest`, `@JobIntegrationTest`, `@MessageQueueFlowTest`, `@PerformanceTest`
 
-이 문서는 통합 테스트가 **무엇을 보장해야 하는지**를 정의합니다.  
-통합 테스트는 **유즈케이스 관점에서 비즈니스 플로우가 실제 환경과 동일하게 동작하는지**를 확인하는 레이어입니다.  
-즉, “이 기능이 운영 환경에서 처음부터 끝까지 제대로 돈다”를 보장하는 것이 핵심 목적입니다.
+이 문서는 백엔드의 통합 계열 테스트를 현재 코드 기준으로 구분한다.
+공통 목적은 **실제 빈 연결과 상태 변화가 운영과 같은 조건에서 유지되는지 확인하는 것**이다.
 
----
+## 1. 현재 테스트 종류
 
-## 1. 통합 테스트의 본질
+### 1.1 `@IntegrationTest`
 
-통합 테스트는 다음을 검증합니다.
+- 전체 Spring Boot 컨텍스트 + `MockMvc`
+- `integration` 태그
+- `TestSecurityConfig`, `TestStorageConfiguration`, `TestcontainersConfiguration` import
 
-- **유즈케이스 플로우의 성공/실패 결과**
-- **레이어 간 협력(Controller/Service/Repository/DB/보안/스토리지)**
-- **트랜잭션 경계 이후의 실제 상태 변화**
-- **인프라 설정이 비즈니스 로직에 미치는 영향**
+용도:
 
-통합 테스트는 **비즈니스 관점의 결과**를 검증하는 것이 핵심이며, 구현 세부나 계약의 모든 디테일을 다루지 않습니다.  
-즉, “유즈케이스를 수행했을 때 비즈니스 규칙이 실제로 지켜지는가”를 끝까지 확인하는 테스트입니다.
+- HTTP 전체 플로우를 끝까지 검증할 때
 
----
+현재 상태:
 
-## 2. 통합 테스트의 검증 범위
+- `GroupSubgroupApiSmokeIntegrationTest`가 현재 이 어노테이션을 사용한다.
 
-**검증 대상**
+### 1.2 `@ServiceIntegrationTest`
 
-- End-to-End 유즈케이스 플로우
-- 상태 변화 및 부작용
-- Security/인증/인가 플로우
-- 실제 DB 반영 및 트랜잭션 결과
-- 외부 인프라와의 협력(테스트용 Stub/Fake 포함)
+- 전체 Spring Boot 컨텍스트(webEnvironment NONE)
+- `service-integration` 태그
+- `TestStorageConfiguration`, `TestcontainersConfiguration` import
 
-**검증 제외**
+용도:
 
-- 모든 분기/경계값 케이스의 완전한 커버리지
-- HTTP 계약의 모든 세부 필드
-- Validation/예외 매핑의 모든 조건
-- JPA 매핑/쿼리 자체의 세부 구현
+- 서비스 유즈케이스 플로우
+- 실제 Repository / 트랜잭션 / 설정 / Fake 스토리지 연동 검증
 
-통합 테스트는 대표적인 성공/실패 플로우만 검증하고, 세밀한 분기 검증은 도메인/서비스/WebMvc 테스트에 위임합니다.
+현재 주력 통합 테스트는 대부분 이 어노테이션을 사용한다.
 
----
-
-## 3. 통합 테스트 메타 어노테이션
-
-### 3.1 @IntegrationTest (HTTP 플로우)
-
-`app-api/src/test/java/com/tasteam/config/annotation/IntegrationTest.java`
-
-- `@SpringBootTest` + `@AutoConfigureMockMvc`
-- `@ActiveProfiles("test")`
-- `@Import(TestSecurityConfig, JpaAuditingTestConfig, TestStorageConfiguration)`
-- `@Tag("integration")`
-
-HTTP 기반 유즈케이스 플로우를 통합 테스트로 검증할 때 사용합니다.
-
-### 3.2 @ServiceIntegrationTest (비HTTP 플로우)
-
-`app-api/src/test/java/com/tasteam/config/annotation/ServiceIntegrationTest.java`
-
-- `@SpringBootTest(webEnvironment = NONE)`
-- `@ActiveProfiles("test")`
-- `@Import(TestStorageConfiguration, TestcontainersConfiguration)`
-- `@Tag("service-integration")`
-
-컨트롤러가 없는 서비스/배치/메시지 리스너 플로우를 대상으로 합니다.
-
-### 3.3 @JobIntegrationTest (배치/잡 전용)
-
-`app-api/src/test/java/com/tasteam/config/annotation/JobIntegrationTest.java`
+### 1.3 `@JobIntegrationTest`
 
 - `@ServiceIntegrationTest` 기반
-- `@Tag("job-integration")` 추가
+- `job-integration` 태그 추가
 
-배치/잡/메시지 리스너와 같은 잡성 플로우 검증 시 사용합니다.
+용도:
 
----
+- 배치/스케줄러/잡성 플로우
 
-## 4. 유즈케이스 중심 작성 원칙
+현재 상태:
 
-통합 테스트는 반드시 **유즈케이스 중심으로 작성**합니다.
+- 어노테이션은 존재하지만 구체 테스트 클래스는 아직 없다.
 
-- 테스트 클래스는 유즈케이스 또는 기능 단위로 구성합니다.
-- `@Nested`는 유즈케이스 하위 시나리오 묶음으로 사용합니다.
-- 테스트는 한 번의 액션과 한 개의 비즈니스 결과만 검증합니다.
-- “이 기능을 수행했을 때 비즈니스적으로 무엇이 보장되어야 하는가”를 기준으로 작성합니다.
-- @DisplayName은 비즈니스 문장이어야 하며, 구현 세부 용어를 피합니다.
+### 1.4 `@MessageQueueFlowTest`
 
-대표 패턴
+- `test` 프로필 + `integration` 태그
+- 개별 테스트가 자체 `@SpringBootTest(classes = TestConfig.class, webEnvironment = NONE)`를 함께 선언
 
-- `게시글 생성 → DB 반영 + 연관 상태 변화`
-- `회원 탈퇴 → 접근 불가 + soft delete 상태`
-- `인증 실패 → 토큰 재발급 차단`
+용도:
 
----
+- MQ 발행/구독 wiring
+- topic / consumer-group / payload 직렬화 계약
+- producer/consumer mock을 통한 publish/subscribe 연결 검증
 
-## 5. 테스트 작성 패턴
+### 1.5 `@PerformanceTest`
 
-### 5.1 HTTP 플로우
+- 전체 Spring Boot 컨텍스트(webEnvironment NONE)
+- `perf` 태그
 
-- **Given**: 실제 Repository로 초기 상태 구성
-- **When**: `MockMvc`로 엔드포인트 호출
-- **Then**: 상태 코드 + 핵심 응답 필드 + DB 상태 검증
+용도:
 
-HTTP 응답 전체 스펙을 검증하지 않고, 핵심 결과만 확인합니다.
+- 동시성, 멱등성, 경합 상황의 일관성
+- 기본 `test` 태스크에서는 제외하고 별도로 실행
 
-### 5.2 비HTTP 플로우
+## 2. 무엇을 검증하는가
 
-- **Given**: DB 상태 + 테스트용 Stub/Fake 구성
-- **When**: 서비스/리스너/잡 진입점 호출
-- **Then**: DB 상태/부작용/외부 호출 결과 검증
+- 유즈케이스 성공/실패 결과
+- 실제 빈 연결, 트랜잭션 경계, DB 상태 변화
+- Fake 스토리지/Fake 외부 컴포넌트가 포함된 실제 서비스 흐름
+- MQ 라우팅/구독 배선
+- 동시 요청 상황에서의 최종 상태 일관성
 
----
+## 3. 무엇을 검증하지 않는가
 
-## 6. Assertion 원칙
+- 모든 HTTP 세부 필드 계약
+- 모든 도메인 경계값과 정책 판단
+- 모든 JPA 쿼리 세부
+- 구현 내부 호출 순서
 
-- **핵심 결과만 검증**한다.
-- 성공 플로우는 “업무적으로 중요한 결과” 1~2개만 확인한다.
-- 실패 플로우는 “유즈케이스 수준의 실패 조건”만 검증한다.
-- 반드시 **DB 상태 또는 부작용**을 함께 확인한다.
+이 항목은 각각 WebMvc, 도메인/단위, Repository 테스트가 담당한다.
 
----
+## 4. 작성 패턴
 
-## 7. 외부 협력자 처리
+### 4.1 서비스 통합
 
-- 내부 서비스는 가능한 한 실제 빈을 사용한다.
-- 외부 API/클라이언트는 `@MockitoBean` 또는 Fake로 대체한다.
-- 통합 테스트는 Mocking 최소화가 원칙이다.
+- Given: Fixture + 실제 Repository 저장
+- When: 서비스 진입점 호출
+- Then: 핵심 결과 + DB 상태 + 의미 있는 부작용 검증
 
----
+### 4.2 HTTP 통합
 
-## 8. 테스트 픽스처 사용
+- Given: 실제 DB 상태 구성
+- When: `MockMvc` 호출
+- Then: 상태 코드 + 핵심 응답 + DB 상태
 
-- `src/testFixtures/java`의 Fixture를 적극 재사용한다.
-- Given 단계에서 데이터 생성을 간결하게 유지한다.
-- 랜덤 값, 현재 시간 의존을 금지한다.
+### 4.3 MQ 플로우
 
----
+- Given: 테스트 전용 `TestConfig`에 producer/consumer mock과 serializer/policy 빈 정의
+- When: 이벤트 발행 또는 handler 호출
+- Then: publish payload, topic, subscription, downstream collaborator 호출 검증
 
-## 9. 트랜잭션/격리 원칙
+### 4.4 성능/동시성
 
-- 기본적으로 `@Transactional`로 테스트 간 상태 격리를 유지한다.
-- 커밋 이후 동작 검증이 필요하면 해당 테스트에서 트랜잭션 전략을 명시한다.
+- Given: 실제 DB/토큰/회원/검색 데이터 준비
+- When: 멀티 스레드 동시 호출
+- Then: 최종 활성 상태, 히스토리 적재, 토큰 저장 상태 등 일관성 검증
 
----
+## 5. 외부 협력자 처리
 
-## 10. 언제 통합 테스트를 추가/수정할까?
+- 내부 서비스와 Repository는 실제 빈 사용이 기본이다.
+- 외부 시스템은 Fake/Stub를 우선한다.
+  - `TestStorageConfiguration.FakeStorageClient`
+  - `com.tasteam.config.fake` 패키지 구현체
+- 통합 테스트에서 `@MockitoBean`은 최소화한다.
 
-- **핵심 유즈케이스가 새로 추가될 때**
-- **Security/인프라 설정이 변경될 때**
-- **트랜잭션/상태 변화가 복잡해질 때**
-- **배치/비동기 플로우가 새로 생길 때**
+## 6. 격리와 실행
 
----
+- 많은 서비스 통합 테스트가 `@Transactional`로 롤백 격리를 사용한다.
+- 성능 테스트는 별도 정리 코드를 두는 경우가 많다.
+- 전역 포크 수는 `1`로 제한되어 있다.
+- Testcontainers는 재사용을 전제로 동작한다.
 
-## 11. 요약
+## 7. 현재 인벤토리 해석 원칙
 
-- 통합 테스트는 **유즈케이스 플로우 + 실제 인프라 협력**을 검증하는 레이어다.
-- 통합 테스트의 목적은 **비즈니스 결과가 실제 환경에서 보장되는지**를 확인하는 것이다.
-- 상세 계약/모든 분기/세부 쿼리는 다른 테스트 레이어가 담당한다.
+- 어떤 클래스가 어떤 시나리오를 보장하는지는 `USECASE_TEST_TARGETS.md`를 기준으로 본다.
+- 구현이 끝나지 않은 테스트는 계약 완료로 보지 않고 “구현 예정 갭”으로 기록한다.
+
+## 8. 현재 갭
+
+- `@JobIntegrationTest`는 현재 예비 어노테이션에 가깝다.
+- `SearchServiceConcurrencyIntegrationTest`는 성능 태그(`perf`)를 사용하지만 클래스명/표시는 통합 테스트처럼 보인다.

@@ -11,36 +11,17 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.notification.dto.request.AdminBroadcastEmailRequest;
 import com.tasteam.domain.notification.dto.request.AdminBroadcastPushRequest;
 import com.tasteam.domain.notification.dto.request.AdminPushNotificationRequest;
 import com.tasteam.domain.notification.dto.response.AdminBroadcastResultResponse;
 import com.tasteam.domain.notification.dto.response.AdminPushNotificationResponse;
 import com.tasteam.domain.notification.entity.NotificationType;
-import com.tasteam.domain.notification.service.FcmPushService;
-import com.tasteam.domain.notification.service.NotificationBroadcastService;
 
-@ControllerWebMvcTest(AdminNotificationController.class)
 @DisplayName("[유닛](Notification) AdminNotificationController 단위 테스트")
-class AdminNotificationControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private FcmPushService fcmPushService;
-
-	@MockitoBean
-	private NotificationBroadcastService notificationBroadcastService;
+class AdminNotificationControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("테스트 푸시 발송")

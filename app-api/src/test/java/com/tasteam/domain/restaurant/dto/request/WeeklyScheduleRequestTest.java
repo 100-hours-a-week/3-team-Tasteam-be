@@ -16,6 +16,7 @@ class WeeklyScheduleRequestTest {
 	private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
 	@Test
+	@DisplayName("숫자 문자열 요일은 정수 요일 코드로 역직렬화된다")
 	void deserializesNumericString() throws Exception {
 		String json = """
 			{"dayOfWeek":"3"}
@@ -27,6 +28,7 @@ class WeeklyScheduleRequestTest {
 	}
 
 	@Test
+	@DisplayName("영문 전체 요일명은 정수 요일 코드로 역직렬화된다")
 	void deserializesFullDayName() throws Exception {
 		String json = """
 			{"dayOfWeek":"MONDAY"}
@@ -38,6 +40,7 @@ class WeeklyScheduleRequestTest {
 	}
 
 	@Test
+	@DisplayName("영문 축약 요일명은 정수 요일 코드로 역직렬화된다")
 	void deserializesShortDayCode() throws Exception {
 		String json = """
 			{"dayOfWeek":"SUN"}
@@ -49,6 +52,7 @@ class WeeklyScheduleRequestTest {
 	}
 
 	@Test
+	@DisplayName("범위를 벗어난 숫자 요일은 예외가 발생한다")
 	void rejectsOutOfRangeNumbers() {
 		String json = """
 			{"dayOfWeek":9}
@@ -60,6 +64,7 @@ class WeeklyScheduleRequestTest {
 	}
 
 	@Test
+	@DisplayName("알 수 없는 요일 문자열은 예외가 발생한다")
 	void rejectsUnknownStrings() {
 		String json = """
 			{"dayOfWeek":"FUNDAY"}

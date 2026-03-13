@@ -16,21 +16,11 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 
-@ControllerWebMvcTest(MessageQueueTraceAdminController.class)
 @DisplayName("[유닛](MQ) MessageQueueTraceAdminController 단위 테스트")
-class MessageQueueTraceAdminControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private MessageQueueTraceService traceService;
+class MessageQueueTraceAdminControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("MQ 트레이스 조회")

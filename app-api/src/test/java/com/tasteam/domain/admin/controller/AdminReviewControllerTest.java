@@ -15,30 +15,19 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.admin.dto.response.AdminReviewListItem;
-import com.tasteam.domain.admin.service.AdminReviewService;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.ReviewErrorCode;
 
-@ControllerWebMvcTest(AdminReviewController.class)
 @DisplayName("[유닛](Admin) AdminReviewController 단위 테스트")
-class AdminReviewControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private AdminReviewService adminReviewService;
+class AdminReviewControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("리뷰 목록 조회")

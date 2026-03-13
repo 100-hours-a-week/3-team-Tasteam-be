@@ -13,26 +13,12 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import com.tasteam.batch.image.optimization.service.ImageOptimizationService;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
-import com.tasteam.domain.file.service.FileService;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 
-@ControllerWebMvcTest(AdminJobController.class)
 @DisplayName("[유닛](Admin) AdminJobController 단위 테스트")
-class AdminJobControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private ImageOptimizationService imageOptimizationService;
-
-	@MockitoBean
-	private FileService fileService;
+class AdminJobControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("최적화 대상 탐색")

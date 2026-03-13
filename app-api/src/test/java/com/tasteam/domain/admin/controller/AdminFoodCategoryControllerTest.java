@@ -9,27 +9,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.admin.dto.request.AdminFoodCategoryCreateRequest;
-import com.tasteam.domain.restaurant.service.FoodCategoryService;
 
-@ControllerWebMvcTest(AdminFoodCategoryController.class)
 @DisplayName("[유닛](Admin) AdminFoodCategoryController 단위 테스트")
-class AdminFoodCategoryControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private FoodCategoryService foodCategoryService;
+class AdminFoodCategoryControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("음식 카테고리 생성")

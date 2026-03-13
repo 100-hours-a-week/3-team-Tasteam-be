@@ -15,37 +15,22 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.report.dto.request.ReportCreateRequest;
 import com.tasteam.domain.report.dto.response.ReportCreateResponse;
 import com.tasteam.domain.report.dto.response.ReportListItem;
 import com.tasteam.domain.report.entity.ReportCategory;
 import com.tasteam.domain.report.entity.ReportStatus;
-import com.tasteam.domain.report.service.ReportService;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.MemberErrorCode;
 
-@ControllerWebMvcTest(ReportController.class)
 @DisplayName("[유닛](Report) ReportController 단위 테스트")
-class ReportControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private ReportService reportService;
+class ReportControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("신고 등록")

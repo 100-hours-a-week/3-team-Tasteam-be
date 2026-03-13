@@ -8,23 +8,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.GeocodingResult;
-import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
 
-@ControllerWebMvcTest(AdminGeocodingController.class)
 @DisplayName("[유닛](Admin) AdminGeocodingController 단위 테스트")
-class AdminGeocodingControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private NaverGeocodingClient naverGeocodingClient;
+class AdminGeocodingControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("관리자 지오코딩")

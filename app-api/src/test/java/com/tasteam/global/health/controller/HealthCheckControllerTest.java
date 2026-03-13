@@ -9,24 +9,13 @@ import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthComponent;
-import org.springframework.boot.actuate.health.HealthEndpoint;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 
-@ControllerWebMvcTest(HealthCheckController.class)
 @DisplayName("[유닛](Health) HealthCheckController 단위 테스트")
-class HealthCheckControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private HealthEndpoint healthEndpoint;
+class HealthCheckControllerTest extends BaseControllerWebMvcTest {
 
 	@Test
 	@DisplayName("헬스체크 API가 상태 정보를 반환한다")

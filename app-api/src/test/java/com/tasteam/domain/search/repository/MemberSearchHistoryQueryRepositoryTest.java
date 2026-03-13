@@ -7,17 +7,14 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
 
 import com.tasteam.config.annotation.RepositoryJpaTest;
 import com.tasteam.domain.search.entity.MemberSearchHistory;
-import com.tasteam.domain.search.repository.impl.MemberSearchHistoryQueryRepositoryImpl;
 import com.tasteam.fixture.MemberSearchHistoryFixture;
 
 import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
-@Import(MemberSearchHistoryQueryRepositoryImpl.class)
 @DisplayName("[유닛](Member) MemberSearchHistoryQueryRepository 단위 테스트")
 class MemberSearchHistoryQueryRepositoryTest {
 

@@ -41,6 +41,7 @@ class ArchitectureRulesTest {
 	class LombokConstructorRule {
 
 		@Test
+		@DisplayName("인터페이스 필드를 가진 스프링 빈은 Lombok 생성자를 사용하지 않는다")
 		void 인터페이스_필드가_있는_빈_클래스는_Lombok_생성자를_사용하면_안된다() {
 			ArchRule rule = classes()
 				.that().resideInAPackage(TARGET_PACKAGE)
@@ -62,6 +63,7 @@ class ArchitectureRulesTest {
 		private static final Set<String> MULTI_BEAN_INTERFACE_NAMES = findMultiBeanInterfaceNames(CLASSES);
 
 		@Test
+		@DisplayName("다중 구현체 인터페이스 파라미터에는 Qualifier가 필요하다")
 		void 인터페이스_타입_생성자_파라미터에는_반드시_Qualifier가_있어야_한다() {
 			ArchRule rule = classes()
 				.that().resideInAPackage(TARGET_PACKAGE)

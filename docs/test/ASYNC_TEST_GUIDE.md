@@ -168,7 +168,7 @@ class ReviewCreatedEventIntegrationTest {
 
     // @Transactional 없음 — 실제 커밋 발생
 
-    @MockBean
+    @MockitoBean
     RestaurantAnalysisFacade restaurantAnalysisFacade;  // DB 의존성 없이 검증
 
     @Autowired
@@ -354,7 +354,7 @@ class ReviewEventPublisherIntegrationTest {
     @Autowired
     ReviewEventPublisher publisher;
 
-    @MockBean
+    @MockitoBean
     ApplicationEventPublisher applicationEventPublisher;  // Spring Context의 publisher를 Mock으로 교체
 
     @Autowired

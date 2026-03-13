@@ -19,6 +19,18 @@
 - `docs/policy/`: 운영/빌드/의존성 등 정책 문서를 모아둔 공간입니다.
   - `dependency-versions.md`: 의존성 버전 선택 이유 문서입니다.
   - `logging-policy.md`: 로그 저장/압축 정책 문서입니다.
+- `docs/test/`: 백엔드 테스트 계약, 실행 전략, 레이어별 테스트 규약 문서를 모아둔 공간입니다.
+  - `docs/test/README.md`: 테스트 레이어 책임, 커스텀 테스트 어노테이션, 현재 갭을 정리한 허브 문서입니다.
+  - `docs/test/TEST_EXECUTION_STRATEGY.md`: Gradle 태스크/태그, Testcontainers, 공통 Fake/Mock, 컨텍스트 재사용 규칙 문서입니다.
+  - `docs/test/TEST_COMMON_CONVENTION.md`: 테스트 공통 작성 규칙 문서입니다.
+  - `docs/test/DOMAIN_TEST_CONVENTION.md`: 도메인 엔티티/정책 테스트 규약 문서입니다.
+  - `docs/test/REPOSITORY_TEST_CONVENTION.md`: JPA/QueryDSL 리포지토리 테스트 규약 문서입니다.
+  - `docs/test/CONTROLLER_WEBMVC_TEST_CONVENTION.md`: WebMvc 슬라이스 테스트 규약 문서입니다.
+  - `docs/test/INTEGRATION_TEST_CONVENTION.md`: 서비스 통합, HTTP 통합, MQ 플로우, 성능 테스트 구분 문서입니다.
+  - `docs/test/TEST_DOUBLE_CONVENTION.md`: Fake/Stub/Mock/Spy 우선순위와 사용 규칙 문서입니다.
+  - `docs/test/TEST_FIXTURE_CONVENTION.md`: 공용 Fixture와 `java-test-fixtures` 사용 규칙 문서입니다.
+  - `docs/test/USECASE_TEST_TARGETS.md`: 현재 통합/성능 테스트 인벤토리와 보장 시나리오 문서입니다.
+  - `docs/test/ASYNC_TEST_GUIDE.md`: 비동기 이벤트/리스너 테스트 전략 문서입니다.
 - `docs/spec/`: 설계 산출물(ERD, API 명세)을 모아둔 공간입니다.
   - `docs/spec/erd/`: ERD 파일 저장
   - `docs/spec/api/`: API 명세서 저장

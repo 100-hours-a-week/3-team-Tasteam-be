@@ -13,30 +13,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.analytics.resilience.UserActivityReplayResult;
-import com.tasteam.domain.analytics.resilience.UserActivityReplayService;
-import com.tasteam.domain.analytics.resilience.UserActivitySourceOutboxService;
 import com.tasteam.domain.analytics.resilience.UserActivitySourceOutboxSummary;
 
-@TestPropertySource(properties = "tasteam.message-queue.enabled=true")
-@ControllerWebMvcTest(UserActivityOutboxAdminController.class)
 @DisplayName("[유닛](MQ) UserActivityOutboxAdminController 단위 테스트")
-class UserActivityOutboxAdminControllerWebMvcTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private UserActivitySourceOutboxService outboxService;
-
-	@MockitoBean
-	private UserActivityReplayService replayService;
+class UserActivityOutboxAdminControllerWebMvcTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("아웃박스 요약 조회")

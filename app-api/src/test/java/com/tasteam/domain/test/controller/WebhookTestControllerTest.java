@@ -12,42 +12,15 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryResponse;
 import com.tasteam.domain.member.dto.response.MemberSubgroupSummaryResponse;
 import com.tasteam.domain.member.entity.Member;
-import com.tasteam.domain.member.repository.MemberRepository;
-import com.tasteam.domain.member.service.MemberService;
 import com.tasteam.fixture.MemberFixture;
-import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
-import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
-import com.tasteam.global.security.jwt.repository.RefreshTokenStore;
 
-@ControllerWebMvcTest(WebhookTestController.class)
 @DisplayName("[유닛](Test) WebhookTestController 단위 테스트")
-class WebhookTestControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private MemberRepository memberRepository;
-
-	@MockitoBean
-	private MemberService memberService;
-
-	@MockitoBean
-	private JwtTokenProvider jwtTokenProvider;
-
-	@MockitoBean
-	private JwtCookieProvider jwtCookieProvider;
-
-	@MockitoBean
-	private RefreshTokenStore refreshTokenStore;
+class WebhookTestControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("에러 테스트")

@@ -20,33 +20,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.batch.dummy.DummySeedJobTracker;
-import com.tasteam.batch.dummy.service.DummyDataSeedService;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.admin.dto.request.AdminDummySeedRequest;
 import com.tasteam.domain.admin.dto.response.AdminDataCountResponse;
 import com.tasteam.domain.admin.dto.response.DummySeedStatusResponse;
 
-@ControllerWebMvcTest(AdminDummyController.class)
 @DisplayName("[유닛](Admin) AdminDummyController 단위 테스트")
-class AdminDummyControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private DummyDataSeedService dummyDataSeedService;
-
-	@MockitoBean
-	private DummySeedJobTracker jobTracker;
+class AdminDummyControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("더미 데이터 생성")
