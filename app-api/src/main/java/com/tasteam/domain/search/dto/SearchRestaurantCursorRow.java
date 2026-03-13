@@ -6,6 +6,7 @@ public record SearchRestaurantCursorRow(
 	Restaurant restaurant,
 	Integer nameExact,
 	Double nameSimilarity,
+	Double ftsRank,
 	Double distanceMeters,
 	Integer categoryMatch,
 	Integer addressMatch) {
