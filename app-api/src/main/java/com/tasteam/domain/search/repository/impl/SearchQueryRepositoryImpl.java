@@ -96,9 +96,15 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 		query.setParameter("cursor_score", cursorScore);
 		query.setParameter("cursor_updated_at", cursor == null ? null : cursor.updatedAt());
 		query.setParameter("cursor_id", cursor == null ? null : cursor.id());
-		query.setParameter("lat", latitude);
-		query.setParameter("lng", longitude);
-		query.setParameter("radius_m", radiusMeters);
+		if (sql.contains(":lat")) {
+			query.setParameter("lat", latitude);
+		}
+		if (sql.contains(":lng")) {
+			query.setParameter("lng", longitude);
+		}
+		if (sql.contains(":radius_m")) {
+			query.setParameter("radius_m", radiusMeters);
+		}
 
 		List<Object[]> rows = query.getResultList();
 		if (rows.isEmpty()) {
@@ -143,7 +149,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			: "";
 		String distanceExpr = withLocation
 			? "ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat))"
-			: "NULL::double precision";
+			: "NULL::double precision ";
 		String distanceScore = withLocation
 			? "GREATEST(0.0, 1.0 - (ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat)) / :radius_m)) * 50.0"
 			: "0.0";
@@ -174,7 +180,8 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 				FROM restaurant_search_mv mv
 				WHERE mv.deleted_at IS NULL
 				  """
-			+ geoFilter + """
+			+ geoFilter
+			+ """
 				      AND (
 				            mv.name_lower LIKE '%' || :kw || '%'
 				            OR mv.name_lower % :kw
@@ -194,10 +201,10 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 				    address_match
 				FROM candidates
 				WHERE (
-				    :cursor_score IS NULL
-				    OR total_score < :cursor_score
-				    OR (total_score = :cursor_score AND updated_at < :cursor_updated_at)
-				    OR (total_score = :cursor_score AND updated_at = :cursor_updated_at AND restaurant_id < :cursor_id)
+				    CAST(:cursor_score AS double precision) IS NULL
+				    OR total_score < CAST(:cursor_score AS double precision)
+				    OR (total_score = CAST(:cursor_score AS double precision) AND updated_at < CAST(:cursor_updated_at AS timestamptz))
+				    OR (total_score = CAST(:cursor_score AS double precision) AND updated_at = CAST(:cursor_updated_at AS timestamptz) AND restaurant_id < CAST(:cursor_id AS bigint))
 				)
 				ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC
 				LIMIT :size
@@ -290,14 +297,24 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 
 		query.setParameter("kw", keywordLower);
 		query.setParameter("size", size);
-		query.setParameter("text_candidate_limit", Math.max(size, textCandidateLimit));
-		query.setParameter("geo_candidate_limit", Math.max(size, geoCandidateLimit));
+		if (sql.contains(":text_candidate_limit")) {
+			query.setParameter("text_candidate_limit", Math.max(size, textCandidateLimit));
+		}
+		if (sql.contains(":geo_candidate_limit")) {
+			query.setParameter("geo_candidate_limit", Math.max(size, geoCandidateLimit));
+		}
 		query.setParameter("cursor_score", cursorScore);
 		query.setParameter("cursor_updated_at", cursor == null ? null : cursor.updatedAt());
 		query.setParameter("cursor_id", cursor == null ? null : cursor.id());
-		query.setParameter("lat", latitude);
-		query.setParameter("lng", longitude);
-		query.setParameter("radius_m", radiusMeters);
+		if (sql.contains(":lat")) {
+			query.setParameter("lat", latitude);
+		}
+		if (sql.contains(":lng")) {
+			query.setParameter("lng", longitude);
+		}
+		if (sql.contains(":radius_m")) {
+			query.setParameter("radius_m", radiusMeters);
+		}
 
 		List<Object[]> rows = query.getResultList();
 		if (rows.isEmpty()) {
@@ -362,7 +379,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 
 		String distanceExpr = withLocation
 			? "ST_DistanceSphere(r.location, ST_MakePoint(:lng, :lat))"
-			: "NULL::double precision";
+			: "NULL::double precision ";
 
 		return """
 			WITH name_like_candidates AS (
@@ -438,7 +455,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 				        (name_exact * 100.0)
 				            + (name_similarity * 30.0)
 				            + CASE
-				                WHEN distance_meters IS NULL OR :radius_m IS NULL THEN 0.0
+				                WHEN distance_meters IS NULL OR CAST(:radius_m AS double precision) IS NULL THEN 0.0
 				                ELSE GREATEST(0.0, 1.0 - (distance_meters / :radius_m)) * 50.0
 				              END AS total_score
 				    FROM scored_base
@@ -452,10 +469,10 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 				    address_match
 				FROM scored
 				WHERE (
-				    :cursor_score IS NULL
-				    OR total_score < :cursor_score
-				    OR (total_score = :cursor_score AND updated_at < :cursor_updated_at)
-				    OR (total_score = :cursor_score AND updated_at = :cursor_updated_at AND restaurant_id < :cursor_id)
+				    CAST(:cursor_score AS double precision) IS NULL
+				    OR total_score < CAST(:cursor_score AS double precision)
+				    OR (total_score = CAST(:cursor_score AS double precision) AND updated_at < CAST(:cursor_updated_at AS timestamptz))
+				    OR (total_score = CAST(:cursor_score AS double precision) AND updated_at = CAST(:cursor_updated_at AS timestamptz) AND restaurant_id < CAST(:cursor_id AS bigint))
 				)
 				ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC
 				LIMIT :size
@@ -529,10 +546,10 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			    address_match
 			FROM scored
 			WHERE (
-			    :cursor_score IS NULL
-			    OR total_score < :cursor_score
-			    OR (total_score = :cursor_score AND updated_at < :cursor_updated_at)
-			    OR (total_score = :cursor_score AND updated_at = :cursor_updated_at AND restaurant_id < :cursor_id)
+			    CAST(:cursor_score AS double precision) IS NULL
+			    OR total_score < CAST(:cursor_score AS double precision)
+			    OR (total_score = CAST(:cursor_score AS double precision) AND updated_at < CAST(:cursor_updated_at AS timestamptz))
+			    OR (total_score = CAST(:cursor_score AS double precision) AND updated_at = CAST(:cursor_updated_at AS timestamptz) AND restaurant_id < CAST(:cursor_id AS bigint))
 			)
 			ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC
 			LIMIT :size
@@ -565,7 +582,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 
 		String distanceExpr = withLocation
 			? "ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat))"
-			: "NULL::double precision";
+			: "NULL::double precision ";
 
 		return """
 			WITH name_like_candidates AS (
@@ -633,7 +650,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 				        (name_exact * 100.0)
 				            + (name_similarity * 30.0)
 				            + CASE
-				                WHEN distance_meters IS NULL OR :radius_m IS NULL THEN 0.0
+				                WHEN distance_meters IS NULL OR CAST(:radius_m AS double precision) IS NULL THEN 0.0
 				                ELSE GREATEST(0.0, 1.0 - (distance_meters / :radius_m)) * 50.0
 				              END AS total_score
 				    FROM scored_base
@@ -647,10 +664,10 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 				    address_match
 				FROM scored
 				WHERE (
-				    :cursor_score IS NULL
-				    OR total_score < :cursor_score
-				    OR (total_score = :cursor_score AND updated_at < :cursor_updated_at)
-				    OR (total_score = :cursor_score AND updated_at = :cursor_updated_at AND restaurant_id < :cursor_id)
+				    CAST(:cursor_score AS double precision) IS NULL
+				    OR total_score < CAST(:cursor_score AS double precision)
+				    OR (total_score = CAST(:cursor_score AS double precision) AND updated_at < CAST(:cursor_updated_at AS timestamptz))
+				    OR (total_score = CAST(:cursor_score AS double precision) AND updated_at = CAST(:cursor_updated_at AS timestamptz) AND restaurant_id < CAST(:cursor_id AS bigint))
 				)
 				ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC
 				LIMIT :size
@@ -679,7 +696,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			: "";
 		String distanceExpr = withLocation
 			? "ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat))"
-			: "NULL::double precision";
+			: "NULL::double precision ";
 		String distanceScore = withLocation
 			? "GREATEST(0.0, 1.0 - (ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat)) / :radius_m)) * 50.0"
 			: "0.0";
@@ -705,7 +722,8 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 				FROM restaurant_search_mv mv
 				WHERE mv.deleted_at IS NULL
 				  """
-			+ geoFilter + """
+			+ geoFilter
+			+ """
 				      AND (
 				            mv.name_lower LIKE '%' || :kw || '%'
 				            OR mv.name_lower % :kw
@@ -724,10 +742,10 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 				    address_match
 				FROM candidates
 				WHERE (
-				    :cursor_score IS NULL
-				    OR total_score < :cursor_score
-				    OR (total_score = :cursor_score AND updated_at < :cursor_updated_at)
-				    OR (total_score = :cursor_score AND updated_at = :cursor_updated_at AND restaurant_id < :cursor_id)
+				    CAST(:cursor_score AS double precision) IS NULL
+				    OR total_score < CAST(:cursor_score AS double precision)
+				    OR (total_score = CAST(:cursor_score AS double precision) AND updated_at < CAST(:cursor_updated_at AS timestamptz))
+				    OR (total_score = CAST(:cursor_score AS double precision) AND updated_at = CAST(:cursor_updated_at AS timestamptz) AND restaurant_id < CAST(:cursor_id AS bigint))
 				)
 				ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC
 				LIMIT :size
