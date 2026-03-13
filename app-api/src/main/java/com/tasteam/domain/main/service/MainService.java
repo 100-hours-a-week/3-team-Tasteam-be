@@ -1,5 +1,7 @@
 package com.tasteam.domain.main.service;
 
+import static com.tasteam.domain.restaurant.service.RestaurantAiJsonParser.extractSummaryText;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -258,19 +260,11 @@ public class MainService {
 		return restaurantReviewSummaryRepository
 			.findByRestaurantIdIn(restaurantIds)
 			.stream()
-			.filter(summary -> toSummaryString(summary.getSummaryJson()) != null)
+			.filter(summary -> extractSummaryText(summary.getSummaryJson()) != null)
 			.collect(Collectors.toMap(
 				RestaurantReviewSummary::getRestaurantId,
-				s -> toSummaryString(s.getSummaryJson()),
+				s -> extractSummaryText(s.getSummaryJson()),
 				(existing, replacement) -> existing));
-	}
-
-	private static String toSummaryString(Map<String, Object> summaryJson) {
-		if (summaryJson == null) {
-			return null;
-		}
-		Object overall = summaryJson.get("overall_summary");
-		return overall != null ? overall.toString() : null;
 	}
 
 	private List<SectionItem> toSectionItems(
