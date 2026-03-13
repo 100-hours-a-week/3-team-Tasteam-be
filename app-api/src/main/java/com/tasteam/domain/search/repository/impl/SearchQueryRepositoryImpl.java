@@ -44,6 +44,9 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 		Double latitude,
 		Double longitude,
 		Double radiusMeters) {
+		if (properties.getStrategy() == SearchQueryStrategy.FTS_MV_RANKED) {
+			return searchFtsMvRanked(keyword, cursor, size, latitude, longitude, radiusMeters);
+		}
 		if (properties.getStrategy() == SearchQueryStrategy.HYBRID_SPLIT_CANDIDATES) {
 			return searchHybridSplitCandidates(keyword, cursor, size, latitude, longitude, radiusMeters);
 		}
@@ -64,6 +67,163 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 		}
 		return searchOneStep(keyword, cursor, size, latitude, longitude, radiusMeters);
 	}
+
+	// ───────────── FTS_MV_RANKED ─────────────
+
+	private List<SearchRestaurantCursorRow> searchFtsMvRanked(String keyword, SearchCursor cursor, int size,
+		Double latitude, Double longitude, Double radiusMeters) {
+		return executeFtsNativeStrategy(
+			buildFtsMvRankedSql(latitude != null && longitude != null && radiusMeters != null),
+			keyword,
+			cursor,
+			size,
+			latitude,
+			longitude,
+			radiusMeters,
+			properties.getCandidateLimit() * HYBRID_LIMIT_MULTIPLIER);
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<SearchRestaurantCursorRow> executeFtsNativeStrategy(String sql, String keyword, SearchCursor cursor,
+		int size, Double latitude, Double longitude, Double radiusMeters, int textCandidateLimit) {
+		Query query = getEntityManager().createNativeQuery(sql);
+		String keywordLower = keyword.toLowerCase();
+		Double cursorScore = cursor == null ? null : cursorScoreFts(cursor, radiusMeters);
+
+		query.setParameter("kw", keywordLower);
+		query.setParameter("size", size);
+		query.setParameter("text_candidate_limit", Math.max(size, textCandidateLimit));
+		query.setParameter("cursor_score", cursorScore);
+		query.setParameter("cursor_updated_at", cursor == null ? null : cursor.updatedAt());
+		query.setParameter("cursor_id", cursor == null ? null : cursor.id());
+		query.setParameter("lat", latitude);
+		query.setParameter("lng", longitude);
+		query.setParameter("radius_m", radiusMeters);
+
+		List<Object[]> rows = query.getResultList();
+		if (rows.isEmpty()) {
+			return List.of();
+		}
+
+		List<Long> restaurantIds = rows.stream()
+			.map(row -> toLong(row[0]))
+			.toList();
+
+		QRestaurant r = QRestaurant.restaurant;
+		Map<Long, Restaurant> restaurantMap = new HashMap<>();
+		getQueryFactory()
+			.selectFrom(r)
+			.where(r.id.in(restaurantIds))
+			.fetch()
+			.forEach(restaurant -> restaurantMap.put(restaurant.getId(), restaurant));
+
+		List<SearchRestaurantCursorRow> result = new ArrayList<>();
+		for (Object[] row : rows) {
+			Long restaurantId = toLong(row[0]);
+			Restaurant restaurant = restaurantMap.get(restaurantId);
+			if (restaurant == null) {
+				continue;
+			}
+			// columns: restaurant_id, name_exact, name_similarity, fts_rank, distance_meters, category_match, address_match
+			result.add(new SearchRestaurantCursorRow(
+				restaurant,
+				toInteger(row[1]),
+				toDouble(row[2]),
+				toNullableDouble(row[3]),
+				toNullableDouble(row[4]),
+				toInteger(row[5]),
+				toInteger(row[6])));
+		}
+		return result;
+	}
+
+	private String buildFtsMvRankedSql(boolean withLocation) {
+		String geoFilter = withLocation
+			? "AND ST_DWithin(geography(mv.location), geography(ST_MakePoint(:lng, :lat)), :radius_m)"
+			: "";
+		String distanceExpr = withLocation
+			? "ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat))"
+			: "NULL::double precision";
+		String distanceScore = withLocation
+			? "GREATEST(0.0, 1.0 - (ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat)) / :radius_m)) * 50.0"
+			: "0.0";
+
+		return """
+			WITH candidates AS (
+			    SELECT
+			        mv.restaurant_id,
+			        mv.updated_at,
+			        CASE WHEN mv.name_lower = :kw THEN 1 ELSE 0 END                                               AS name_exact,
+			        similarity(mv.name_lower, :kw)::double precision                                               AS name_similarity,
+			        ts_rank_cd(mv.search_vector, plainto_tsquery('simple', :kw))::double precision                 AS fts_rank,
+			        """
+			+ distanceExpr
+			+ """
+				AS distance_meters,
+				CASE WHEN mv.category_names @> ARRAY[:kw]::text[] THEN 1 ELSE 0 END                           AS category_match,
+				CASE WHEN mv.addr_lower LIKE '%' || :kw || '%' THEN 1 ELSE 0 END                              AS address_match,
+				(
+				    CASE WHEN mv.name_lower = :kw THEN 1 ELSE 0 END * 100.0
+				    + similarity(mv.name_lower, :kw)::double precision * 30.0
+				    + ts_rank_cd(mv.search_vector, plainto_tsquery('simple', :kw))::double precision * 25.0
+				    + CASE WHEN mv.category_names @> ARRAY[:kw]::text[] THEN 1 ELSE 0 END * 15.0
+				    + CASE WHEN mv.addr_lower LIKE '%' || :kw || '%' THEN 1 ELSE 0 END * 5.0
+				    + """
+			+ distanceScore + """
+				    ) AS total_score
+				FROM restaurant_search_mv mv
+				WHERE mv.deleted_at IS NULL
+				  """
+			+ geoFilter + """
+				      AND (
+				            mv.name_lower LIKE '%' || :kw || '%'
+				            OR mv.name_lower % :kw
+				            OR mv.search_vector @@ plainto_tsquery('simple', :kw)
+				            OR mv.category_names @> ARRAY[:kw]::text[]
+				          )
+				    ORDER BY total_score DESC, mv.updated_at DESC, mv.restaurant_id DESC
+				    LIMIT :text_candidate_limit
+				)
+				SELECT
+				    restaurant_id,
+				    name_exact,
+				    name_similarity,
+				    fts_rank,
+				    distance_meters,
+				    category_match,
+				    address_match
+				FROM candidates
+				WHERE (
+				    :cursor_score IS NULL
+				    OR total_score < :cursor_score
+				    OR (total_score = :cursor_score AND updated_at < :cursor_updated_at)
+				    OR (total_score = :cursor_score AND updated_at = :cursor_updated_at AND restaurant_id < :cursor_id)
+				)
+				ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC
+				LIMIT :size
+				""";
+	}
+
+	private double cursorScoreFts(SearchCursor cursor, Double radiusMeters) {
+		double nameExact = cursor.nameExact() == null ? 0.0 : cursor.nameExact();
+		double similarity = cursor.nameSimilarity() == null ? 0.0 : cursor.nameSimilarity();
+		double ftsRank = cursor.ftsRank() == null ? 0.0 : cursor.ftsRank();
+		double categoryMatch = cursor.categoryMatch() == null ? 0.0 : cursor.categoryMatch();
+		double addressMatch = cursor.addressMatch() == null ? 0.0 : cursor.addressMatch();
+		double distanceWeight = 0.0;
+		if (cursor.distanceMeters() != null && radiusMeters != null) {
+			double effectiveRadius = Math.max(radiusMeters, 1.0);
+			distanceWeight = Math.max(0.0, 1.0 - (cursor.distanceMeters() / effectiveRadius));
+		}
+		return nameExact * 100.0
+			+ similarity * 30.0
+			+ ftsRank * 25.0
+			+ categoryMatch * 15.0
+			+ addressMatch * 5.0
+			+ distanceWeight * 50.0;
+	}
+
+	// ───────────── 기존 전략들 ─────────────
 
 	private List<SearchRestaurantCursorRow> searchHybridSplitCandidates(String keyword, SearchCursor cursor, int size,
 		Double latitude,
@@ -163,10 +323,12 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 			if (restaurant == null) {
 				continue;
 			}
+			// columns: restaurant_id, name_exact, name_similarity, distance_meters, category_match, address_match
 			result.add(new SearchRestaurantCursorRow(
 				restaurant,
 				toInteger(row[1]),
 				toDouble(row[2]),
+				null,
 				toNullableDouble(row[3]),
 				toInteger(row[4]),
 				toInteger(row[5])));
@@ -611,6 +773,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 				r,
 				nameExactScore,
 				nameSimilarity,
+				Expressions.nullExpression(Double.class),
 				distanceExpr,
 				categoryScore,
 				addressScore))
@@ -664,6 +827,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 				r,
 				nameExactScore,
 				nameSimilarity,
+				Expressions.nullExpression(Double.class),
 				distanceExpr,
 				categoryScore,
 				addressScore))
@@ -700,6 +864,7 @@ public class SearchQueryRepositoryImpl extends QueryDslSupport implements Search
 				r,
 				nameExactScore,
 				nameSimilarity,
+				Expressions.nullExpression(Double.class),
 				distanceExpr,
 				categoryScore,
 				addressScore))
