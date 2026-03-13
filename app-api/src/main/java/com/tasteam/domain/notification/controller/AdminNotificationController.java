@@ -82,4 +82,5 @@ public class AdminNotificationController implements AdminNotificationControllerD
 			request.templateVariables()));
 		return ResponseEntity.accepted().build();
 	}
+
 }

@@ -31,7 +31,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.infra.messagequeue.exception.MessageQueueNonRetryableException;
 import com.tasteam.infra.messagequeue.serialization.JsonQueueMessageSerializer;
 import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
-import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -61,16 +60,6 @@ public class KafkaMessageQueueConfig {
 		KafkaMessageQueueProperties kafkaProperties,
 		QueueMessageSerializer queueMessageSerializer) {
 		return new KafkaPublishSupport(messageQueueKafkaTemplate, kafkaProperties, queueMessageSerializer);
-	}
-
-	@Bean
-	public MessageQueueProducer messageQueueProducer(
-		KafkaPublishSupport kafkaPublishSupport,
-		MessageQueueTraceService traceService) {
-		return new TracingMessageQueueProducer(
-			new KafkaMessageQueueProducer(kafkaPublishSupport),
-			MessageQueueProviderType.KAFKA,
-			traceService);
 	}
 
 	@Bean
