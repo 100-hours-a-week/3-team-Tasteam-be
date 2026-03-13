@@ -11,7 +11,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.tasteam.config.JpaAuditingTestConfig;
 import com.tasteam.config.TestSecurityConfig;
 import com.tasteam.config.TestStorageConfiguration;
 import com.tasteam.config.TestcontainersConfiguration;
@@ -19,8 +18,7 @@ import com.tasteam.config.TestcontainersConfiguration;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @ActiveProfiles("test")
-@Import({TestSecurityConfig.class, JpaAuditingTestConfig.class, TestStorageConfiguration.class,
-	TestcontainersConfiguration.class})
+@Import({TestSecurityConfig.class, TestStorageConfiguration.class, TestcontainersConfiguration.class})
 @SpringBootTest
 @AutoConfigureMockMvc
 @Tag("integration")

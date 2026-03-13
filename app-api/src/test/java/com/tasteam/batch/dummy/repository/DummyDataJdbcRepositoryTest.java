@@ -7,7 +7,6 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
 
 import com.tasteam.config.annotation.RepositoryJpaTest;
 import com.tasteam.domain.member.entity.oauth.MemberOAuthAccount;
@@ -17,7 +16,6 @@ import com.tasteam.domain.member.repository.MemberRepository;
 import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
-@Import(DummyDataJdbcRepository.class)
 @DisplayName("[유닛](Dummy) DummyDataJdbcRepository 단위 테스트")
 class DummyDataJdbcRepositoryTest {
 

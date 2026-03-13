@@ -15,29 +15,15 @@ import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.analytics.ingest.dto.request.ClientActivityEventItemRequest;
 import com.tasteam.domain.analytics.ingest.dto.request.ClientActivityEventsIngestRequest;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.AnalyticsErrorCode;
 
-@ControllerWebMvcTest(ClientActivityIngestController.class)
 @DisplayName("[유닛](Analytics) ClientActivityIngestController 단위 테스트")
-class ClientActivityIngestControllerWebMvcTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private ClientActivityIngestService clientActivityIngestService;
+class ClientActivityIngestControllerWebMvcTest extends BaseControllerWebMvcTest {
 
 	@Test
 	@DisplayName("이벤트 수집에 성공하면 수집 건수를 반환한다")

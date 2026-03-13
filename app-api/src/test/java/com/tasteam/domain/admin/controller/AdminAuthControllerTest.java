@@ -13,39 +13,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.admin.dto.request.AdminLoginRequest;
 import com.tasteam.global.exception.code.AuthErrorCode;
-import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
-import com.tasteam.global.security.jwt.provider.JwtTokenProvider;
 
 import jakarta.servlet.http.HttpServletResponse;
 
-@TestPropertySource(properties = {
-	"tasteam.admin.username=admin",
-	"tasteam.admin.password=pass1234!"
-})
-@ControllerWebMvcTest(AdminAuthController.class)
 @DisplayName("[유닛](Admin) AdminAuthController 단위 테스트")
-class AdminAuthControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private JwtTokenProvider jwtTokenProvider;
-
-	@MockitoBean
-	private JwtCookieProvider jwtCookieProvider;
+class AdminAuthControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("관리자 로그인")

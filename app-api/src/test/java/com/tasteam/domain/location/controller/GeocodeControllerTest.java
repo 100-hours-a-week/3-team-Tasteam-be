@@ -7,23 +7,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.location.dto.response.ReverseGeocodeResponse;
-import com.tasteam.domain.location.service.GeocodeService;
 
-@ControllerWebMvcTest(GeocodeController.class)
 @DisplayName("[유닛](Location) GeocodeController 단위 테스트")
-class GeocodeControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private GeocodeService geocodeService;
+class GeocodeControllerTest extends BaseControllerWebMvcTest {
 
 	@Test
 	@DisplayName("역지오코딩 요청에 대해 주소 결과를 반환한다")

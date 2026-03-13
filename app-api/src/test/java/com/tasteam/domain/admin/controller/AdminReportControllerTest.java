@@ -16,34 +16,23 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.admin.dto.request.AdminReportStatusUpdateRequest;
 import com.tasteam.domain.admin.dto.response.AdminReportDetailResponse;
 import com.tasteam.domain.admin.dto.response.AdminReportListItem;
-import com.tasteam.domain.admin.service.AdminReportService;
 import com.tasteam.domain.report.entity.ReportCategory;
 import com.tasteam.domain.report.entity.ReportStatus;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.ReportErrorCode;
 
-@ControllerWebMvcTest(AdminReportController.class)
 @DisplayName("[유닛](Admin) AdminReportController 단위 테스트")
-class AdminReportControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private AdminReportService adminReportService;
+class AdminReportControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("신고 목록 조회")

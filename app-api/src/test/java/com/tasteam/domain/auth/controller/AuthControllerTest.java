@@ -10,25 +10,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.auth.service.TokenRefreshService;
-import com.tasteam.global.security.jwt.provider.JwtCookieProvider;
 
-@ControllerWebMvcTest(AuthController.class)
-class AuthControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private TokenRefreshService tokenRefreshService;
-
-	@MockitoBean
-	private JwtCookieProvider jwtCookieProvider;
+@DisplayName("[유닛](Auth) AuthController 단위 테스트")
+class AuthControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("토큰 갱신")

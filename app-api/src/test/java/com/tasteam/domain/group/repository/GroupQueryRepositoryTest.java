@@ -8,18 +8,15 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
 
 import com.tasteam.config.annotation.RepositoryJpaTest;
 import com.tasteam.domain.group.entity.Group;
-import com.tasteam.domain.group.repository.impl.GroupQueryRepositoryImpl;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.fixture.GroupFixture;
 
 import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
-@Import(GroupQueryRepositoryImpl.class)
 @DisplayName("[유닛](Group) GroupQueryRepository 단위 테스트")
 class GroupQueryRepositoryTest {
 

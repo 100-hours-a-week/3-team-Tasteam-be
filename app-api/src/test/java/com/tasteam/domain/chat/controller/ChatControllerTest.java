@@ -16,12 +16,8 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseControllerWebMvcTest;
 import com.tasteam.domain.chat.dto.request.ChatMessageSendRequest;
 import com.tasteam.domain.chat.dto.request.ChatReadCursorUpdateRequest;
 import com.tasteam.domain.chat.dto.response.ChatMessageFileItemResponse;
@@ -29,25 +25,14 @@ import com.tasteam.domain.chat.dto.response.ChatMessageItemResponse;
 import com.tasteam.domain.chat.dto.response.ChatMessageListResponse;
 import com.tasteam.domain.chat.dto.response.ChatMessageSendResponse;
 import com.tasteam.domain.chat.dto.response.ChatReadCursorUpdateResponse;
-import com.tasteam.domain.chat.service.ChatService;
 import com.tasteam.domain.chat.type.ChatMessageFileType;
 import com.tasteam.domain.chat.type.ChatMessageListMode;
 import com.tasteam.domain.chat.type.ChatMessageType;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.ChatErrorCode;
 
-@ControllerWebMvcTest(ChatController.class)
 @DisplayName("[유닛](Chat) ChatController 단위 테스트")
-class ChatControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private ChatService chatService;
+class ChatControllerTest extends BaseControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("채팅 메시지 목록 조회")

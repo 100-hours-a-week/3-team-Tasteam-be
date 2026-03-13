@@ -12,7 +12,6 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
 
 import com.tasteam.config.annotation.RepositoryJpaTest;
 import com.tasteam.domain.group.entity.Group;
@@ -24,14 +23,12 @@ import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.review.dto.ReviewDetailQueryDto;
 import com.tasteam.domain.review.dto.ReviewQueryDto;
 import com.tasteam.domain.review.entity.Review;
-import com.tasteam.domain.review.repository.impl.ReviewQueryRepositoryImpl;
 import com.tasteam.fixture.GroupFixture;
 import com.tasteam.fixture.MemberFixture;
 
 import jakarta.persistence.EntityManager;
 
 @RepositoryJpaTest
-@Import(ReviewQueryRepositoryImpl.class)
 @DisplayName("[유닛](Review) ReviewQueryRepository 단위 테스트")
 class ReviewQueryRepositoryTest {
 

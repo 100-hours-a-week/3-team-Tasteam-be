@@ -19,33 +19,22 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.admin.dto.request.AdminAnnouncementCreateRequest;
 import com.tasteam.domain.admin.dto.request.AdminAnnouncementUpdateRequest;
 import com.tasteam.domain.admin.dto.response.AdminAnnouncementDetailResponse;
 import com.tasteam.domain.admin.dto.response.AdminAnnouncementListItem;
-import com.tasteam.domain.admin.service.AdminAnnouncementService;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.PromotionErrorCode;
 
-@ControllerWebMvcTest(AdminAnnouncementController.class)
 @DisplayName("[유닛](Admin) AdminAnnouncementController 단위 테스트")
-class AdminAnnouncementControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private AdminAnnouncementService adminAnnouncementService;
+class AdminAnnouncementControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("공지사항 목록 조회")

@@ -13,36 +13,21 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.admin.dto.request.AdminGroupCreateRequest;
 import com.tasteam.domain.admin.dto.response.AdminGroupListItem;
-import com.tasteam.domain.admin.service.AdminGroupService;
 import com.tasteam.domain.group.type.GroupJoinType;
 import com.tasteam.domain.group.type.GroupType;
 import com.tasteam.fixture.AdminGroupRequestFixture;
 
-@ControllerWebMvcTest(AdminGroupController.class)
 @DisplayName("[유닛](Admin) AdminGroupController 단위 테스트")
-class AdminGroupControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper objectMapper;
-
-	@MockitoBean
-	private AdminGroupService adminGroupService;
+class AdminGroupControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("그룹 목록 조회")

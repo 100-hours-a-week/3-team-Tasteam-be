@@ -16,28 +16,17 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.tasteam.config.annotation.ControllerWebMvcTest;
+import com.tasteam.config.BaseAdminControllerWebMvcTest;
 import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.BusinessHourWeekItem;
-import com.tasteam.domain.restaurant.service.RestaurantScheduleService;
 import com.tasteam.domain.restaurant.type.DayOfWeekCode;
 import com.tasteam.domain.restaurant.type.ScheduleSource;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 
-@ControllerWebMvcTest(AdminScheduleController.class)
 @DisplayName("[유닛](Admin) AdminScheduleController 단위 테스트")
-class AdminScheduleControllerTest {
-
-	@Autowired
-	private MockMvc mockMvc;
-
-	@MockitoBean
-	private RestaurantScheduleService restaurantScheduleService;
+class AdminScheduleControllerTest extends BaseAdminControllerWebMvcTest {
 
 	@Nested
 	@DisplayName("영업 스케줄 조회")
