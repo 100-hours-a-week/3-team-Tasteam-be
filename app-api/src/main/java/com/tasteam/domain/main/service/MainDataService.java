@@ -41,7 +41,7 @@ public class MainDataService {
 		return fetchDistancesWithCoordCache(ids, lat, lon);
 	}
 
-	@Cacheable(cacheNames = "main-section-hot-geo", key = "T(String).format('%d_%d', (long)(#lat * 1000), (long)(#lon * 1000))")
+	@Cacheable(cacheNames = "main-section-hot-geo", key = "T(String).format('%d_%d', T(Math).round(#lat * 1000), T(Math).round(#lon * 1000))")
 	@Transactional(readOnly = true)
 	public List<Long> fetchHotSectionIdsByLocation(double lat, double lon) {
 		return fetchWithRadiusExpansion(lat, lon,
@@ -62,7 +62,7 @@ public class MainDataService {
 		return fetchDistancesWithCoordCache(ids, lat, lon);
 	}
 
-	@Cacheable(cacheNames = "main-section-new-geo", key = "T(String).format('%d_%d', (long)(#lat * 1000), (long)(#lon * 1000))")
+	@Cacheable(cacheNames = "main-section-new-geo", key = "T(String).format('%d_%d', T(Math).round(#lat * 1000), T(Math).round(#lon * 1000))")
 	@Transactional(readOnly = true)
 	public List<Long> fetchNewSectionIdsByLocation(double lat, double lon) {
 		return fetchWithRadiusExpansion(lat, lon,
@@ -83,7 +83,7 @@ public class MainDataService {
 		return fetchDistancesWithCoordCache(ids, lat, lon);
 	}
 
-	@Cacheable(cacheNames = "main-section-ai-geo", key = "T(String).format('%d_%d', (long)(#lat * 1000), (long)(#lon * 1000))")
+	@Cacheable(cacheNames = "main-section-ai-geo", key = "T(String).format('%d_%d', T(Math).round(#lat * 1000), T(Math).round(#lon * 1000))")
 	@Transactional(readOnly = true)
 	public List<Long> fetchAiSectionIdsByLocation(double lat, double lon) {
 		return fetchWithRadiusExpansion(lat, lon,
