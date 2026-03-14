@@ -87,6 +87,7 @@ class MainServiceIntegrationTest {
 
 			HomePageResponse response = mainService.getHome(null, new MainPageRequest(null, null));
 
+			assertThat(response.banners()).isNotNull();
 			assertThat(response.sections()).hasSize(2);
 		}
 	}

@@ -1,5 +1,7 @@
 package com.tasteam.domain.main.service;
 
+import static com.tasteam.domain.restaurant.service.RestaurantAiJsonParser.extractSummaryText;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -157,7 +159,19 @@ public class MainService {
 				toHomeSectionItems(hotRestaurants, categoriesByRestaurant, thumbnailByRestaurant,
 					summaryByRestaurant)));
 
-		return new HomePageResponse(sections);
+		Banners mainBanners = fetchBanners();
+		HomePageResponse.Banners banners = new HomePageResponse.Banners(
+			mainBanners.enabled(),
+			mainBanners.items().stream()
+				.map(item -> new HomePageResponse.BannerItem(
+					item.id(),
+					item.imageUrl(),
+					item.landingUrl(),
+					item.order()))
+				.toList());
+		SplashPromotionResponse splashPromotion = promotionService.getSplashPromotion().orElse(null);
+
+		return new HomePageResponse(banners, sections, splashPromotion);
 	}
 
 	public AiRecommendResponse getAiRecommend(Long memberId, MainPageRequest request) {
@@ -310,7 +324,7 @@ public class MainService {
 		if (!missIds.isEmpty()) {
 			restaurantReviewSummaryRepository.findByRestaurantIdIn(missIds)
 				.forEach(summary -> {
-					String text = toSummaryString(summary.getSummaryJson());
+					String text = extractSummaryText(summary.getSummaryJson());
 					if (text != null) {
 						if (cache != null) {
 							cache.put(summary.getRestaurantId(), text);
@@ -320,14 +334,6 @@ public class MainService {
 				});
 		}
 		return result;
-	}
-
-	private static String toSummaryString(Map<String, Object> summaryJson) {
-		if (summaryJson == null) {
-			return null;
-		}
-		Object overall = summaryJson.get("overall_summary");
-		return overall != null ? overall.toString() : null;
 	}
 
 	private List<SectionItem> toSectionItems(
