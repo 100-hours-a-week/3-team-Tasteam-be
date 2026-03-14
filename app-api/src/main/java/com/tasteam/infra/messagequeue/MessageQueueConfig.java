@@ -20,6 +20,7 @@ import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 public class MessageQueueConfig {
 
 	@Bean
+	@ConditionalOnMissingBean(TopicNamingPolicy.class)
 	public TopicNamingPolicy topicNamingPolicy(KafkaMessageQueueProperties kafkaMessageQueueProperties) {
 		return new DefaultTopicNamingPolicy(kafkaMessageQueueProperties);
 	}
@@ -56,6 +57,7 @@ public class MessageQueueConfig {
 	}
 
 	@Bean
+	@ConditionalOnMissingBean(MessageQueueProducer.class)
 	public MessageQueueProducer messageQueueProducer(
 		MessageQueueProperties properties,
 		MessageQueueTraceService traceService,
@@ -72,6 +74,7 @@ public class MessageQueueConfig {
 	}
 
 	@Bean
+	@ConditionalOnMissingBean(MessageQueueConsumer.class)
 	public MessageQueueConsumer messageQueueConsumer(
 		MessageQueueProperties properties,
 		MessageQueueTraceService traceService,
