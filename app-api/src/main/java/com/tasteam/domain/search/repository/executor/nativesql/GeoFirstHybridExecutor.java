@@ -11,6 +11,22 @@ import com.tasteam.domain.search.repository.SearchQueryStrategy;
 import com.tasteam.domain.search.repository.executor.NativeSearchExecutorSupport;
 import com.tasteam.domain.search.repository.executor.SearchQueryExecutor;
 
+/**
+ * [GEO_FIRST_HYBRID] 거리 기준으로 지오 후보를 먼저 좁힌 뒤 텍스트 조건을 적용하는 전략.
+ *
+ * <p>흐름:
+ *
+ * <ol>
+ *   <li>geo_candidates — ST_DWithin 반경 내 식당을 거리 ASC 정렬 LIMIT
+ *   <li>text_candidates — geo_candidates 내에서 이름·주소·카테고리 조건 필터
+ *   <li>scored — 남은 후보에 스코어 계산 후 커서 페이징 적용
+ * </ol>
+ *
+ * <p>위치 정보가 없을 때는 {@link HybridSplitExecutor}로 위임한다.
+ *
+ * <p>장점: 공간 인덱스로 후보군을 가장 먼저 대폭 축소하므로 위치 기반 검색에서 성능이 우수하다. 단점: 위치 필수 의존성이 있어 위치 없는 검색에서는
+ * fallback이 발생한다.
+ */
 @Component
 public class GeoFirstHybridExecutor extends NativeSearchExecutorSupport implements SearchQueryExecutor {
 

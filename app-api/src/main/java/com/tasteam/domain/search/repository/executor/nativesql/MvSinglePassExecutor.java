@@ -11,6 +11,18 @@ import com.tasteam.domain.search.repository.SearchQueryStrategy;
 import com.tasteam.domain.search.repository.executor.NativeSearchExecutorSupport;
 import com.tasteam.domain.search.repository.executor.SearchQueryExecutor;
 
+/**
+ * [MV_SINGLE_PASS] restaurant_search_mv를 단일 스캔으로 필터링·스코어링·정렬까지 한 번에 처리하는 전략.
+ *
+ * <p>{@link ReadModelTwoStepExecutor}와 달리 CTE 교집합 단계 없이 WHERE 절에서 직접 텍스트·지오 조건을 적용하고, 인라인으로 스코어를
+ * 계산한 뒤 LIMIT로 후보를 잘라낸다.
+ *
+ * <p>흐름: MV WHERE(텍스트 OR + 지오 필터) → 인라인 스코어 계산 → ORDER BY 스코어 DESC LIMIT candidateLimit →
+ * 커서 페이징 → restaurant ID로 엔티티 일괄 조회
+ *
+ * <p>장점: CTE 없이 단일 패스이므로 쿼리 계획이 단순하고 MV 시퀀셜 스캔에 유리하다. 단점: candidateLimit 이후 커서 WHERE를 한 번 더
+ * 적용하므로 실제 반환 수가 size보다 적을 수 있다.
+ */
 @Component
 public class MvSinglePassExecutor extends NativeSearchExecutorSupport implements SearchQueryExecutor {
 

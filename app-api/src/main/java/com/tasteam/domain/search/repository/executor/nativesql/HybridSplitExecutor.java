@@ -11,6 +11,21 @@ import com.tasteam.domain.search.repository.SearchQueryStrategy;
 import com.tasteam.domain.search.repository.executor.NativeSearchExecutorSupport;
 import com.tasteam.domain.search.repository.executor.SearchQueryExecutor;
 
+/**
+ * [HYBRID_SPLIT_CANDIDATES] 텍스트 후보군과 지오 후보군을 각각 구한 뒤 INTERSECT로 교집합을 만드는 전략.
+ *
+ * <p>흐름:
+ *
+ * <ol>
+ *   <li>text_candidates — 이름 LIKE·유사도·주소·카테고리 4가지 CTE를 UNION
+ *   <li>geo_candidates — ST_DWithin 반경 필터 후 거리 ASC 정렬 LIMIT (위치 없으면 생략)
+ *   <li>candidate_ids — INTERSECT(교집합) 또는 text_candidates 전체
+ *   <li>scored — 교집합 행만 스코어 계산 후 커서 페이징 적용
+ * </ol>
+ *
+ * <p>장점: 텍스트/지오 각각 독립적으로 후보를 줄여 스코어링 대상을 최소화한다. 단점: 4개 CTE + INTERSECT 비용이 있으며, 위치 없이는
+ * text_candidates 전체를 스캔한다.
+ */
 @Component
 public class HybridSplitExecutor extends NativeSearchExecutorSupport implements SearchQueryExecutor {
 

@@ -19,6 +19,15 @@ import com.tasteam.domain.search.repository.SearchQueryStrategy;
 import com.tasteam.domain.search.repository.executor.SearchQueryExecutor;
 import com.tasteam.domain.search.repository.impl.SearchQueryExpressions;
 
+/**
+ * [JOIN_AGGREGATE] restaurant_food_category를 LEFT JOIN 후 GROUP BY로 카테고리 매칭 점수를 집계하는 전략.
+ *
+ * <p>흐름: LEFT JOIN food_category → GROUP BY r.id → SELECT(카테고리 MAX 집계로 스코어 계산) → ORDER BY 스코어 DESC
+ * → LIMIT
+ *
+ * <p>장점: 서브쿼리 없이 JOIN으로 카테고리 점수를 정확히 반영한다. 단점: GROUP BY로 인해 집계 비용이 발생하며, 카테고리가 많은 식당일수록
+ * 중간 행이 늘어난다.
+ */
 @Component
 public class JoinAggregateQueryExecutor extends QueryDslSupport implements SearchQueryExecutor {
 

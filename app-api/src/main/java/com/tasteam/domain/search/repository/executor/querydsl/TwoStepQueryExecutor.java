@@ -18,6 +18,15 @@ import com.tasteam.domain.search.repository.SearchQueryStrategy;
 import com.tasteam.domain.search.repository.executor.SearchQueryExecutor;
 import com.tasteam.domain.search.repository.impl.SearchQueryExpressions;
 
+/**
+ * [TWO_STEP] 후보 ID만 먼저 추려낸 뒤 실제 엔티티를 두 번째 쿼리로 조회하는 전략.
+ *
+ * <p>흐름: 1차 — id SELECT + ORDER BY 스코어 DESC LIMIT candidateLimit → 2차 — id IN(…) 로 엔티티 조회 + 재정렬 →
+ * LIMIT size
+ *
+ * <p>장점: 1차에서 가벼운 id 스캔만 하므로 대규모 데이터에서 메모리 효율이 높다. 단점: 쿼리가 두 번 실행되고, candidateLimit 설정이 결과
+ * 품질에 영향을 준다.
+ */
 @Component
 public class TwoStepQueryExecutor extends QueryDslSupport implements SearchQueryExecutor {
 

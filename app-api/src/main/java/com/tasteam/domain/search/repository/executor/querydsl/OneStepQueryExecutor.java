@@ -17,6 +17,13 @@ import com.tasteam.domain.search.repository.SearchQueryStrategy;
 import com.tasteam.domain.search.repository.executor.SearchQueryExecutor;
 import com.tasteam.domain.search.repository.impl.SearchQueryExpressions;
 
+/**
+ * [ONE_STEP] 단일 QueryDSL 쿼리로 필터링·스코어링·정렬을 한 번에 수행하는 전략.
+ *
+ * <p>흐름: WHERE(이름 LIKE/유사도 + 거리 필터) → SELECT(스코어 계산) → ORDER BY 스코어 DESC → LIMIT
+ *
+ * <p>장점: 단순하고 구현이 명확하다. 단점: 후보군이 많을 때 DB가 모든 행의 스코어를 계산해야 한다.
+ */
 @Component
 public class OneStepQueryExecutor extends QueryDslSupport implements SearchQueryExecutor {
 
