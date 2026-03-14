@@ -3,6 +3,8 @@ package com.tasteam.domain.search.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -10,6 +12,8 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.config.annotation.ServiceIntegrationTest;
@@ -43,16 +47,54 @@ class SearchServiceIntegrationTest {
 	@Autowired
 	private MemberRepository memberRepository;
 
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+
+	@BeforeEach
+	void createSearchMvIfAbsent() {
+		jdbcTemplate.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm");
+		jdbcTemplate.execute("""
+			CREATE MATERIALIZED VIEW IF NOT EXISTS restaurant_search_mv AS
+			SELECT
+			    r.id AS restaurant_id,
+			    lower(r.name)         AS name_lower,
+			    lower(r.full_address) AS addr_lower,
+			    r.location,
+			    r.updated_at,
+			    r.deleted_at,
+			    COALESCE(
+			        array_agg(DISTINCT lower(fc.name)) FILTER (WHERE fc.name IS NOT NULL),
+			        ARRAY[]::text[]
+			    ) AS category_names,
+			    setweight(to_tsvector('simple', coalesce(lower(r.name), '')), 'A')
+			    || setweight(to_tsvector('simple', coalesce(
+			        array_to_string(
+			            COALESCE(
+			                array_agg(DISTINCT lower(fc.name)) FILTER (WHERE fc.name IS NOT NULL),
+			                ARRAY[]::text[]
+			            ), ' '), '')), 'B')
+			    || setweight(to_tsvector('simple', coalesce(lower(r.full_address), '')), 'C')
+			    AS search_vector
+			FROM restaurant r
+			LEFT JOIN restaurant_food_category rfc ON rfc.restaurant_id = r.id
+			LEFT JOIN food_category fc ON fc.id = rfc.food_category_id
+			GROUP BY r.id, r.name, r.full_address, r.location, r.updated_at, r.deleted_at
+			""");
+	}
+
 	@Nested
 	@DisplayName("통합 검색")
 	class Search {
 
 		@Test
+		@Transactional(propagation = Propagation.NOT_SUPPORTED)
 		@DisplayName("그룹+음식점 검색 결과가 반환된다")
 		void searchSuccessReturnsResults() {
 			Member member = memberRepository.save(MemberFixture.create("search@example.com", "search"));
 			groupRepository.save(GroupFixture.create("맛집 모임", "서울특별시 강남구"));
 			restaurantRepository.save(createRestaurant("맛집 식당"));
+
+			jdbcTemplate.execute("REFRESH MATERIALIZED VIEW restaurant_search_mv");
 
 			SearchResponse response = searchService.search(
 				member.getId(),
@@ -60,6 +102,14 @@ class SearchServiceIntegrationTest {
 
 			assertThat(response.groups()).hasSize(1);
 			assertThat(response.restaurants().items()).hasSize(1);
+		}
+
+		@AfterEach
+		@Transactional(propagation = Propagation.NOT_SUPPORTED)
+		void cleanUp() {
+			jdbcTemplate.execute("DELETE FROM restaurant WHERE name = '맛집 식당'");
+			jdbcTemplate.execute("DELETE FROM \"group\" WHERE name = '맛집 모임'");
+			jdbcTemplate.execute("DELETE FROM member WHERE email = 'search@example.com'");
 		}
 
 		@Test
