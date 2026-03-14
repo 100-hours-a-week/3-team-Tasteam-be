@@ -32,7 +32,7 @@ public class ChatStreamConfig {
 		return executor;
 	}
 
-	@Bean
+	@Bean(destroyMethod = "stop")
 	public StreamMessageListenerContainer<String, MapRecord<String, String, String>> chatStreamListenerContainer(
 		RedisConnectionFactory connectionFactory,
 		ThreadPoolTaskExecutor chatStreamExecutor) {
