@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
+import com.tasteam.domain.restaurant.repository.projection.RestaurantLocationProjection;
 
 public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
@@ -245,4 +246,14 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 		double latitude,
 		@Param("longitude")
 		double longitude);
+
+	@Query(value = """
+		select r.id as id, r.name as name,
+		    ST_Y(r.location::geometry) as latitude,
+		    ST_X(r.location::geometry) as longitude
+		from restaurant r
+		where r.id in (:ids)
+		""", nativeQuery = true)
+	List<RestaurantLocationProjection> findLocationsByIds(@Param("ids")
+	List<Long> ids);
 }
