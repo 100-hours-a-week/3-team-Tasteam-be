@@ -93,17 +93,21 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 		int limit);
 
 	@Query(value = """
-		select r.id as id, r.name as name,
-		  ST_Distance(r.location::geography,
+		with ranked as (
+		  select r.id, r.name, r.location
+		  from restaurant r
+		  left join review rv on rv.restaurant_id = r.id and rv.deleted_at is null
+		  where r.deleted_at is null
+		    and ST_DWithin(r.location::geography,
+		      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
+		  group by r.id, r.name, r.location
+		  order by count(rv.id) desc, r.id asc
+		  limit :limit
+		)
+		select id, name,
+		  ST_Distance(location::geography,
 		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
-		from restaurant r
-		left join review rv on rv.restaurant_id = r.id and rv.deleted_at is null
-		where r.deleted_at is null
-		  and ST_DWithin(r.location::geography,
-		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
-		group by r.id
-		order by count(rv.id) desc, r.id asc
-		limit :limit
+		from ranked
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findHotRestaurants(
 		@Param("latitude")
@@ -116,15 +120,19 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 		int limit);
 
 	@Query(value = """
-		select r.id as id, r.name as name,
-		  ST_Distance(r.location::geography,
+		with ranked as (
+		  select r.id, r.name, r.location
+		  from restaurant r
+		  where r.deleted_at is null
+		    and ST_DWithin(r.location::geography,
+		      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
+		  order by r.created_at desc, r.id desc
+		  limit :limit
+		)
+		select id, name,
+		  ST_Distance(location::geography,
 		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
-		from restaurant r
-		where r.deleted_at is null
-		  and ST_DWithin(r.location::geography,
-		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
-		order by r.created_at desc, r.id desc
-		limit :limit
+		from ranked
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findNewRestaurants(
 		@Param("latitude")
@@ -137,16 +145,20 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 		int limit);
 
 	@Query(value = """
-		select r.id as id, r.name as name,
-		  ST_Distance(r.location::geography,
+		with ranked as (
+		  select r.id, r.name, r.location
+		  from restaurant r
+		  join restaurant_review_sentiment s on s.restaurant_id = r.id
+		  where r.deleted_at is null
+		    and ST_DWithin(r.location::geography,
+		      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
+		  order by s.positive_percent desc, r.id asc
+		  limit :limit
+		)
+		select id, name,
+		  ST_Distance(location::geography,
 		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
-		from restaurant r
-		join restaurant_review_sentiment s on s.restaurant_id = r.id
-		where r.deleted_at is null
-		  and ST_DWithin(r.location::geography,
-		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
-		order by s.positive_percent desc, r.id asc
-		limit :limit
+		from ranked
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findAiRecommendRestaurants(
 		@Param("latitude")
