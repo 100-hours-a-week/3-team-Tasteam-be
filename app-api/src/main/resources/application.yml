@@ -248,6 +248,15 @@ tasteam:
       user-activity-s3-ingest:
         topic: ${USER_ACTIVITY_S3_INGEST_MQ_TOPIC:evt.user-activity.s3-ingest.v1}
         dlq-topic: ${USER_ACTIVITY_S3_INGEST_MQ_DLQ_TOPIC:evt.user-activity.s3-ingest.v1.dlq}
+      connector:
+        auto-register: ${KAFKA_CONNECT_CONNECTOR_AUTO_REGISTER:false}
+        user-activity-s3-sink:
+          bucket: ${ANALYTICS_S3_BUCKET:}
+          region: ${AWS_REGION:ap-northeast-2}
+          endpoint: ${KAFKA_CONNECT_S3_ENDPOINT:${S3_ENDPOINT:}}
+          path-style-access: ${S3_PATH_STYLE_ACCESS:false}
+          access-key-id: ${AWS_ACCESS_KEY_ID:}
+          secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
   notification:
     email:
       provider: ${NOTIFICATION_EMAIL_PROVIDER:log}

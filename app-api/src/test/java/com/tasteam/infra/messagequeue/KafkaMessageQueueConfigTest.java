@@ -19,6 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
+import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
 @UnitTest
 @DisplayName("[유닛](Message) KafkaMessageQueueConfig 조건부 빈 테스트")
@@ -72,6 +73,7 @@ class KafkaMessageQueueConfigTest {
 	void whenMqEnabledAndProviderKafka_thenKafkaBeansCreated() {
 		contextRunner
 			.withBean(ObjectMapper.class, ObjectMapper::new)
+			.withBean(MessageQueueTraceService.class, () -> org.mockito.Mockito.mock(MessageQueueTraceService.class))
 			.withPropertyValues(
 				"tasteam.message-queue.enabled=true",
 				"tasteam.message-queue.provider=kafka",
@@ -90,6 +92,7 @@ class KafkaMessageQueueConfigTest {
 				assertThat(context).hasSingleBean(QueueMessageSerializer.class);
 				assertThat(context).hasSingleBean(KafkaTemplate.class);
 				assertThat(context).hasSingleBean(KafkaPublishSupport.class);
+				assertThat(context).hasSingleBean(MessageQueueProducer.class);
 				assertThat(context).hasSingleBean(CommonErrorHandler.class);
 				assertThat(context).hasSingleBean(TopicNamingPolicy.class);
 				assertThat(context).hasSingleBean(DeadLetterPublishingRecoverer.class);

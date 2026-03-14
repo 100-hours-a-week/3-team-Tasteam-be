@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.infra.messagequeue.exception.MessageQueueNonRetryableException;
 import com.tasteam.infra.messagequeue.serialization.JsonQueueMessageSerializer;
 import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
+import com.tasteam.infra.messagequeue.trace.MessageQueueTraceService;
 
 @Configuration
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
@@ -54,6 +55,16 @@ public class KafkaMessageQueueConfig {
 		KafkaMessageQueueProperties kafkaProperties,
 		QueueMessageSerializer queueMessageSerializer) {
 		return new KafkaPublishSupport(messageQueueKafkaTemplate, kafkaProperties, queueMessageSerializer);
+	}
+
+	@Bean
+	public MessageQueueProducer messageQueueProducer(
+		KafkaPublishSupport kafkaPublishSupport,
+		MessageQueueTraceService traceService) {
+		return new TracingMessageQueueProducer(
+			new KafkaMessageQueueProducer(kafkaPublishSupport),
+			MessageQueueProviderType.KAFKA,
+			traceService);
 	}
 
 	@Bean
