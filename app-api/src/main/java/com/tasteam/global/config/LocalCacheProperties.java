@@ -29,5 +29,7 @@ public class LocalCacheProperties {
 	@Setter
 	public static class CacheTtl {
 		private Duration ttl;
+		private Duration jitter;
+		private Long maximumSize;
 	}
 }
