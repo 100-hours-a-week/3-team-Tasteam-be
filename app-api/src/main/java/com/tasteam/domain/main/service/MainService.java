@@ -12,7 +12,6 @@ import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.entity.DomainType;
@@ -48,7 +47,6 @@ public class MainService {
 	@Qualifier("mainQueryExecutor")
 	private final Executor mainQueryExecutor;
 
-	@Transactional(readOnly = true)
 	public MainPageResponse getMain(Long memberId, MainPageRequest request) {
 		LocationContext location = resolveLocation(memberId, request);
 
@@ -118,7 +116,6 @@ public class MainService {
 		return new Banners(true, bannerItems);
 	}
 
-	@Transactional(readOnly = true)
 	public HomePageResponse getHome(Long memberId, MainPageRequest request) {
 		LocationContext location = resolveLocation(memberId, request);
 
@@ -161,11 +158,12 @@ public class MainService {
 		return new HomePageResponse(sections);
 	}
 
-	@Transactional(readOnly = true)
 	public AiRecommendResponse getAiRecommend(Long memberId, MainPageRequest request) {
 		LocationContext location = resolveLocation(memberId, request);
 
-		List<MainRestaurantDistanceProjection> aiRestaurants = fetchAiSection(location);
+		List<MainRestaurantDistanceProjection> aiRestaurants = CompletableFuture
+			.supplyAsync(() -> fetchAiSection(location), mainQueryExecutor)
+			.join();
 
 		List<Long> allIds = aiRestaurants.stream()
 			.map(MainRestaurantDistanceProjection::getId)
