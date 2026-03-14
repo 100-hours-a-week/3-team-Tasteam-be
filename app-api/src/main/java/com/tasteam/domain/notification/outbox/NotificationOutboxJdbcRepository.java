@@ -1,6 +1,6 @@
 package com.tasteam.domain.notification.outbox;
 
-import java.sql.Types;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -90,7 +90,7 @@ public class NotificationOutboxJdbcRepository {
 		return jdbcTemplate.query(
 			FIND_CANDIDATES_SQL,
 			new MapSqlParameterSource()
-				.addValue("now", Instant.now(), Types.TIMESTAMP_WITH_TIMEZONE)
+				.addValue("now", Timestamp.from(Instant.now()))
 				.addValue("limit", validatedLimit),
 			(rs, rowNum) -> new NotificationOutboxEntry(
 				rs.getLong("id"),
