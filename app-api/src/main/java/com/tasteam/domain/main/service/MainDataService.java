@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,10 +24,22 @@ public class MainDataService {
 
 	private final RestaurantRepository restaurantRepository;
 
+	@Lazy
+	@Autowired
+	private MainDataService self;
+
 	@Transactional(readOnly = true)
 	public List<MainRestaurantDistanceProjection> fetchHotSectionByLocation(double lat, double lon) {
+		List<Long> ids = self.fetchHotSectionIdsByLocation(lat, lon);
+		return restaurantRepository.findDistancesByIds(ids, lat, lon);
+	}
+
+	@Cacheable(cacheNames = "main-section-hot-geo", key = "T(String).format('%d_%d', T(java.lang.Math).round(#lat / 0.1), T(java.lang.Math).round(#lon / 0.1))")
+	@Transactional(readOnly = true)
+	public List<Long> fetchHotSectionIdsByLocation(double lat, double lon) {
 		return fetchWithRadiusExpansion(lat, lon,
-			(la, lo, radius, limit) -> restaurantRepository.findHotRestaurants(la, lo, radius, limit));
+			(la, lo, radius, limit) -> restaurantRepository.findHotRestaurants(la, lo, radius, limit))
+			.stream().map(MainRestaurantDistanceProjection::getId).toList();
 	}
 
 	@Cacheable(cacheNames = "main-section-hot-all", key = "'all'")
@@ -37,8 +51,16 @@ public class MainDataService {
 
 	@Transactional(readOnly = true)
 	public List<MainRestaurantDistanceProjection> fetchNewSectionByLocation(double lat, double lon) {
+		List<Long> ids = self.fetchNewSectionIdsByLocation(lat, lon);
+		return restaurantRepository.findDistancesByIds(ids, lat, lon);
+	}
+
+	@Cacheable(cacheNames = "main-section-new-geo", key = "T(String).format('%d_%d', T(java.lang.Math).round(#lat / 0.1), T(java.lang.Math).round(#lon / 0.1))")
+	@Transactional(readOnly = true)
+	public List<Long> fetchNewSectionIdsByLocation(double lat, double lon) {
 		return fetchWithRadiusExpansion(lat, lon,
-			(la, lo, radius, limit) -> restaurantRepository.findNewRestaurants(la, lo, radius, limit));
+			(la, lo, radius, limit) -> restaurantRepository.findNewRestaurants(la, lo, radius, limit))
+			.stream().map(MainRestaurantDistanceProjection::getId).toList();
 	}
 
 	@Cacheable(cacheNames = "main-section-new-all", key = "'all'")
