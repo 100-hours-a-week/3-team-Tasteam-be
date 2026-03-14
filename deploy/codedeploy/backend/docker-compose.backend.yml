@@ -10,6 +10,7 @@ services:
       - ${BACKEND_ENV_FILE:-/opt/tasteam/backend.env}
     ports:
       - "${CONTAINER_PORT:-8080}:8080"
+    entrypoint: ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=60.0", "-Xss256k", "-jar", "/app/app.jar"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
     logging:
