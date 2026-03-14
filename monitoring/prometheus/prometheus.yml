@@ -70,3 +70,42 @@ scrape_configs:
         replacement: tasteam-local
       - target_label: role
         replacement: monitoring
+
+  - job_name: kafka-broker-jmx
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - kafka-jmx-exporter:7071
+    relabel_configs:
+      - target_label: environment
+        replacement: local
+      - target_label: instance
+        replacement: tasteam-local
+      - target_label: role
+        replacement: kafka
+
+  - job_name: kafka-connect-jmx
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - connect-jmx-exporter:7072
+    relabel_configs:
+      - target_label: environment
+        replacement: local
+      - target_label: instance
+        replacement: tasteam-local
+      - target_label: role
+        replacement: kafka
+
+  - job_name: kafka-exporter
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - kafka-exporter:9308
+    relabel_configs:
+      - target_label: environment
+        replacement: local
+      - target_label: instance
+        replacement: tasteam-local
+      - target_label: role
+        replacement: kafka

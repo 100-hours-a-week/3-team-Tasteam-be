@@ -83,6 +83,9 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: tasteam-prometheus
+    networks:
+      - default
+      - tasteam-net
     command:
       - --enable-feature=exemplar-storage
       - --config.file=/etc/prometheus/prometheus.yml
@@ -106,7 +109,7 @@ services:
       - "${MONITORING_LOKI_PORT:-3100}:3100"
 
   tempo:
-    image: grafana/tempo:latest
+    image: grafana/tempo:2.10.2
     container_name: tasteam-tempo
     command: [ "-config.file=/etc/tempo/config.yaml" ]
     volumes:
