@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +20,7 @@ import com.tasteam.domain.main.dto.response.MainPageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Banners;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Section;
 import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
+import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
 import com.tasteam.fixture.MainPageRequestFixture;
 
 @DisplayName("[유닛](Main) MainController 단위 테스트")
@@ -41,9 +43,20 @@ class MainControllerTest extends BaseControllerWebMvcTest {
 		HomePageResponse.SectionItem item = new HomePageResponse.SectionItem(
 			1L, "맛집1", 120.0, List.of("한식", "국밥"), "https://example.com/img1.jpg", "요약");
 		return new HomePageResponse(
+			new HomePageResponse.Banners(
+				true,
+				List.of(new HomePageResponse.BannerItem(10L, "https://example.com/banner.jpg", "/events/10", 1))),
 			List.of(
 				new HomePageResponse.Section("NEW", "신규 개장", List.of(item)),
-				new HomePageResponse.Section("HOT", "이번주 Hot", List.of(item))));
+				new HomePageResponse.Section("HOT", "이번주 Hot", List.of(item))),
+			new SplashPromotionResponse(
+				99L,
+				"스플래시 제목",
+				"스플래시 내용",
+				"https://example.com/splash-thumb.jpg",
+				Instant.parse("2026-03-01T00:00:00Z"),
+				Instant.parse("2026-03-31T23:59:59Z"),
+				List.of("https://example.com/splash-detail.jpg")));
 	}
 
 	private AiRecommendResponse createAiResponse() {
@@ -106,7 +119,7 @@ class MainControllerTest extends BaseControllerWebMvcTest {
 	class GetHome {
 
 		@Test
-		@DisplayName("홈 페이지를 조회하면 NEW/HOT 두 섹션만 반환한다")
+		@DisplayName("홈 페이지를 조회하면 배너, 스플래시와 함께 NEW/HOT 두 섹션을 반환한다")
 		void 홈_페이지_조회_성공() throws Exception {
 			// given
 			given(mainService.getHome(any(), any())).willReturn(createHomeResponse());
@@ -117,6 +130,9 @@ class MainControllerTest extends BaseControllerWebMvcTest {
 				.param("longitude", String.valueOf(MainPageRequestFixture.DEFAULT_LONGITUDE)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.banners.enabled").value(true))
+				.andExpect(jsonPath("$.data.banners.items[0].id").value(10))
+				.andExpect(jsonPath("$.data.splashPromotion.id").value(99))
 				.andExpect(jsonPath("$.data.sections").isArray())
 				.andExpect(jsonPath("$.data.sections.length()").value(2))
 				.andExpect(jsonPath("$.data.sections[0].type").value("NEW"))

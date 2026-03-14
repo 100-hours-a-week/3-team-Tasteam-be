@@ -157,7 +157,19 @@ public class MainService {
 				toHomeSectionItems(hotRestaurants, categoriesByRestaurant, thumbnailByRestaurant,
 					summaryByRestaurant)));
 
-		return new HomePageResponse(sections);
+		Banners mainBanners = fetchBanners();
+		HomePageResponse.Banners banners = new HomePageResponse.Banners(
+			mainBanners.enabled(),
+			mainBanners.items().stream()
+				.map(item -> new HomePageResponse.BannerItem(
+					item.id(),
+					item.imageUrl(),
+					item.landingUrl(),
+					item.order()))
+				.toList());
+		SplashPromotionResponse splashPromotion = promotionService.getSplashPromotion().orElse(null);
+
+		return new HomePageResponse(banners, sections, splashPromotion);
 	}
 
 	public AiRecommendResponse getAiRecommend(Long memberId, MainPageRequest request) {
