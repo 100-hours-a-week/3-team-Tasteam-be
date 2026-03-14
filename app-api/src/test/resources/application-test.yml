@@ -24,6 +24,10 @@ logging:
   level:
     org.springframework.test.context.support: DEBUG
 
+chat:
+  stream:
+    enabled: false
+
 tasteam:
   admin:
     username: admin
