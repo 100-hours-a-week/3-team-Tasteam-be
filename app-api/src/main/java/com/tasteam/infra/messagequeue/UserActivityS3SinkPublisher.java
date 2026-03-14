@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
  * {@link ActivityEvent}를 S3 적재 전용 Kafka 토픽({@code evt.user-activity.s3-ingest.v1})으로 발행하는 sink.
  *
  * <p>Kafka Connect S3 Sink Connector가 해당 토픽을 구독하여
- * {@code raw/events/dt=YYYY-MM-DD/} 경로에 CSV로 적재한다.
+ * {@code raw/events/dt=YYYY-MM-DD/} 경로에 JSON gzip 파일로 적재한다.
  * outbox 없이 fire-and-forget 방식으로 발행한다.
  */
 @Slf4j

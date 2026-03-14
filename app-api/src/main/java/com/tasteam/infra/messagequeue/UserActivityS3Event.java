@@ -5,8 +5,8 @@ import java.time.Instant;
 /**
  * S3 Data Lake 적재를 위한 사용자 행동 이벤트 데이터 계약.
  *
- * <p>Kafka Connect S3 Sink Connector가 이 레코드를 CSV 행으로 직렬화한다.
- * 필드 순서가 CSV 컬럼 순서이므로 변경 시 스키마 버전을 함께 올려야 한다.
+ * <p>Kafka Connect S3 Sink Connector가 이 레코드를 JSON 레코드로 직렬화해 gzip 압축 파일로 적재한다.
+ * 필드 구조가 적재 스키마이므로 변경 시 스키마 버전을 함께 올려야 한다.
  *
  * @param eventId          전역 이벤트 식별자
  * @param eventName        이벤트 이름 (예: ui.restaurant.clicked)
