@@ -12,6 +12,7 @@ import java.util.concurrent.Executor;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.cache.CacheManager;
 
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.file.dto.response.DomainImageItem;
@@ -64,6 +65,7 @@ class MainServiceTest {
 			mock(GroupMemberRepository.class),
 			fileService,
 			mock(PromotionService.class),
+			mock(CacheManager.class),
 			executor);
 
 		// when

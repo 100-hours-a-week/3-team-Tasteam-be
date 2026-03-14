@@ -79,8 +79,16 @@ public class MainDataService {
 
 	@Transactional(readOnly = true)
 	public List<MainRestaurantDistanceProjection> fetchAiSectionByLocation(double lat, double lon) {
+		List<Long> ids = self.fetchAiSectionIdsByLocation(lat, lon);
+		return fetchDistancesWithCoordCache(ids, lat, lon);
+	}
+
+	@Cacheable(cacheNames = "main-section-ai-geo", key = "T(String).format('%d_%d', (long)(#lat * 1000), (long)(#lon * 1000))")
+	@Transactional(readOnly = true)
+	public List<Long> fetchAiSectionIdsByLocation(double lat, double lon) {
 		return fetchWithRadiusExpansion(lat, lon,
-			(la, lo, radius, limit) -> restaurantRepository.findAiRecommendRestaurants(la, lo, radius, limit));
+			(la, lo, radius, limit) -> restaurantRepository.findAiRecommendRestaurants(la, lo, radius, limit))
+			.stream().map(MainRestaurantDistanceProjection::getId).toList();
 	}
 
 	@Cacheable(cacheNames = "main-section-ai-all", key = "'all'")
@@ -133,9 +141,8 @@ public class MainDataService {
 
 	private List<MainRestaurantDistanceProjection> fetchWithRadiusExpansion(
 		double lat, double lon, LocationQuery query) {
-		int maxRadius = RestaurantSearchPolicy.EXPANDED_RADII[RestaurantSearchPolicy.EXPANDED_RADII.length - 1];
 		List<MainRestaurantDistanceProjection> results = query.execute(
-			lat, lon, maxRadius, RestaurantSearchPolicy.SECTION_SIZE);
+			lat, lon, RestaurantSearchPolicy.SECTION_RADIUS_METER, RestaurantSearchPolicy.SECTION_SIZE);
 
 		if (results.size() >= RestaurantSearchPolicy.SECTION_SIZE) {
 			return results;

@@ -6,7 +6,9 @@ import static com.tasteam.domain.promotion.entity.QPromotionDisplay.*;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -128,6 +130,28 @@ public class PromotionQueryRepositoryImpl extends QueryDslSupport implements Pro
 	@Override
 	public List<String> findDetailImageUrls(Long promotionId) {
 		return fetchDetailImages(promotionId);
+	}
+
+	@Override
+	public Map<Long, List<String>> findDetailImageUrlsByIds(List<Long> promotionIds) {
+		if (promotionIds.isEmpty()) {
+			return Map.of();
+		}
+		return getQueryFactory()
+			.select(promotionAsset.promotion.id, promotionAsset.imageUrl)
+			.from(promotionAsset)
+			.where(
+				promotionAsset.promotion.id.in(promotionIds),
+				promotionAsset.assetType.eq(AssetType.DETAIL),
+				promotionAsset.deletedAt.isNull())
+			.orderBy(promotionAsset.sortOrder.asc())
+			.fetch()
+			.stream()
+			.collect(Collectors.groupingBy(
+				tuple -> tuple.get(promotionAsset.promotion.id),
+				Collectors.mapping(
+					tuple -> tuple.get(promotionAsset.imageUrl),
+					Collectors.toList())));
 	}
 
 	private List<String> fetchDetailImages(Long promotionId) {

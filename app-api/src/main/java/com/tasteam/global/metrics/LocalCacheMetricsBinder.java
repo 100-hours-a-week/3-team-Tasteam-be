@@ -137,9 +137,19 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 				"/api/v1/main,/api/v1/main/home", ttl, resolveCapacity(cacheName));
 			case "main-section-new-geo" -> new CacheMetadata(cacheName, "main", "GET",
 				"/api/v1/main,/api/v1/main/home", ttl, resolveCapacity(cacheName));
+			case "main-section-ai-geo" -> new CacheMetadata(cacheName, "main", "GET",
+				"/api/v1/main,/api/v1/main/ai-recommend", ttl, resolveCapacity(cacheName));
 			case "main-banners" -> new CacheMetadata(cacheName, "main", "GET", "/api/v1/main", ttl,
 				resolveCapacity(cacheName));
+			case "main-splash" -> new CacheMetadata(cacheName, "main", "GET", "/api/v1/main", ttl,
+				resolveCapacity(cacheName));
 			case "restaurant-location" -> new CacheMetadata(cacheName, "restaurant", "GET", "/api/v1/main", ttl,
+				resolveCapacity(cacheName));
+			case "restaurant-categories" -> new CacheMetadata(cacheName, "restaurant", "GET", "/api/v1/main", ttl,
+				resolveCapacity(cacheName));
+			case "restaurant-thumbnail" -> new CacheMetadata(cacheName, "restaurant", "GET", "/api/v1/main", ttl,
+				resolveCapacity(cacheName));
+			case "restaurant-summary" -> new CacheMetadata(cacheName, "restaurant", "GET", "/api/v1/main", ttl,
 				resolveCapacity(cacheName));
 			default -> new CacheMetadata(cacheName, "unknown", "UNKNOWN", "unmapped", ttl,
 				resolveCapacity(cacheName));
