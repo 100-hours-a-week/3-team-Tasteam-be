@@ -102,8 +102,11 @@ tasteam:
     api: ${API_DOMAIN:https://api.tasteam.kr}
   search:
     query:
-      strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:TWO_STEP}
+      strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:FTS_MV_RANKED}
       candidate-limit: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:200}
+    mv-refresh:
+      enabled: ${TASTEAM_SEARCH_MV_REFRESH_ENABLED:false}
+      fixed-delay: ${TASTEAM_SEARCH_MV_REFRESH_FIXED_DELAY:PT15M}
   storage:
     type: ${STORAGE_TYPE:dummy}
     region: ${STORAGE_REGION:}
@@ -190,6 +193,8 @@ tasteam:
       expire-after-write: ${LOCAL_CACHE_CAFFEINE_EXPIRE_AFTER_WRITE:10m}
       record-stats: ${LOCAL_CACHE_CAFFEINE_RECORD_STATS:true}
     ttl:
+      search-restaurant-first-page:
+        ttl: 5m
       presigned-url:
         ttl: ${LOCAL_CACHE_PRESIGNED_URL_TTL:240s}
       main-section-hot-all:

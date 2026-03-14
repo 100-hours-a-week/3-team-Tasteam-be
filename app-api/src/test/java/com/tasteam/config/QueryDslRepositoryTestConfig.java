@@ -9,5 +9,5 @@ import com.tasteam.domain.search.repository.SearchQueryProperties;
 
 @TestConfiguration
 @EnableConfigurationProperties(SearchQueryProperties.class)
-@ComponentScan(basePackages = "com.tasteam.domain", useDefaultFilters = false, includeFilters = @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.tasteam\\.domain\\..*\\.repository\\.impl\\..*"))
+@ComponentScan(basePackages = "com.tasteam.domain", useDefaultFilters = false, includeFilters = @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.tasteam\\.domain\\..*\\.repository\\.(impl|executor)\\..*"))
 public class QueryDslRepositoryTestConfig {}

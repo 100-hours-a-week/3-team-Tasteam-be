@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +56,7 @@ public class SearchDataService {
 		return new GroupData(groups, groupIds, memberCounts);
 	}
 
+	@Cacheable(cacheNames = "search-restaurant-first-page", key = "T(String).format('%s_%.2f_%.2f_%.0f', #keyword, #latitude != null ? #latitude : 0.0, #longitude != null ? #longitude : 0.0, #radiusMeters != null ? #radiusMeters : 0.0)", condition = "#cursorToken == null")
 	@Transactional(readOnly = true)
 	public RestaurantPageData fetchRestaurants(String keyword, String cursorToken, int pageSize,
 		Double latitude, Double longitude, Double radiusMeters) {
@@ -78,6 +80,7 @@ public class SearchDataService {
 			last -> new SearchCursor(
 				last.nameExact(),
 				last.nameSimilarity(),
+				last.ftsRank(),
 				last.distanceMeters(),
 				last.categoryMatch(),
 				last.addressMatch(),
