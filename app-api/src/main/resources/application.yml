@@ -203,6 +203,10 @@ tasteam:
         ttl: 5m
       main-section-ai-all:
         ttl: 5m
+      main-section-hot-geo:
+        ttl: 5m
+      main-section-new-geo:
+        ttl: 5m
       main-banners:
         ttl: 5m
       reverse-geocode:

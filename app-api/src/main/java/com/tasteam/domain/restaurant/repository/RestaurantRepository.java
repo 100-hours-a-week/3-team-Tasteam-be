@@ -228,4 +228,21 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 		List<Long> excludeIds,
 		@Param("limit")
 		int limit);
+
+	@Query(value = """
+		select r.id as id, r.name as name,
+		    ST_Distance(
+		        r.location::geography,
+		        ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
+		    ) as distanceMeter
+		from restaurant r
+		where r.id in (:ids)
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findDistancesByIds(
+		@Param("ids")
+		List<Long> ids,
+		@Param("latitude")
+		double latitude,
+		@Param("longitude")
+		double longitude);
 }
