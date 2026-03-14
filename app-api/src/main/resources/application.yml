@@ -198,13 +198,27 @@ tasteam:
       presigned-url:
         ttl: ${LOCAL_CACHE_PRESIGNED_URL_TTL:240s}
       main-section-hot-all:
-        ttl: 5m
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
       main-section-new-all:
-        ttl: 5m
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
       main-section-ai-all:
-        ttl: 5m
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-hot-geo:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-new-geo:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
       main-banners:
-        ttl: 5m
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      restaurant-location:
+        ttl: ${LOCAL_CACHE_RESTAURANT_LOCATION_TTL:2h}
+        jitter: ${LOCAL_CACHE_RESTAURANT_LOCATION_JITTER:30s}
+        maximum-size: ${LOCAL_CACHE_RESTAURANT_LOCATION_MAX_SIZE:10000}
       reverse-geocode:
         ttl: ${LOCAL_CACHE_REVERSE_GEOCODE_TTL:24h}
   webhook:

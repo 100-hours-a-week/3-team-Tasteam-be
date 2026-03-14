@@ -36,13 +36,24 @@ public class LocalCacheConfig {
 
 		localCacheProperties.getTtl().forEach((cacheName, cacheTtl) -> {
 			if (cacheTtl.getTtl() != null) {
-				cacheManager.registerCustomCache(cacheName,
-					Caffeine.newBuilder()
-						.maximumSize(caffeineConfig.getMaximumSize())
-						.expireAfterWrite(cacheTtl.getTtl())
-						.recordStats()
-						.build());
-				log.info("Registered custom cache '{}' with TTL: {}", cacheName, cacheTtl.getTtl());
+				long size = cacheTtl.getMaximumSize() != null
+					? cacheTtl.getMaximumSize()
+					: caffeineConfig.getMaximumSize();
+
+				Caffeine<Object, Object> builder = Caffeine.newBuilder()
+					.maximumSize(size)
+					.recordStats();
+
+				if (cacheTtl.getJitter() != null && !cacheTtl.getJitter().isZero()) {
+					builder.expireAfter(new JitterExpiry(
+						cacheTtl.getTtl().toNanos(), cacheTtl.getJitter().toNanos()));
+				} else {
+					builder.expireAfterWrite(cacheTtl.getTtl());
+				}
+
+				cacheManager.registerCustomCache(cacheName, builder.build());
+				log.info("Registered custom cache '{}' TTL={} jitter={} maxSize={}",
+					cacheName, cacheTtl.getTtl(), cacheTtl.getJitter(), size);
 			}
 		});
 
