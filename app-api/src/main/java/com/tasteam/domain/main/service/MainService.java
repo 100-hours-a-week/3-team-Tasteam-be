@@ -2,6 +2,7 @@ package com.tasteam.domain.main.service;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -11,9 +12,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 
-import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.group.repository.GroupMemberRepository;
@@ -26,7 +28,6 @@ import com.tasteam.domain.main.dto.response.MainPageResponse.Section;
 import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
 import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
 import com.tasteam.domain.promotion.service.PromotionService;
-import com.tasteam.domain.restaurant.entity.RestaurantReviewSummary;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantReviewSummaryRepository;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
@@ -44,6 +45,7 @@ public class MainService {
 	private final GroupMemberRepository groupMemberRepository;
 	private final FileService fileService;
 	private final PromotionService promotionService;
+	private final CacheManager cacheManager;
 	@Qualifier("mainQueryExecutor")
 	private final Executor mainQueryExecutor;
 
@@ -225,42 +227,99 @@ public class MainService {
 		if (restaurantIds.isEmpty()) {
 			return Map.of();
 		}
-		return restaurantFoodCategoryRepository
-			.findCategoriesByRestaurantIds(restaurantIds)
-			.stream()
-			.collect(Collectors.groupingBy(
-				RestaurantCategoryProjection::getRestaurantId,
-				Collectors.mapping(
-					RestaurantCategoryProjection::getCategoryName,
-					Collectors.toList())));
+		Cache cache = cacheManager.getCache("restaurant-categories");
+		Map<Long, List<String>> result = new LinkedHashMap<>();
+		List<Long> missIds = new ArrayList<>();
+
+		for (Long id : restaurantIds) {
+			@SuppressWarnings("unchecked") List<String> cached = (cache != null) ? cache.get(id, List.class) : null;
+			if (cached != null) {
+				result.put(id, cached);
+			} else {
+				missIds.add(id);
+			}
+		}
+
+		if (!missIds.isEmpty()) {
+			Map<Long, List<String>> fetched = restaurantFoodCategoryRepository
+				.findCategoriesByRestaurantIds(missIds)
+				.stream()
+				.collect(Collectors.groupingBy(
+					RestaurantCategoryProjection::getRestaurantId,
+					Collectors.mapping(RestaurantCategoryProjection::getCategoryName, Collectors.toList())));
+			for (Long id : missIds) {
+				List<String> cats = fetched.getOrDefault(id, List.of());
+				if (cache != null) {
+					cache.put(id, cats);
+				}
+				result.put(id, cats);
+			}
+		}
+		return result;
 	}
 
 	private Map<Long, String> fetchThumbnails(List<Long> restaurantIds) {
 		if (restaurantIds.isEmpty()) {
 			return Map.of();
 		}
-		Map<Long, List<DomainImageItem>> domainImages = fileService.getDomainImageUrls(
-			DomainType.RESTAURANT,
-			restaurantIds);
-		return domainImages.entrySet().stream()
-			.filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
-			.collect(Collectors.toMap(
-				Map.Entry::getKey,
-				entry -> entry.getValue().getFirst().url()));
+		Cache cache = cacheManager.getCache("restaurant-thumbnail");
+		Map<Long, String> result = new LinkedHashMap<>();
+		List<Long> missIds = new ArrayList<>();
+
+		for (Long id : restaurantIds) {
+			String cached = (cache != null) ? cache.get(id, String.class) : null;
+			if (cached != null) {
+				result.put(id, cached);
+			} else {
+				missIds.add(id);
+			}
+		}
+
+		if (!missIds.isEmpty()) {
+			fileService.getDomainImageUrls(DomainType.RESTAURANT, missIds)
+				.forEach((id, images) -> {
+					String url = (images != null && !images.isEmpty()) ? images.getFirst().url() : null;
+					if (url != null) {
+						if (cache != null) {
+							cache.put(id, url);
+						}
+						result.put(id, url);
+					}
+				});
+		}
+		return result;
 	}
 
 	private Map<Long, String> fetchSummaries(List<Long> restaurantIds) {
 		if (restaurantIds.isEmpty()) {
 			return Map.of();
 		}
-		return restaurantReviewSummaryRepository
-			.findByRestaurantIdIn(restaurantIds)
-			.stream()
-			.filter(summary -> toSummaryString(summary.getSummaryJson()) != null)
-			.collect(Collectors.toMap(
-				RestaurantReviewSummary::getRestaurantId,
-				s -> toSummaryString(s.getSummaryJson()),
-				(existing, replacement) -> existing));
+		Cache cache = cacheManager.getCache("restaurant-summary");
+		Map<Long, String> result = new LinkedHashMap<>();
+		List<Long> missIds = new ArrayList<>();
+
+		for (Long id : restaurantIds) {
+			String cached = (cache != null) ? cache.get(id, String.class) : null;
+			if (cached != null) {
+				result.put(id, cached);
+			} else {
+				missIds.add(id);
+			}
+		}
+
+		if (!missIds.isEmpty()) {
+			restaurantReviewSummaryRepository.findByRestaurantIdIn(missIds)
+				.forEach(summary -> {
+					String text = toSummaryString(summary.getSummaryJson());
+					if (text != null) {
+						if (cache != null) {
+							cache.put(summary.getRestaurantId(), text);
+						}
+						result.put(summary.getRestaurantId(), text);
+					}
+				});
+		}
+		return result;
 	}
 
 	private static String toSummaryString(Map<String, Object> summaryJson) {
