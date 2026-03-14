@@ -63,24 +63,17 @@ public class MainDataService {
 
 	private List<MainRestaurantDistanceProjection> fetchWithRadiusExpansion(
 		double lat, double lon, LocationQuery query) {
+		int maxRadius = RestaurantSearchPolicy.EXPANDED_RADII[RestaurantSearchPolicy.EXPANDED_RADII.length - 1];
+		List<MainRestaurantDistanceProjection> results = query.execute(
+			lat, lon, maxRadius, RestaurantSearchPolicy.SECTION_SIZE);
+
+		if (results.size() >= RestaurantSearchPolicy.SECTION_SIZE) {
+			return results;
+		}
+
 		LinkedHashMap<Long, MainRestaurantDistanceProjection> collected = new LinkedHashMap<>();
-
-		for (int radius : RestaurantSearchPolicy.EXPANDED_RADII) {
-			List<MainRestaurantDistanceProjection> results = query.execute(
-				lat, lon, radius, RestaurantSearchPolicy.SECTION_SIZE);
-
-			for (MainRestaurantDistanceProjection r : results) {
-				collected.putIfAbsent(r.getId(), r);
-				if (collected.size() >= RestaurantSearchPolicy.SECTION_SIZE) {
-					return new ArrayList<>(collected.values());
-				}
-			}
-		}
-
-		if (collected.size() < RestaurantSearchPolicy.SECTION_SIZE) {
-			fillWithRandom(collected, RestaurantSearchPolicy.SECTION_SIZE - collected.size());
-		}
-
+		results.forEach(r -> collected.put(r.getId(), r));
+		fillWithRandom(collected, RestaurantSearchPolicy.SECTION_SIZE - collected.size());
 		return new ArrayList<>(collected.values());
 	}
 
