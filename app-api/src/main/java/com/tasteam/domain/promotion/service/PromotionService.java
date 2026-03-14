@@ -2,6 +2,7 @@ package com.tasteam.domain.promotion.service;
 
 import java.util.Optional;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -51,6 +52,7 @@ public class PromotionService {
 		return PromotionDetailResponse.fromDto(dto);
 	}
 
+	@Cacheable(cacheNames = "main-splash", key = "'splash'")
 	@Transactional(readOnly = true)
 	public Optional<SplashPromotionResponse> getSplashPromotion() {
 		return promotionRepository
@@ -59,6 +61,7 @@ public class PromotionService {
 				promotionRepository.findDetailImageUrls(dto.promotionId())));
 	}
 
+	@Cacheable(cacheNames = "main-banners", key = "'banners'")
 	@Transactional(readOnly = true)
 	public OffsetPageResponse<PromotionSummaryResponse> getBannerPromotions(Pageable pageable) {
 		Page<PromotionSummaryResponse> result = promotionRepository
