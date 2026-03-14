@@ -2,7 +2,27 @@ package com.tasteam.domain.main.dto.response;
 
 import java.util.List;
 
-public record HomePageResponse(List<Section> sections) {
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
+
+public record HomePageResponse(
+	Banners banners,
+	List<Section> sections,
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	SplashPromotionResponse splashPromotion) {
+
+	public record Banners(
+		boolean enabled,
+		List<BannerItem> items) {
+	}
+
+	public record BannerItem(
+		Long id,
+		String imageUrl,
+		String landingUrl,
+		Integer order) {
+	}
 
 	public record Section(
 		String type,
