@@ -35,9 +35,9 @@ public class KafkaMessageQueueProducer implements MessageQueueProducer {
 					throw new RuntimeException(e);
 				}
 			});
-			log.debug("Kafka EOS publish 성공. topic={}, messageId={}", message.topic(), message.messageId());
+			log.debug("Kafka publish 성공. topic={}, messageId={}", message.topic(), message.messageId());
 		} catch (Exception ex) {
-			log.error("Kafka EOS publish 실패. topic={}, messageId={}", message.topic(), message.messageId(), ex);
+			log.error("Kafka publish 실패. topic={}, messageId={}", message.topic(), message.messageId(), ex);
 			throw new MessageQueuePublishException(message.topic(), message.messageId(), ex);
 		}
 	}
