@@ -17,10 +17,13 @@ import com.tasteam.domain.main.dto.response.AiRecommendResponse;
 import com.tasteam.domain.main.repository.MainGroupRepository;
 import com.tasteam.domain.promotion.service.PromotionService;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
+import com.tasteam.fixture.MainPageResponseFixture;
 
 @UnitTest
 @DisplayName("[유닛](Main) MainService 단위 테스트")
 class MainServiceTest {
+
+	private final Executor syncExecutor = Runnable::run;
 
 	@Test
 	@DisplayName("AI 추천 조회 시 summary가 reviewSummary로 노출된다")
@@ -28,28 +31,33 @@ class MainServiceTest {
 		// given
 		MainDataService mainDataService = mock(MainDataService.class);
 		MainMetadataLoader metadataLoader = mock(MainMetadataLoader.class);
-		Executor executor = Runnable::run;
 
-		MainRestaurantDistanceProjection restaurant = projection(1L, "맛집");
+		Long restaurantId = MainPageResponseFixture.DEFAULT_RESTAURANT_ID;
+		MainRestaurantDistanceProjection restaurant = projection(restaurantId,
+			MainPageResponseFixture.DEFAULT_RESTAURANT_NAME);
 		when(mainDataService.fetchAiSectionAll()).thenReturn(List.of(restaurant));
-		when(metadataLoader.loadCategories(List.of(1L))).thenReturn(Map.of(1L, List.of("한식")));
-		when(metadataLoader.loadThumbnails(List.of(1L))).thenReturn(Map.of(1L, "https://cdn.example.com/img.webp"));
-		when(metadataLoader.loadSummaries(List.of(1L))).thenReturn(Map.of(1L, "AI 요약 텍스트"));
+		when(metadataLoader.loadCategories(List.of(restaurantId)))
+			.thenReturn(Map.of(restaurantId, MainPageResponseFixture.DEFAULT_CATEGORIES));
+		when(metadataLoader.loadThumbnails(List.of(restaurantId)))
+			.thenReturn(Map.of(restaurantId, MainPageResponseFixture.DEFAULT_THUMBNAIL));
+		when(metadataLoader.loadSummaries(List.of(restaurantId)))
+			.thenReturn(Map.of(restaurantId, MainPageResponseFixture.DEFAULT_SUMMARY));
 
 		MainService service = new MainService(
 			mainDataService,
 			metadataLoader,
 			mock(MainGroupRepository.class),
 			mock(PromotionService.class),
-			executor);
+			syncExecutor);
 
 		// when
 		AiRecommendResponse response = service.getAiRecommend(null, new MainPageRequest(null, null));
 
 		// then
 		assertThat(response.section().items()).hasSize(1);
-		assertThat(response.section().items().getFirst().restaurantId()).isEqualTo(1L);
-		assertThat(response.section().items().getFirst().reviewSummary()).isEqualTo("AI 요약 텍스트");
+		assertThat(response.section().items().getFirst().restaurantId()).isEqualTo(restaurantId);
+		assertThat(response.section().items().getFirst().reviewSummary())
+			.isEqualTo(MainPageResponseFixture.DEFAULT_SUMMARY);
 	}
 
 	private MainRestaurantDistanceProjection projection(Long id, String name) {
