@@ -27,6 +27,7 @@ public class KafkaMessageQueueProperties {
 		private int batchSize = 16384;
 		private int lingerMs = 5;
 		private long sendTimeoutMillis = 5000L;
+		private String transactionIdPrefix = "tasteam-tx-";
 	}
 
 	@Getter

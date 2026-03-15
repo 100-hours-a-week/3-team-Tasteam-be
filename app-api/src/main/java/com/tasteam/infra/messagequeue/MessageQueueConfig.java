@@ -62,13 +62,15 @@ public class MessageQueueConfig {
 		MessageQueueProperties properties,
 		MessageQueueTraceService traceService,
 		@Nullable
-		StringRedisTemplate stringRedisTemplate) {
+		StringRedisTemplate stringRedisTemplate,
+		@Nullable @Qualifier("kafkaMessageQueueProducerDelegate")
+		MessageQueueProducer kafkaProducerDelegate) {
 		MessageQueueProviderType providerType = properties.effectiveProviderType();
 		MessageQueueProducer delegate = switch (providerType) {
 			case NONE -> new NoOpMessageQueueProducer();
 			case REDIS_STREAM ->
 				new RedisStreamMessageQueueProducer(requireRedisTemplate(stringRedisTemplate), properties);
-			case KAFKA -> new UnsupportedMessageQueueProducer(providerType);
+			case KAFKA -> requireKafkaProducerDelegate(kafkaProducerDelegate);
 		};
 		return new TracingMessageQueueProducer(delegate, providerType, traceService);
 	}
@@ -82,7 +84,9 @@ public class MessageQueueConfig {
 		@Nullable
 		StringRedisTemplate stringRedisTemplate,
 		@Nullable @Qualifier("messageQueueStreamListenerContainer")
-		StreamMessageListenerContainer<String, MapRecord<String, String, String>> messageQueueStreamListenerContainer) {
+		StreamMessageListenerContainer<String, MapRecord<String, String, String>> messageQueueStreamListenerContainer,
+		@Nullable @Qualifier("kafkaMessageQueueConsumerDelegate")
+		MessageQueueConsumer kafkaConsumerDelegate) {
 		MessageQueueProviderType providerType = properties.effectiveProviderType();
 		MessageQueueConsumer delegate = switch (providerType) {
 			case NONE -> new NoOpMessageQueueConsumer();
@@ -91,7 +95,7 @@ public class MessageQueueConfig {
 				requireStreamListenerContainer(messageQueueStreamListenerContainer),
 				properties,
 				objectMapper);
-			case KAFKA -> new UnsupportedMessageQueueConsumer(providerType);
+			case KAFKA -> requireKafkaConsumerDelegate(kafkaConsumerDelegate);
 		};
 		return new TracingMessageQueueConsumer(delegate, providerType, traceService);
 	}
@@ -111,5 +115,21 @@ public class MessageQueueConfig {
 			throw new IllegalStateException("redis-stream provider는 StreamMessageListenerContainer 빈이 필요합니다");
 		}
 		return messageQueueStreamListenerContainer;
+	}
+
+	private MessageQueueProducer requireKafkaProducerDelegate(@Nullable
+	MessageQueueProducer kafkaProducerDelegate) {
+		if (kafkaProducerDelegate == null) {
+			throw new IllegalStateException("kafka provider는 kafkaMessageQueueProducerDelegate 빈이 필요합니다");
+		}
+		return kafkaProducerDelegate;
+	}
+
+	private MessageQueueConsumer requireKafkaConsumerDelegate(@Nullable
+	MessageQueueConsumer kafkaConsumerDelegate) {
+		if (kafkaConsumerDelegate == null) {
+			throw new IllegalStateException("kafka provider는 kafkaMessageQueueConsumerDelegate 빈이 필요합니다");
+		}
+		return kafkaConsumerDelegate;
 	}
 }

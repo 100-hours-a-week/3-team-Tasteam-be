@@ -76,6 +76,14 @@ public class NotificationMessageQueueConsumer {
 
 	private void handleMessage(QueueMessage message) {
 		NotificationRequestedPayload payload = deserializePayload(message.payload());
+
+		if (messageQueueProperties.effectiveProviderType() == MessageQueueProviderType.KAFKA) {
+			// Kafka: DefaultErrorHandler가 retry, DeadLetterPublishingRecoverer가 DLT 처리
+			messageProcessor.process(payload);
+			return;
+		}
+
+		// Redis Streams: 수동 retry + DLQ
 		try {
 			messageProcessor.process(payload);
 			retryCountMap.remove(message.messageId());
