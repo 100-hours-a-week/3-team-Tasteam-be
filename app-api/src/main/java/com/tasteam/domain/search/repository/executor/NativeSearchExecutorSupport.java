@@ -168,14 +168,7 @@ public abstract class NativeSearchExecutorSupport extends QueryDslSupport implem
 	 * ONE_STEP, TWO_STEP, JOIN_AGGREGATE, HYBRID_*, READ_MODEL_*, MV_SINGLE_PASS 전략에서 사용.
 	 */
 	protected double cursorScore(SearchCursor cursor, Double radiusMeters) {
-		double nameExact = cursor.nameExact() == null ? 0.0 : cursor.nameExact();
-		double similarity = cursor.nameSimilarity() == null ? 0.0 : cursor.nameSimilarity();
-		double distanceWeight = 0.0;
-		if (cursor.distanceMeters() != null && radiusMeters != null) {
-			double effectiveRadius = Math.max(radiusMeters, 1.0);
-			distanceWeight = Math.max(0.0, 1.0 - (cursor.distanceMeters() / effectiveRadius));
-		}
-		return nameExact * 100.0 + similarity * 30.0 + distanceWeight * 50.0;
+		return SearchScoreCalculator.cursorScore(cursor, radiusMeters);
 	}
 
 	/**
@@ -183,22 +176,7 @@ public abstract class NativeSearchExecutorSupport extends QueryDslSupport implem
 	 * FTS_MV_RANKED 전략에서 사용.
 	 */
 	protected double cursorScoreFts(SearchCursor cursor, Double radiusMeters) {
-		double nameExact = cursor.nameExact() == null ? 0.0 : cursor.nameExact();
-		double similarity = cursor.nameSimilarity() == null ? 0.0 : cursor.nameSimilarity();
-		double ftsRank = cursor.ftsRank() == null ? 0.0 : cursor.ftsRank();
-		double categoryMatch = cursor.categoryMatch() == null ? 0.0 : cursor.categoryMatch();
-		double addressMatch = cursor.addressMatch() == null ? 0.0 : cursor.addressMatch();
-		double distanceWeight = 0.0;
-		if (cursor.distanceMeters() != null && radiusMeters != null) {
-			double effectiveRadius = Math.max(radiusMeters, 1.0);
-			distanceWeight = Math.max(0.0, 1.0 - (cursor.distanceMeters() / effectiveRadius));
-		}
-		return nameExact * 100.0
-			+ similarity * 30.0
-			+ ftsRank * 25.0
-			+ categoryMatch * 15.0
-			+ addressMatch * 5.0
-			+ distanceWeight * 50.0;
+		return SearchScoreCalculator.cursorScoreFts(cursor, radiusMeters);
 	}
 
 	private Map<Long, Restaurant> fetchRestaurantMap(List<Long> ids) {
