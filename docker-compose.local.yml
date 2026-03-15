@@ -19,8 +19,8 @@ services:
       - .env.local
     environment:
       POSTGRES_DB: tasteam
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME:-tasteam}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tasteam}
       TZ: Asia/Seoul
     ports:
       - "5432:5432"
@@ -28,7 +28,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgis/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d tasteam"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -29,6 +29,9 @@ import lombok.RequiredArgsConstructor;
 @Repository
 public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository {
 
+	private static final int MIN_KNN_LIMIT = 120;
+	private static final int MAX_KNN_LIMIT = 300;
+
 	private final NamedParameterJdbcTemplate namedJdbcTemplate;
 	private final JPAQueryFactory queryFactory;
 
@@ -126,46 +129,85 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 		boolean hasCategories = categories != null && !categories.isEmpty();
 
 		String sql = """
-			WITH ranked AS (
-			  SELECT DISTINCT ON (r.id)
+			WITH params AS (
+			  SELECT
+				:groupId::bigint AS group_id,
+				:latitude::double precision AS latitude,
+				:longitude::double precision AS longitude,
+				:radiusMeter::int AS radius_meter,
+				:pageSize::int AS page_size,
+				:knnLimit::int AS knn_limit,
+				:cursorDistance::double precision AS cursor_distance,
+				:cursorId::bigint AS cursor_id
+			),
+			seed AS (
+			  SELECT
+				ST_SetSRID(ST_MakePoint(p.longitude, p.latitude), 4326) AS pt,
+				p.group_id,
+				p.radius_meter,
+				p.page_size,
+				p.knn_limit,
+				p.cursor_distance,
+				p.cursor_id
+			  FROM params p
+			),
+			category_candidates AS (
+			  SELECT DISTINCT
 				r.id,
 				r.name,
-				r.full_address AS address,
-				ST_Distance(
-				  r.location::geography,
-				  ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-				) AS distance_meter
+				r.full_address,
+				r.location
 			  FROM restaurant r
 			  %s
 			  WHERE r.deleted_at IS NULL
-				AND ST_DWithin(
-				  r.location::geography,
-				  ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
-				  :radiusMeter
-				)
-				AND EXISTS (
-				  SELECT 1
-				  FROM review rv
-				  WHERE rv.restaurant_id = r.id
-					AND rv.group_id = :groupId
-					AND rv.deleted_at IS NULL
-				)
-			  ORDER BY r.id
+			),
+			knn_candidates AS (
+			  SELECT
+				cc.id,
+				cc.name,
+				cc.full_address,
+				cc.location
+			  FROM category_candidates cc
+			  CROSS JOIN seed s
+			  ORDER BY cc.location <-> s.pt
+			  LIMIT (SELECT knn_limit FROM seed)
+			),
+			reviewed_candidates AS (
+			  SELECT DISTINCT
+				kc.id,
+				kc.name,
+				kc.full_address,
+				kc.location
+			  FROM knn_candidates kc
+			  JOIN review rv
+				ON rv.restaurant_id = kc.id
+			   AND rv.group_id = (SELECT group_id FROM seed)
+			   AND rv.deleted_at IS NULL
+			),
+			distance_filtered AS (
+			  SELECT
+				rc.id,
+				rc.name,
+				rc.full_address AS address,
+				ST_Distance(rc.location::geography, s.pt::geography) AS distance_meter
+			  FROM reviewed_candidates rc
+			  CROSS JOIN seed s
+			  WHERE ST_DWithin(rc.location::geography, s.pt::geography, s.radius_meter)
 			)
 			SELECT *
-			FROM ranked
+			FROM distance_filtered
 			WHERE (
-			  CAST(:cursorDistance AS double precision) IS NULL
+			  (SELECT cursor_distance FROM seed) IS NULL
 			  OR (
-				distance_meter > CAST(:cursorDistance AS double precision)
+				distance_meter > (SELECT cursor_distance FROM seed)
 				OR (
-				  distance_meter = CAST(:cursorDistance AS double precision)
-				  AND id > CAST(:cursorId AS bigint)
+				  distance_meter = (SELECT cursor_distance FROM seed)
+				  AND id > (SELECT cursor_id FROM seed)
 				)
 			  )
 			)
 			ORDER BY distance_meter ASC, id ASC
-			LIMIT :pageSize
+			LIMIT (SELECT page_size FROM seed)
 			""".formatted(
 			hasCategories ? """
 					JOIN restaurant_food_category rfc
@@ -182,6 +224,7 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 		if (hasCategories) {
 			params.put("categories", categories);
 		}
+		params.put("knnLimit", computeKnnLimit(pageSize));
 		params.put("groupId", groupId);
 		params.put("cursorDistance", cursor == null ? null : cursor.distanceMeter());
 		params.put("cursorId", cursor == null ? null : cursor.id());
@@ -195,6 +238,10 @@ public class RestaurantQueryRepositoryImpl implements RestaurantQueryRepository 
 				rs.getString("name"),
 				rs.getString("address"),
 				rs.getDouble("distance_meter")));
+	}
+
+	private int computeKnnLimit(int pageSize) {
+		return Math.min(Math.max(pageSize * 12, MIN_KNN_LIMIT), MAX_KNN_LIMIT);
 	}
 
 	@Override
