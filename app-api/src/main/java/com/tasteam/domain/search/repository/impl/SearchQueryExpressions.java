@@ -13,6 +13,7 @@ import com.tasteam.domain.restaurant.entity.QFoodCategory;
 import com.tasteam.domain.restaurant.entity.QRestaurant;
 import com.tasteam.domain.restaurant.entity.QRestaurantFoodCategory;
 import com.tasteam.domain.search.dto.SearchCursor;
+import com.tasteam.domain.search.repository.executor.SearchScoreCalculator;
 
 /**
  * QueryDSL 검색 쿼리에서 공통으로 사용하는 표현식 유틸리티.
@@ -136,14 +137,7 @@ public final class SearchQueryExpressions {
 	}
 
 	private static double cursorScore(SearchCursor cursor, Double radiusMeters) {
-		double nameExact = cursor.nameExact() == null ? 0.0 : cursor.nameExact();
-		double similarity = cursor.nameSimilarity() == null ? 0.0 : cursor.nameSimilarity();
-		double distanceWeight = 0.0;
-		if (cursor.distanceMeters() != null && radiusMeters != null) {
-			double effectiveRadius = Math.max(radiusMeters, 1.0);
-			distanceWeight = Math.max(0.0, 1.0 - (cursor.distanceMeters() / effectiveRadius));
-		}
-		return nameExact * 100.0 + similarity * 30.0 + distanceWeight * 50.0;
+		return SearchScoreCalculator.cursorScore(cursor, radiusMeters);
 	}
 
 	private static BooleanExpression or(BooleanExpression base, BooleanExpression next) {
