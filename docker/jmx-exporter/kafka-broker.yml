@@ -1,0 +1,93 @@
+startDelaySeconds: 0
+hostPort: kafka:9101
+ssl: false
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+
+rules:
+  # Broker state / availability
+  - pattern: "kafka.server<type=KafkaServer, name=BrokerState><>Value"
+    name: kafka_server_broker_state
+    type: GAUGE
+
+  # Active controller count
+  - pattern: "kafka.controller<type=KafkaController, name=ActiveControllerCount><>Value"
+    name: kafka_controller_active_controller_count
+    type: GAUGE
+
+  # Request metrics (Produce / Fetch)
+  - pattern: "kafka.network<type=RequestMetrics, name=RequestsPerSec, request=(.+)><>Count"
+    name: kafka_network_requests_total
+    type: COUNTER
+    labels:
+      request: "$1"
+
+  - pattern: "kafka.network<type=RequestMetrics, name=TotalTimeMs, request=(.+)><>(Mean|99thPercentile)"
+    name: kafka_network_request_total_time_ms
+    type: GAUGE
+    labels:
+      request: "$1"
+      quantile: "$2"
+
+  # Messages in / bytes in / out
+  - pattern: "kafka.server<type=BrokerTopicMetrics, name=MessagesInPerSec><>OneMinuteRate"
+    name: kafka_server_messages_in_per_sec
+    type: GAUGE
+
+  - pattern: "kafka.server<type=BrokerTopicMetrics, name=BytesInPerSec><>OneMinuteRate"
+    name: kafka_server_bytes_in_per_sec
+    type: GAUGE
+
+  - pattern: "kafka.server<type=BrokerTopicMetrics, name=BytesOutPerSec><>OneMinuteRate"
+    name: kafka_server_bytes_out_per_sec
+    type: GAUGE
+
+  # Under-replicated partitions
+  - pattern: "kafka.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value"
+    name: kafka_server_under_replicated_partitions
+    type: GAUGE
+
+  # Leader count
+  - pattern: "kafka.server<type=ReplicaManager, name=LeaderCount><>Value"
+    name: kafka_server_leader_count
+    type: GAUGE
+
+  # Partition count
+  - pattern: "kafka.server<type=ReplicaManager, name=PartitionCount><>Value"
+    name: kafka_server_partition_count
+    type: GAUGE
+
+  # Log flush latency
+  - pattern: "kafka.log<type=LogFlushStats, name=LogFlushRateAndTimeMs><>(Mean|99thPercentile)"
+    name: kafka_log_flush_time_ms
+    type: GAUGE
+    labels:
+      quantile: "$1"
+
+  # JVM memory
+  - pattern: "java.lang<type=Memory><HeapMemoryUsage>(used|committed|max)"
+    name: kafka_jvm_heap_memory_bytes
+    type: GAUGE
+    labels:
+      area: "heap"
+      state: "$1"
+
+  - pattern: "java.lang<type=Memory><NonHeapMemoryUsage>(used|committed)"
+    name: kafka_jvm_nonheap_memory_bytes
+    type: GAUGE
+    labels:
+      area: "nonheap"
+      state: "$1"
+
+  # GC
+  - pattern: "java.lang<type=GarbageCollector, name=(.+)><>CollectionCount"
+    name: kafka_jvm_gc_collection_count_total
+    type: COUNTER
+    labels:
+      gc: "$1"
+
+  - pattern: "java.lang<type=GarbageCollector, name=(.+)><>CollectionTime"
+    name: kafka_jvm_gc_collection_time_ms_total
+    type: COUNTER
+    labels:
+      gc: "$1"

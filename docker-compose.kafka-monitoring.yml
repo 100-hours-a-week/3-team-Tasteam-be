@@ -1,0 +1,68 @@
+## Kafka 모니터링 오버레이
+## Kafka JMX exporter, Connect JMX exporter, kafka-exporter를 추가한다.
+##
+## 사용법:
+##   docker compose \
+##     -f docker-compose.local.yml \
+##     -f docker-compose.kafka.yml \
+##     -f docker-compose.kafka-monitoring.yml \
+##     -f docker-compose.local-monitoring.yml \
+##     up -d --build
+##
+## Exporter 엔드포인트:
+##   kafka-jmx-exporter:   http://localhost:7071/metrics  (Broker JMX)
+##   connect-jmx-exporter: http://localhost:7072/metrics  (Connect JMX)
+##   kafka-exporter:       http://localhost:9308/metrics  (topic / consumer lag)
+
+networks:
+  tasteam-net:
+    name: tasteam-net
+    driver: bridge
+
+services:
+  kafka-jmx-exporter:
+    image: bitnami/jmx-exporter:latest
+    container_name: tasteam-kafka-jmx-exporter
+    networks: [tasteam-net]
+    command:
+      - "7071"
+      - /etc/jmx-exporter/config.yml
+    volumes:
+      - ./docker/jmx-exporter/kafka-broker.yml:/etc/jmx-exporter/config.yml:ro
+    ports:
+      - "${MONITORING_KAFKA_JMX_BROKER_PORT:-7071}:7071"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  connect-jmx-exporter:
+    image: bitnami/jmx-exporter:latest
+    container_name: tasteam-connect-jmx-exporter
+    networks: [tasteam-net]
+    command:
+      - "7072"
+      - /etc/jmx-exporter/config.yml
+    volumes:
+      - ./docker/jmx-exporter/kafka-connect.yml:/etc/jmx-exporter/config.yml:ro
+    ports:
+      - "${MONITORING_KAFKA_JMX_CONNECT_PORT:-7072}:7072"
+    depends_on:
+      kafka-connect:
+        condition: service_healthy
+    restart: unless-stopped
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: tasteam-kafka-exporter
+    networks: [tasteam-net]
+    command:
+      - --kafka.server=kafka:9092
+      - --kafka.version=3.6.0
+      - --web.listen-address=:9308
+    ports:
+      - "${MONITORING_KAFKA_EXPORTER_PORT:-9308}:9308"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
