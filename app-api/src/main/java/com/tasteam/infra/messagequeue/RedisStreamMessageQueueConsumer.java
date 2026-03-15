@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.ReadOffset;
@@ -23,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
-public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
+public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer, DisposableBean {
 
 	private final StringRedisTemplate stringRedisTemplate;
 	private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamListenerContainer;
@@ -41,6 +42,9 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 		Subscription activeSubscription = subscriptions.remove(subscription);
 		if (activeSubscription != null) {
 			activeSubscription.cancel();
+			if (subscriptions.isEmpty()) {
+				streamListenerContainer.stop();
+			}
 		}
 	}
 
@@ -149,5 +153,11 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer {
 
 	private long toMillis(long startedAtNanos) {
 		return java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos);
+	}
+
+	@Override
+	public void destroy() {
+		subscriptions.clear();
+		streamListenerContainer.stop();
 	}
 }

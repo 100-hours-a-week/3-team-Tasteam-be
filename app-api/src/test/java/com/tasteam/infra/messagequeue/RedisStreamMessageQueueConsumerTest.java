@@ -87,6 +87,61 @@ class RedisStreamMessageQueueConsumerTest {
 
 		// then
 		verify(subscriptionHandle).cancel();
+		verify(listenerContainer).stop();
+	}
+
+	@Test
+	@DisplayName("다른 구독이 남아 있으면 컨테이너를 유지한다")
+	void unsubscribe_withRemainingSubscription_keepsContainerRunning() {
+		// given
+		StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+		when(redisTemplate.execute(org.mockito.ArgumentMatchers.<RedisCallback<Void>>any())).thenReturn(null);
+
+		@SuppressWarnings("unchecked") StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer = mock(
+			StreamMessageListenerContainer.class);
+		Subscription firstHandle = mock(Subscription.class);
+		Subscription secondHandle = mock(Subscription.class);
+		when(listenerContainer.receive(any(Consumer.class), any(StreamOffset.class), any(StreamListener.class)))
+			.thenReturn(firstHandle, secondHandle);
+
+		MessageQueueProperties properties = new MessageQueueProperties();
+		RedisStreamMessageQueueConsumer consumer = new RedisStreamMessageQueueConsumer(
+			redisTemplate,
+			listenerContainer,
+			properties,
+			new com.fasterxml.jackson.databind.ObjectMapper());
+		MessageQueueSubscription first = new MessageQueueSubscription("order.created", "group-1", "consumer-1");
+		MessageQueueSubscription second = new MessageQueueSubscription("order.completed", "group-1", "consumer-2");
+		consumer.subscribe(first, message -> {});
+		consumer.subscribe(second, message -> {});
+
+		// when
+		consumer.unsubscribe(first);
+
+		// then
+		verify(firstHandle).cancel();
+		verify(listenerContainer, never()).stop();
+	}
+
+	@Test
+	@DisplayName("bean 종료 시 리스너 컨테이너를 정지한다")
+	void destroy_stopsListenerContainer() throws Exception {
+		// given
+		StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+		@SuppressWarnings("unchecked") StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer = mock(
+			StreamMessageListenerContainer.class);
+		MessageQueueProperties properties = new MessageQueueProperties();
+		RedisStreamMessageQueueConsumer consumer = new RedisStreamMessageQueueConsumer(
+			redisTemplate,
+			listenerContainer,
+			properties,
+			new com.fasterxml.jackson.databind.ObjectMapper());
+
+		// when
+		consumer.destroy();
+
+		// then
+		verify(listenerContainer).stop();
 	}
 
 	@Test
