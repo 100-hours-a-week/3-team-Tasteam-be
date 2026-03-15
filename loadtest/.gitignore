@@ -1,0 +1,7 @@
+# 실행 산출물
+results/
+# 임시/캐시 산출물
+__pycache__/
+*.pyc
+# 로컬 실행 환경
+.venv-locust/

@@ -1,0 +1,44 @@
+{
+  "counts": {
+    "member_count": 2000,
+    "restaurant_count": 10000,
+    "group_count": 200,
+    "subgroup_per_group": 3,
+    "member_per_group": 20,
+    "review_count": 8000,
+    "chat_message_per_room": 5,
+    "notification_count": 0,
+    "favorite_count": 4000,
+    "subgroup_favorite_count": 0
+  },
+  "content": {
+    "realistic_names": true,
+    "seoul_focused_coords": true,
+    "restaurant_name_left_tokens": [
+      "강남", "홍대", "연남", "성수", "합정", "이태원", "명동", "종로", "신촌", "건대",
+      "잠실", "노량진", "신림", "왕십리", "마포", "여의도", "압구정", "청담", "삼성", "역삼",
+      "서초", "방배", "관악", "광진", "용산", "서대문", "은평", "망원", "공덕", "삼각지"
+    ],
+    "restaurant_name_right_tokens": [
+      "치킨집", "한식당", "중화요리", "일식당", "삼겹살집", "냉면집", "국밥집", "버거하우스",
+      "피자집", "카페", "라멘집", "분식집", "파스타집", "족발집", "갈비집", "순대국밥",
+      "떡볶이집", "스시바", "우동집", "짬뽕집", "스테이크하우스", "브런치카페",
+      "치킨앤맥주", "치킨전문점", "한우집", "해장국집", "쌀국수집", "곱창집", "김치찌개", "된장찌개집"
+    ],
+    "sidos": ["서울특별시"],
+    "sigungus": [
+      "강남구", "서초구", "마포구", "성동구", "종로구", "중구",
+      "용산구", "영등포구", "송파구", "광진구"
+    ],
+    "eupmyeondong": "역삼동",
+    "postal_code": "06000",
+    "group_name_prefix": "dummy",
+    "group_address_prefix": "역삼로",
+    "group_topic_tokens": [
+      "강남", "홍대", "판교", "여의도", "성수",
+      "개발", "디자인", "마케팅", "기획", "운영"
+    ],
+    "member_email_prefix": "perf",
+    "member_email_suffix": "@perf.tasteam.kr"
+  }
+}
