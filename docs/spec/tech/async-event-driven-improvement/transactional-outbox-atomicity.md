@@ -10,10 +10,10 @@
 |---|---|---|
 | `GroupEventPublisher` | `TransactionSynchronization.afterCommit()`에서 publish | 그룹 멤버십 commit 후 이벤트 publish |
 | `ReviewEventPublisher` | 리뷰 생성 후 `afterCommit()` publish | 리뷰 row와 이벤트 publish가 분리 |
-| `NotificationDomainEventListener` | `@TransactionalEventListener(AFTER_COMMIT)` | 알림 outbox 적재가 비즈니스 트랜잭션 바깥 |
-| `NotificationOutboxService.enqueue()` | `@Transactional(REQUIRES_NEW)` | outbox insert가 별도 트랜잭션 |
-| `ActivityDomainEventListener` | `@TransactionalEventListener(AFTER_COMMIT)` | 사용자 이벤트 source outbox 적재도 동일 구조 |
-| `UserActivityDispatchOutboxEnqueueHook.afterStored()` | `@Transactional(REQUIRES_NEW)` | 최종 저장과 dispatch enqueue가 분리 |
+| `NotificationDomainEventListener` | ~~`@TransactionalEventListener(AFTER_COMMIT)`~~ → **`BEFORE_COMMIT` 수정 완료** | ~~알림 outbox 적재가 비즈니스 트랜잭션 바깥~~ → **동일 TX에서 원자적 저장** |
+| `NotificationOutboxService.enqueue()` | ~~`@Transactional(REQUIRES_NEW)`~~ → **`MANDATORY` 수정 완료** | ~~outbox insert가 별도 트랜잭션~~ → **도메인 TX 참여 강제** |
+| `ActivityDomainEventListener` | `@TransactionalEventListener(AFTER_COMMIT)` | 사용자 이벤트 source outbox 적재도 동일 구조 (미수정) |
+| `UserActivityDispatchOutboxEnqueueHook.afterStored()` | `@Transactional(REQUIRES_NEW)` | 최종 저장과 dispatch enqueue가 분리 (미수정) |
 
 ## 3. 왜 문제인가
 
@@ -59,14 +59,19 @@
 
 ## 7. 구현 순서
 
-1. 공통 outbox append 계약 정리
-2. 서비스 내부 append 추가
-3. 기존 listener 경로와 병행 운영
+1. ~~공통 outbox append 계약 정리~~ (완료)
+2. ~~서비스 내부 append 추가~~ → **알림 도메인 `BEFORE_COMMIT + MANDATORY` 수정 완료** (2026.03.15)
+3. 기존 listener 경로와 병행 운영 → 알림 도메인은 완료, user-activity 도메인은 미수정
 4. dual-write 차이 모니터링
-5. `afterCommit()` / `AFTER_COMMIT` 기반 outbox 적재 제거
+5. `afterCommit()` / `AFTER_COMMIT` 기반 outbox 적재 제거 → user-activity 도메인 잔여
+
+**알림 도메인 수정 요약 (2026.03.15)**:
+- `NotificationDomainEventListener`: 4개 메서드 `AFTER_COMMIT` → `BEFORE_COMMIT`, try-catch 제거
+- `NotificationOutboxService.enqueue()`: `REQUIRES_NEW` → `MANDATORY`
+- 트러블슈팅 문서: `docs/troubleshooting/notification-outbox-atomicity-20260315.md`
 
 ## 8. 검증 포인트
 
-- rollback 시 outbox row도 함께 rollback 되는가
-- commit 직후 강제 종료 테스트에서 business row만 남는 경우가 사라지는가
-- 동일 `event_id` 재시도 시 unique 키가 기대대로 동작하는가
+- rollback 시 outbox row도 함께 rollback 되는가 ← **알림 도메인 수정 완료**
+- commit 직후 강제 종료 테스트에서 business row만 남는 경우가 사라지는가 ← **알림 도메인 수정 완료**
+- 동일 `event_id` 재시도 시 unique 키가 기대대로 동작하는가 ← `insertIfAbsent` (ON CONFLICT DO NOTHING) 기존 유지

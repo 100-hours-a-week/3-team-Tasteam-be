@@ -4,8 +4,8 @@
 | 문서 목적 | 현재 백엔드의 알림, 사용자 이벤트 수집, MQ 소비, 멱등성, outbox 구조에서 개선이 필요한 지점을 코드 기준으로 정리하고 우선순위를 고정한다. |
 | 작성 및 관리 | Backend Team |
 | 최초 작성일 | 2026.03.10 |
-| 최종 수정일 | 2026.03.10 |
-| 문서 버전 | v1.0 |
+| 최종 수정일 | 2026.03.15 |
+| 문서 버전 | v1.1 |
 
 <br>
 
@@ -60,34 +60,34 @@
 | 영역 | 주요 패키지/클래스 | 현재 책임 |
 |---|---|---|
 | 알림 요청 생성 | `NotificationEventListener`, `NotificationDomainEventListener`, `ChatNotificationEventListener` | 도메인 이벤트를 알림 생성/발행 경로로 연결 |
-| 알림 outbox / 발행 | `NotificationOutboxService`, `NotificationOutboxScanner` | `notification_outbox` 적재와 MQ 발행 |
+| 알림 outbox / 발행 | `NotificationOutboxService` (`MANDATORY`), `NotificationOutboxScanner` | `notification_outbox` 적재(도메인 TX 원자적)와 MQ 발행 |
 | 알림 소비 / 전달 | `NotificationMessageQueueConsumer`, `NotificationDispatcher` | MQ 요청 소비와 채널별 발송 |
-| 레거시 알림 경로 | `GroupMemberJoinedMessageQueuePublisher`, `NotificationMessageQueueConsumerRegistrar` | 그룹 가입 전용 별도 MQ 경로 |
+| Group MQ 발행 | `domain/group/event/GroupMemberJoinedMqPublisher` | GROUP_MEMBER_JOINED 토픽 발행 (infra에서 이동 완료) |
+| ~~레거시 알림 경로~~ | ~~`GroupMemberJoinedMessageQueuePublisher`, `NotificationMessageQueueConsumerRegistrar`~~ | **삭제 완료** (2026.03.15) |
 | 사용자 이벤트 수집 | `ActivityDomainEventListener`, `ActivityEventOrchestrator`, `UserActivitySourceOutboxSink`, `UserActivityS3SinkPublisher` | 도메인 이벤트 -> source outbox / MQ 발행 |
 | 사용자 이벤트 최종 저장 | `Kafka Connect S3 Sink Connector`, `UserActivityEventStoreService` | `user_activity_event` 최종 저장 |
 | 외부 분석 전송 | `UserActivityDispatchOutboxEnqueueHook`, `UserActivityDispatchOutboxDispatcher` | PostHog dispatch 격리 |
 | MQ 인프라 | `RedisStreamMessageQueueConsumer`, `RedisStreamMessageQueueProducer` | Redis Stream 기반 발행/구독 |
 
-## **[2-3] 현재 구조**
+## **[2-3] 현재 구조** (2026.03.15 기준)
 
 ```mermaid
 flowchart LR
     classDef primary fill:#f8fafc,stroke:#334155,color:#0f172a,stroke-width:1px
     classDef accent fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a,stroke-width:1px
     classDef warn fill:#fee2e2,stroke:#dc2626,color:#991b1b,stroke-width:1px
+    classDef done fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1px
 
     A["GroupEventPublisher <br /> ReviewEventPublisher"]:::primary --> B["afterCommit publish"]:::warn
-    B --> C["NotificationDomainEventListener"]:::accent
-    B --> D["ActivityDomainEventListener"]:::accent
-    C --> E["NotificationOutboxService"]:::accent
-    E --> F["notification_outbox"]:::primary
+    B --> C["NotificationDomainEventListener <br/> BEFORE_COMMIT"]:::done
+    B --> D["ActivityDomainEventListener <br/> AFTER_COMMIT (미수정)"]:::warn
+    C --> E["NotificationOutboxService <br/> MANDATORY"]:::done
+    E --> F["notification_outbox <br/> 도메인 TX 원자적"]:::done
     F --> G["NotificationOutboxScanner"]:::accent
-    G --> H["Redis Stream"]:::primary
+    G --> H["Redis Stream / Kafka"]:::primary
     H --> I["NotificationMessageQueueConsumer"]:::accent
     I --> J["NotificationDispatcher"]:::accent
-    B --> K["NotificationEventListener <br /> MQ off"]:::warn
-    B --> L["GroupMemberJoinedMessageQueuePublisher"]:::warn
-    L --> M["NotificationMessageQueueConsumerRegistrar"]:::warn
+    B --> K["NotificationEventListener <br /> MQ off fallback"]:::accent
     B --> N["ActivityEventOrchestrator"]:::accent
     N --> O["UserActivitySourceOutboxSink"]:::accent
     O --> P["user_activity_source_outbox"]:::primary
@@ -100,16 +100,19 @@ flowchart LR
     U --> V["user_activity_dispatch_outbox"]:::primary
 ```
 
+> 초록색(done): 2026.03.15 수정 완료. 붉은색(warn): 잔여 개선 필요.
+
 ---
 
 # **[3] 런타임 흐름 (Runtime Flow)**
 
-## **[3-1] 현재 상태 요약**
+## **[3-1] 현재 상태 요약** (2026.03.15 업데이트)
 
 | 단계 | 현재 상태 | 남는 문제 |
 |---|---|---|
-| 이벤트 생성 | `afterCommit()` publish 또는 direct async listener | 비즈니스 commit 직후 유실 구간 존재 |
-| outbox 적재 | 일부는 `AFTER_COMMIT` listener에서 적재 | strict transactional outbox 아님 |
+| 이벤트 생성 | `afterCommit()` publish 또는 direct async listener | user-activity 도메인 유실 구간 잔존 |
+| 알림 outbox 적재 | **`BEFORE_COMMIT` + `MANDATORY` 수정 완료** | ~~strict transactional outbox 아님~~ → **알림 도메인 해결** |
+| 중복 알림 경로 | **`GroupMemberJoinedMessageQueuePublisher` + `NotificationMessageQueueConsumerRegistrar` 삭제 완료** | ~~그룹 가입 알림 2회 발생~~ → **해결** |
 | MQ 소비 | 성공 시 ack, 실패 시 로그 | reclaim / 영속 retry 상태 부족 |
 | 알림 전달 | event-level dedupe 후 채널별 발송 | partial failure 재처리 어려움 |
 | 사용자 이벤트 저장 | client ingest는 direct store, server event는 MQ 의존 | MQ off 시 완결성 차이 |
