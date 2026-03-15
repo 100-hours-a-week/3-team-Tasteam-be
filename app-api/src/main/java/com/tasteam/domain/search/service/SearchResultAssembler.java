@@ -2,6 +2,7 @@ package com.tasteam.domain.search.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
@@ -24,7 +25,7 @@ public class SearchResultAssembler {
 			.map(group -> new SearchGroupSummary(
 				group.getId(),
 				group.getName(),
-				firstDomainImageUrl(groupLogos.getOrDefault(group.getId(), List.of())),
+				firstImageUrl(groupLogos.getOrDefault(group.getId(), List.of()), DomainImageItem::url),
 				groupData.memberCounts().getOrDefault(group.getId(), 0L)))
 			.toList();
 	}
@@ -39,7 +40,7 @@ public class SearchResultAssembler {
 				r.getId(),
 				r.getName(),
 				r.getFullAddress(),
-				thumbnailUrl(thumbnails.getOrDefault(r.getId(), List.of())),
+				firstImageUrl(thumbnails.getOrDefault(r.getId(), List.of()), RestaurantImageDto::url),
 				restaurantData.categories().getOrDefault(r.getId(), List.of())))
 			.toList();
 	}
@@ -49,28 +50,16 @@ public class SearchResultAssembler {
 		return domainImages.entrySet().stream()
 			.collect(Collectors.toMap(
 				Map.Entry::getKey,
-				entry -> {
-					List<DomainImageItem> images = entry.getValue();
-					List<DomainImageItem> limited = images.size() > THUMBNAIL_LIMIT
-						? images.subList(0, THUMBNAIL_LIMIT)
-						: images;
-					return limited.stream()
-						.map(img -> new RestaurantImageDto(img.imageId(), img.url()))
-						.toList();
-				}));
+				entry -> entry.getValue().stream()
+					.limit(THUMBNAIL_LIMIT)
+					.map(img -> new RestaurantImageDto(img.imageId(), img.url()))
+					.toList()));
 	}
 
-	private String thumbnailUrl(List<RestaurantImageDto> images) {
+	private <T> String firstImageUrl(List<T> images, Function<T, String> urlExtractor) {
 		if (images == null || images.isEmpty()) {
 			return null;
 		}
-		return images.getFirst().url();
-	}
-
-	private String firstDomainImageUrl(List<DomainImageItem> images) {
-		if (images == null || images.isEmpty()) {
-			return null;
-		}
-		return images.getFirst().url();
+		return urlExtractor.apply(images.getFirst());
 	}
 }
