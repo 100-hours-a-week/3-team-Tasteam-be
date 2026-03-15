@@ -1,38 +1,27 @@
 package com.tasteam.domain.main.service;
 
-import static com.tasteam.domain.restaurant.service.RestaurantAiJsonParser.extractSummaryText;
-
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 
-import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.main.dto.request.MainPageRequest;
 import com.tasteam.domain.main.dto.response.AiRecommendResponse;
 import com.tasteam.domain.main.dto.response.HomePageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Banners;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Section;
-import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
+import com.tasteam.domain.main.dto.response.MainSectionItem;
 import com.tasteam.domain.main.repository.MainGroupRepository;
-import com.tasteam.domain.main.repository.MainMetadataRepository;
 import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
 import com.tasteam.domain.promotion.service.PromotionService;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
-import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 
 import lombok.RequiredArgsConstructor;
 
@@ -41,11 +30,9 @@ import lombok.RequiredArgsConstructor;
 public class MainService {
 
 	private final MainDataService mainDataService;
-	private final MainMetadataRepository metadataRepository;
+	private final MainMetadataLoader metadataLoader;
 	private final MainGroupRepository groupRepository;
-	private final FileService fileService;
 	private final PromotionService promotionService;
-	private final CacheManager cacheManager;
 	@Qualifier("mainQueryExecutor")
 	private final Executor mainQueryExecutor;
 
@@ -65,38 +52,58 @@ public class MainService {
 		List<MainRestaurantDistanceProjection> newRestaurants = newFuture.join();
 		List<MainRestaurantDistanceProjection> aiRestaurants = aiFuture.join();
 
-		Set<Long> allIdSet = new HashSet<>();
-		Stream.of(hotRestaurants, newRestaurants, aiRestaurants)
-			.flatMap(List::stream)
-			.forEach(r -> allIdSet.add(r.getId()));
-		List<Long> allIds = new ArrayList<>(allIdSet);
-
-		CompletableFuture<Map<Long, List<String>>> catFuture = CompletableFuture.supplyAsync(
-			() -> fetchCategories(allIds), mainQueryExecutor);
-		CompletableFuture<Map<Long, String>> thumbFuture = CompletableFuture.supplyAsync(
-			() -> fetchThumbnails(allIds), mainQueryExecutor);
-		CompletableFuture<Map<Long, String>> summaryFuture = CompletableFuture.supplyAsync(
-			() -> fetchSummaries(allIds), mainQueryExecutor);
-
-		CompletableFuture.allOf(catFuture, thumbFuture, summaryFuture).join();
-
-		Map<Long, List<String>> categoriesByRestaurant = catFuture.join();
-		Map<Long, String> thumbnailByRestaurant = thumbFuture.join();
-		Map<Long, String> summaryByRestaurant = summaryFuture.join();
+		SectionMetadata metadata = fetchMetadata(collectAllIds(hotRestaurants, newRestaurants, aiRestaurants));
 
 		List<Section> sections = List.of(
 			new Section("SPONSORED", "Sponsored", List.of()),
-			new Section("HOT", "이번주 Hot",
-				toSectionItems(hotRestaurants, categoriesByRestaurant, thumbnailByRestaurant, summaryByRestaurant)),
-			new Section("NEW", "신규 개장",
-				toSectionItems(newRestaurants, categoriesByRestaurant, thumbnailByRestaurant, summaryByRestaurant)),
-			new Section("AI_RECOMMEND", "AI 추천",
-				toSectionItems(aiRestaurants, categoriesByRestaurant, thumbnailByRestaurant, summaryByRestaurant)));
+			new Section("HOT", "이번주 Hot", toSectionItems(hotRestaurants, metadata)),
+			new Section("NEW", "신규 개장", toSectionItems(newRestaurants, metadata)),
+			new Section("AI_RECOMMEND", "AI 추천", toSectionItems(aiRestaurants, metadata)));
 
 		Banners banners = fetchBanners();
 		SplashPromotionResponse splashPromotion = promotionService.getSplashPromotion().orElse(null);
 
 		return new MainPageResponse(banners, sections, splashPromotion);
+	}
+
+	public HomePageResponse getHome(Long memberId, MainPageRequest request) {
+		LocationContext location = resolveLocation(memberId, request);
+
+		CompletableFuture<List<MainRestaurantDistanceProjection>> newFuture = CompletableFuture.supplyAsync(
+			() -> fetchNewSection(location), mainQueryExecutor);
+		CompletableFuture<List<MainRestaurantDistanceProjection>> hotFuture = CompletableFuture.supplyAsync(
+			() -> fetchHotSection(location), mainQueryExecutor);
+
+		CompletableFuture.allOf(newFuture, hotFuture).join();
+
+		List<MainRestaurantDistanceProjection> newRestaurants = newFuture.join();
+		List<MainRestaurantDistanceProjection> hotRestaurants = hotFuture.join();
+
+		SectionMetadata metadata = fetchMetadata(collectAllIds(newRestaurants, hotRestaurants));
+
+		List<HomePageResponse.Section> sections = List.of(
+			new HomePageResponse.Section("NEW", "신규 개장", toSectionItems(newRestaurants, metadata)),
+			new HomePageResponse.Section("HOT", "이번주 Hot", toSectionItems(hotRestaurants, metadata)));
+
+		Banners banners = fetchBanners();
+		SplashPromotionResponse splashPromotion = promotionService.getSplashPromotion().orElse(null);
+
+		return new HomePageResponse(banners, sections, splashPromotion);
+	}
+
+	public AiRecommendResponse getAiRecommend(Long memberId, MainPageRequest request) {
+		LocationContext location = resolveLocation(memberId, request);
+
+		List<MainRestaurantDistanceProjection> aiRestaurants = CompletableFuture
+			.supplyAsync(() -> fetchAiSection(location), mainQueryExecutor)
+			.join();
+
+		SectionMetadata metadata = fetchMetadata(collectAllIds(aiRestaurants));
+
+		AiRecommendResponse.Section section = new AiRecommendResponse.Section(
+			"AI_RECOMMEND", "AI 추천", toSectionItems(aiRestaurants, metadata));
+
+		return new AiRecommendResponse(section);
 	}
 
 	private Banners fetchBanners() {
@@ -116,88 +123,6 @@ public class MainService {
 			.toList();
 
 		return new Banners(true, bannerItems);
-	}
-
-	public HomePageResponse getHome(Long memberId, MainPageRequest request) {
-		LocationContext location = resolveLocation(memberId, request);
-
-		CompletableFuture<List<MainRestaurantDistanceProjection>> newFuture = CompletableFuture.supplyAsync(
-			() -> fetchNewSection(location), mainQueryExecutor);
-		CompletableFuture<List<MainRestaurantDistanceProjection>> hotFuture = CompletableFuture.supplyAsync(
-			() -> fetchHotSection(location), mainQueryExecutor);
-
-		CompletableFuture.allOf(newFuture, hotFuture).join();
-
-		List<MainRestaurantDistanceProjection> newRestaurants = newFuture.join();
-		List<MainRestaurantDistanceProjection> hotRestaurants = hotFuture.join();
-
-		Set<Long> allIdSet = new HashSet<>();
-		Stream.of(newRestaurants, hotRestaurants)
-			.flatMap(List::stream)
-			.forEach(r -> allIdSet.add(r.getId()));
-		List<Long> allIds = new ArrayList<>(allIdSet);
-
-		CompletableFuture<Map<Long, List<String>>> catFuture = CompletableFuture.supplyAsync(
-			() -> fetchCategories(allIds), mainQueryExecutor);
-		CompletableFuture<Map<Long, String>> thumbFuture = CompletableFuture.supplyAsync(
-			() -> fetchThumbnails(allIds), mainQueryExecutor);
-		CompletableFuture<Map<Long, String>> summaryFuture = CompletableFuture.supplyAsync(
-			() -> fetchSummaries(allIds), mainQueryExecutor);
-
-		CompletableFuture.allOf(catFuture, thumbFuture, summaryFuture).join();
-
-		Map<Long, List<String>> categoriesByRestaurant = catFuture.join();
-		Map<Long, String> thumbnailByRestaurant = thumbFuture.join();
-		Map<Long, String> summaryByRestaurant = summaryFuture.join();
-
-		List<HomePageResponse.Section> sections = List.of(
-			new HomePageResponse.Section("NEW", "신규 개장",
-				toHomeSectionItems(newRestaurants, categoriesByRestaurant, thumbnailByRestaurant, summaryByRestaurant)),
-			new HomePageResponse.Section("HOT", "이번주 Hot",
-				toHomeSectionItems(hotRestaurants, categoriesByRestaurant, thumbnailByRestaurant,
-					summaryByRestaurant)));
-
-		Banners mainBanners = fetchBanners();
-		HomePageResponse.Banners banners = new HomePageResponse.Banners(
-			mainBanners.enabled(),
-			mainBanners.items().stream()
-				.map(item -> new HomePageResponse.BannerItem(
-					item.id(),
-					item.imageUrl(),
-					item.landingUrl(),
-					item.order()))
-				.toList());
-		SplashPromotionResponse splashPromotion = promotionService.getSplashPromotion().orElse(null);
-
-		return new HomePageResponse(banners, sections, splashPromotion);
-	}
-
-	public AiRecommendResponse getAiRecommend(Long memberId, MainPageRequest request) {
-		LocationContext location = resolveLocation(memberId, request);
-
-		List<MainRestaurantDistanceProjection> aiRestaurants = CompletableFuture
-			.supplyAsync(() -> fetchAiSection(location), mainQueryExecutor)
-			.join();
-
-		List<Long> allIds = aiRestaurants.stream()
-			.map(MainRestaurantDistanceProjection::getId)
-			.toList();
-
-		CompletableFuture<Map<Long, List<String>>> catFuture = CompletableFuture.supplyAsync(
-			() -> fetchCategories(allIds), mainQueryExecutor);
-		CompletableFuture<Map<Long, String>> thumbFuture = CompletableFuture.supplyAsync(
-			() -> fetchThumbnails(allIds), mainQueryExecutor);
-		CompletableFuture<Map<Long, String>> summaryFuture = CompletableFuture.supplyAsync(
-			() -> fetchSummaries(allIds), mainQueryExecutor);
-
-		CompletableFuture.allOf(catFuture, thumbFuture, summaryFuture).join();
-
-		AiRecommendResponse.Section section = new AiRecommendResponse.Section(
-			"AI_RECOMMEND",
-			"AI 추천",
-			toAiSectionItems(aiRestaurants, catFuture.join(), thumbFuture.join(), summaryFuture.join()));
-
-		return new AiRecommendResponse(section);
 	}
 
 	private LocationContext resolveLocation(Long memberId, MainPageRequest request) {
@@ -235,151 +160,43 @@ public class MainService {
 		return mainDataService.fetchAiSectionAll();
 	}
 
-	private Map<Long, List<String>> fetchCategories(List<Long> restaurantIds) {
-		if (restaurantIds.isEmpty()) {
-			return Map.of();
+	@SafeVarargs
+	private List<Long> collectAllIds(List<MainRestaurantDistanceProjection>... lists) {
+		Set<Long> idSet = new HashSet<>();
+		for (List<MainRestaurantDistanceProjection> list : lists) {
+			list.forEach(r -> idSet.add(r.getId()));
 		}
-		Cache cache = cacheManager.getCache("restaurant-categories");
-		Map<Long, List<String>> result = new LinkedHashMap<>();
-		List<Long> missIds = new ArrayList<>();
-
-		for (Long id : restaurantIds) {
-			@SuppressWarnings("unchecked") List<String> cached = (cache != null) ? cache.get(id, List.class) : null;
-			if (cached != null) {
-				result.put(id, cached);
-			} else {
-				missIds.add(id);
-			}
-		}
-
-		if (!missIds.isEmpty()) {
-			Map<Long, List<String>> fetched = metadataRepository
-				.findCategoriesByRestaurantIds(missIds)
-				.stream()
-				.collect(Collectors.groupingBy(
-					RestaurantCategoryProjection::getRestaurantId,
-					Collectors.mapping(RestaurantCategoryProjection::getCategoryName, Collectors.toList())));
-			for (Long id : missIds) {
-				List<String> cats = fetched.getOrDefault(id, List.of());
-				if (cache != null) {
-					cache.put(id, cats);
-				}
-				result.put(id, cats);
-			}
-		}
-		return result;
+		return new ArrayList<>(idSet);
 	}
 
-	private Map<Long, String> fetchThumbnails(List<Long> restaurantIds) {
-		if (restaurantIds.isEmpty()) {
-			return Map.of();
-		}
-		Cache cache = cacheManager.getCache("restaurant-thumbnail");
-		Map<Long, String> result = new LinkedHashMap<>();
-		List<Long> missIds = new ArrayList<>();
+	private SectionMetadata fetchMetadata(List<Long> allIds) {
+		CompletableFuture<Map<Long, List<String>>> catFuture = CompletableFuture.supplyAsync(
+			() -> metadataLoader.loadCategories(allIds), mainQueryExecutor);
+		CompletableFuture<Map<Long, String>> thumbFuture = CompletableFuture.supplyAsync(
+			() -> metadataLoader.loadThumbnails(allIds), mainQueryExecutor);
+		CompletableFuture<Map<Long, String>> summaryFuture = CompletableFuture.supplyAsync(
+			() -> metadataLoader.loadSummaries(allIds), mainQueryExecutor);
 
-		for (Long id : restaurantIds) {
-			String cached = (cache != null) ? cache.get(id, String.class) : null;
-			if (cached != null) {
-				result.put(id, cached);
-			} else {
-				missIds.add(id);
-			}
-		}
-
-		if (!missIds.isEmpty()) {
-			fileService.getDomainImageUrls(DomainType.RESTAURANT, missIds)
-				.forEach((id, images) -> {
-					String url = (images != null && !images.isEmpty()) ? images.getFirst().url() : null;
-					if (url != null) {
-						if (cache != null) {
-							cache.put(id, url);
-						}
-						result.put(id, url);
-					}
-				});
-		}
-		return result;
+		CompletableFuture.allOf(catFuture, thumbFuture, summaryFuture).join();
+		return new SectionMetadata(catFuture.join(), thumbFuture.join(), summaryFuture.join());
 	}
 
-	private Map<Long, String> fetchSummaries(List<Long> restaurantIds) {
-		if (restaurantIds.isEmpty()) {
-			return Map.of();
-		}
-		Cache cache = cacheManager.getCache("restaurant-summary");
-		Map<Long, String> result = new LinkedHashMap<>();
-		List<Long> missIds = new ArrayList<>();
-
-		for (Long id : restaurantIds) {
-			String cached = (cache != null) ? cache.get(id, String.class) : null;
-			if (cached != null) {
-				result.put(id, cached);
-			} else {
-				missIds.add(id);
-			}
-		}
-
-		if (!missIds.isEmpty()) {
-			metadataRepository.findSummariesByRestaurantIdIn(missIds)
-				.forEach(summary -> {
-					String text = extractSummaryText(summary.getSummaryJson());
-					if (text != null) {
-						if (cache != null) {
-							cache.put(summary.getRestaurantId(), text);
-						}
-						result.put(summary.getRestaurantId(), text);
-					}
-				});
-		}
-		return result;
-	}
-
-	private List<SectionItem> toSectionItems(
-		List<MainRestaurantDistanceProjection> restaurants,
-		Map<Long, List<String>> categoriesByRestaurant,
-		Map<Long, String> thumbnailByRestaurant,
-		Map<Long, String> summaryByRestaurant) {
+	private List<MainSectionItem> toSectionItems(
+		List<MainRestaurantDistanceProjection> restaurants, SectionMetadata metadata) {
 		return restaurants.stream()
-			.map(restaurant -> new SectionItem(
-				restaurant.getId(),
-				restaurant.getName(),
-				restaurant.getDistanceMeter(),
-				categoriesByRestaurant.getOrDefault(restaurant.getId(), List.of()),
-				thumbnailByRestaurant.get(restaurant.getId()),
-				false,
-				summaryByRestaurant.get(restaurant.getId())))
+			.map(r -> new MainSectionItem(
+				r.getId(),
+				r.getName(),
+				r.getDistanceMeter(),
+				metadata.categories().getOrDefault(r.getId(), List.of()),
+				metadata.thumbnails().get(r.getId()),
+				metadata.summaries().get(r.getId())))
 			.toList();
 	}
 
-	private List<HomePageResponse.SectionItem> toHomeSectionItems(
-		List<MainRestaurantDistanceProjection> restaurants,
-		Map<Long, List<String>> categoriesByRestaurant,
-		Map<Long, String> thumbnailByRestaurant,
-		Map<Long, String> summaryByRestaurant) {
-		return restaurants.stream()
-			.map(restaurant -> new HomePageResponse.SectionItem(
-				restaurant.getId(),
-				restaurant.getName(),
-				restaurant.getDistanceMeter(),
-				categoriesByRestaurant.getOrDefault(restaurant.getId(), List.of()),
-				thumbnailByRestaurant.get(restaurant.getId()),
-				summaryByRestaurant.get(restaurant.getId())))
-			.toList();
-	}
-
-	private List<AiRecommendResponse.SectionItem> toAiSectionItems(
-		List<MainRestaurantDistanceProjection> restaurants,
-		Map<Long, List<String>> categoriesByRestaurant,
-		Map<Long, String> thumbnailByRestaurant,
-		Map<Long, String> summaryByRestaurant) {
-		return restaurants.stream()
-			.map(restaurant -> new AiRecommendResponse.SectionItem(
-				restaurant.getId(),
-				restaurant.getName(),
-				restaurant.getDistanceMeter(),
-				categoriesByRestaurant.getOrDefault(restaurant.getId(), List.of()),
-				thumbnailByRestaurant.get(restaurant.getId()),
-				summaryByRestaurant.get(restaurant.getId())))
-			.toList();
+	private record SectionMetadata(
+		Map<Long, List<String>> categories,
+		Map<Long, String> thumbnails,
+		Map<Long, String> summaries) {
 	}
 }

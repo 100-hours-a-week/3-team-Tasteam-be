@@ -19,7 +19,7 @@ import com.tasteam.domain.main.dto.response.HomePageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Banners;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Section;
-import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
+import com.tasteam.domain.main.dto.response.MainSectionItem;
 import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
 import com.tasteam.fixture.MainPageRequestFixture;
 
@@ -27,8 +27,9 @@ import com.tasteam.fixture.MainPageRequestFixture;
 class MainControllerTest extends BaseControllerWebMvcTest {
 
 	private MainPageResponse createMockResponse() {
-		SectionItem item = new SectionItem(1L, "맛집1", 100.0, List.of("한식", "국밥"), "https://example.com/img1.jpg",
-			false, "맛있어요");
+		MainSectionItem item = new MainSectionItem(1L, "맛집1", 100.0, List.of("한식", "국밥"),
+			"https://example.com/img1.jpg",
+			"맛있어요");
 		return new MainPageResponse(
 			new Banners(false, List.of()),
 			List.of(
@@ -40,12 +41,12 @@ class MainControllerTest extends BaseControllerWebMvcTest {
 	}
 
 	private HomePageResponse createHomeResponse() {
-		HomePageResponse.SectionItem item = new HomePageResponse.SectionItem(
+		MainSectionItem item = new MainSectionItem(
 			1L, "맛집1", 120.0, List.of("한식", "국밥"), "https://example.com/img1.jpg", "요약");
 		return new HomePageResponse(
-			new HomePageResponse.Banners(
+			new Banners(
 				true,
-				List.of(new HomePageResponse.BannerItem(10L, "https://example.com/banner.jpg", "/events/10", 1))),
+				List.of(new MainPageResponse.BannerItem(10L, "https://example.com/banner.jpg", "/events/10", 1))),
 			List.of(
 				new HomePageResponse.Section("NEW", "신규 개장", List.of(item)),
 				new HomePageResponse.Section("HOT", "이번주 Hot", List.of(item))),
@@ -60,7 +61,7 @@ class MainControllerTest extends BaseControllerWebMvcTest {
 	}
 
 	private AiRecommendResponse createAiResponse() {
-		AiRecommendResponse.SectionItem item = new AiRecommendResponse.SectionItem(
+		MainSectionItem item = new MainSectionItem(
 			2L, "카페", 80.0, List.of("카페", "디저트"), "https://example.com/img2.jpg", "AI 요약");
 		return new AiRecommendResponse(
 			new AiRecommendResponse.Section("AI_RECOMMEND", "AI 추천", List.of(item)));

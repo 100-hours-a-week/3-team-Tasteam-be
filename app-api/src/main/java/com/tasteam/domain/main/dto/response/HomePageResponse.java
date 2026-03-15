@@ -6,36 +6,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
 
 public record HomePageResponse(
-	Banners banners,
+	MainPageResponse.Banners banners,
 	List<Section> sections,
 
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	SplashPromotionResponse splashPromotion) {
 
-	public record Banners(
-		boolean enabled,
-		List<BannerItem> items) {
-	}
-
-	public record BannerItem(
-		Long id,
-		String imageUrl,
-		String landingUrl,
-		Integer order) {
-	}
-
 	public record Section(
 		String type,
 		String title,
-		List<SectionItem> items) {
-	}
-
-	public record SectionItem(
-		Long restaurantId,
-		String name,
-		Double distanceMeter,
-		List<String> foodCategories,
-		String thumbnailImageUrl,
-		String reviewSummary) {
+		List<MainSectionItem> items) {
 	}
 }

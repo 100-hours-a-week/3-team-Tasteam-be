@@ -27,16 +27,6 @@ public record MainPageResponse(
 	public record Section(
 		String type,
 		String title,
-		List<SectionItem> items) {
-	}
-
-	public record SectionItem(
-		Long restaurantId,
-		String name,
-		Double distanceMeter,
-		List<String> foodCategories,
-		String thumbnailImageUrl,
-		Boolean isFavorite,
-		String reviewSummary) {
+		List<MainSectionItem> items) {
 	}
 }
