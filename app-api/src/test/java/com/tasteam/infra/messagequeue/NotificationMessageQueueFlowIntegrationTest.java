@@ -1,8 +1,6 @@
 package com.tasteam.infra.messagequeue;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
@@ -20,14 +18,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.tasteam.config.annotation.MessageQueueFlowTest;
 import com.tasteam.domain.group.event.GroupMemberJoinedEvent;
-import com.tasteam.domain.notification.entity.NotificationType;
-import com.tasteam.domain.notification.service.NotificationService;
+import com.tasteam.domain.group.event.GroupMemberJoinedMessagePayload;
+import com.tasteam.domain.group.event.GroupMemberJoinedMqPublisher;
 
 import jakarta.annotation.Resource;
 
 @MessageQueueFlowTest
 @SpringBootTest(classes = NotificationMessageQueueFlowIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@DisplayName("[통합](Notification) NotificationMessageQueueFlow 통합 테스트")
+@DisplayName("[통합](Group) GroupMemberJoinedMqPublisher 통합 테스트")
 class NotificationMessageQueueFlowIntegrationTest {
 
 	@Resource
@@ -37,28 +35,16 @@ class NotificationMessageQueueFlowIntegrationTest {
 	private MessageQueueProducer messageQueueProducer;
 
 	@Resource
-	private MessageQueueConsumer messageQueueConsumer;
-
-	@Resource
-	private NotificationService notificationService;
-
-	@Resource
 	private ObjectMapper objectMapper;
 
 	@Resource
 	private TopicNamingPolicy topicNamingPolicy;
 
 	@Test
-	@DisplayName("GroupMemberJoined 이벤트 발행 시 MQ publish와 notification 소비 처리까지 이어진다")
-	void groupMemberJoinedEvent_publishAndConsume() throws Exception {
+	@DisplayName("GroupMemberJoined 이벤트 발행 시 GROUP_MEMBER_JOINED 토픽으로 MQ publish된다")
+	void groupMemberJoinedEvent_publishesToMq() throws Exception {
 		// given
 		ArgumentCaptor<QueueMessage> publishedMessageCaptor = ArgumentCaptor.forClass(QueueMessage.class);
-		ArgumentCaptor<MessageQueueSubscription> subscriptionCaptor = ArgumentCaptor
-			.forClass(MessageQueueSubscription.class);
-		@SuppressWarnings("unchecked") ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
-			.forClass(
-				QueueMessageHandler.class);
-		verify(messageQueueConsumer).subscribe(subscriptionCaptor.capture(), handlerCaptor.capture());
 
 		// when
 		applicationEventPublisher.publishEvent(new GroupMemberJoinedEvent(10L, 20L, "스터디 그룹",
@@ -77,41 +63,6 @@ class NotificationMessageQueueFlowIntegrationTest {
 		assertThat(payload.groupId()).isEqualTo(10L);
 		assertThat(payload.memberId()).isEqualTo(20L);
 		assertThat(payload.groupName()).isEqualTo("스터디 그룹");
-
-		MessageQueueSubscription subscription = subscriptionCaptor.getValue();
-		assertThat(subscription.topic()).isEqualTo(QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic());
-		assertThat(subscription.consumerGroup())
-			.isEqualTo(topicNamingPolicy.consumerGroup(QueueTopic.GROUP_MEMBER_JOINED));
-
-		handlerCaptor.getValue().handle(QueueMessage.of(
-			QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic(),
-			"20",
-			objectMapper.valueToTree(payload)));
-
-		verify(notificationService).createNotification(
-			eq(20L),
-			eq(NotificationType.SYSTEM),
-			eq("그룹 가입 완료"),
-			eq("스터디 그룹 그룹에 가입되었습니다."),
-			eq("/groups/10"));
-	}
-
-	@Test
-	@DisplayName("잘못된 payload를 수신하면 예외를 반환한다")
-	void consumerHandler_withInvalidPayload_throwsException() {
-		// given
-		ArgumentCaptor<QueueMessageHandler> handlerCaptor = ArgumentCaptor
-			.forClass(QueueMessageHandler.class);
-		verify(messageQueueConsumer).subscribe(any(MessageQueueSubscription.class), handlerCaptor.capture());
-
-		// when & then
-		org.assertj.core.api.Assertions.assertThatThrownBy(() -> handlerCaptor.getValue().handle(
-			QueueMessage.of(
-				QueueTopic.GROUP_MEMBER_JOINED.defaultMainTopic(),
-				"20",
-				objectMapper.readTree("{\"memberId\":\"invalid\"}"))))
-			.isInstanceOf(IllegalArgumentException.class)
-			.hasMessageContaining("역직렬화");
 	}
 
 	@Configuration
@@ -142,46 +93,14 @@ class NotificationMessageQueueFlowIntegrationTest {
 		}
 
 		@Bean
-		MessageQueueConsumer messageQueueConsumer() {
-			return Mockito.mock(MessageQueueConsumer.class);
-		}
-
-		@Bean
-		NotificationService notificationService() {
-			return Mockito.mock(NotificationService.class);
-		}
-
-		@Bean
-		GroupMemberJoinedMessageQueuePublisher groupMemberJoinedMessageQueuePublisher(
+		GroupMemberJoinedMqPublisher groupMemberJoinedMqPublisher(
 			MessageQueueProducer messageQueueProducer,
 			MessageQueueProperties messageQueueProperties,
 			TopicNamingPolicy topicNamingPolicy,
 			ObjectMapper objectMapper) {
-			return new GroupMemberJoinedMessageQueuePublisher(messageQueueProducer, messageQueueProperties,
+			return new GroupMemberJoinedMqPublisher(messageQueueProducer, messageQueueProperties,
 				topicNamingPolicy,
 				objectMapper);
-		}
-
-		@Bean
-		NotificationMessageQueueConsumerRegistrar notificationMessageQueueConsumerRegistrar(
-			QueueEventSubscriber queueEventSubscriber,
-			MessageQueueProperties messageQueueProperties,
-			NotificationService notificationService,
-			ObjectMapper objectMapper) {
-			return new NotificationMessageQueueConsumerRegistrar(
-				queueEventSubscriber,
-				messageQueueProperties,
-				notificationService,
-				objectMapper);
-		}
-
-		@Bean
-		QueueEventSubscriber queueEventSubscriber(
-			MessageQueueConsumer messageQueueConsumer,
-			TopicNamingPolicy topicNamingPolicy) {
-			return new DefaultQueueEventSubscriber(
-				new DefaultMessageBrokerReceiver(messageQueueConsumer),
-				topicNamingPolicy);
 		}
 	}
 }

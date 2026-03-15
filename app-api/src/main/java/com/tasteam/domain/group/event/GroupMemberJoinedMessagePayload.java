@@ -1,4 +1,4 @@
-package com.tasteam.infra.messagequeue;
+package com.tasteam.domain.group.event;
 
 public record GroupMemberJoinedMessagePayload(
 	Long groupId,

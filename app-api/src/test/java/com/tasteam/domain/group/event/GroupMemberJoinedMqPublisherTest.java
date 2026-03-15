@@ -1,4 +1,4 @@
-package com.tasteam.infra.messagequeue;
+package com.tasteam.domain.group.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -15,11 +15,17 @@ import org.mockito.ArgumentCaptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.config.annotation.UnitTest;
-import com.tasteam.domain.group.event.GroupMemberJoinedEvent;
+import com.tasteam.infra.messagequeue.DefaultTopicNamingPolicy;
+import com.tasteam.infra.messagequeue.KafkaMessageQueueProperties;
+import com.tasteam.infra.messagequeue.MessageQueueProducer;
+import com.tasteam.infra.messagequeue.MessageQueueProperties;
+import com.tasteam.infra.messagequeue.QueueMessage;
+import com.tasteam.infra.messagequeue.QueueTopic;
+import com.tasteam.infra.messagequeue.TopicNamingPolicy;
 
 @UnitTest
-@DisplayName("[유닛](Group) GroupMemberJoinedMessageQueuePublisher 단위 테스트")
-class GroupMemberJoinedMessageQueuePublisherTest {
+@DisplayName("[유닛](Group) GroupMemberJoinedMqPublisher 단위 테스트")
+class GroupMemberJoinedMqPublisherTest {
 
 	@Test
 	@DisplayName("provider가 none이면 메시지를 발행하지 않는다")
@@ -30,7 +36,7 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 		properties.setProvider("none");
 		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		ObjectMapper objectMapper = new ObjectMapper();
-		GroupMemberJoinedMessageQueuePublisher publisher = new GroupMemberJoinedMessageQueuePublisher(
+		GroupMemberJoinedMqPublisher publisher = new GroupMemberJoinedMqPublisher(
 			producer,
 			properties,
 			topicNamingPolicy,
@@ -54,7 +60,7 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 		properties.setProvider("redis-stream");
 		TopicNamingPolicy topicNamingPolicy = new DefaultTopicNamingPolicy(new KafkaMessageQueueProperties());
 		ObjectMapper objectMapper = new ObjectMapper();
-		GroupMemberJoinedMessageQueuePublisher publisher = new GroupMemberJoinedMessageQueuePublisher(
+		GroupMemberJoinedMqPublisher publisher = new GroupMemberJoinedMqPublisher(
 			producer,
 			properties,
 			topicNamingPolicy,
@@ -95,7 +101,7 @@ class GroupMemberJoinedMessageQueuePublisherTest {
 		ObjectMapper objectMapper = mock(ObjectMapper.class);
 		when(objectMapper.valueToTree(org.mockito.ArgumentMatchers.any()))
 			.thenThrow(new IllegalArgumentException("failed"));
-		GroupMemberJoinedMessageQueuePublisher publisher = new GroupMemberJoinedMessageQueuePublisher(
+		GroupMemberJoinedMqPublisher publisher = new GroupMemberJoinedMqPublisher(
 			producer,
 			properties,
 			topicNamingPolicy,
