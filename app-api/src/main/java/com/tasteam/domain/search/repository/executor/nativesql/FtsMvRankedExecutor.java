@@ -9,6 +9,7 @@ import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 import com.tasteam.domain.search.repository.SearchQueryProperties;
 import com.tasteam.domain.search.repository.SearchQueryStrategy;
 import com.tasteam.domain.search.repository.executor.NativeSearchExecutorSupport;
+import com.tasteam.domain.search.repository.executor.NativeSqlFragments;
 
 /**
  * FTS_MV_RANKED 전략 실행기.
@@ -44,15 +45,9 @@ public class FtsMvRankedExecutor extends NativeSearchExecutorSupport {
 	}
 
 	private String buildSql(boolean withLocation) {
-		String geoFilter = withLocation
-			? "AND ST_DWithin(geography(mv.location), geography(ST_MakePoint(:lng, :lat)), :radius_m)"
-			: "";
-		String distanceExpr = withLocation
-			? "ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat))"
-			: "NULL::double precision ";
-		String distanceScore = withLocation
-			? "GREATEST(0.0, 1.0 - (ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat)) / :radius_m)) * 50.0"
-			: "0.0";
+		String geoFilter = NativeSqlFragments.geoFilter(withLocation);
+		String distanceExpr = NativeSqlFragments.distanceExprMv(withLocation);
+		String distanceScore = NativeSqlFragments.distanceScoreMv(withLocation);
 
 		return """
 			WITH candidates AS (

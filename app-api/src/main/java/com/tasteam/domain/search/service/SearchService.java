@@ -7,7 +7,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -17,7 +16,6 @@ import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.restaurant.dto.response.CursorPageResponse;
-import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 import com.tasteam.domain.search.dto.request.SearchRequest;
 import com.tasteam.domain.search.dto.response.RecentSearchItem;
@@ -41,7 +39,6 @@ import com.tasteam.global.validation.KeywordSecurityPolicy;
 public class SearchService {
 
 	private static final int DEFAULT_PAGE_SIZE = 10;
-	private static final int THUMBNAIL_LIMIT = 3;
 	private static final double DEFAULT_RADIUS_KM = 3.0;
 	private static final long SEARCH_QUERY_TIMEOUT_SECONDS = 3L;
 
@@ -49,6 +46,7 @@ public class SearchService {
 	private final MemberSearchHistoryRepository memberSearchHistoryRepository;
 	private final MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository;
 	private final SearchDataService searchDataService;
+	private final SearchResultAssembler searchResultAssembler;
 	private final SearchEventPublisher searchEventPublisher;
 	private final Executor searchQueryExecutor;
 
@@ -57,6 +55,7 @@ public class SearchService {
 		MemberSearchHistoryRepository memberSearchHistoryRepository,
 		MemberSearchHistoryQueryRepository memberSearchHistoryQueryRepository,
 		SearchDataService searchDataService,
+		SearchResultAssembler searchResultAssembler,
 		SearchEventPublisher searchEventPublisher,
 		@Qualifier("searchQueryExecutor")
 		Executor searchQueryExecutor) {
@@ -64,6 +63,7 @@ public class SearchService {
 		this.memberSearchHistoryRepository = memberSearchHistoryRepository;
 		this.memberSearchHistoryQueryRepository = memberSearchHistoryQueryRepository;
 		this.searchDataService = searchDataService;
+		this.searchResultAssembler = searchResultAssembler;
 		this.searchEventPublisher = searchEventPublisher;
 		this.searchQueryExecutor = searchQueryExecutor;
 	}
@@ -109,26 +109,11 @@ public class SearchService {
 			? Map.of()
 			: fileService.getDomainImageUrls(DomainType.RESTAURANT, restaurantData.restaurantIds());
 
-		List<SearchGroupSummary> groups = groupData.groups().stream()
-			.map(group -> new SearchGroupSummary(
-				group.getId(),
-				group.getName(),
-				firstDomainImageUrl(groupLogos.getOrDefault(group.getId(), List.of())),
-				groupData.memberCounts().getOrDefault(group.getId(), 0L)))
-			.toList();
+		List<SearchGroupSummary> groups = searchResultAssembler.buildGroupSummaries(groupData, groupLogos);
+		List<SearchRestaurantItem> restaurantItems = searchResultAssembler.buildRestaurantItems(
+			restaurantData, restaurantDomainImages);
 
-		Map<Long, List<RestaurantImageDto>> thumbnails = buildThumbnails(restaurantDomainImages);
 		CursorPageBuilder.Page<SearchRestaurantCursorRow> restaurantPage = restaurantData.page();
-		List<SearchRestaurantItem> restaurantItems = restaurantPage.items().stream()
-			.map(SearchRestaurantCursorRow::restaurant)
-			.map(restaurant -> new SearchRestaurantItem(
-				restaurant.getId(),
-				restaurant.getName(),
-				restaurant.getFullAddress(),
-				thumbnailUrl(thumbnails.getOrDefault(restaurant.getId(), List.of())),
-				restaurantData.categories().getOrDefault(restaurant.getId(), List.of())))
-			.toList();
-
 		CursorPageResponse<SearchRestaurantItem> restaurants = new CursorPageResponse<>(
 			restaurantItems,
 			new CursorPageResponse.Pagination(
@@ -186,39 +171,9 @@ public class SearchService {
 		return (request.radiusKm() == null ? DEFAULT_RADIUS_KM : request.radiusKm()) * 1000.0;
 	}
 
-	private Map<Long, List<RestaurantImageDto>> buildThumbnails(Map<Long, List<DomainImageItem>> domainImages) {
-		return domainImages.entrySet().stream()
-			.collect(Collectors.toMap(
-				Map.Entry::getKey,
-				entry -> {
-					List<DomainImageItem> images = entry.getValue();
-					List<DomainImageItem> limited = images.size() > THUMBNAIL_LIMIT
-						? images.subList(0, THUMBNAIL_LIMIT)
-						: images;
-					return limited.stream()
-						.map(img -> new RestaurantImageDto(img.imageId(), img.url()))
-						.toList();
-				}));
-	}
-
-	private String thumbnailUrl(List<RestaurantImageDto> images) {
-		if (images == null || images.isEmpty()) {
-			return null;
-		}
-		return images.getFirst().url();
-	}
-
-	private String firstDomainImageUrl(List<DomainImageItem> images) {
-		if (images == null || images.isEmpty()) {
-			return null;
-		}
-		return images.getFirst().url();
-	}
-
 	private void validateSearchKeyword(String keyword) {
 		if (!KeywordSecurityPolicy.isSafeKeyword(keyword)) {
 			throw new BusinessException(SearchErrorCode.INVALID_SEARCH_KEYWORD);
 		}
 	}
-
 }

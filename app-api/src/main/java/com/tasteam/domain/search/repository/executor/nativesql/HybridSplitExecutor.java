@@ -9,6 +9,7 @@ import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 import com.tasteam.domain.search.repository.SearchQueryProperties;
 import com.tasteam.domain.search.repository.SearchQueryStrategy;
 import com.tasteam.domain.search.repository.executor.NativeSearchExecutorSupport;
+import com.tasteam.domain.search.repository.executor.NativeSqlFragments;
 
 /**
  * HYBRID_SPLIT_CANDIDATES 전략 실행기.
@@ -63,9 +64,7 @@ public class HybridSplitExecutor extends NativeSearchExecutorSupport {
 				)
 				""";
 
-		String distanceExpr = withLocation
-			? "ST_DistanceSphere(r.location, ST_MakePoint(:lng, :lat))"
-			: "NULL::double precision ";
+		String distanceExpr = NativeSqlFragments.distanceExprRestaurant(withLocation);
 
 		return """
 			WITH name_like_candidates AS (
