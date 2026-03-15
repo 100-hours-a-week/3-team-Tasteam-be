@@ -37,3 +37,12 @@ providers:
     allowUiUpdates: true
     options:
       path: /etc/grafana/dashboards/async-events
+  - name: tasteam-kafka
+    orgId: 1
+    folder: Tasteam Kafka
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/dashboards/kafka

@@ -11,6 +11,8 @@
         <option name="secondarySourceFiles">
           <list>
             <option value="docker-compose.local.yml" />
+            <option value="docker-compose.local-monitoring.yml" />
+            <option value="docker-compose.kafka-monitoring.yml" />
           </list>
         </option>
         <option name="services">
@@ -21,6 +23,18 @@
             <option value="minio-init" />
             <option value="db" />
             <option value="redis" />
+            <option value="kafka-exporter" />
+            <option value="kafka-jmx-exporter" />
+            <option value="loki" />
+            <option value="node-exporter" />
+            <option value="postgres-exporter" />
+            <option value="prometheus" />
+            <option value="redis-exporter" />
+            <option value="tempo" />
+            <option value="grafana" />
+            <option value="connect-jmx-exporter" />
+            <option value="cadvisor" />
+            <option value="alloy" />
           </list>
         </option>
         <option name="sourceFilePath" value="docker-compose.kafka.yml" />

@@ -1,0 +1,39 @@
+groups:
+  - name: kafka_alerts
+    interval: 30s
+    rules:
+      - alert: KafkaBrokerDown
+        expr: kafka_brokers < 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka broker down"
+          description: "Active Kafka broker count is {{ $value }}. At least 1 broker is required."
+
+      - alert: KafkaConsumerLagHigh
+        expr: kafka_consumergroup_lag > 10000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag is high"
+          description: "Consumer group {{ $labels.consumergroup }} on topic {{ $labels.topic }} has lag of {{ $value }}."
+
+      - alert: KafkaConnectorTaskFailed
+        expr: kafka_connect_connector_task_running_ratio == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka Connect task not running"
+          description: "Connector {{ $labels.connector }} task {{ $labels.task }} running ratio is 0 (task is stopped/failed)."
+
+      - alert: KafkaDLQMessageReceived
+        expr: rate(kafka_topic_partition_current_offset{topic=~".*-dlq"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Messages arriving in DLQ topic"
+          description: "DLQ topic {{ $labels.topic }} is receiving messages (partition {{ $labels.partition }}). Check Kafka Connect for processing errors."
