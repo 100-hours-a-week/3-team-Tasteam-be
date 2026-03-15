@@ -9,16 +9,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.group.entity.Group;
-import com.tasteam.domain.group.repository.GroupMemberRepository;
-import com.tasteam.domain.group.repository.GroupQueryRepository;
 import com.tasteam.domain.group.repository.projection.GroupMemberCountProjection;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.restaurant.entity.Restaurant;
-import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
+import com.tasteam.domain.search.repository.SearchGroupRepository;
 import com.tasteam.domain.search.repository.SearchQueryRepository;
+import com.tasteam.domain.search.repository.SearchRestaurantRepository;
 import com.tasteam.global.utils.CursorCodec;
 import com.tasteam.global.utils.CursorPageBuilder;
 
@@ -28,10 +27,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SearchDataService {
 
-	private final GroupQueryRepository groupQueryRepository;
-	private final GroupMemberRepository groupMemberRepository;
+	private final SearchGroupRepository searchGroupRepository;
 	private final SearchQueryRepository searchQueryRepository;
-	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
+	private final SearchRestaurantRepository searchRestaurantRepository;
 	private final CursorCodec cursorCodec;
 
 	public record GroupData(List<Group> groups, List<Long> groupIds, Map<Long, Long> memberCounts) {
@@ -45,11 +43,11 @@ public class SearchDataService {
 
 	@Transactional(readOnly = true)
 	public GroupData fetchGroups(String keyword, int pageSize) {
-		List<Group> groups = groupQueryRepository.searchByKeyword(keyword, GroupStatus.ACTIVE, pageSize);
+		List<Group> groups = searchGroupRepository.searchByKeyword(keyword, GroupStatus.ACTIVE, pageSize);
 		List<Long> groupIds = groups.stream().map(Group::getId).toList();
 		Map<Long, Long> memberCounts = groupIds.isEmpty()
 			? Map.of()
-			: groupMemberRepository.findMemberCounts(groupIds).stream()
+			: searchGroupRepository.findMemberCounts(groupIds).stream()
 				.collect(Collectors.toMap(
 					GroupMemberCountProjection::getGroupId,
 					GroupMemberCountProjection::getMemberCount));
@@ -94,7 +92,7 @@ public class SearchDataService {
 
 		Map<Long, List<String>> categories = restaurantIds.isEmpty()
 			? Map.of()
-			: restaurantFoodCategoryRepository.findCategoriesByRestaurantIds(restaurantIds).stream()
+			: searchRestaurantRepository.findCategoriesByRestaurantIds(restaurantIds).stream()
 				.collect(Collectors.groupingBy(
 					RestaurantCategoryProjection::getRestaurantId,
 					Collectors.mapping(RestaurantCategoryProjection::getCategoryName, Collectors.toList())));

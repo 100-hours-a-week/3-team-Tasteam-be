@@ -121,22 +121,47 @@ public class LocalCacheMetricsBinder implements MeterBinder {
 
 	private CacheMetadata resolveMetadata(String cacheName) {
 		Duration ttl = resolveTtl(cacheName);
-		long capacity = localCacheProperties.getCaffeine().getMaximumSize();
 
 		return switch (cacheName) {
 			case "presigned-url" -> new CacheMetadata(cacheName, "file", "GET", "/api/v1/files/{fileUuid}/url", ttl,
-				capacity);
+				resolveCapacity(cacheName));
 			case "reverse-geocode" -> new CacheMetadata(cacheName, "location", "GET", "/api/v1/geocode/reverse",
-				ttl, capacity);
+				ttl, resolveCapacity(cacheName));
 			case "main-section-hot-all" -> new CacheMetadata(cacheName, "main", "GET",
-				"/api/v1/main,/api/v1/main/home", ttl, capacity);
+				"/api/v1/main,/api/v1/main/home", ttl, resolveCapacity(cacheName));
 			case "main-section-new-all" -> new CacheMetadata(cacheName, "main", "GET",
-				"/api/v1/main,/api/v1/main/home", ttl, capacity);
+				"/api/v1/main,/api/v1/main/home", ttl, resolveCapacity(cacheName));
 			case "main-section-ai-all" -> new CacheMetadata(cacheName, "main", "GET",
-				"/api/v1/main,/api/v1/main/ai-recommend", ttl, capacity);
-			case "main-banners" -> new CacheMetadata(cacheName, "main", "GET", "/api/v1/main", ttl, capacity);
-			default -> new CacheMetadata(cacheName, "unknown", "UNKNOWN", "unmapped", ttl, capacity);
+				"/api/v1/main,/api/v1/main/ai-recommend", ttl, resolveCapacity(cacheName));
+			case "main-section-hot-geo" -> new CacheMetadata(cacheName, "main", "GET",
+				"/api/v1/main,/api/v1/main/home", ttl, resolveCapacity(cacheName));
+			case "main-section-new-geo" -> new CacheMetadata(cacheName, "main", "GET",
+				"/api/v1/main,/api/v1/main/home", ttl, resolveCapacity(cacheName));
+			case "main-section-ai-geo" -> new CacheMetadata(cacheName, "main", "GET",
+				"/api/v1/main,/api/v1/main/ai-recommend", ttl, resolveCapacity(cacheName));
+			case "main-banners" -> new CacheMetadata(cacheName, "main", "GET", "/api/v1/main", ttl,
+				resolveCapacity(cacheName));
+			case "main-splash" -> new CacheMetadata(cacheName, "main", "GET", "/api/v1/main", ttl,
+				resolveCapacity(cacheName));
+			case "restaurant-location" -> new CacheMetadata(cacheName, "restaurant", "GET", "/api/v1/main", ttl,
+				resolveCapacity(cacheName));
+			case "restaurant-categories" -> new CacheMetadata(cacheName, "restaurant", "GET", "/api/v1/main", ttl,
+				resolveCapacity(cacheName));
+			case "restaurant-thumbnail" -> new CacheMetadata(cacheName, "restaurant", "GET", "/api/v1/main", ttl,
+				resolveCapacity(cacheName));
+			case "restaurant-summary" -> new CacheMetadata(cacheName, "restaurant", "GET", "/api/v1/main", ttl,
+				resolveCapacity(cacheName));
+			default -> new CacheMetadata(cacheName, "unknown", "UNKNOWN", "unmapped", ttl,
+				resolveCapacity(cacheName));
 		};
+	}
+
+	private long resolveCapacity(String cacheName) {
+		LocalCacheProperties.CacheTtl cacheTtl = localCacheProperties.getTtl().get(cacheName);
+		if (cacheTtl != null && cacheTtl.getMaximumSize() != null) {
+			return cacheTtl.getMaximumSize();
+		}
+		return localCacheProperties.getCaffeine().getMaximumSize();
 	}
 
 	private Duration resolveTtl(String cacheName) {

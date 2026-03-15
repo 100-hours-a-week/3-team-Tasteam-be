@@ -3,3 +3,5 @@
 *.jar binary
 monitoring/grafana/dashboards/**/*.json linguist-generated
 *.sql linguist-generated
+
+loadtest/** linguist-generated
