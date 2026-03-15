@@ -60,6 +60,43 @@ cd loadtest/suites/realistic
 ./run-realistic.sh --no-prometheus
 ```
 
+## 권장 원클릭 실행
+
+매번 동일하게 `smoke -> realistic` 순서로 검증한다면 `loadtest/` 루트 wrapper를 사용하세요.
+
+```bash
+cd loadtest
+./run-smoke-realistic.sh --no-prometheus
+```
+
+실행 순서:
+
+1. `suites/smoke/run-smoke.sh`
+2. smoke 성공 시 `suites/realistic/run-realistic.sh`
+3. smoke 실패 시 realistic는 실행하지 않고 즉시 종료
+
+실행 산출물은 기본적으로 `loadtest/results/smoke-realistic/<run-id>/` 아래에 저장됩니다.
+
+- `smoke.log`
+- `smoke-summary.json`
+- `realistic.log`
+- `realistic-summary.json`
+
+결과 루트를 직접 바꾸고 싶다면:
+
+```bash
+cd loadtest
+./run-smoke-realistic.sh --results-dir ./results/manual-runs
+```
+
+기존 공통 환경변수는 그대로 적용됩니다.
+
+- `BASE_URL`
+- `TEST_GROUP_CODE`
+- `GROUP_SEARCH_KEYWORDS`
+- `USER_POOL`
+- `REVERSE_GEOCODE_MODE`
+
 
 ## BE 내부 최초 부하테스트 환경 세팅
 

@@ -14,7 +14,7 @@
 #   K6_PROMETHEUS_RW_PASSWORD    - tasteam-k6-metrics
 #   BASE_URL                     - https://stg.tasteam.kr
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -29,6 +29,7 @@ export REVERSE_GEOCODE_MODE="${REVERSE_GEOCODE_MODE:-per-vu-once}"
 
 # ============ 옵션 파싱 ============
 USE_PROMETHEUS=true
+K6_ARGS=(run)
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -43,21 +44,28 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [[ -n "${K6_SUMMARY_EXPORT:-}" ]]; then
+    mkdir -p "$(dirname "$K6_SUMMARY_EXPORT")"
+    K6_ARGS+=(--summary-export "$K6_SUMMARY_EXPORT")
+fi
+
 # ============ k6 실행 ============
 echo ""
 echo "🚀 리얼리스틱 부하 테스트 시작..."
 echo "   스크립트: ${SCRIPT_DIR}/realistic_test.js"
 echo "   Target: ${BASE_URL}"
 echo "   Reverse Geocode Mode: ${REVERSE_GEOCODE_MODE}"
+if [[ -n "${K6_SUMMARY_EXPORT:-}" ]]; then
+    echo "   Summary: ${K6_SUMMARY_EXPORT}"
+fi
 echo ""
 
 # Prometheus 출력 설정
 if [[ "$USE_PROMETHEUS" == "true" ]]; then
     echo "📊 Prometheus remote write 활성화: $K6_PROMETHEUS_RW_SERVER_URL"
-    K6_OUTPUT_ARG="-o experimental-prometheus-rw"
+    K6_ARGS+=(-o experimental-prometheus-rw)
 else
     echo "ℹ️  Prometheus 출력 비활성화 (--no-prometheus 옵션)"
-    K6_OUTPUT_ARG=""
 fi
 
 echo ""
@@ -70,10 +78,10 @@ echo ""
 
 # k6 실행
 cd "$SCRIPT_DIR"
-k6 run $K6_OUTPUT_ARG \
-  --tag testid=$TEST_ID \
-  -e TEST_ID=$TEST_ID \
-  realistic_test.js
+K6_ARGS+=(--tag "testid=${TEST_ID}")
+K6_ARGS+=(-e "TEST_ID=${TEST_ID}")
+K6_ARGS+=(realistic_test.js)
+k6 "${K6_ARGS[@]}"
 
 echo ""
 echo "✅ 리얼리스틱 부하 테스트 완료!"
