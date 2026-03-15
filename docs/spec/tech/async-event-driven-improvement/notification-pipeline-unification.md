@@ -9,13 +9,13 @@
 | 위치 | 조건 | 현재 역할 | 문제 포인트 |
 |---|---|---|---|
 | `NotificationEventListener` | MQ off | 그룹 가입/회원 가입 인앱 알림 direct async 생성 | MQ 경로와 완전히 다른 모델 |
-| `NotificationDomainEventListener` | MQ on | `notification_outbox` enqueue | `AFTER_COMMIT` 의존 |
+| `NotificationDomainEventListener` | MQ on | `notification_outbox` enqueue | ~~`AFTER_COMMIT` 의존~~ → **`BEFORE_COMMIT` 수정 완료** |
 | `NotificationOutboxScanner` | MQ on | outbox -> MQ publish | request 발행 담당 |
 | `NotificationMessageQueueConsumer` | MQ on | notification request 소비 | retry 상태 인메모리 |
 | `NotificationDispatcher` | MQ on | consumed insert 후 채널별 발송 | 부분 실패를 event-level consumed가 덮음 |
-| `GroupMemberJoinedMessageQueuePublisher` | MQ on | legacy group joined topic publish | request 경로와 중복 |
-| `NotificationMessageQueueConsumerRegistrar` | MQ on | legacy topic 소비 후 바로 알림 생성 | 동일 이벤트의 중복 경로 |
-| `ChatNotificationEventListener` | 항상 | 채팅 인앱 알림 + FCM push | outbox / delivery 상태 미공유 |
+| ~~`GroupMemberJoinedMessageQueuePublisher`~~ | - | ~~legacy group joined topic publish~~ | **삭제 완료** (2026.03.15) |
+| ~~`NotificationMessageQueueConsumerRegistrar`~~ | - | ~~legacy topic 소비 후 바로 알림 생성~~ | **삭제 완료** (2026.03.15) |
+| `ChatNotificationEventListener` | 항상 | 채팅 인앱 알림 + FCM push | outbox / delivery 상태 미공유 (잔여 과제) |
 
 ## 3. 왜 문제인가
 
@@ -75,7 +75,7 @@
 3. WEB delivery row 도입
 4. PUSH/EMAIL worker 분리
 5. chat 경로 이관
-6. legacy group-joined 경로 제거
+6. ~~legacy group-joined 경로 제거~~ → **완료** (2026.03.15): `GroupMemberJoinedMessageQueuePublisher`, `NotificationMessageQueueConsumerRegistrar` 삭제
 
 ## 8. 검증 포인트
 
