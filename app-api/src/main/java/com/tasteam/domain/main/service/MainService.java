@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
-import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.main.dto.request.MainPageRequest;
 import com.tasteam.domain.main.dto.response.AiRecommendResponse;
 import com.tasteam.domain.main.dto.response.HomePageResponse;
@@ -28,10 +27,10 @@ import com.tasteam.domain.main.dto.response.MainPageResponse;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Banners;
 import com.tasteam.domain.main.dto.response.MainPageResponse.Section;
 import com.tasteam.domain.main.dto.response.MainPageResponse.SectionItem;
+import com.tasteam.domain.main.repository.MainGroupRepository;
+import com.tasteam.domain.main.repository.MainMetadataRepository;
 import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
 import com.tasteam.domain.promotion.service.PromotionService;
-import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
-import com.tasteam.domain.restaurant.repository.RestaurantReviewSummaryRepository;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 
@@ -42,9 +41,8 @@ import lombok.RequiredArgsConstructor;
 public class MainService {
 
 	private final MainDataService mainDataService;
-	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
-	private final RestaurantReviewSummaryRepository restaurantReviewSummaryRepository;
-	private final GroupMemberRepository groupMemberRepository;
+	private final MainMetadataRepository metadataRepository;
+	private final MainGroupRepository groupRepository;
 	private final FileService fileService;
 	private final PromotionService promotionService;
 	private final CacheManager cacheManager;
@@ -208,7 +206,7 @@ public class MainService {
 		}
 
 		if (memberId != null) {
-			return groupMemberRepository.findFirstGroupLocationByMemberId(memberId)
+			return groupRepository.findFirstGroupLocationByMemberId(memberId)
 				.map(loc -> new LocationContext(loc.getLatitude(), loc.getLongitude(), true))
 				.orElse(new LocationContext(null, null, false));
 		}
@@ -255,7 +253,7 @@ public class MainService {
 		}
 
 		if (!missIds.isEmpty()) {
-			Map<Long, List<String>> fetched = restaurantFoodCategoryRepository
+			Map<Long, List<String>> fetched = metadataRepository
 				.findCategoriesByRestaurantIds(missIds)
 				.stream()
 				.collect(Collectors.groupingBy(
@@ -322,7 +320,7 @@ public class MainService {
 		}
 
 		if (!missIds.isEmpty()) {
-			restaurantReviewSummaryRepository.findByRestaurantIdIn(missIds)
+			metadataRepository.findSummariesByRestaurantIdIn(missIds)
 				.forEach(summary -> {
 					String text = extractSummaryText(summary.getSummaryJson());
 					if (text != null) {

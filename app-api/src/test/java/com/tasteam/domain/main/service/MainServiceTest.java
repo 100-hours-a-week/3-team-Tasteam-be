@@ -18,13 +18,12 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.file.dto.response.DomainImageItem;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.service.FileService;
-import com.tasteam.domain.group.repository.GroupMemberRepository;
 import com.tasteam.domain.main.dto.request.MainPageRequest;
 import com.tasteam.domain.main.dto.response.AiRecommendResponse;
+import com.tasteam.domain.main.repository.MainGroupRepository;
+import com.tasteam.domain.main.repository.MainMetadataRepository;
 import com.tasteam.domain.promotion.service.PromotionService;
 import com.tasteam.domain.restaurant.entity.RestaurantReviewSummary;
-import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
-import com.tasteam.domain.restaurant.repository.RestaurantReviewSummaryRepository;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 
@@ -39,8 +38,7 @@ class MainServiceTest {
 	void getAiRecommend_usesLegacySummaryKey() {
 		// given
 		MainDataService mainDataService = mock(MainDataService.class);
-		RestaurantFoodCategoryRepository categoryRepository = mock(RestaurantFoodCategoryRepository.class);
-		RestaurantReviewSummaryRepository summaryRepository = mock(RestaurantReviewSummaryRepository.class);
+		MainMetadataRepository metadataRepository = mock(MainMetadataRepository.class);
 		FileService fileService = mock(FileService.class);
 		Executor executor = Runnable::run;
 
@@ -50,9 +48,9 @@ class MainServiceTest {
 		RestaurantCategoryProjection category = mock(RestaurantCategoryProjection.class);
 		when(category.getRestaurantId()).thenReturn(1L);
 		when(category.getCategoryName()).thenReturn("한식");
-		when(categoryRepository.findCategoriesByRestaurantIds(List.of(1L))).thenReturn(List.of(category));
+		when(metadataRepository.findCategoriesByRestaurantIds(List.of(1L))).thenReturn(List.of(category));
 
-		when(summaryRepository.findByRestaurantIdIn(List.of(1L))).thenReturn(List.of(
+		when(metadataRepository.findSummariesByRestaurantIdIn(List.of(1L))).thenReturn(List.of(
 			RestaurantReviewSummary.create(1L, 0L, "dummy-v1", Map.of("summary", "레거시 AI 요약"), NOW)));
 
 		when(fileService.getDomainImageUrls(eq(DomainType.RESTAURANT), eq(List.of(1L))))
@@ -60,9 +58,8 @@ class MainServiceTest {
 
 		MainService service = new MainService(
 			mainDataService,
-			categoryRepository,
-			summaryRepository,
-			mock(GroupMemberRepository.class),
+			metadataRepository,
+			mock(MainGroupRepository.class),
 			fileService,
 			mock(PromotionService.class),
 			mock(CacheManager.class),

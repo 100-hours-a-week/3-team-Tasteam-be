@@ -14,8 +14,8 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tasteam.domain.main.repository.MainRestaurantRepository;
 import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
-import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantLocationProjection;
 import com.tasteam.domain.restaurant.support.GeoUtils;
@@ -28,14 +28,13 @@ public class MainDataService {
 
 	private static final List<Long> SENTINEL_EXCLUDE = List.of(-1L);
 
-	private final RestaurantRepository restaurantRepository;
+	private final MainRestaurantRepository restaurantRepository;
 	private final CacheManager cacheManager;
 
 	@Lazy
 	@Autowired
 	private MainDataService self;
 
-	@Transactional(readOnly = true)
 	public List<MainRestaurantDistanceProjection> fetchHotSectionByLocation(double lat, double lon) {
 		List<Long> ids = self.fetchHotSectionIdsByLocation(lat, lon);
 		return fetchDistancesWithCoordCache(ids, lat, lon);
@@ -56,7 +55,6 @@ public class MainDataService {
 			(excludeIds, limit) -> restaurantRepository.findHotRestaurantsAll(excludeIds, limit));
 	}
 
-	@Transactional(readOnly = true)
 	public List<MainRestaurantDistanceProjection> fetchNewSectionByLocation(double lat, double lon) {
 		List<Long> ids = self.fetchNewSectionIdsByLocation(lat, lon);
 		return fetchDistancesWithCoordCache(ids, lat, lon);
@@ -77,7 +75,6 @@ public class MainDataService {
 			(excludeIds, limit) -> restaurantRepository.findNewRestaurantsAll(excludeIds, limit));
 	}
 
-	@Transactional(readOnly = true)
 	public List<MainRestaurantDistanceProjection> fetchAiSectionByLocation(double lat, double lon) {
 		List<Long> ids = self.fetchAiSectionIdsByLocation(lat, lon);
 		return fetchDistancesWithCoordCache(ids, lat, lon);
