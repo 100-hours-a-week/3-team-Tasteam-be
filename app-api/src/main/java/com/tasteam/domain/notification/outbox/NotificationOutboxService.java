@@ -20,7 +20,7 @@ public class NotificationOutboxService {
 	private final NotificationOutboxJdbcRepository outboxRepository;
 	private final ObjectMapper objectMapper;
 
-	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	@Transactional(propagation = Propagation.MANDATORY)
 	public void enqueue(NotificationRequestedPayload payload) {
 		String payloadJson = serializePayload(payload);
 		outboxRepository.insertIfAbsent(
