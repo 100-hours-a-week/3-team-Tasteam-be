@@ -1,6 +1,6 @@
 package com.tasteam.domain.notification.consumer;
 
-import java.sql.Types;
+import java.sql.Timestamp;
 import java.time.Instant;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -36,6 +36,6 @@ public class ConsumedNotificationEventJdbcRepository {
 
 	public void deleteOlderThan(Instant cutoff) {
 		jdbcTemplate.update(DELETE_OLDER_THAN_SQL,
-			new MapSqlParameterSource().addValue("cutoff", cutoff, Types.TIMESTAMP_WITH_TIMEZONE));
+			new MapSqlParameterSource().addValue("cutoff", Timestamp.from(cutoff)));
 	}
 }

@@ -12,7 +12,7 @@ spring:
         generate_statistics: false
 
   flyway:
-    enabled: false 
+    enabled: false
 
   security:
     jwt:
@@ -37,3 +37,14 @@ tasteam:
       enabled: true
       transactional-query-logging:
         enabled: false
+  analytics:
+    source-outbox:
+      metrics:
+        refresh-delay: 86400000
+    dispatch-outbox:
+      metrics:
+        refresh-delay: 86400000
+  notification:
+    outbox:
+      metrics:
+        refresh-delay: 86400000

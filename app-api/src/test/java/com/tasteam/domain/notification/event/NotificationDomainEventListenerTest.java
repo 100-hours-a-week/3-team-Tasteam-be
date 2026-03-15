@@ -1,7 +1,7 @@
 package com.tasteam.domain.notification.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
@@ -70,15 +70,16 @@ class NotificationDomainEventListenerTest {
 		}
 
 		@Test
-		@DisplayName("아웃박스 등록 실패해도 예외가 전파되지 않는다")
-		void doesNotPropagateOutboxFailure() {
+		@DisplayName("아웃박스 등록 실패 시 예외가 도메인 TX로 전파된다 — BEFORE_COMMIT 설계")
+		void propagatesOutboxFailureToCaller() {
 			setAppUrl();
 			GroupMemberJoinedEvent event = new GroupMemberJoinedEvent(10L, 20L, "스터디 그룹",
 				Instant.parse("2026-01-01T00:00:00Z"));
 			willThrow(new RuntimeException("DB 오류")).given(outboxService).enqueue(
 				org.mockito.ArgumentMatchers.any());
 
-			assertThatCode(() -> listener.onGroupMemberJoined(event)).doesNotThrowAnyException();
+			assertThatThrownBy(() -> listener.onGroupMemberJoined(event))
+				.isInstanceOf(RuntimeException.class);
 		}
 	}
 
@@ -107,15 +108,16 @@ class NotificationDomainEventListenerTest {
 		}
 
 		@Test
-		@DisplayName("아웃박스 등록 실패해도 예외가 전파되지 않는다")
-		void doesNotPropagateOutboxFailure() {
+		@DisplayName("아웃박스 등록 실패 시 예외가 도메인 TX로 전파된다 — BEFORE_COMMIT 설계")
+		void propagatesOutboxFailureToCaller() {
 			setAppUrl();
 			GroupRequestSubmittedEvent event = new GroupRequestSubmittedEvent(
 				10L, 30L, 99L, "스터디 그룹", Instant.parse("2026-01-01T00:00:00Z"));
 			willThrow(new RuntimeException("DB 오류")).given(outboxService).enqueue(
 				org.mockito.ArgumentMatchers.any());
 
-			assertThatCode(() -> listener.onGroupRequestSubmitted(event)).doesNotThrowAnyException();
+			assertThatThrownBy(() -> listener.onGroupRequestSubmitted(event))
+				.isInstanceOf(RuntimeException.class);
 		}
 	}
 
@@ -166,8 +168,8 @@ class NotificationDomainEventListenerTest {
 		}
 
 		@Test
-		@DisplayName("아웃박스 등록 실패해도 예외가 전파되지 않는다")
-		void doesNotPropagateOutboxFailure() {
+		@DisplayName("아웃박스 등록 실패 시 예외가 도메인 TX로 전파된다 — BEFORE_COMMIT 설계")
+		void propagatesOutboxFailureToCaller() {
 			setAppUrl();
 			GroupRequestReviewedEvent event = new GroupRequestReviewedEvent(
 				10L, 20L, "스터디 그룹", GroupRequestReviewedEvent.ReviewResult.APPROVED, null,
@@ -175,7 +177,8 @@ class NotificationDomainEventListenerTest {
 			willThrow(new RuntimeException("DB 오류")).given(outboxService).enqueue(
 				org.mockito.ArgumentMatchers.any());
 
-			assertThatCode(() -> listener.onGroupRequestReviewed(event)).doesNotThrowAnyException();
+			assertThatThrownBy(() -> listener.onGroupRequestReviewed(event))
+				.isInstanceOf(RuntimeException.class);
 		}
 	}
 
@@ -205,15 +208,16 @@ class NotificationDomainEventListenerTest {
 		}
 
 		@Test
-		@DisplayName("아웃박스 등록 실패해도 예외가 전파되지 않는다")
-		void doesNotPropagateOutboxFailure() {
+		@DisplayName("아웃박스 등록 실패 시 예외가 도메인 TX로 전파된다 — BEFORE_COMMIT 설계")
+		void propagatesOutboxFailureToCaller() {
 			setAppUrl();
 			MemberRegisteredEvent event = new MemberRegisteredEvent(
 				50L, "user@example.com", "홍길동", Instant.parse("2026-01-01T00:00:00Z"));
 			willThrow(new RuntimeException("DB 오류")).given(outboxService).enqueue(
 				org.mockito.ArgumentMatchers.any());
 
-			assertThatCode(() -> listener.onMemberRegistered(event)).doesNotThrowAnyException();
+			assertThatThrownBy(() -> listener.onMemberRegistered(event))
+				.isInstanceOf(RuntimeException.class);
 		}
 	}
 
