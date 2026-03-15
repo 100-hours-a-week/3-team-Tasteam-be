@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.tasteam.domain.restaurant.entity.Restaurant;
-import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
 
 public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
@@ -63,33 +62,5 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 		@Param("cursorId")
 		Long cursorId,
 		Pageable pageable);
-
-	@Query(value = """
-		select
-		  r.id as id,
-		  r.name as name,
-		  ST_Distance(
-		    r.location::geography,
-		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-		  ) as distanceMeter
-		from restaurant r
-		where r.deleted_at is null
-		  and ST_DWithin(
-		    r.location::geography,
-		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
-		    :radiusMeter
-		  )
-		order by distanceMeter asc, r.id asc
-		limit :limit
-		""", nativeQuery = true)
-	List<MainRestaurantDistanceProjection> findNearbyRestaurants(
-		@Param("latitude")
-		double latitude,
-		@Param("longitude")
-		double longitude,
-		@Param("radiusMeter")
-		int radiusMeter,
-		@Param("limit")
-		int limit);
 
 }
