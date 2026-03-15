@@ -1,4 +1,4 @@
-package com.tasteam.infra.messagequeue;
+package com.tasteam.domain.group.event;
 
 import java.util.Map;
 
@@ -9,14 +9,19 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tasteam.domain.group.event.GroupMemberJoinedEvent;
+import com.tasteam.infra.messagequeue.MessageQueueProducer;
+import com.tasteam.infra.messagequeue.MessageQueueProperties;
+import com.tasteam.infra.messagequeue.MessageQueueProviderType;
+import com.tasteam.infra.messagequeue.QueueMessage;
+import com.tasteam.infra.messagequeue.QueueTopic;
+import com.tasteam.infra.messagequeue.TopicNamingPolicy;
 
 import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
-public class GroupMemberJoinedMessageQueuePublisher {
+public class GroupMemberJoinedMqPublisher {
 
 	private final MessageQueueProducer messageQueueProducer;
 	private final MessageQueueProperties messageQueueProperties;
