@@ -2,12 +2,15 @@ package com.tasteam.domain.chat.stream;
 
 import java.time.Duration;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.listener.PatternTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
@@ -45,5 +48,21 @@ public class ChatStreamConfig {
 			.build();
 
 		return StreamMessageListenerContainer.create(connectionFactory, options);
+	}
+
+	@Bean(destroyMethod = "destroy")
+	@ConditionalOnProperty(name = "chat.stream.ws-pubsub-broadcast-enabled", havingValue = "true")
+	public RedisMessageListenerContainer chatWsBroadcastListenerContainer(
+		RedisConnectionFactory connectionFactory,
+		ChatWsBroadcastSubscriber chatWsBroadcastSubscriber,
+		@Qualifier("chatStreamExecutor")
+		ThreadPoolTaskExecutor chatStreamExecutor,
+		ChatStreamProperties properties) {
+		RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+		container.setConnectionFactory(connectionFactory);
+		container.setTaskExecutor(chatStreamExecutor);
+		container.setSubscriptionExecutor(chatStreamExecutor);
+		container.addMessageListener(chatWsBroadcastSubscriber, new PatternTopic(properties.wsPubSubChannel()));
+		return container;
 	}
 }

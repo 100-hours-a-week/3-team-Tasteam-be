@@ -109,6 +109,8 @@ chat:
     partition-consume-enabled: ${CHAT_STREAM_PARTITION_CONSUME_ENABLED:true}
     dual-write-enabled: ${CHAT_STREAM_DUAL_WRITE_ENABLED:true}
     legacy-room-consume-enabled: ${CHAT_STREAM_LEGACY_ROOM_CONSUME_ENABLED:false}
+    ws-pubsub-broadcast-enabled: ${CHAT_STREAM_WS_PUBSUB_BROADCAST_ENABLED:false}
+    ws-pubsub-channel: ${CHAT_STREAM_WS_PUBSUB_CHANNEL:chat:websocket:broadcast}
 
 tasteam:
   notification:

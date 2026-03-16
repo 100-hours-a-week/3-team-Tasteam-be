@@ -16,7 +16,9 @@ public record ChatStreamProperties(
 	int maxAllowedPartitions,
 	boolean partitionConsumeEnabled,
 	boolean dualWriteEnabled,
-	boolean legacyRoomConsumeEnabled) {
+	boolean legacyRoomConsumeEnabled,
+	boolean wsPubSubBroadcastEnabled,
+	String wsPubSubChannel) {
 	public ChatStreamProperties() {
 		this(
 			true,
@@ -29,6 +31,8 @@ public record ChatStreamProperties(
 			128,
 			true,
 			true,
-			false);
+			false,
+			false,
+			"chat:websocket:broadcast");
 	}
 }
