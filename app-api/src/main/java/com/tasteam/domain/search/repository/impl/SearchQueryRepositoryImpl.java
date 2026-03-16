@@ -42,4 +42,13 @@ public class SearchQueryRepositoryImpl implements SearchQueryRepository {
 			executorMap.get(SearchQueryStrategy.ONE_STEP));
 		return executor.execute(keyword, cursor, size, latitude, longitude, radiusMeters);
 	}
+
+	@Override
+	public List<SearchRestaurantCursorRow> searchRestaurantsByKeywordWithFallback(String keyword, SearchCursor cursor,
+		int size, Double latitude, Double longitude, Double radiusMeters) {
+		SearchQueryExecutor executor = executorMap.getOrDefault(
+			properties.getFallbackStrategy(),
+			executorMap.get(SearchQueryStrategy.ONE_STEP));
+		return executor.execute(keyword, cursor, size, latitude, longitude, radiusMeters);
+	}
 }

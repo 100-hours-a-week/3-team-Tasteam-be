@@ -103,6 +103,7 @@ tasteam:
   search:
     query:
       strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:FTS_MV_RANKED}
+      fallback-strategy: ${TASTEAM_SEARCH_QUERY_FALLBACK_STRATEGY:ONE_STEP}
       candidate-limit: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:200}
     mv-refresh:
       enabled: ${TASTEAM_SEARCH_MV_REFRESH_ENABLED:false}

@@ -9,4 +9,7 @@ public interface SearchQueryRepository {
 
 	List<SearchRestaurantCursorRow> searchRestaurantsByKeyword(String keyword, SearchCursor cursor, int size,
 		Double latitude, Double longitude, Double radiusMeters);
+
+	List<SearchRestaurantCursorRow> searchRestaurantsByKeywordWithFallback(String keyword, SearchCursor cursor,
+		int size, Double latitude, Double longitude, Double radiusMeters);
 }
