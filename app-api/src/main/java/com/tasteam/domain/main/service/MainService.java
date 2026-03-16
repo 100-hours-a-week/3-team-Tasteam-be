@@ -6,7 +6,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -29,6 +33,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MainService {
 
+	private static final long MAIN_QUERY_TIMEOUT_SECONDS = 3L;
+
 	private final MainDataService mainDataService;
 	private final MainMetadataLoader metadataLoader;
 	private final MainGroupRepository groupRepository;
@@ -46,11 +52,12 @@ public class MainService {
 		CompletableFuture<List<MainRestaurantDistanceProjection>> aiFuture = CompletableFuture.supplyAsync(
 			() -> fetchAiSection(location), mainQueryExecutor);
 
-		CompletableFuture.allOf(hotFuture, newFuture, aiFuture).join();
-
-		List<MainRestaurantDistanceProjection> hotRestaurants = hotFuture.join();
-		List<MainRestaurantDistanceProjection> newRestaurants = newFuture.join();
-		List<MainRestaurantDistanceProjection> aiRestaurants = aiFuture.join();
+		List<MainRestaurantDistanceProjection> hotRestaurants = getWithTimeout(hotFuture,
+			() -> mainDataService.fetchHotSectionAll());
+		List<MainRestaurantDistanceProjection> newRestaurants = getWithTimeout(newFuture,
+			() -> mainDataService.fetchNewSectionAll());
+		List<MainRestaurantDistanceProjection> aiRestaurants = getWithTimeout(aiFuture,
+			() -> mainDataService.fetchAiSectionAll());
 
 		SectionMetadata metadata = fetchMetadata(collectAllIds(hotRestaurants, newRestaurants, aiRestaurants));
 
@@ -74,10 +81,10 @@ public class MainService {
 		CompletableFuture<List<MainRestaurantDistanceProjection>> hotFuture = CompletableFuture.supplyAsync(
 			() -> fetchHotSection(location), mainQueryExecutor);
 
-		CompletableFuture.allOf(newFuture, hotFuture).join();
-
-		List<MainRestaurantDistanceProjection> newRestaurants = newFuture.join();
-		List<MainRestaurantDistanceProjection> hotRestaurants = hotFuture.join();
+		List<MainRestaurantDistanceProjection> newRestaurants = getWithTimeout(newFuture,
+			() -> mainDataService.fetchNewSectionAll());
+		List<MainRestaurantDistanceProjection> hotRestaurants = getWithTimeout(hotFuture,
+			() -> mainDataService.fetchHotSectionAll());
 
 		SectionMetadata metadata = fetchMetadata(collectAllIds(newRestaurants, hotRestaurants));
 
@@ -94,9 +101,9 @@ public class MainService {
 	public AiRecommendResponse getAiRecommend(Long memberId, MainPageRequest request) {
 		LocationContext location = resolveLocation(memberId, request);
 
-		List<MainRestaurantDistanceProjection> aiRestaurants = CompletableFuture
-			.supplyAsync(() -> fetchAiSection(location), mainQueryExecutor)
-			.join();
+		List<MainRestaurantDistanceProjection> aiRestaurants = getWithTimeout(
+			CompletableFuture.supplyAsync(() -> fetchAiSection(location), mainQueryExecutor),
+			() -> mainDataService.fetchAiSectionAll());
 
 		SectionMetadata metadata = fetchMetadata(collectAllIds(aiRestaurants));
 
@@ -177,8 +184,28 @@ public class MainService {
 		CompletableFuture<Map<Long, String>> summaryFuture = CompletableFuture.supplyAsync(
 			() -> metadataLoader.loadSummaries(allIds), mainQueryExecutor);
 
-		CompletableFuture.allOf(catFuture, thumbFuture, summaryFuture).join();
-		return new SectionMetadata(catFuture.join(), thumbFuture.join(), summaryFuture.join());
+		Map<Long, List<String>> categories = getWithTimeout(catFuture, Map::of);
+		Map<Long, String> thumbnails = getWithTimeout(thumbFuture, Map::of);
+		Map<Long, String> summaries = getWithTimeout(summaryFuture, Map::of);
+		return new SectionMetadata(categories, thumbnails, summaries);
+	}
+
+	private <T> T getWithTimeout(CompletableFuture<T> future, Supplier<T> fallback) {
+		try {
+			return future.get(MAIN_QUERY_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return fallback.get();
+		} catch (TimeoutException e) {
+			future.cancel(true);
+			return fallback.get();
+		} catch (ExecutionException e) {
+			Throwable cause = e.getCause();
+			if (cause instanceof RuntimeException re) {
+				throw re;
+			}
+			return fallback.get();
+		}
 	}
 
 	private List<MainSectionItem> toSectionItems(
