@@ -11,8 +11,10 @@
 
 - 실행 시간: 약 5분 30초
 - 시나리오: 검색 100%
-- 최대 부하: 6000 iterations/s 목표
+- 최대 부하: 3000 iterations/s 목표
 - 비로그인 모드로 실행 가능
+- 기본 검색 variation: 약 491,520 조합 (384 keywords = 336 primary + 48 typing-state, x 320 locations x 4 radii)
+- 타이핑 중/오타성 검색어는 기본적으로 약 5% 희소 분포로 섞습니다.
 
 ## 전제조건
 

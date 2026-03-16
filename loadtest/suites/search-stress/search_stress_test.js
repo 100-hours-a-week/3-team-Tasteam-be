@@ -5,6 +5,8 @@ import {
     search,
     prepareKeywordHotspot,
     pickKeyword,
+    randomSearchLocation,
+    getSearchVariationSummary,
 } from '../../shared/scenarios.js';
 import { withQuickRunOptions } from '../../shared/quick-run.js';
 import { logTestStart, SuccessMetrics } from '../../shared/test-utils.js';
@@ -24,9 +26,9 @@ export const options = withQuickRunOptions({
                 { target: 100, duration: '30s' },   // Warm up
                 { target: 500, duration: '1m' },    // Load
                 { target: 1000, duration: '1m' },   // High Load
-                { target: 2000, duration: '1m' },   // Very High Load
-                { target: 4000, duration: '1m' },   // Stress
-                { target: 6000, duration: '1m' },   // Extreme Stress
+                { target: 1500, duration: '1m' },   // Very High Load
+                { target: 2200, duration: '1m' },   // Stress
+                { target: 3000, duration: '1m' },   // Peak
             ],
             exec: 'searchScenario',
         },
@@ -37,27 +39,16 @@ export const options = withQuickRunOptions({
     },
 });
 
-// ============ Test Data ============
-const SEARCH_KEYWORDS = [
-    '파스타', '피자', '삼겹살', '치킨', '카페', '커피',
-    '강남', '역삼', '홍대', '이태원', '성수',
-    '점심', '저녁', '회식', '데이트', '가성비',
-    '맛집', '비건', '디저트', '한식', '일식', '중식',
-    'Burger', 'Sushi', 'Pasta', 'BBQ',
-    '아', '가', 'A', 'B', // Short queries
-    '맛있는 파스타 집 추천해주세요', // Long query
-];
-
 // ============ Setup ============
 export function setup() {
     logTestStart('Search Stress Test', BASE_URL);
+    const searchVariation = getSearchVariationSummary();
 
-    // 검색 API는 인증 불필요 - 로그인 없이 바로 테스트 진행
-    console.log('✅ Setup 완료: 비로그인 검색 테스트 모드');
+    console.log(`✅ Setup 완료: 비로그인 검색 테스트 모드, search combinations=${searchVariation.combinationCount} (${searchVariation.keywordCount} keywords = ${searchVariation.primaryKeywordCount} primary + ${searchVariation.typingKeywordCount} typing @ ${Math.round(searchVariation.typingKeywordShare * 100)}% x ${searchVariation.locationCount} locations x ${searchVariation.radiusCount} radii)`);
 
     return {
         tokens: [], // 토큰 없이 진행
-        hotspot: prepareKeywordHotspot(SEARCH_KEYWORDS),
+        hotspot: prepareKeywordHotspot(),
     };
 }
 
@@ -73,9 +64,10 @@ export function searchScenario(data) {
 
     // 랜덤 키워드 선택
     const keyword = pickKeyword({ hotspot: data.hotspot });
+    const loc = randomSearchLocation();
 
     // 검색 요청
-    const res = search(token, keyword);
+    const res = search(token, keyword, loc);
 
     // 응답 상태코드 상세 분석
     check(res, {

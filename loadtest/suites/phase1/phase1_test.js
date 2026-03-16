@@ -31,10 +31,12 @@ import {
     pickSubgroupId,
     pickChatRoomId,
     pickRestaurantId,
+    randomSearchLocation,
     extractRestaurantIdsFromSectionsResponse,
     pickRandomRestaurantId,
     resolveGroupContext,
     resolveSubgroupChatContext,
+    getSearchVariationSummary,
 } from '../../shared/scenarios.js';
 import { withQuickRunOptions } from '../../shared/quick-run.js';
 
@@ -82,11 +84,6 @@ function randomLocation() {
         { lat: 37.5506, lon: 126.9217 },
     ];
     return points[Math.floor(Math.random() * points.length)];
-}
-
-function randomKeyword() {
-    const keywords = ['파스타', '치킨', '피자', '한식', '강남', '성수', '점심', '회식', '가성비', '카페'];
-    return keywords[Math.floor(Math.random() * keywords.length)];
 }
 
 function buildOptionsBySuite() {
@@ -334,6 +331,8 @@ function buildState(data) {
 export function setup() {
     console.log(`🔥 Phase1 Load Test 시작 | suite=${SUITE} | cache_mode=${CACHE_MODE}`);
     console.log(`   target=${BASE_URL} | user_pool=${USER_POOL}`);
+    const searchVariation = getSearchVariationSummary();
+    console.log(`   검색 조합=${searchVariation.combinationCount} (${searchVariation.keywordCount} keywords = ${searchVariation.primaryKeywordCount} primary + ${searchVariation.typingKeywordCount} typing @ ${Math.round(searchVariation.typingKeywordShare * 100)}% x ${searchVariation.locationCount} locations x ${searchVariation.radiusCount} radii)`);
 
     const tokens = batchLogin(USER_POOL);
     if (!tokens || tokens.length === 0) {
@@ -386,7 +385,7 @@ export function smokeScenario(data) {
 
 export function spikeSearch(data) {
     const state = buildState(data);
-    const loc = randomLocation();
+    const loc = randomSearchLocation();
     const res = search(state.token, pickKeyword(state), loc);
     if (res && res.status === 200) searchSuccess.add(1);
     postProcess(res);

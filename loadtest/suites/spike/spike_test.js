@@ -36,6 +36,7 @@ import {
     getGroupMembers,
     search,
     randomLocation,
+    randomSearchLocation,
     randomKeyword,
     randomChatMessage,
     getChatMessages,
@@ -44,6 +45,7 @@ import {
     createReview,
     resolveGroupContext,
     resolveSubgroupChatContext,
+    getSearchVariationSummary,
 } from '../../shared/scenarios.js';
 import { withQuickRunOptions } from '../../shared/quick-run.js';
 import { logTestStart, SuccessMetrics } from '../../shared/test-utils.js';
@@ -165,6 +167,8 @@ export const options = withQuickRunOptions({
 export function setup() {
     logTestStart(`Spike Test [${SPIKE_TARGET}]`, BASE_URL);
     console.log(`   스파이크 패턴: 급격한 부하 상승 후 유지 후 하강`);
+    const searchVariation = getSearchVariationSummary();
+    console.log(`   검색 조합: ${searchVariation.combinationCount} (${searchVariation.keywordCount} keywords = ${searchVariation.primaryKeywordCount} primary + ${searchVariation.typingKeywordCount} typing @ ${Math.round(searchVariation.typingKeywordShare * 100)}% x ${searchVariation.locationCount} locations x ${searchVariation.radiusCount} radii)`);
 
     const tokens = batchLogin(50);
     if (!tokens || tokens.length === 0) {
@@ -200,7 +204,7 @@ export function setup() {
 export function spikeSearch(data) {
     if (!data) return;
     const token = data.tokens[Math.floor(Math.random() * data.tokens.length)];
-    const loc = randomLocation();
+    const loc = randomSearchLocation();
     const res = search(token, randomKeyword(), loc);
     metrics.add(res && res.status === 200 ? 1 : 0, 'spike_success_count');
     sleep(0.1);
@@ -260,7 +264,7 @@ export function spikeWrite(data) {
         sendChatMessage(token, data.chatRoomId, randomChatMessage());
     } else {
         // 검색으로 대체
-        search(token, randomKeyword(), randomLocation());
+        search(token, randomKeyword(), randomSearchLocation());
     }
     sleep(0.2);
 }

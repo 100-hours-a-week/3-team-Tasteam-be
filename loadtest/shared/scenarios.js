@@ -18,6 +18,18 @@ function parsePositiveIntEnv(name, fallback) {
     return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parsePositiveNumberListEnv(name, fallback) {
+    const raw = __ENV[name];
+    if (!raw) return fallback;
+
+    const parsed = raw
+        .split(',')
+        .map((value) => Number(value.trim()))
+        .filter((value) => Number.isFinite(value) && value > 0);
+
+    return parsed.length > 0 ? parsed : fallback;
+}
+
 export function getTestUser(index) {
     return {
         identifier: `${TEST_USER_PREFIX}${String(index).padStart(3, '0')}`,
@@ -57,8 +69,8 @@ const HOTSPOT_CONFIG = {
         hotShare: Number(__ENV.HOT_CHAT_TRAFFIC_SHARE || 0.70),
     },
     keyword: {
-        topPercent: Number(__ENV.HOT_KEYWORD_TOP_PERCENT || 0.20),
-        hotShare: Number(__ENV.HOT_KEYWORD_TRAFFIC_SHARE || 0.60),
+        topPercent: Number(__ENV.SEARCH_HOT_KEYWORD_TOP_PERCENT || __ENV.HOT_KEYWORD_TOP_PERCENT || 0.10),
+        hotShare: Number(__ENV.SEARCH_HOT_KEYWORD_TRAFFIC_SHARE || __ENV.HOT_KEYWORD_TRAFFIC_SHARE || 0.15),
     },
     pool: {
         restaurantTarget: Number(__ENV.RESTAURANT_POOL_SIZE || 200),
@@ -67,6 +79,14 @@ const HOTSPOT_CONFIG = {
         subgroupLimit: Number(__ENV.HOTSPOT_SUBGROUP_LIMIT || 30),
         chatRoomLimit: Number(__ENV.HOTSPOT_CHATROOM_LIMIT || 50),
     },
+};
+
+const SEARCH_VARIATION_CONFIG = {
+    keywordLimit: parsePositiveIntEnv('SEARCH_VARIATION_KEYWORD_LIMIT', 336),
+    radiusKm: parsePositiveNumberListEnv('SEARCH_RADIUS_KM', [0.4, 0.8, 1.5, 3.0]),
+    locationOffsets: parsePositiveNumberListEnv('SEARCH_LOCATION_OFFSETS', [0.004, 0.012])
+        .flatMap((offset) => [-offset, offset]),
+    typingKeywordShare: Number(__ENV.SEARCH_TYPING_KEYWORD_SHARE || 0.05),
 };
 
 // 역지오코딩 호출 제어:
@@ -111,6 +131,14 @@ function clampPercent(value, fallback) {
     return value;
 }
 
+function clampRatio(value, fallback, { allowZero = false } = {}) {
+    if (!Number.isFinite(value)) return fallback;
+    if (allowZero && value === 0) return 0;
+    if (value <= 0) return fallback;
+    if (value >= 1) return 1;
+    return value;
+}
+
 function normalizeConfig() {
     HOTSPOT_CONFIG.restaurant.topPercent = clampPercent(HOTSPOT_CONFIG.restaurant.topPercent, 0.10);
     HOTSPOT_CONFIG.restaurant.hotShare = clampPercent(HOTSPOT_CONFIG.restaurant.hotShare, 0.60);
@@ -120,8 +148,9 @@ function normalizeConfig() {
     HOTSPOT_CONFIG.subgroup.hotShare = clampPercent(HOTSPOT_CONFIG.subgroup.hotShare, 0.50);
     HOTSPOT_CONFIG.chat.topPercent = clampPercent(HOTSPOT_CONFIG.chat.topPercent, 0.05);
     HOTSPOT_CONFIG.chat.hotShare = clampPercent(HOTSPOT_CONFIG.chat.hotShare, 0.70);
-    HOTSPOT_CONFIG.keyword.topPercent = clampPercent(HOTSPOT_CONFIG.keyword.topPercent, 0.20);
-    HOTSPOT_CONFIG.keyword.hotShare = clampPercent(HOTSPOT_CONFIG.keyword.hotShare, 0.60);
+    HOTSPOT_CONFIG.keyword.topPercent = clampPercent(HOTSPOT_CONFIG.keyword.topPercent, 0.10);
+    HOTSPOT_CONFIG.keyword.hotShare = clampPercent(HOTSPOT_CONFIG.keyword.hotShare, 0.15);
+    SEARCH_VARIATION_CONFIG.typingKeywordShare = clampRatio(SEARCH_VARIATION_CONFIG.typingKeywordShare, 0.05, { allowZero: true });
 }
 
 function parseCsvEnv(name) {
@@ -515,10 +544,11 @@ export function getReviewDetail(token, reviewId) {
 /**
  * 통합 검색
  */
-export function search(token, keyword = 'test', loc = null) {
+export function search(token, keyword = 'test', loc = null, radiusKm = null) {
     let url = `${BASE_URL}/api/v1/search?keyword=${encodeURIComponent(keyword)}`;
     if (loc) {
-        url += `&latitude=${loc.lat}&longitude=${loc.lon}&radiusKm=1`;
+        const resolvedRadiusKm = radiusKm || randomSearchRadiusKm();
+        url += `&latitude=${loc.lat}&longitude=${loc.lon}&radiusKm=${resolvedRadiusKm}`;
     }
     const res = http.post(
         url,
@@ -615,7 +645,7 @@ export function executeReadScenario(state) {
     }
 
     // 통합 검색
-    const resSearch = search(state.token, pickKeyword(state), randomLocation());
+    const resSearch = search(state.token, pickKeyword(state), randomSearchLocation());
     if (resSearch && resSearch.status === 200) {
         successCount++;
         if (!restaurantId) {
@@ -663,26 +693,102 @@ const LOCATIONS = [
     { lat: 37.5670, lon: 126.9852 }, // 종로
 ];
 
-const SEARCH_KEYWORDS = [
-    // 음식 종류 (30개)
-    '파스타', '피자', '삼겹살', '치킨', '초밥', '라멘', '쌀국수', '버거',
-    '스테이크', '샐러드', '떡볶이', '김밥', '순대', '곱창', '갈비', '쌈밥',
-    '비빔밥', '된장찌개', '순두부', '칼국수', '냉면', '짜장면', '짬뽕',
-    '딤섬', '타코', '카레', '리조또', '그라탕', '퐁듀', '스시',
-    // 분위기/목적 (20개)
-    '데이트', '회식', '가족모임', '혼밥', '점심', '저녁', '브런치',
-    '야식', '술집', '맥주', '분위기 좋은', '조용한', '인스타맛집',
-    '가성비', '프리미엄', '신선한', '건강식', '비건', '채식', '유기농',
-    // 지역명 (20개)
-    '강남', '홍대', '이태원', '성수', '신촌', '종로', '명동', '여의도',
-    '압구정', '청담', '마포', '용산', '서초', '신사', '가로수길',
-    '해방촌', '연남동', '합정', '망원', '을지로',
-    // 영문/기타 (10개)
-    'burger', 'sushi', 'pasta', 'ramen', 'coffee', 'dessert',
-    'steak', 'pizza', 'salad', 'vegan',
+const SEARCH_KEYWORD_EXACT_TERMS = [
+    '파스타', '피자', '치킨', '초밥', '스시', '버거', '카페', '디저트',
+    '삼겹살', '쌀국수', '라멘', '곱창', '갈비', '샐러드', '브런치', '한식',
+    '비건', '스테이크', '떡볶이', '칼국수', '냉면', '짜장면', '짬뽕', '마라탕',
+    '훠궈', '돈까스', '우동', '규카츠', '오마카세', '족발', '보쌈', '순대국',
+    '감자탕', '닭갈비', '김치찌개', '부대찌개', '순두부', '비빔밥', '덮밥', '돈부리',
+    '텐동', '타코', '퀘사디아', '커리', '인도커리', '베이커리', '와플', '도넛',
+    '케이크', '아이스크림', '막창', '양꼬치', '해장국', '국밥', '설렁탕', '샤브샤브',
+    '중식', '일식', '양식', '고기집', '술집', '이자카야', '분식', '백반',
+    '죽', '국수', '찜닭', '닭한마리', '보양식', '빙수', '포케', '샌드위치',
+    '토스트', '파니니', '리조또', '그라탕', '퐁듀', '딤섬', '소바', '해산물',
 ];
 
-export const RADII = [500, 1000, 2000, 3000, 5000];
+const SEARCH_KEYWORD_PARTIAL_TERMS = [
+    '파스', '피자집', '치킨집', '초밥집', '스시집', '버거집', '카페추천', '디저트카페',
+    '삼겹', '삼겹살집', '쌀국', '라멘집', '곱창집', '갈비집', '샐러', '브런',
+    '한식집', '비건식당', '스테', '떡볶', '칼국', '냉면집', '짜장', '짬뽕집',
+    '마라', '훠궈집', '돈까', '우동집', '규카', '오마', '족발집', '보쌈집',
+    '순대', '감자', '닭갈', '김치', '부대', '순두', '비빔', '덮밥집',
+    '돈부', '텐동집', '타코집', '퀘사', '커리집', '베이커', '와플집', '도넛집',
+    '케이크집', '아이스', '막창집', '양꼬', '해장', '국밥집', '설렁', '샤브',
+    '중식집', '일식집', '양식집', '고깃집', '술집추천', '이자카', '분식집', '백반집',
+    '죽집', '국수집', '찜닭집', '닭한', '보양', '빙수집', '포케집', '샌드',
+    '토스', '파니', '리조', '그라', '퐁듀집', '딤섬집', '소바집', '해산물집',
+];
+
+const SEARCH_KEYWORD_REGION_TERMS = [
+    '강남맛집', '강남점심', '강남저녁', '강남회식', '강남카페', '강남삼겹', '역삼맛집', '역삼점심',
+    '역삼저녁', '선릉맛집', '선릉회식', '잠실맛집', '잠실데이트', '잠실브런치', '성수맛집', '성수카페',
+    '성수브런치', '홍대맛집', '홍대술집', '홍대데이트', '합정맛집', '합정카페', '망원맛집', '망원브런치',
+    '여의도맛집', '여의도회식', '종로맛집', '종로점심', '명동맛집', '명동디저트', '신사맛집', '신사브런치',
+    '압구정맛집', '압구정데이트', '청담맛집', '청담오마카세', '을지로맛집', '을지로술집', '건대맛집', '건대술집',
+    '용산맛집', '용산카페', '마포맛집', '마포고기', '서초맛집', '서초점심', '연남맛집', '연남카페',
+    '문래맛집', '문래술집', '송리단길맛집', '가로수길맛집', '익선동맛집', '익선동카페', '한남동맛집', '한남동데이트',
+    '성신여대맛집', '잠원맛집', '교대맛집', '교대회식', '사당맛집', '사당술집', '영등포맛집', '영등포회식',
+    '을지로입구맛집', '서울역맛집', '시청맛집', '광화문맛집', '광화문점심', '왕십리맛집', '왕십리고기', '건대입구맛집',
+    '노량진맛집', '신촌맛집', '신촌술집', '대학로맛집', '혜화맛집', '망원동맛집', '성수동맛집', '잠실새내맛집',
+];
+
+const SEARCH_KEYWORD_CONTEXT_TERMS = [
+    '점심맛집', '저녁맛집', '회식장소', '데이트맛집', '혼밥맛집', '가족모임식당', '야식맛집', '퇴근후한잔',
+    '주말브런치', '가성비맛집', '조용한식당', '분위기좋은식당', '매운음식', '깔끔한식당', '로컬맛집', '신상맛집',
+    '든든한한끼', '웨이팅없는맛집', '프리미엄식당', '늦게까지', '24시간식당', '단체석식당', '예약가능식당', '포장가능',
+    '혼술하기좋은곳', '비오는날맛집', '해장맛집', '술안주맛집', '소개팅식당', '기념일레스토랑', '점심식사', '저녁식사',
+    '모임장소', '점심회식', '저녁회식', '가성비카페', '조용한카페', '디저트맛집', '브런치카페', '늦은저녁',
+    '주차되는식당', '주차가능카페', '애견동반식당', '아이랑가기좋은곳', '부모님모시고갈곳', '직장인점심', '직장인저녁', '친구모임식당',
+    '소개팅카페', '기념일코스', '삼겹맛집', '파스타맛집', '초밥맛집', '치킨맛집', '버거맛집', '카페맛집',
+    '곱창맛집', '갈비맛집', '마라탕맛집', '라멘맛집', '샐러드맛집', '비건맛집', '브런치맛집', '한식맛집',
+    '중식맛집', '일식맛집', '양식맛집', '강남삼', '성수카', '홍대술', '잠실파', '여의도회',
+    '명동디', '종로국', '신사브', '압구정오', '청담스', '을지로술', '망원브', '합정카',
+    '연남카', '문래술', '광화문점', '서울역점', '시청점', '왕십리고', '건대술', '신촌술',
+    '대학로연극맛집', '혜화연극맛집', '삼겹살추천', '파스타추천', '초밥추천', '치킨추천', '버거추천', '디저트추천',
+];
+
+// 검색창 입력 중 상태나 오타성 입력은 희소 분포로만 섞습니다.
+const SEARCH_KEYWORD_TYPING_TERMS = [
+    '삼겹살맛', '삼겹ㅅ', '파스타맛', '파스ㅌ', '초밥맛', '초바ㅂ', '치킨맛', '치키ㄴ',
+    '버거맛', '버거ㅈ', '디저트맛', '디저ㅌ', '라멘맛', '라메ㄴ', '마라탕맛', '마라ㅌ',
+    '쌀국수맛', '쌀국ㅅ', '곱창맛', '곱차ㅇ', '브런치맛', '브런ㅊ', '샐러드맛', '샐러ㄷ',
+    '성수카ㅍ', '성수브ㄹ', '강남맛ㅈ', '강남점ㅅ', '홍대술ㅈ', '홍대데ㅇ', '잠실브ㄹ', '잠실데ㅇ',
+    '여의도회ㅅ', '종로점ㅅ', '명동디ㅈ', '신사브ㄹ', '연남카ㅍ', '문래술ㅈ', '합정카ㅍ', '망원브ㄹ',
+    '가성비맛ㅈ', '조용한식ㄷ', '웨이팅없ㄴ', '주말브런ㅊ', '퇴근후한ㅈ', '직장인점ㅅ', '소개팅카ㅍ', '기념일레ㅅ',
+];
+
+function buildSearchKeywordCatalog() {
+    return uniqueList([
+        ...SEARCH_KEYWORD_EXACT_TERMS,
+        ...SEARCH_KEYWORD_PARTIAL_TERMS,
+        ...SEARCH_KEYWORD_REGION_TERMS,
+        ...SEARCH_KEYWORD_CONTEXT_TERMS,
+    ]).slice(0, SEARCH_VARIATION_CONFIG.keywordLimit);
+}
+
+function buildSearchLocationCatalog() {
+    const catalog = [];
+
+    LOCATIONS.forEach((base) => {
+        SEARCH_VARIATION_CONFIG.locationOffsets.forEach((latOffset) => {
+            SEARCH_VARIATION_CONFIG.locationOffsets.forEach((lonOffset) => {
+                catalog.push({
+                    lat: Number((base.lat + latOffset).toFixed(4)),
+                    lon: Number((base.lon + lonOffset).toFixed(4)),
+                });
+            });
+        });
+    });
+
+    return catalog;
+}
+
+const SEARCH_KEYWORDS = buildSearchKeywordCatalog();
+const SEARCH_TYPING_KEYWORDS = uniqueList(SEARCH_KEYWORD_TYPING_TERMS);
+const SEARCH_ALL_KEYWORDS = uniqueList([...SEARCH_KEYWORDS, ...SEARCH_TYPING_KEYWORDS]);
+const SEARCH_LOCATIONS = buildSearchLocationCatalog();
+
+export const RADII = SEARCH_VARIATION_CONFIG.radiusKm.map((radiusKm) => Math.round(radiusKm * 1000));
 
 export function randomLocation() {
     const base = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
@@ -692,8 +798,44 @@ export function randomLocation() {
     };
 }
 
-export function randomKeyword() {
+function shouldUseTypingKeyword() {
+    return SEARCH_TYPING_KEYWORDS.length > 0 && Math.random() < SEARCH_VARIATION_CONFIG.typingKeywordShare;
+}
+
+function randomBaseKeyword() {
     return SEARCH_KEYWORDS[Math.floor(Math.random() * SEARCH_KEYWORDS.length)];
+}
+
+function randomTypingKeyword() {
+    return SEARCH_TYPING_KEYWORDS[Math.floor(Math.random() * SEARCH_TYPING_KEYWORDS.length)];
+}
+
+export function randomKeyword() {
+    if (shouldUseTypingKeyword()) {
+        return randomTypingKeyword();
+    }
+    return randomBaseKeyword();
+}
+
+export function randomSearchLocation() {
+    return SEARCH_LOCATIONS[Math.floor(Math.random() * SEARCH_LOCATIONS.length)];
+}
+
+export function randomSearchRadiusKm() {
+    return SEARCH_VARIATION_CONFIG.radiusKm[Math.floor(Math.random() * SEARCH_VARIATION_CONFIG.radiusKm.length)];
+}
+
+export function getSearchVariationSummary(keywordCount = SEARCH_ALL_KEYWORDS.length) {
+    normalizeConfig();
+    return {
+        keywordCount,
+        primaryKeywordCount: SEARCH_KEYWORDS.length,
+        typingKeywordCount: SEARCH_TYPING_KEYWORDS.length,
+        typingKeywordShare: SEARCH_VARIATION_CONFIG.typingKeywordShare,
+        locationCount: SEARCH_LOCATIONS.length,
+        radiusCount: SEARCH_VARIATION_CONFIG.radiusKm.length,
+        combinationCount: keywordCount * SEARCH_LOCATIONS.length * SEARCH_VARIATION_CONFIG.radiusKm.length,
+    };
 }
 
 const CHAT_MESSAGES = [
@@ -725,17 +867,13 @@ function collectRestaurantIds(token, targetCount, rounds) {
     const limit = Math.max(10, targetCount || HOTSPOT_CONFIG.pool.restaurantTarget);
 
     for (let i = 0; i < maxRounds; i++) {
-        const loc = randomLocation();
+        const loc = randomSearchLocation();
         const keyword = SEARCH_KEYWORDS[i % SEARCH_KEYWORDS.length] || randomKeyword();
 
         const homeRes = getHomePage(token, loc.lat, loc.lon);
         extractRestaurantIdsFromSectionsResponse(homeRes).forEach((id) => ids.add(id));
 
-        const searchRes = http.post(
-            `${BASE_URL}/api/v1/search?keyword=${encodeURIComponent(keyword)}&latitude=${loc.lat}&longitude=${loc.lon}&radiusKm=1`,
-            null,
-            { headers: getHeaders(token), tags: { name: 'search_seed', type: 'read' } }
-        );
+        const searchRes = search(token, keyword, loc);
         extractRestaurantIdsFromSearchResponse(searchRes).forEach((id) => ids.add(id));
 
         if (ids.size >= limit) break;
@@ -859,12 +997,15 @@ export function pickChatRoomId(state) {
 }
 
 export function pickKeyword(state) {
+    if (shouldUseTypingKeyword()) {
+        return randomTypingKeyword();
+    }
     const hs = state && state.hotspot;
     if (hs && hs.keywords) {
         const picked = pickFromHotspot(hs.keywords.hot, hs.keywords.cold, hs.config.keyword.hotShare);
         if (picked) return picked;
     }
-    return randomKeyword();
+    return randomBaseKeyword();
 }
 
 // ============ Additional API Functions ============
@@ -1493,7 +1634,7 @@ export function executeSearchingJourney(state) {
     let lastRestaurantId = null;
     for (let i = 0; i < searchCount; i++) {
         const keyword = pickKeyword(state);
-        const loc = randomLocation();
+        const loc = randomSearchLocation();
         const res = search(state.token, keyword, loc);
         if (res && res.status === 200) {
             successCount++;

@@ -24,11 +24,12 @@ import {
     search,
     createReview,
     sendChatMessage,
-    randomLocation,
+    randomSearchLocation,
     randomKeyword,
     randomChatMessage,
     resolveGroupContext,
     resolveSubgroupChatContext,
+    getSearchVariationSummary,
 } from '../../shared/scenarios.js';
 import { withQuickRunOptions } from '../../shared/quick-run.js';
 import { logTestStart, SuccessMetrics } from '../../shared/test-utils.js';
@@ -118,6 +119,8 @@ export function setup() {
     logTestStart(`Stress Test [${TEST_TYPE}]`, BASE_URL);
     console.log(`   부하 패턴: 램프업 → 지속 고부하 → 램프다운`);
     console.log(`   사용자 풀: ${USER_POOL}`);
+    const searchVariation = getSearchVariationSummary();
+    console.log(`   검색 조합: ${searchVariation.combinationCount} (${searchVariation.keywordCount} keywords = ${searchVariation.primaryKeywordCount} primary + ${searchVariation.typingKeywordCount} typing @ ${Math.round(searchVariation.typingKeywordShare * 100)}% x ${searchVariation.locationCount} locations x ${searchVariation.radiusCount} radii)`);
 
     const tokens = batchLogin(USER_POOL);
     if (!tokens || tokens.length === 0) {
@@ -182,7 +185,7 @@ export function writeHeavy(data) {
         sendChatMessage(token, data.chatRoomId, randomChatMessage());
     } else {
         // 검색으로 대체 (20% - 즐겨찾기 API 없을 경우)
-        search(token, randomKeyword(), randomLocation());
+        search(token, randomKeyword(), randomSearchLocation());
     }
 
     sleep(1 + Math.random() * 2);
@@ -191,7 +194,7 @@ export function writeHeavy(data) {
 export function searchOnly(data) {
     if (!data) return;
     const token = data.tokens[Math.floor(Math.random() * data.tokens.length)];
-    const loc = Math.random() < 0.7 ? randomLocation() : null;
+    const loc = randomSearchLocation();
     search(token, randomKeyword(), loc);
     sleep(0.1);
 }
