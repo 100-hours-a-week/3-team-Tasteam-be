@@ -53,8 +53,30 @@ rules:
       connector: "$1"
       task: "$2"
 
+  - pattern: "kafka.connect<type=sink-task-metrics, connector=(.+), task=(.+)><>batch-size-max"
+    name: kafka_connect_sink_task_batch_size_max
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
+  - pattern: "kafka.connect<type=sink-task-metrics, connector=(.+), task=(.+)><>offset-commit-avg-time-ms"
+    name: kafka_connect_sink_task_offset_commit_avg_time_ms
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
   - pattern: "kafka.connect<type=sink-task-metrics, connector=(.+), task=(.+)><>sink-record-active-count"
     name: kafka_connect_sink_task_record_active_count
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
+  # Task error metrics (available when the connector exposes Connect task error MBeans)
+  - pattern: "kafka.connect<type=task-error-metrics, connector=(.+), task=(.+)><>record-error-rate"
+    name: kafka_connect_task_record_error_rate
     type: GAUGE
     labels:
       connector: "$1"
