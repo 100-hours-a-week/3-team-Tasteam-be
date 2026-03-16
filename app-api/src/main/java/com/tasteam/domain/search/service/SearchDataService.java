@@ -58,19 +58,30 @@ public class SearchDataService {
 	@Transactional(readOnly = true)
 	public RestaurantPageData fetchRestaurants(String keyword, String cursorToken, int pageSize,
 		Double latitude, Double longitude, Double radiusMeters) {
+		return fetchRestaurantsInternal(keyword, cursorToken, pageSize, latitude, longitude, radiusMeters, false);
+	}
+
+	@Transactional(readOnly = true)
+	public RestaurantPageData fetchRestaurantsWithFallback(String keyword, String cursorToken, int pageSize,
+		Double latitude, Double longitude, Double radiusMeters) {
+		return fetchRestaurantsInternal(keyword, cursorToken, pageSize, latitude, longitude, radiusMeters, true);
+	}
+
+	private RestaurantPageData fetchRestaurantsInternal(String keyword, String cursorToken, int pageSize,
+		Double latitude, Double longitude, Double radiusMeters, boolean useFallback) {
 		CursorPageBuilder<SearchCursor> pageBuilder = CursorPageBuilder.of(cursorCodec, cursorToken,
 			SearchCursor.class);
 		if (pageBuilder.isInvalid()) {
 			return new RestaurantPageData(CursorPageBuilder.Page.empty(), List.of(), Map.of());
 		}
 
-		List<SearchRestaurantCursorRow> result = searchQueryRepository.searchRestaurantsByKeyword(
-			keyword,
-			pageBuilder.cursor(),
-			CursorPageBuilder.fetchSize(pageSize),
-			latitude,
-			longitude,
-			radiusMeters);
+		List<SearchRestaurantCursorRow> result = useFallback
+			? searchQueryRepository.searchRestaurantsByKeywordWithFallback(
+				keyword, pageBuilder.cursor(), CursorPageBuilder.fetchSize(pageSize),
+				latitude, longitude, radiusMeters)
+			: searchQueryRepository.searchRestaurantsByKeyword(
+				keyword, pageBuilder.cursor(), CursorPageBuilder.fetchSize(pageSize),
+				latitude, longitude, radiusMeters);
 
 		CursorPageBuilder.Page<SearchRestaurantCursorRow> page = pageBuilder.build(
 			result,

@@ -93,7 +93,10 @@ public class SearchService {
 		} catch (TimeoutException e) {
 			groupFuture.cancel(true);
 			restaurantFuture.cancel(true);
-			throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
+			groupData = searchDataService.fetchGroups(keyword, pageSize);
+			restaurantData = searchDataService.fetchRestaurantsWithFallback(
+				keyword, request.cursor(), pageSize,
+				request.latitude(), request.longitude(), radiusMeters);
 		} catch (ExecutionException e) {
 			Throwable cause = e.getCause();
 			if (cause instanceof BusinessException be) {
