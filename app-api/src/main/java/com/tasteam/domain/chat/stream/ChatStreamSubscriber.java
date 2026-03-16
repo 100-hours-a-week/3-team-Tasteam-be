@@ -222,6 +222,11 @@ public class ChatStreamSubscriber {
 		if (chatStreamProperties.executorThreadPoolSize() <= 0) {
 			throw new IllegalStateException("chat.stream.executor-thread-pool-size must be greater than 0");
 		}
+		if (chatStreamProperties.partitionConsumeEnabled()
+			&& chatStreamProperties.executorThreadPoolSize() < chatStreamProperties.partitionCount()) {
+			throw new IllegalStateException(
+				"chat.stream.executor-thread-pool-size must be >= chat.stream.partition-count when partition consume is enabled");
+		}
 		if (chatStreamProperties.executorQueueCapacity() < 0) {
 			throw new IllegalStateException("chat.stream.executor-queue-capacity must be >= 0");
 		}

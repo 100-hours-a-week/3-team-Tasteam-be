@@ -102,7 +102,7 @@ chat:
     bootstrap-enabled: ${CHAT_STREAM_BOOTSTRAP_ENABLED:true}
     bootstrap-batch-size: ${CHAT_STREAM_BOOTSTRAP_BATCH_SIZE:100}
     max-total-subscriptions: ${CHAT_STREAM_MAX_TOTAL_SUBSCRIPTIONS:1000}
-    executor-thread-pool-size: ${CHAT_STREAM_EXECUTOR_THREAD_POOL_SIZE:4}
+    executor-thread-pool-size: ${CHAT_STREAM_EXECUTOR_THREAD_POOL_SIZE:${CHAT_STREAM_PARTITION_COUNT:16}}
     executor-queue-capacity: ${CHAT_STREAM_EXECUTOR_QUEUE_CAPACITY:256}
     partition-count: ${CHAT_STREAM_PARTITION_COUNT:16}
     max-allowed-partitions: ${CHAT_STREAM_MAX_ALLOWED_PARTITIONS:128}
