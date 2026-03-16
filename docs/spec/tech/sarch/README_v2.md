@@ -207,7 +207,7 @@ ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC
 LIMIT :size
 ```
 
-> **주의**: cursor 파라미터에 `CAST`가 필수다. PostgreSQL은 `null IS NULL` 패턴에서 첫 번째 파라미터 참조 시 타입을 추론하는데, `IS NULL` 단독으로는 타입 정보가 없어 `42P18: could not determine data type of parameter $N` 에러가 발생한다. 자세한 내용은 [트러블슈팅 문서](../../../../troubleshooting/search-null-cursor-param-type-inference-20260313.md) 참고.
+> **주의**: cursor 파라미터에 `CAST`가 필수다. PostgreSQL은 `null IS NULL` 패턴에서 첫 번째 파라미터 참조 시 타입을 추론하는데, `IS NULL` 단독으로는 타입 정보가 없어 `42P18: could not determine data type of parameter $N` 에러가 발생한다. 자세한 내용은 [트러블슈팅 문서](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BTroubleshooting%5D-%EA%B2%80%EC%83%89-500-PostgreSQL-NULL-%EC%BB%A4%EC%84%9C-%ED%8C%8C%EB%9D%BC%EB%AF%B8%ED%84%B0-%ED%83%80%EC%9E%85-%EC%B6%94%EB%A1%A0-%EC%8B%A4%ED%8C%A8) 참고.
 
 **`plainto_tsquery` 선택 이유**:
 - `to_tsquery`는 `&`, `|`, `!` 연산자를 직접 써야 하며, 사용자 입력의 특수문자에 취약
@@ -510,7 +510,7 @@ CAST(:cursor_score AS double precision) IS NULL
 OR total_score < CAST(:cursor_score AS double precision)
 ```
 
-참고: [트러블슈팅 문서](../../../../troubleshooting/search-null-cursor-param-type-inference-20260313.md)
+참고: [트러블슈팅 문서](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BTroubleshooting%5D-%EA%B2%80%EC%83%89-500-PostgreSQL-NULL-%EC%BB%A4%EC%84%9C-%ED%8C%8C%EB%9D%BC%EB%AF%B8%ED%84%B0-%ED%83%80%EC%9E%85-%EC%B6%94%EB%A1%A0-%EC%8B%A4%ED%8C%A8)
 
 ## **[7-5] 타임아웃/폴백**
 
