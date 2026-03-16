@@ -25,7 +25,7 @@ public record ChatStreamProperties(
 			true,
 			100,
 			1000,
-			4,
+			16,
 			256,
 			16,
 			128,

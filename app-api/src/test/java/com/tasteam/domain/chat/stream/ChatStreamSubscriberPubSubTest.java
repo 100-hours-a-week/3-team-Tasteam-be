@@ -1,5 +1,6 @@
 package com.tasteam.domain.chat.stream;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
@@ -51,6 +52,28 @@ class ChatStreamSubscriberPubSubTest {
 		verify(wsBroadcastPublisher).publish(any(ChatStreamPayload.class));
 		verify(fixture.streamOperations).acknowledge(anyString(), anyString(), any(RecordId.class));
 		verifyNoInteractions(fixture.messagingTemplate);
+	}
+
+	@Test
+	@DisplayName("partition consume 활성화 시 executor thread 수가 partition 수보다 작으면 부팅에 실패한다")
+	void onApplicationReady_executorLessThanPartition_throws() {
+		ChatStreamProperties invalidProperties = new ChatStreamProperties(
+			true,
+			true,
+			100,
+			1000,
+			4,
+			256,
+			16,
+			128,
+			true,
+			true,
+			false,
+			false,
+			"chat:websocket:broadcast");
+		TestFixture fixture = new TestFixture(mock(ChatWsBroadcastPublisher.class), invalidProperties);
+
+		assertThrows(IllegalStateException.class, fixture.subscriber::onApplicationReady);
 	}
 
 	@Test
