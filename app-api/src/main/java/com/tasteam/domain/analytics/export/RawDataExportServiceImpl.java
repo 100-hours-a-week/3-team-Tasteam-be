@@ -24,8 +24,12 @@ import com.tasteam.domain.batch.entity.BatchExecution;
 import com.tasteam.domain.batch.entity.BatchExecutionStatus;
 import com.tasteam.domain.batch.entity.BatchType;
 import com.tasteam.domain.batch.repository.BatchExecutionRepository;
+import com.tasteam.global.metrics.MetricLabelPolicy;
 import com.tasteam.infra.storage.StorageClient;
 
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -45,16 +49,19 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 	private final RawDataExportSourceJdbcRepository sourceRepository;
 	private final StorageClient storageClient;
 	private final BatchExecutionRepository batchExecutionRepository;
+	private final MeterRegistry meterRegistry;
 	private String analyticsBucket;
 	private RawDataExportRuntimeDiagnostics runtimeDiagnostics = RawDataExportRuntimeDiagnostics.noop();
 
 	public RawDataExportServiceImpl(
 		RawDataExportSourceJdbcRepository sourceRepository,
 		StorageClient storageClient,
-		BatchExecutionRepository batchExecutionRepository) {
+		BatchExecutionRepository batchExecutionRepository,
+		MeterRegistry meterRegistry) {
 		this.sourceRepository = sourceRepository;
 		this.storageClient = storageClient;
 		this.batchExecutionRepository = batchExecutionRepository;
+		this.meterRegistry = meterRegistry;
 	}
 
 	@Autowired(required = false)
@@ -75,6 +82,7 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 	@Override
 	public RawDataExportResult export(RawDataExportCommand command) {
 		Assert.notNull(command, "command는 null일 수 없습니다.");
+		Timer.Sample totalSample = Timer.start(meterRegistry);
 		LocalDate dt = command.dt() == null ? LocalDate.now(KST_ZONE) : command.dt();
 		Set<RawDataType> targets = command.targets() == null || command.targets().isEmpty()
 			? EnumSet.allOf(RawDataType.class)
@@ -95,17 +103,23 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			}
 			finishBatchExecution(execution, totalJobs, successCount, BatchExecutionStatus.COMPLETED);
 			runtimeDiagnostics.logSnapshot("completed", command, dt, totalJobs, successCount);
+			recordCounter("analytics.raw_export.execute.total", "stage", "total", "result", "success");
+			recordTimer("analytics.raw_export.execute.duration", totalSample, "stage", "total", "result", "success");
 			return new RawDataExportResult(dt, List.copyOf(items));
 		} catch (RuntimeException ex) {
 			finishBatchExecution(execution, totalJobs, successCount, BatchExecutionStatus.FAILED);
 			runtimeDiagnostics.logSnapshot("failed", command, dt, totalJobs, successCount);
 			log.error("raw data export failed. batchExecutionId={}, requestId={}, dt={}, totalJobs={}, successCount={}",
 				execution.getId(), command.requestId(), dt, totalJobs, successCount, ex);
+			recordCounter("analytics.raw_export.execute.total", "stage", "total", "result", "failed");
+			recordTimer("analytics.raw_export.execute.duration", totalSample, "stage", "total", "result", "failed");
 			throw ex;
 		}
 	}
 
 	private RawDataExportItemResult upload(RawDataType type, LocalDate dt, String requestId) {
+		Timer.Sample typeSample = Timer.start(meterRegistry);
+		String typeTag = type.pathSegment();
 		String prefix = BASE_PREFIX + "/" + type.pathSegment() + "/dt=" + dt + "/";
 		String dataObjectKey = prefix + DATA_FILE_NAME;
 		String successObjectKey = prefix + SUCCESS_FILE_NAME;
@@ -122,6 +136,8 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		} catch (RuntimeException ex) {
 			// 실패 시 미완료 데이터를 완료로 오인하지 않도록 _SUCCESS를 정리한다.
 			safeDeleteSuccessMarker(successObjectKey);
+			recordCounter("analytics.raw_export.execute.total", "stage", typeTag, "result", "failed");
+			recordTimer("analytics.raw_export.execute.duration", typeSample, "stage", typeTag, "result", "failed");
 			throw ex;
 		} finally {
 			safeDeleteTempFile(csvPayload.csvFile());
@@ -135,6 +151,9 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			csvPayload.rowCount(),
 			dataObjectKey,
 			!existingObjects.isEmpty());
+		recordRows(csvPayload.rowCount(), typeTag);
+		recordCounter("analytics.raw_export.execute.total", "stage", typeTag, "result", "success");
+		recordTimer("analytics.raw_export.execute.duration", typeSample, "stage", typeTag, "result", "success");
 
 		return new RawDataExportItemResult(
 			type,
@@ -280,5 +299,24 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 	}
 
 	private record CsvPayload(Path csvFile, int rowCount) {
+	}
+
+	private void recordRows(int rowCount, String stage) {
+		String metricName = "analytics.raw_export.rows";
+		MetricLabelPolicy.validate(metricName, "stage", stage);
+		DistributionSummary.builder(metricName)
+			.tags("stage", stage)
+			.register(meterRegistry)
+			.record(rowCount);
+	}
+
+	private void recordCounter(String metricName, String... tags) {
+		MetricLabelPolicy.validate(metricName, tags);
+		meterRegistry.counter(metricName, tags).increment();
+	}
+
+	private void recordTimer(String metricName, Timer.Sample sample, String... tags) {
+		MetricLabelPolicy.validate(metricName, tags);
+		sample.stop(Timer.builder(metricName).tags(tags).register(meterRegistry));
 	}
 }

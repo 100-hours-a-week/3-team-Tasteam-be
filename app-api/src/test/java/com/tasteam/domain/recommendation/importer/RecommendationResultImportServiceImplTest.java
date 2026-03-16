@@ -32,6 +32,8 @@ import com.tasteam.domain.recommendation.persistence.RestaurantRecommendationRow
 import com.tasteam.domain.recommendation.repository.RestaurantRecommendationModelRepository;
 import com.tasteam.global.exception.code.RecommendationErrorCode;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
 @UnitTest
 @DisplayName("[유닛](Recommendation) RecommendationResultImportServiceImpl 단위 테스트")
 class RecommendationResultImportServiceImplTest {
@@ -54,7 +56,8 @@ class RecommendationResultImportServiceImplTest {
 			objectReader,
 			csvReader,
 			validator,
-			txOps);
+			txOps,
+			new SimpleMeterRegistry());
 
 		assertThatThrownBy(
 			() -> service
@@ -102,7 +105,8 @@ class RecommendationResultImportServiceImplTest {
 			objectReader,
 			csvReader,
 			validator,
-			txOps);
+			txOps,
+			new SimpleMeterRegistry());
 
 		doAnswer(invocation -> {
 			@SuppressWarnings("unchecked") Consumer<ParsedRecommendationCsvRow> consumer = invocation.getArgument(1);
@@ -173,7 +177,8 @@ class RecommendationResultImportServiceImplTest {
 			objectReader,
 			csvReader,
 			validator,
-			txOps);
+			txOps,
+			new SimpleMeterRegistry());
 
 		assertThatThrownBy(() -> service.importResults(
 			new RecommendationResultImportRequest("deepfm-1", "s3://bucket/result.csv", "req-1")))
