@@ -68,7 +68,7 @@
 **알림 도메인 수정 요약 (2026.03.15)**:
 - `NotificationDomainEventListener`: 4개 메서드 `AFTER_COMMIT` → `BEFORE_COMMIT`, try-catch 제거
 - `NotificationOutboxService.enqueue()`: `REQUIRES_NEW` → `MANDATORY`
-- 트러블슈팅 문서: `docs/troubleshooting/notification-outbox-atomicity-20260315.md`
+- 트러블슈팅 문서: [알림 아웃박스 원자성 결함 수정 및 알림 중복 경로 제거](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BTroubleshooting%5D-알림-아웃박스-원자성-결함-수정-및-알림-중복-경로-제거)
 
 ## 8. 검증 포인트
 

@@ -132,9 +132,9 @@
 
 관련 문서:
 
-- `../troubleshooting/spring-test-context-fragmentation.md`
-- `../troubleshooting/testcontainers-slow-startup.md`
-- `../troubleshooting/parallel-mock-issue.md`
+- [Spring 테스트 컨텍스트 분리 - @MockitoBean 과다 선언](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BTroubleshooting%5D-Spring-테스트-컨텍스트-분리-MockitoBean-과다-선언)
+- [Testcontainers 테스트 속도 개선](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BTroubleshooting%5D-Testcontainers-테스트-속도-개선)
+- [병렬 테스트에서 Mockito Bean 충돌](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BTroubleshooting%5D-%EB%B3%91%EB%A0%AC-%ED%85%8C%EC%8A%A4%ED%8A%B8%EC%97%90%EC%84%9C-Mockito-Bean-%EC%B6%A9%EB%8F%8C)
 
 ## 5. 현재 실행 명령 권장안
 
