@@ -65,6 +65,7 @@ public class ChatStreamSubscriber {
 	private final ChatStreamGroupNameProvider groupNameProvider;
 	private final SimpMessagingTemplate messagingTemplate;
 	private final ChatStreamProperties chatStreamProperties;
+	private final ChatWsBroadcastPublisher chatWsBroadcastPublisher;
 	@Nullable
 	private final MeterRegistry meterRegistry;
 
@@ -82,6 +83,7 @@ public class ChatStreamSubscriber {
 		ChatStreamGroupNameProvider groupNameProvider,
 		SimpMessagingTemplate messagingTemplate,
 		ChatStreamProperties chatStreamProperties,
+		ChatWsBroadcastPublisher chatWsBroadcastPublisher,
 		@Nullable
 		MeterRegistry meterRegistry) {
 		this.container = container;
@@ -91,6 +93,7 @@ public class ChatStreamSubscriber {
 		this.groupNameProvider = groupNameProvider;
 		this.messagingTemplate = messagingTemplate;
 		this.chatStreamProperties = chatStreamProperties;
+		this.chatWsBroadcastPublisher = chatWsBroadcastPublisher;
 		this.meterRegistry = meterRegistry;
 	}
 
@@ -226,12 +229,14 @@ public class ChatStreamSubscriber {
 
 	private void logConfiguration() {
 		log.info(
-			"Chat stream config: partitionCount={}, executorThreads={}, partitionConsumeEnabled={}, legacyRoomConsumeEnabled={}, dualWriteEnabled={}",
+			"Chat stream config: partitionCount={}, executorThreads={}, partitionConsumeEnabled={}, legacyRoomConsumeEnabled={}, dualWriteEnabled={}, wsPubSubBroadcastEnabled={}, wsPubSubChannel={}",
 			chatStreamProperties.partitionCount(),
 			chatStreamProperties.executorThreadPoolSize(),
 			chatStreamProperties.partitionConsumeEnabled(),
 			chatStreamProperties.legacyRoomConsumeEnabled(),
-			chatStreamProperties.dualWriteEnabled());
+			chatStreamProperties.dualWriteEnabled(),
+			chatStreamProperties.wsPubSubBroadcastEnabled(),
+			chatStreamProperties.wsPubSubChannel());
 
 		double ratio = (double)chatStreamProperties.partitionCount() / chatStreamProperties.executorThreadPoolSize();
 		if (chatStreamProperties.partitionConsumeEnabled() && ratio > 8.0d) {
@@ -375,8 +380,9 @@ public class ChatStreamSubscriber {
 
 		try {
 			ChatStreamPayload payload = ChatStreamPayload.fromMap(record.getValue());
-			ChatMessageItemResponse itemResponse = payload.toMessageItem();
-			messagingTemplate.convertAndSend("/topic/chat-rooms/" + payload.chatRoomId(), itemResponse);
+			if (!broadcastToWebSocket(payload, partitionLabel, streamKey, record.getId())) {
+				return;
+			}
 			if (ack(record)) {
 				recordSuccessMetrics(partitionLabel, streamKey, Duration.ofNanos(System.nanoTime() - startNanos));
 			}
@@ -408,6 +414,31 @@ public class ChatStreamSubscriber {
 				ex);
 			recordErrorMetric(partitionLabel, streamKey, "processing_error");
 		}
+	}
+
+	private boolean broadcastToWebSocket(
+		ChatStreamPayload payload,
+		String partitionLabel,
+		String streamKey,
+		RecordId recordId) {
+		if (chatStreamProperties.wsPubSubBroadcastEnabled()) {
+			boolean published = chatWsBroadcastPublisher.publish(payload);
+			if (!published) {
+				log.warn(
+					"Failed to process chat stream record. partitionId={}, streamKey={}, errorType={}, recordId={}",
+					partitionLabel,
+					streamKey,
+					"ws_pubsub_publish_failed",
+					recordId);
+				recordErrorMetric(partitionLabel, streamKey, "ws_pubsub_publish_failed");
+				return false;
+			}
+			return true;
+		}
+
+		ChatMessageItemResponse itemResponse = payload.toMessageItem();
+		messagingTemplate.convertAndSend("/topic/chat-rooms/" + payload.chatRoomId(), itemResponse);
+		return true;
 	}
 
 	private void claimAndHandle(String streamKey, List<RecordId> recordIds, boolean deadLetter, @Nullable

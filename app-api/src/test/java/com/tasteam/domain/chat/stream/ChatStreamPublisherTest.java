@@ -46,7 +46,9 @@ class ChatStreamPublisherTest {
 			128,
 			true,
 			false,
-			false);
+			false,
+			false,
+			"chat:websocket:broadcast");
 
 		ChatStreamPublisher publisher = new ChatStreamPublisher(redisTemplate, keyResolver, properties);
 		publisher.publish(33L, sampleMessage());
@@ -78,7 +80,9 @@ class ChatStreamPublisherTest {
 			128,
 			true,
 			true,
-			false);
+			false,
+			false,
+			"chat:websocket:broadcast");
 
 		ChatStreamPublisher publisher = new ChatStreamPublisher(redisTemplate, keyResolver, properties);
 		publisher.publish(33L, sampleMessage());
@@ -111,7 +115,9 @@ class ChatStreamPublisherTest {
 			128,
 			false,
 			true,
-			true);
+			true,
+			false,
+			"chat:websocket:broadcast");
 
 		ChatStreamPublisher publisher = new ChatStreamPublisher(redisTemplate, keyResolver, properties);
 		publisher.publish(33L, sampleMessage());
