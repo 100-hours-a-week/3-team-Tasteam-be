@@ -10,6 +10,7 @@ public final class MetricLabelPolicy {
 	private static final Set<String> ALLOWED_LABELS = Set.of(
 		"environment",
 		"instance",
+		"api",
 		"cache",
 		"result",
 		"state",
@@ -27,6 +28,7 @@ public final class MetricLabelPolicy {
 		"outcome",
 		"read_only",
 		"method_name",
+		"partition",
 		"partitionId",
 		"streamKey",
 		"errorType");

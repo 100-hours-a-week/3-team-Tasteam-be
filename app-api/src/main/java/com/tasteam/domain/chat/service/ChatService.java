@@ -42,6 +42,7 @@ import com.tasteam.domain.file.repository.ImageRepository;
 import com.tasteam.domain.file.service.FileService;
 import com.tasteam.domain.member.entity.Member;
 import com.tasteam.domain.member.repository.MemberRepository;
+import com.tasteam.global.aop.ObservedDbQueryCount;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.ChatErrorCode;
 import com.tasteam.global.exception.code.CommonErrorCode;
@@ -158,6 +159,7 @@ public class ChatService {
 	}
 
 	@Transactional
+	@ObservedDbQueryCount(api = "send_chat_message")
 	public ChatMessageSendResponse sendMessage(Long chatRoomId, Long memberId, ChatMessageSendRequest request) {
 		ensureChatRoomExists(chatRoomId);
 		findMembershipOrThrow(chatRoomId, memberId);
