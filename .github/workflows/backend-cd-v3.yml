@@ -1,0 +1,181 @@
+# ============================================================
+# Backend CD v3 — ArgoCD GitOps Pipeline (prod)
+# ============================================================
+# 흐름:
+#   개발자 push (main) → Docker 빌드 → ECR 푸시
+#   → cloud-repo의 prod overlay kustomization.yaml에 이미지 태그 업데이트
+#   → ArgoCD가 변경 감지 → 클러스터 동기화
+# ============================================================
+
+name: Backend CD v3 - ArgoCD GitOps
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+      - ".github/workflows/ci-*.yml"
+
+env:
+  AWS_REGION: ap-northeast-2
+  CLOUD_REPO: 100-hours-a-week/3-team-Tasteam-cloud
+  KUSTOMIZE_PATH: v3-k8s/manifests/app/overlays/prod/kustomization.yaml
+  IMAGE_NAME: SPRING_BOOT_IMAGE
+
+jobs:
+  # ──────────────────────────────────────
+  # Job 1: Docker 이미지 빌드 & ECR 푸시
+  # ──────────────────────────────────────
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      image-tag: ${{ steps.meta.outputs.image-tag }}
+      full-image: ${{ steps.meta.outputs.full-image }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image metadata
+        id: meta
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          IMAGE_TAG="${SHORT_SHA}"
+          FULL_IMAGE="${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${IMAGE_TAG}"
+          echo "image-tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "full-image=${FULL_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "Image: ${FULL_IMAGE}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: app-api/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ steps.meta.outputs.image-tag }}
+            ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:latest
+          cache-from: type=gha,scope=backend-v3-prod
+          cache-to: type=gha,mode=max,scope=backend-v3-prod
+
+  # ──────────────────────────────────────
+  # Job 2: cloud-repo에 이미지 태그 업데이트
+  # ──────────────────────────────────────
+  update-manifest:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout cloud-repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CLOUD_REPO }}
+          token: ${{ secrets.CLOUD_REPO_PAT }}
+          ref: main
+
+      - name: Update image tag in kustomization
+        env:
+          NEW_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          ECR_REPO: ${{ secrets.ECR_REPOSITORY_BACKEND }}
+        run: |
+          cd v3-k8s/manifests/app/overlays/prod
+
+          sed -i "/name: SPRING_BOOT_IMAGE/{n;s|newName:.*|newName: ${ECR_REGISTRY}/${ECR_REPO}|;n;s|newTag:.*|newTag: ${NEW_TAG}|}" kustomization.yaml
+
+          echo "Updated image tag to: ${NEW_TAG}"
+          cat kustomization.yaml
+
+      - name: Commit and push
+        env:
+          SOURCE_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_ACTOR: ${{ github.actor }}
+          NEW_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add v3-k8s/manifests/app/overlays/prod/kustomization.yaml
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "deploy(prod/be): ${NEW_TAG}
+
+          source: ${SOURCE_REPO}@${SOURCE_SHA}
+          author: ${SOURCE_ACTOR}
+          image: tasteam-be:${NEW_TAG}"
+
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin main && break
+            echo "Push failed, retrying ($i/3)..."
+            sleep 2
+          done
+
+  # ──────────────────────────────────────
+  # Job 3: 결과 알림 (Discord)
+  # ──────────────────────────────────────
+  notify:
+    needs: [build-and-push, update-manifest]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Send Discord notification
+        env:
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+          BUILD_RESULT: ${{ needs.build-and-push.result }}
+          MANIFEST_RESULT: ${{ needs.update-manifest.result }}
+        run: |
+          if [ "$BUILD_RESULT" = "success" ] && [ "$MANIFEST_RESULT" = "success" ]; then
+            TITLE="[v3] 백엔드 prod 배포 완료 ✅"
+            COLOR=65280
+            DESC="ArgoCD가 변경을 감지하여 동기화합니다."
+          else
+            TITLE="[v3] 백엔드 prod 배포 파이프라인 실패 ❌"
+            COLOR=16711680
+            DESC="빌드: ${BUILD_RESULT}, 매니페스트 업데이트: ${MANIFEST_RESULT}"
+          fi
+
+          curl -s -H "Content-Type: application/json" \
+               -X POST \
+               -d "{
+                 \"embeds\": [{
+                   \"title\": \"$TITLE\",
+                   \"description\": \"$DESC\",
+                   \"color\": $COLOR,
+                   \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
+                   \"fields\": [
+                     {\"name\": \"이미지 태그\", \"value\": \"\`${IMAGE_TAG}\`\", \"inline\": true},
+                     {\"name\": \"브랜치\", \"value\": \"${{ github.ref_name }}\", \"inline\": true},
+                     {\"name\": \"작성자\", \"value\": \"${{ github.actor }}\", \"inline\": true},
+                     {\"name\": \"소스 커밋\", \"value\": \"\`${{ github.sha }}\`\", \"inline\": false}
+                   ]
+                 }]
+               }" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
