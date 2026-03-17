@@ -80,34 +80,7 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 		ImportAccumulator accumulator = new ImportAccumulator();
 
 		try (InputStream inputStream = resultObjectReader.openStream(request.s3Uri())) {
-			deleteExistingRows(modelId);
-
-			List<RestaurantRecommendationRow> buffer = new ArrayList<>(INSERT_CHUNK_SIZE);
-
-			csvReader.read(inputStream, parsedRow -> {
-				accumulator.markLastLineNumber(parsedRow.lineNumber());
-				accumulator.incrementTotalRows();
-				try {
-					RestaurantRecommendationRow row = rowValidator.validateAndConvertOrNull(
-						parsedRow,
-						request.requestedModelVersion());
-					if (row == null) {
-						accumulator.incrementSkippedRows();
-						return;
-					}
-					buffer.add(row);
-					if (buffer.size() >= INSERT_CHUNK_SIZE) {
-						flushChunk(modelId, buffer, accumulator);
-					}
-				} catch (RuntimeException ex) {
-					accumulator.incrementFailedRows();
-					throw ex;
-				}
-			});
-
-			if (!buffer.isEmpty()) {
-				flushChunk(modelId, buffer, accumulator);
-			}
+			executeImportInSingleTransaction(inputStream, request, modelId, accumulator);
 
 			accumulator.reconcileFailureCount();
 			accumulator.assertInvariant();
@@ -130,6 +103,29 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 				accumulator.totalRows,
 				accumulator.insertedRows,
 				accumulator.skippedRows);
+		} catch (RecommendationImportTransactionIOException ex) {
+			accumulator.reconcileFailureCount();
+			markFailed(model);
+			finishBatchExecution(batchExecution, accumulator, BatchExecutionStatus.FAILED);
+			recordRowSummary(accumulator);
+			recordCounter("recommendation.import.execute.total", "stage", "import", "result", "io_failed");
+			recordTimer("recommendation.import.execute.duration", totalSample, "stage", "import", "result",
+				"io_failed");
+			IOException cause = (IOException)ex.getCause();
+			log.error(
+				"recommendation import failed by io. batchExecutionId={}, modelVersion={}, requestId={}, lineNumber={}, totalRows={}, insertedRows={}, skippedRows={}, failedRows={}, errorCode={}, message={}",
+				batchExecution.getId(),
+				model.getVersion(),
+				request.requestId(),
+				accumulator.lastLineNumber,
+				accumulator.totalRows,
+				accumulator.insertedRows,
+				accumulator.skippedRows,
+				accumulator.failedRows,
+				"RECOMMENDATION_RESULT_IO_ERROR",
+				cause.getMessage(),
+				cause);
+			throw RecommendationBusinessException.resultIoError("추천 결과 파일을 읽는 중 오류가 발생했습니다: " + cause.getMessage());
 		} catch (IOException ex) {
 			accumulator.reconcileFailureCount();
 			markFailed(model);
@@ -223,7 +219,7 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 
 	private void flushChunk(long modelId, List<RestaurantRecommendationRow> buffer, ImportAccumulator accumulator) {
 		try {
-			accumulator.addInsertedRows(flushBuffer(modelId, buffer));
+			accumulator.addInsertedRows(recommendationJdbcRepository.batchInsert(modelId, buffer));
 		} catch (RuntimeException ex) {
 			accumulator.addFailedRows(buffer.size());
 			throw ex;
@@ -232,17 +228,52 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 		}
 	}
 
-	private int flushBuffer(long modelId, List<RestaurantRecommendationRow> buffer) {
-		Integer inserted = transactionOperations.execute(
-			status -> recommendationJdbcRepository.batchInsert(modelId, buffer));
-		return inserted == null ? 0 : inserted;
-	}
-
-	private void deleteExistingRows(long modelId) {
+	private void executeImportInSingleTransaction(
+		InputStream inputStream,
+		RecommendationResultImportRequest request,
+		long modelId,
+		ImportAccumulator accumulator) throws IOException {
 		transactionOperations.execute(status -> {
 			recommendationJdbcRepository.deleteByModelId(modelId);
+			List<RestaurantRecommendationRow> buffer = new ArrayList<>(INSERT_CHUNK_SIZE);
+
+			try {
+				csvReader.read(inputStream, parsedRow -> {
+					accumulator.markLastLineNumber(parsedRow.lineNumber());
+					accumulator.incrementTotalRows();
+					try {
+						RestaurantRecommendationRow row = rowValidator.validateAndConvertOrNull(
+							parsedRow,
+							request.requestedModelVersion());
+						if (row == null) {
+							accumulator.incrementSkippedRows();
+							return;
+						}
+						buffer.add(row);
+						if (buffer.size() >= INSERT_CHUNK_SIZE) {
+							flushChunk(modelId, buffer, accumulator);
+						}
+					} catch (RuntimeException ex) {
+						accumulator.incrementFailedRows();
+						throw ex;
+					}
+				});
+
+				if (!buffer.isEmpty()) {
+					flushChunk(modelId, buffer, accumulator);
+				}
+			} catch (IOException ex) {
+				throw new RecommendationImportTransactionIOException(ex);
+			}
 			return null;
 		});
+	}
+
+	private static final class RecommendationImportTransactionIOException extends RuntimeException {
+
+		private RecommendationImportTransactionIOException(IOException cause) {
+			super(cause);
+		}
 	}
 
 	private BatchExecution startBatchExecution() {
