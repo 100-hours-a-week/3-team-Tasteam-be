@@ -9,6 +9,7 @@ import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionOperations;
 
@@ -67,8 +68,7 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 		Objects.requireNonNull(request, "request는 null일 수 없습니다.");
 		Timer.Sample totalSample = Timer.start(meterRegistry);
 
-		RestaurantRecommendationModel model = modelRepository.findByVersion(request.requestedModelVersion())
-			.orElseThrow(() -> RecommendationBusinessException.modelNotFound(request.requestedModelVersion()));
+		RestaurantRecommendationModel model = findOrCreateLoadingModel(request.requestedModelVersion());
 		Long modelId = model.getId();
 		if (modelId == null) {
 			throw RecommendationBusinessException.resultValidationFailed(
@@ -198,6 +198,27 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 			modelRepository.save(model);
 			return null;
 		});
+	}
+
+	private RestaurantRecommendationModel findOrCreateLoadingModel(String version) {
+		return modelRepository.findByVersion(version)
+			.orElseGet(() -> createLoadingModel(version));
+	}
+
+	private RestaurantRecommendationModel createLoadingModel(String version) {
+		try {
+			RestaurantRecommendationModel created = transactionOperations
+				.execute(status -> modelRepository.saveAndFlush(RestaurantRecommendationModel.loading(version)));
+			if (created == null) {
+				throw RecommendationBusinessException.resultValidationFailed(
+					"추천 모델 생성 결과가 비어 있습니다. version=" + version);
+			}
+			return created;
+		} catch (DataIntegrityViolationException ex) {
+			return modelRepository.findByVersion(version)
+				.orElseThrow(() -> RecommendationBusinessException.resultValidationFailed(
+					"추천 모델 생성 중 중복 충돌이 발생했지만 모델을 다시 찾지 못했습니다. version=" + version));
+		}
 	}
 
 	private void flushChunk(long modelId, List<RestaurantRecommendationRow> buffer, ImportAccumulator accumulator) {

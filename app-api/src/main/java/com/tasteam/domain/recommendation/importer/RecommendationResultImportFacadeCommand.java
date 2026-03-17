@@ -13,9 +13,6 @@ public record RecommendationResultImportFacadeCommand(
 	String requestId) {
 
 	public RecommendationResultImportFacadeCommand {
-		if (!StringUtils.hasText(requestedModelVersion)) {
-			throw RecommendationBusinessException.resultValidationFailed("요청 모델 버전은 비어 있을 수 없습니다.");
-		}
 		if (!StringUtils.hasText(resultS3Uri) || !resultS3Uri.startsWith("s3://")) {
 			throw RecommendationBusinessException.resultValidationFailed("resultS3Uri는 s3:// 형식이어야 합니다.");
 		}

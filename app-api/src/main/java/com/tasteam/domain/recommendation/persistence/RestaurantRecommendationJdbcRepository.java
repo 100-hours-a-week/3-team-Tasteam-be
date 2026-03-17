@@ -1,5 +1,7 @@
 package com.tasteam.domain.recommendation.persistence;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 
@@ -88,8 +90,8 @@ public class RestaurantRecommendationJdbcRepository {
 				ps.setLong(6, modelId);
 				ps.setString(7, row.contextSnapshot());
 				ps.setString(8, row.pipelineVersion());
-				ps.setObject(9, row.generatedAt());
-				ps.setObject(10, row.expiresAt());
+				ps.setObject(9, OffsetDateTime.ofInstant(row.generatedAt(), ZoneOffset.UTC));
+				ps.setObject(10, OffsetDateTime.ofInstant(row.expiresAt(), ZoneOffset.UTC));
 			});
 		int inserted = 0;
 		for (int[] chunk : result) {

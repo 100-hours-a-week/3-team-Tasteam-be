@@ -56,7 +56,7 @@ public class RecommendationResultImportFacadeImpl implements RecommendationResul
 			pollingProperties.getImportMaxAttempts(),
 			command.requestId(),
 			() -> importService.importResults(
-				new RecommendationResultImportRequest(command.requestedModelVersion(), target.resultFileS3Uri(),
+				new RecommendationResultImportRequest(target.pipelineVersion(), target.resultFileS3Uri(),
 					command.requestId())));
 		saveCheckpoint(target);
 		return result;
