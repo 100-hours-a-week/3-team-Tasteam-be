@@ -14,4 +14,6 @@ public class AiClientProperties {
 
 	private String baseUrl;
 	private Duration responseTimeout = Duration.ofSeconds(30);
+	private boolean stubEnabled = false;
+	private Duration stubDelay = Duration.ofMillis(100);
 }

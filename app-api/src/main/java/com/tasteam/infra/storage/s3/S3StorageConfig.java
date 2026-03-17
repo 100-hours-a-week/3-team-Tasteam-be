@@ -11,6 +11,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.tasteam.infra.storage.StorageProperties;
@@ -36,9 +37,17 @@ public class S3StorageConfig {
 		AWSCredentialsProvider credentialsProvider) {
 		Assert.hasText(properties.getRegion(), "tasteam.storage.region은 필수입니다");
 
-		return AmazonS3ClientBuilder.standard()
-			.withRegion(properties.getRegion())
-			.withCredentials(credentialsProvider)
-			.build();
+		AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard()
+			.withCredentials(credentialsProvider);
+
+		if (properties.getEndpoint() != null && !properties.getEndpoint().isBlank()) {
+			builder.withEndpointConfiguration(
+				new AwsClientBuilder.EndpointConfiguration(properties.getEndpoint(), properties.getRegion()));
+		} else {
+			builder.withRegion(properties.getRegion());
+		}
+
+		builder.withPathStyleAccessEnabled(properties.isPathStyleAccess());
+		return builder.build();
 	}
 }

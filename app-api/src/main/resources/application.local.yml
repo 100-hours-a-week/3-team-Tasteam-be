@@ -54,6 +54,10 @@ logging:
     org.springdoc: ERROR
     com.tasteam.batch.ai: DEBUG
 
+ai:
+  stub-enabled: ${AI_STUB_ENABLED:true}
+  stub-delay: ${AI_STUB_DELAY:100ms}
+
 naver:
   maps:
     base-url: https://maps.apigw.ntruss.com
@@ -61,6 +65,8 @@ naver:
     api-key: ${NAVER_MAPS_API_KEY:dummy}
 
 tasteam:
+  analytics:
+    bucket: ${ANALYTICS_S3_BUCKET:tasteam-analytics-local}
   ai:
     analysis:
       comparison-min-reviews: ${TASTEAM_AI_ANALYSIS_COMPARISON_MIN_REVIEWS:10}

@@ -19,7 +19,7 @@ import com.tasteam.global.dto.api.SuccessResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@Profile({"dev", "stg"})
+@Profile({"local", "dev", "stg"})
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/recommendations")
