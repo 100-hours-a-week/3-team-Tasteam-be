@@ -30,6 +30,8 @@ import com.tasteam.domain.batch.entity.BatchExecution;
 import com.tasteam.domain.batch.repository.BatchExecutionRepository;
 import com.tasteam.infra.storage.StorageClient;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
 @UnitTest
 @DisplayName("[유닛](Analytics) RawDataExportServiceImpl 단위 테스트")
 class RawDataExportServiceImplTest {
@@ -41,7 +43,7 @@ class RawDataExportServiceImplTest {
 		StorageClient storageClient = mock(StorageClient.class);
 		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
 		RawDataExportServiceImpl service = new RawDataExportServiceImpl(sourceRepository, storageClient,
-			batchExecutionRepository);
+			batchExecutionRepository, new SimpleMeterRegistry());
 		LocalDate dt = LocalDate.of(2026, 3, 11);
 		String prefix = "raw/restaurants/dt=2026-03-11/";
 		String dataKey = prefix + "part-00001.csv";
@@ -85,7 +87,7 @@ class RawDataExportServiceImplTest {
 		StorageClient storageClient = mock(StorageClient.class);
 		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
 		RawDataExportServiceImpl service = new RawDataExportServiceImpl(sourceRepository, storageClient,
-			batchExecutionRepository);
+			batchExecutionRepository, new SimpleMeterRegistry());
 		LocalDate dt = LocalDate.of(2026, 3, 11);
 		String prefix = "raw/menus/dt=2026-03-11/";
 
@@ -113,7 +115,7 @@ class RawDataExportServiceImplTest {
 		StorageClient storageClient = mock(StorageClient.class);
 		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
 		RawDataExportServiceImpl service = new RawDataExportServiceImpl(sourceRepository, storageClient,
-			batchExecutionRepository);
+			batchExecutionRepository, new SimpleMeterRegistry());
 		LocalDate dt = LocalDate.of(2026, 3, 11);
 		String prefix = "raw/restaurants/dt=2026-03-11/";
 		String successKey = prefix + "_SUCCESS";
@@ -145,7 +147,7 @@ class RawDataExportServiceImplTest {
 		StorageClient storageClient = mock(StorageClient.class);
 		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
 		RawDataExportServiceImpl service = new RawDataExportServiceImpl(sourceRepository, storageClient,
-			batchExecutionRepository);
+			batchExecutionRepository, new SimpleMeterRegistry());
 		LocalDate dt = LocalDate.of(2026, 3, 11);
 		String bucket = "tasteam-stg-analytics";
 		String prefix = "raw/restaurants/dt=2026-03-11/";

@@ -19,6 +19,8 @@ public class StorageProperties {
 	private String region;
 	private String bucket;
 	private String baseUrl;
+	private String endpoint;
+	private boolean pathStyleAccess;
 	private String accessMode = "public";
 	private String accessKey;
 	private String secretKey;
@@ -36,6 +38,8 @@ public class StorageProperties {
 		log.info("region            : {}", isConfigured(region) ? region : "(not set)");
 		log.info("bucket            : {}", isConfigured(bucket) ? bucket : "(not set)");
 		log.info("baseUrl           : {}", isConfigured(baseUrl) ? baseUrl : "(not set)");
+		log.info("endpoint          : {}", isConfigured(endpoint) ? endpoint : "(not set)");
+		log.info("pathStyleAccess   : {}", pathStyleAccess);
 		log.info("accessMode        : {} (presigned={})", accessMode, isPresignedAccess());
 		log.info("accessKey         : {}",
 			isConfigured(accessKey) ? maskValue(accessKey) : "(not set - DefaultChain 사용)");

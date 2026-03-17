@@ -15,8 +15,8 @@
 ##   TRACING_ENABLED=true
 ##   OTEL_ENDPOINT=http://tempo:4318/v1/traces                    (api 컨테이너 사용 시)
 ##   OTEL_ENDPOINT=http://localhost:4318/v1/traces                (로컬 직접 실행 시)
-##   SPRING_METRICS_TARGET=host.docker.internal:8080             (bootRun 사용 시)
-##   SPRING_METRICS_TARGET=api:8080                              (docker-compose api 사용 시, 기본값)
+##   SPRING_METRICS_TARGET=host.docker.internal:8080             (bootRun 사용 시, 기본값)
+##   SPRING_METRICS_TARGET=api:8080                              (docker-compose api 사용 시)
 ##   MONITORING_LOKI_PORT=13100                                  (호스트 포트 충돌 시)
 ##   MONITORING_PROMETHEUS_PORT=19090                            (호스트 포트 충돌 시)
 
@@ -155,7 +155,7 @@ services:
     environment:
       - LOKI_HOST=loki
       - PROMETHEUS_HOST=prometheus
-      - SPRING_METRICS_TARGET=${SPRING_METRICS_TARGET:-api:8080}
+      - SPRING_METRICS_TARGET=${SPRING_METRICS_TARGET:-host.docker.internal:8080}
       - MONITORING_ENVIRONMENT=${MONITORING_ENVIRONMENT:-local}
       - MONITORING_INSTANCE=${MONITORING_INSTANCE:-tasteam-local}
     command:

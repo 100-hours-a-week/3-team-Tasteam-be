@@ -24,6 +24,7 @@ import com.tasteam.infra.storage.StorageClient;
 public class S3RecommendationResultPollingService {
 
 	private static final Pattern DT_PATTERN = Pattern.compile(".*/dt=(\\d{4}-\\d{2}-\\d{2})/.*");
+	private static final Pattern PIPELINE_VERSION_PATTERN = Pattern.compile(".*/pipeline_version=([^/]+)/.*");
 
 	private final StorageClient storageClient;
 	private final RecommendationImportPollingProperties pollingProperties;
@@ -46,14 +47,14 @@ public class S3RecommendationResultPollingService {
 	public RecommendationResultS3Target awaitImportTarget(String s3PrefixOrUri, String pipelineVersion,
 		String requestId) {
 		S3Location location = parseS3Uri(s3PrefixOrUri);
-		String pipelinePrefix = resolvePipelinePrefix(location.keyPrefix(), pipelineVersion);
+		String searchPrefix = resolveSearchPrefix(location.keyPrefix(), pipelineVersion);
 		Duration timeout = defaultIfNonPositive(pollingProperties.getTimeout(), Duration.ofMinutes(10));
 		Duration interval = defaultIfNonPositive(pollingProperties.getInterval(), Duration.ofSeconds(10));
 		Instant deadline = Instant.now().plus(timeout);
 		String bucket = resolveAnalyticsBucket();
 
 		while (!Instant.now().isAfter(deadline)) {
-			RecommendationResultS3Target found = findLatestCompletedTarget(bucket, pipelinePrefix, pipelineVersion);
+			RecommendationResultS3Target found = findLatestCompletedTarget(bucket, searchPrefix, pipelineVersion);
 			if (found != null) {
 				return found;
 			}
@@ -66,30 +67,41 @@ public class S3RecommendationResultPollingService {
 
 	private RecommendationResultS3Target findLatestCompletedTarget(
 		String bucket,
-		String pipelinePrefix,
-		String pipelineVersion) {
+		String searchPrefix,
+		String requestedPipelineVersion) {
 
-		Map<LocalDate, RecommendationBatchFolderState> states = collectBatchStates(pipelinePrefix);
+		Map<RecommendationBatchTargetKey, RecommendationBatchFolderState> states = collectBatchStates(searchPrefix,
+			requestedPipelineVersion);
 		return states.entrySet().stream()
 			.filter(entry -> entry.getValue().ready())
-			.max(Map.Entry.comparingByKey())
+			.max(Comparator
+				.comparing(
+					(Map.Entry<RecommendationBatchTargetKey, RecommendationBatchFolderState> entry) -> entry.getKey()
+						.batchDate())
+				.thenComparing(entry -> entry.getKey().pipelineVersion()))
 			.map(entry -> new RecommendationResultS3Target(
 				"s3://" + bucket + "/" + entry.getValue().firstCsvKey(),
-				pipelineVersion,
-				entry.getKey()))
+				entry.getKey().pipelineVersion(),
+				entry.getKey().batchDate()))
 			.orElse(null);
 	}
 
-	private Map<LocalDate, RecommendationBatchFolderState> collectBatchStates(String pipelinePrefix) {
+	private Map<RecommendationBatchTargetKey, RecommendationBatchFolderState> collectBatchStates(
+		String searchPrefix,
+		String requestedPipelineVersion) {
 		String bucket = resolveAnalyticsBucket();
-		Map<LocalDate, RecommendationBatchFolderState> states = new HashMap<>();
-		for (String key : storageClient.listObjects(bucket, pipelinePrefix)) {
+		Map<RecommendationBatchTargetKey, RecommendationBatchFolderState> states = new HashMap<>();
+		for (String key : storageClient.listObjects(bucket, searchPrefix)) {
+			String pipelineVersion = extractPipelineVersion(key);
 			LocalDate dt = extractBatchDate(key);
-			if (dt == null) {
+			if (dt == null || !StringUtils.hasText(pipelineVersion)) {
+				continue;
+			}
+			if (StringUtils.hasText(requestedPipelineVersion) && !requestedPipelineVersion.equals(pipelineVersion)) {
 				continue;
 			}
 			RecommendationBatchFolderState state = states.computeIfAbsent(
-				dt,
+				new RecommendationBatchTargetKey(pipelineVersion, dt),
 				ignored -> new RecommendationBatchFolderState());
 			if (key.endsWith("/_SUCCESS")) {
 				state.markSuccess();
@@ -103,6 +115,17 @@ public class S3RecommendationResultPollingService {
 		return states;
 	}
 
+	private String extractPipelineVersion(String key) {
+		if (!StringUtils.hasText(key)) {
+			return null;
+		}
+		Matcher matcher = PIPELINE_VERSION_PATTERN.matcher(key);
+		if (!matcher.matches()) {
+			return null;
+		}
+		return matcher.group(1);
+	}
+
 	private LocalDate extractBatchDate(String key) {
 		if (!StringUtils.hasText(key)) {
 			return null;
@@ -114,8 +137,11 @@ public class S3RecommendationResultPollingService {
 		return LocalDate.parse(matcher.group(1));
 	}
 
-	private String resolvePipelinePrefix(String baseKey, String pipelineVersion) {
+	private String resolveSearchPrefix(String baseKey, String pipelineVersion) {
 		String normalized = normalizePrefix(baseKey);
+		if (!StringUtils.hasText(pipelineVersion)) {
+			return normalized;
+		}
 		String marker = "pipeline_version=" + pipelineVersion + "/";
 		if (normalized.contains(marker)) {
 			return normalized;
@@ -193,5 +219,8 @@ public class S3RecommendationResultPollingService {
 	}
 
 	private record S3Location(String keyPrefix) {
+	}
+
+	private record RecommendationBatchTargetKey(String pipelineVersion, LocalDate batchDate) {
 	}
 }

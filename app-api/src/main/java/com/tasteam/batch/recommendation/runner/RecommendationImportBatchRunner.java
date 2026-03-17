@@ -4,6 +4,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import com.tasteam.domain.recommendation.exception.RecommendationBusinessException;
 import com.tasteam.domain.recommendation.importer.RecommendationResultImportFacade;
@@ -21,16 +22,17 @@ import lombok.extern.slf4j.Slf4j;
 public class RecommendationImportBatchRunner {
 
 	private final RecommendationResultImportFacade importFacade;
-	private final Set<String> runningModelVersions = ConcurrentHashMap.newKeySet();
+	private final Set<String> runningKeys = ConcurrentHashMap.newKeySet();
 
 	public RecommendationImportBatchRunner(RecommendationResultImportFacade importFacade) {
 		this.importFacade = importFacade;
 	}
 
 	public RecommendationResultImportResult runOnDemand(String modelVersion, String s3PrefixOrUri, String requestId) {
-		if (!runningModelVersions.add(modelVersion)) {
+		String runKey = deriveRunKey(modelVersion, s3PrefixOrUri);
+		if (!runningKeys.add(runKey)) {
 			throw RecommendationBusinessException.resultValidationFailed(
-				"동일 모델 버전 import가 이미 실행 중입니다. modelVersion=" + modelVersion);
+				"동일 추천 import가 이미 실행 중입니다. key=" + runKey);
 		}
 		try {
 			log.info("recommendation import batch runner started. modelVersion={}, requestId={}, s3PrefixOrUri={}",
@@ -38,7 +40,14 @@ public class RecommendationImportBatchRunner {
 			return importFacade.importResults(
 				new RecommendationResultImportFacadeCommand(modelVersion, s3PrefixOrUri, requestId));
 		} finally {
-			runningModelVersions.remove(modelVersion);
+			runningKeys.remove(runKey);
 		}
+	}
+
+	private String deriveRunKey(String modelVersion, String s3PrefixOrUri) {
+		if (StringUtils.hasText(modelVersion)) {
+			return "model:" + modelVersion.trim();
+		}
+		return "prefix:" + s3PrefixOrUri;
 	}
 }

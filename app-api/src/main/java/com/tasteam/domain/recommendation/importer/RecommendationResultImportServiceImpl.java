@@ -9,6 +9,7 @@ import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionOperations;
 
@@ -21,6 +22,11 @@ import com.tasteam.domain.recommendation.exception.RecommendationBusinessExcepti
 import com.tasteam.domain.recommendation.persistence.RestaurantRecommendationJdbcRepository;
 import com.tasteam.domain.recommendation.persistence.RestaurantRecommendationRow;
 import com.tasteam.domain.recommendation.repository.RestaurantRecommendationModelRepository;
+import com.tasteam.global.metrics.MetricLabelPolicy;
+
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 @Service
 public class RecommendationResultImportServiceImpl implements RecommendationResultImportService {
@@ -36,6 +42,7 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 	private final RecommendationResultCsvReader csvReader;
 	private final RecommendationImportRowValidator rowValidator;
 	private final TransactionOperations transactionOperations;
+	private final MeterRegistry meterRegistry;
 
 	public RecommendationResultImportServiceImpl(
 		BatchExecutionRepository batchExecutionRepository,
@@ -44,7 +51,8 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 		RecommendationResultObjectReader resultObjectReader,
 		RecommendationResultCsvReader csvReader,
 		RecommendationImportRowValidator rowValidator,
-		TransactionOperations transactionOperations) {
+		TransactionOperations transactionOperations,
+		MeterRegistry meterRegistry) {
 		this.batchExecutionRepository = batchExecutionRepository;
 		this.modelRepository = modelRepository;
 		this.recommendationJdbcRepository = recommendationJdbcRepository;
@@ -52,14 +60,15 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 		this.csvReader = csvReader;
 		this.rowValidator = rowValidator;
 		this.transactionOperations = transactionOperations;
+		this.meterRegistry = meterRegistry;
 	}
 
 	@Override
 	public RecommendationResultImportResult importResults(RecommendationResultImportRequest request) {
 		Objects.requireNonNull(request, "request는 null일 수 없습니다.");
+		Timer.Sample totalSample = Timer.start(meterRegistry);
 
-		RestaurantRecommendationModel model = modelRepository.findByVersion(request.requestedModelVersion())
-			.orElseThrow(() -> RecommendationBusinessException.modelNotFound(request.requestedModelVersion()));
+		RestaurantRecommendationModel model = findOrCreateLoadingModel(request.requestedModelVersion());
 		Long modelId = model.getId();
 		if (modelId == null) {
 			throw RecommendationBusinessException.resultValidationFailed(
@@ -104,6 +113,9 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 			accumulator.assertInvariant();
 			markReady(model);
 			finishBatchExecution(batchExecution, accumulator, BatchExecutionStatus.COMPLETED);
+			recordRowSummary(accumulator);
+			recordCounter("recommendation.import.execute.total", "stage", "import", "result", "success");
+			recordTimer("recommendation.import.execute.duration", totalSample, "stage", "import", "result", "success");
 			log.info(
 				"recommendation import completed. batchExecutionId={}, modelVersion={}, requestId={}, totalRows={}, insertedRows={}, skippedRows={}, failedRows={}",
 				batchExecution.getId(),
@@ -122,6 +134,10 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 			accumulator.reconcileFailureCount();
 			markFailed(model);
 			finishBatchExecution(batchExecution, accumulator, BatchExecutionStatus.FAILED);
+			recordRowSummary(accumulator);
+			recordCounter("recommendation.import.execute.total", "stage", "import", "result", "io_failed");
+			recordTimer("recommendation.import.execute.duration", totalSample, "stage", "import", "result",
+				"io_failed");
 			log.error(
 				"recommendation import failed by io. batchExecutionId={}, modelVersion={}, requestId={}, lineNumber={}, totalRows={}, insertedRows={}, skippedRows={}, failedRows={}, errorCode={}, message={}",
 				batchExecution.getId(),
@@ -140,6 +156,9 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 			accumulator.reconcileFailureCount();
 			markFailed(model);
 			finishBatchExecution(batchExecution, accumulator, BatchExecutionStatus.FAILED);
+			recordRowSummary(accumulator);
+			recordCounter("recommendation.import.execute.total", "stage", "import", "result", "failed");
+			recordTimer("recommendation.import.execute.duration", totalSample, "stage", "import", "result", "failed");
 			log.error(
 				"recommendation import failed. batchExecutionId={}, modelVersion={}, requestId={}, lineNumber={}, totalRows={}, insertedRows={}, skippedRows={}, failedRows={}, errorCode={}, message={}",
 				batchExecution.getId(),
@@ -179,6 +198,27 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 			modelRepository.save(model);
 			return null;
 		});
+	}
+
+	private RestaurantRecommendationModel findOrCreateLoadingModel(String version) {
+		return modelRepository.findByVersion(version)
+			.orElseGet(() -> createLoadingModel(version));
+	}
+
+	private RestaurantRecommendationModel createLoadingModel(String version) {
+		try {
+			RestaurantRecommendationModel created = transactionOperations
+				.execute(status -> modelRepository.saveAndFlush(RestaurantRecommendationModel.loading(version)));
+			if (created == null) {
+				throw RecommendationBusinessException.resultValidationFailed(
+					"추천 모델 생성 결과가 비어 있습니다. version=" + version);
+			}
+			return created;
+		} catch (DataIntegrityViolationException ex) {
+			return modelRepository.findByVersion(version)
+				.orElseThrow(() -> RecommendationBusinessException.resultValidationFailed(
+					"추천 모델 생성 중 중복 충돌이 발생했지만 모델을 다시 찾지 못했습니다. version=" + version));
+		}
 	}
 
 	private void flushChunk(long modelId, List<RestaurantRecommendationRow> buffer, ImportAccumulator accumulator) {
@@ -228,6 +268,29 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 			return recommendationBusinessException.getErrorCode();
 		}
 		return throwable.getClass().getSimpleName();
+	}
+
+	private void recordRowSummary(ImportAccumulator accumulator) {
+		recordSummary("recommendation.import.rows.total", accumulator.totalRows);
+		recordSummary("recommendation.import.rows.inserted", accumulator.insertedRows);
+		recordSummary("recommendation.import.rows.skipped", accumulator.skippedRows);
+		recordSummary("recommendation.import.rows.failed", accumulator.failedRows);
+	}
+
+	private void recordSummary(String metricName, long value) {
+		DistributionSummary.builder(metricName)
+			.register(meterRegistry)
+			.record(value);
+	}
+
+	private void recordCounter(String metricName, String... tags) {
+		MetricLabelPolicy.validate(metricName, tags);
+		meterRegistry.counter(metricName, tags).increment();
+	}
+
+	private void recordTimer(String metricName, Timer.Sample sample, String... tags) {
+		MetricLabelPolicy.validate(metricName, tags);
+		sample.stop(Timer.builder(metricName).tags(tags).register(meterRegistry));
 	}
 
 	private static final class ImportAccumulator {

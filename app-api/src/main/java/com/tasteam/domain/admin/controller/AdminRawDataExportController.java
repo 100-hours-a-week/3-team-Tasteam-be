@@ -23,7 +23,7 @@ import com.tasteam.domain.analytics.export.RawDataExportCommand;
 import com.tasteam.domain.analytics.export.RawDataType;
 import com.tasteam.global.dto.api.SuccessResponse;
 
-@Profile({"dev", "stg"})
+@Profile({"local", "dev", "stg"})
 @RestController
 @RequestMapping("/api/v1/admin/analytics/raw-exports")
 public class AdminRawDataExportController implements AdminRawDataExportControllerDocs {

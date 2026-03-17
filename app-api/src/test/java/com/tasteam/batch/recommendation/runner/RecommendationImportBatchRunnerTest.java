@@ -46,10 +46,10 @@ class RecommendationImportBatchRunnerTest {
 		RecommendationResultImportFacade facade = mock(RecommendationResultImportFacade.class);
 		RecommendationImportBatchRunner runner = new RecommendationImportBatchRunner(facade);
 
-		var field = RecommendationImportBatchRunner.class.getDeclaredField("runningModelVersions");
+		var field = RecommendationImportBatchRunner.class.getDeclaredField("runningKeys");
 		field.setAccessible(true);
 		@SuppressWarnings("unchecked") java.util.Set<String> set = (java.util.Set<String>)field.get(runner);
-		set.add("deepfm-1");
+		set.add("model:deepfm-1");
 
 		assertThatThrownBy(() -> runner.runOnDemand("deepfm-1", "s3://bucket/prefix/", "req-1"))
 			.isInstanceOf(RecommendationBusinessException.class)
