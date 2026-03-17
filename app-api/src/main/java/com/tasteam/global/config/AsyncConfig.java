@@ -5,10 +5,12 @@ import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.support.TaskExecutorAdapter;
+import org.springframework.lang.Nullable;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -32,8 +34,28 @@ public class AsyncConfig implements AsyncConfigurer {
 	}
 
 	@Bean(name = "notificationExecutor")
-	public Executor notificationExecutor() {
-		return new TaskExecutorAdapter(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
+	@ObservedExecutor(name = "notification")
+	public Executor notificationExecutor(
+		@Value("${tasteam.notification.executor.core-pool-size:8}")
+		int corePoolSize,
+		@Value("${tasteam.notification.executor.max-pool-size:32}")
+		int maxPoolSize,
+		@Value("${tasteam.notification.executor.queue-capacity:1000}")
+		int queueCapacity,
+		@Nullable
+		MeterRegistry meterRegistry) {
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(Math.max(1, corePoolSize));
+		executor.setMaxPoolSize(Math.max(Math.max(1, corePoolSize), maxPoolSize));
+		executor.setQueueCapacity(Math.max(0, queueCapacity));
+		executor.setThreadNamePrefix("notification-");
+		if (meterRegistry != null) {
+			meterRegistry.gauge(
+				"notification.executor.queue.size",
+				executor,
+				this::resolveQueueSize);
+		}
+		return executor;
 	}
 
 	@Bean(name = "searchQueryExecutor")
@@ -136,5 +158,20 @@ public class AsyncConfig implements AsyncConfigurer {
 				}
 				return (double)queueSize / queueCapacity;
 			});
+	}
+
+	private double resolveQueueSize(ThreadPoolTaskExecutor executor) {
+		if (executor == null) {
+			return 0.0;
+		}
+		try {
+			ThreadPoolExecutor delegate = executor.getThreadPoolExecutor();
+			if (delegate == null) {
+				return 0.0;
+			}
+			return delegate.getQueue().size();
+		} catch (IllegalStateException ignored) {
+			return 0.0;
+		}
 	}
 }

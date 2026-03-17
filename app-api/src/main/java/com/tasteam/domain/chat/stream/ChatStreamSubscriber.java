@@ -655,6 +655,15 @@ public class ChatStreamSubscriber {
 		partitionPendingMessages.computeIfAbsent(partitionId, id -> {
 			AtomicLong gaugeValue = new AtomicLong();
 			MetricLabelPolicy.validate(
+				"chat.stream.pending.messages",
+				"partition",
+				String.valueOf(id));
+			meterRegistry.gauge(
+				"chat.stream.pending.messages",
+				Tags.of("partition", String.valueOf(id)),
+				gaugeValue);
+
+			MetricLabelPolicy.validate(
 				"chat_stream_partition_pending_messages",
 				"partitionId",
 				String.valueOf(id),
