@@ -25,8 +25,7 @@ public class SearchResultAssembler {
 			.map(group -> new SearchGroupSummary(
 				group.getId(),
 				group.getName(),
-				firstImageUrl(groupLogos.getOrDefault(group.getId(), List.of()), DomainImageItem::url),
-				groupData.memberCounts().getOrDefault(group.getId(), 0L)))
+				firstImageUrl(groupLogos.getOrDefault(group.getId(), List.of()), DomainImageItem::url)))
 			.toList();
 	}
 

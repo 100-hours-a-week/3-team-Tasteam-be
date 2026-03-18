@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.group.entity.Group;
-import com.tasteam.domain.group.repository.projection.GroupMemberCountProjection;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
@@ -32,7 +31,7 @@ public class SearchDataService {
 	private final SearchRestaurantRepository searchRestaurantRepository;
 	private final CursorCodec cursorCodec;
 
-	public record GroupData(List<Group> groups, List<Long> groupIds, Map<Long, Long> memberCounts) {
+	public record GroupData(List<Group> groups, List<Long> groupIds) {
 	}
 
 	public record RestaurantPageData(
@@ -45,13 +44,7 @@ public class SearchDataService {
 	public GroupData fetchGroups(String keyword, int pageSize) {
 		List<Group> groups = searchGroupRepository.searchByKeyword(keyword, GroupStatus.ACTIVE, pageSize);
 		List<Long> groupIds = groups.stream().map(Group::getId).toList();
-		Map<Long, Long> memberCounts = groupIds.isEmpty()
-			? Map.of()
-			: searchGroupRepository.findMemberCounts(groupIds).stream()
-				.collect(Collectors.toMap(
-					GroupMemberCountProjection::getGroupId,
-					GroupMemberCountProjection::getMemberCount));
-		return new GroupData(groups, groupIds, memberCounts);
+		return new GroupData(groups, groupIds);
 	}
 
 	@Cacheable(cacheNames = "search-restaurant-first-page", key = "T(String).format('%s_%.2f_%.2f_%.0f', #keyword, #latitude != null ? #latitude : 0.0, #longitude != null ? #longitude : 0.0, #radiusMeters != null ? #radiusMeters : 0.0)", condition = "#cursorToken == null")
