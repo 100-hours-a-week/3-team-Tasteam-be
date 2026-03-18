@@ -1,5 +1,6 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
+import { Counter } from 'k6/metrics';
 
 // ============ Configuration ============
 export const BASE_URL = __ENV.BASE_URL || 'https://stg.tasteam.kr';
@@ -35,6 +36,7 @@ const GROUP_SEARCH_KEYWORDS = parseCsvEnv('GROUP_SEARCH_KEYWORDS').length > 0
 const GROUP_SEARCH_LIMIT = parsePositiveIntEnv('GROUP_SEARCH_LIMIT', 10);
 
 const TEST_RESTAURANT_ID = parsePositiveIntEnv('TEST_RESTAURANT_ID', -1);
+const wsMsgsSentCounter = new Counter('ws_msgs_sent');
 
 // ============ Hotspot Configuration ============
 const HOTSPOT_CONFIG = {
@@ -1136,6 +1138,9 @@ export function sendChatMessage(token, chatRoomId, content) {
         { headers: getHeaders(token), tags: { name: 'send_chat_message', type: 'write' } }
     );
     check(res, { '채팅 메시지 전송 성공 (200 or 201)': (r) => r.status === 200 || r.status === 201 });
+    if (res.status === 200 || res.status === 201) {
+        wsMsgsSentCounter.add(1);
+    }
     return res;
 }
 

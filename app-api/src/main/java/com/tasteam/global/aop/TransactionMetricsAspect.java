@@ -1,5 +1,7 @@
 package com.tasteam.global.aop;
 
+import java.sql.SQLTransientConnectionException;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -51,6 +53,8 @@ public class TransactionMetricsAspect {
 	private static final String METRIC_DURATION = "tasteam.transaction.duration";
 	private static final String METRIC_QUERY_COUNT = "tasteam.transaction.query.count";
 	private static final String METRIC_TOTAL = "tasteam.transaction.total";
+	private static final String METRIC_HIKARI_TIMEOUT_TOTAL = "hikaricp_connection_timeout_total";
+	private static final String HIKARI_TIMEOUT_MESSAGE = "Connection is not available, request timed out";
 	private static final String UNKNOWN = "unknown";
 
 	@Nullable
@@ -77,6 +81,7 @@ public class TransactionMetricsAspect {
 			return result;
 		} catch (Throwable throwable) {
 			outcome = "error";
+			recordHikariConnectionTimeoutIfNeeded(throwable);
 			throw throwable;
 		} finally {
 			long queryCount = stats.getPrepareStatementCount() - startQueryCount;
@@ -127,6 +132,28 @@ public class TransactionMetricsAspect {
 	private void recordTotal(Tags tags) {
 		MetricLabelPolicy.validate(METRIC_TOTAL, toTagArray(tags));
 		meterRegistry.counter(METRIC_TOTAL, tags).increment();
+	}
+
+	private void recordHikariConnectionTimeoutIfNeeded(Throwable throwable) {
+		if (!isHikariConnectionTimeout(throwable)) {
+			return;
+		}
+		meterRegistry.counter(METRIC_HIKARI_TIMEOUT_TOTAL).increment();
+	}
+
+	private boolean isHikariConnectionTimeout(Throwable throwable) {
+		Throwable current = throwable;
+		while (current != null) {
+			if (current instanceof SQLTransientConnectionException) {
+				return true;
+			}
+			String message = current.getMessage();
+			if (message != null && message.contains(HIKARI_TIMEOUT_MESSAGE)) {
+				return true;
+			}
+			current = current.getCause();
+		}
+		return false;
 	}
 
 	private String resolveDomain(ProceedingJoinPoint joinPoint) {

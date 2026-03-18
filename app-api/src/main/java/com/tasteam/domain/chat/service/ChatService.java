@@ -1,5 +1,6 @@
 package com.tasteam.domain.chat.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,8 @@ import com.tasteam.domain.chat.entity.ChatMessage;
 import com.tasteam.domain.chat.entity.ChatMessageFile;
 import com.tasteam.domain.chat.entity.ChatRoomMember;
 import com.tasteam.domain.chat.event.ChatMessageSentEvent;
+import com.tasteam.domain.chat.metrics.ChatSendDbQueryTracker;
+import com.tasteam.domain.chat.metrics.ChatSendMetricsCollector;
 import com.tasteam.domain.chat.repository.ChatMessageFileRepository;
 import com.tasteam.domain.chat.repository.ChatMessageRepository;
 import com.tasteam.domain.chat.repository.ChatRoomMemberRepository;
@@ -70,6 +73,8 @@ public class ChatService {
 	private final FileService fileService;
 	private final ChatStreamPublisher chatStreamPublisher;
 	private final ApplicationEventPublisher eventPublisher;
+	private final ChatSendMetricsCollector chatSendMetricsCollector;
+	private final ChatSendDbQueryTracker chatSendDbQueryTracker;
 
 	@Transactional(readOnly = true)
 	public ChatMessageListResponse getMessages(Long chatRoomId, Long memberId, String cursor, ChatMessageListMode mode,
@@ -161,48 +166,88 @@ public class ChatService {
 	@Transactional
 	@ObservedDbQueryCount(api = "send_chat_message")
 	public ChatMessageSendResponse sendMessage(Long chatRoomId, Long memberId, ChatMessageSendRequest request) {
-		ensureChatRoomExists(chatRoomId);
-		findMembershipOrThrow(chatRoomId, memberId);
+		long totalStartNanos = System.nanoTime();
+		ChatSendDbQueryTracker.TrackingContext dbTrackingContext = chatSendDbQueryTracker.startTracking();
+		try {
+			ensureChatRoomExists(chatRoomId);
+			findMembershipOrThrow(chatRoomId, memberId);
 
-		ChatMessageType messageType = request.messageType() == null ? ChatMessageType.TEXT : request.messageType();
-		validateMessageTypeAndContent(messageType, request.content(), request.files());
-		String content = messageType == ChatMessageType.TEXT ? request.content() : null;
+			ChatMessageType messageType = request.messageType() == null ? ChatMessageType.TEXT : request.messageType();
+			validateMessageTypeAndContent(messageType, request.content(), request.files());
+			String content = messageType == ChatMessageType.TEXT ? request.content() : null;
 
-		ChatMessage message = chatMessageRepository.save(ChatMessage.builder()
-			.chatRoomId(chatRoomId)
-			.memberId(memberId)
-			.type(messageType)
-			.content(content)
-			.deletedAt(null)
-			.build());
+			long messagePersistStartNanos = System.nanoTime();
+			ChatMessage message = chatMessageRepository.save(ChatMessage.builder()
+				.chatRoomId(chatRoomId)
+				.memberId(memberId)
+				.type(messageType)
+				.content(content)
+				.deletedAt(null)
+				.build());
 
-		List<ChatMessageFile> savedFiles = persistMessageFiles(message.getId(), request.files());
-		List<ChatMessageFileItemResponse> fileItems = buildFileResponses(savedFiles);
+			List<ChatMessageFile> savedFiles = persistMessageFiles(message.getId(), request.files());
+			List<ChatMessageFileItemResponse> fileItems = buildFileResponses(savedFiles);
+			chatSendMetricsCollector.recordMessagePersistDuration(
+				Duration.ofNanos(System.nanoTime() - messagePersistStartNanos));
 
-		Member member = memberRepository.findById(memberId)
-			.orElseThrow();
+			long memberFetchStartNanos = System.nanoTime();
+			Member member = memberRepository.findById(memberId)
+				.orElseThrow();
+			chatSendMetricsCollector.recordSenderProfileCacheMiss();
+			int targetMemberCount = Math
+				.toIntExact(chatRoomMemberRepository.countByChatRoomIdAndDeletedAtIsNull(chatRoomId));
+			chatSendMetricsCollector.recordChatMemberCacheMiss();
+			chatSendMetricsCollector.recordTargetMemberCount(targetMemberCount);
+			chatSendMetricsCollector.recordMemberFetchDuration(
+				Duration.ofNanos(System.nanoTime() - memberFetchStartNanos));
 
-		ChatMessageItemResponse item = new ChatMessageItemResponse(
-			message.getId(),
-			message.getMemberId(),
-			member.getNickname(),
-			fileService.getPrimaryDomainImageUrl(DomainType.MEMBER, memberId),
-			message.getContent(),
-			message.getType(),
-			fileItems,
-			message.getCreatedAt());
+			long profileImageFetchStartNanos = System.nanoTime();
+			String profileImageUrl = fileService.getPrimaryDomainImageUrl(DomainType.MEMBER, memberId);
+			chatSendMetricsCollector.recordProfileImageCacheMiss();
+			chatSendMetricsCollector.recordProfileImageLookupCount(1);
+			chatSendMetricsCollector.recordProfileImageFetchDuration(
+				Duration.ofNanos(System.nanoTime() - profileImageFetchStartNanos));
 
-		chatStreamPublisher.publish(chatRoomId, item);
-		eventPublisher.publishEvent(new ChatMessageSentEvent(
-			chatRoomId,
-			message.getId(),
-			memberId,
-			member.getNickname(),
-			message.getType(),
-			message.getContent(),
-			message.getCreatedAt()));
+			ChatMessageItemResponse item = new ChatMessageItemResponse(
+				message.getId(),
+				message.getMemberId(),
+				member.getNickname(),
+				profileImageUrl,
+				message.getContent(),
+				message.getType(),
+				fileItems,
+				message.getCreatedAt());
 
-		return new ChatMessageSendResponse(item);
+			chatStreamPublisher.publish(chatRoomId, item);
+
+			long notificationEventCreateStartNanos = System.nanoTime();
+			eventPublisher.publishEvent(new ChatMessageSentEvent(
+				chatRoomId,
+				message.getId(),
+				memberId,
+				member.getNickname(),
+				message.getType(),
+				message.getContent(),
+				message.getCreatedAt()));
+			int notificationEventCount = Math.max(0, targetMemberCount - 1);
+			chatSendMetricsCollector.recordNotificationEventCount(notificationEventCount);
+			chatSendMetricsCollector.recordNotificationEventCreateDuration(
+				Duration.ofNanos(System.nanoTime() - notificationEventCreateStartNanos));
+
+			return new ChatMessageSendResponse(item);
+		} catch (Throwable throwable) {
+			chatSendMetricsCollector.recordSendFailure();
+			throw throwable;
+		} finally {
+			ChatSendDbQueryTracker.DbQuerySnapshot dbQuerySnapshot = chatSendDbQueryTracker.stopTracking(
+				dbTrackingContext);
+			chatSendMetricsCollector.recordDbQueryCount(
+				dbQuerySnapshot.total(),
+				dbQuerySnapshot.select(),
+				dbQuerySnapshot.insert());
+			chatSendMetricsCollector.recordTotalServiceDuration(
+				Duration.ofNanos(System.nanoTime() - totalStartNanos));
+		}
 	}
 
 	@Transactional
