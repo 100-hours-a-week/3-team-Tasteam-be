@@ -10,7 +10,6 @@ import org.springframework.data.repository.query.Param;
 
 import com.tasteam.domain.group.dto.GroupMemberListItem;
 import com.tasteam.domain.group.entity.GroupMember;
-import com.tasteam.domain.group.repository.projection.GroupMemberCountProjection;
 import com.tasteam.domain.group.type.GroupStatus;
 import com.tasteam.domain.member.dto.response.MemberGroupDetailSummaryRow;
 import com.tasteam.domain.member.dto.response.MemberGroupSummaryRow;
@@ -42,19 +41,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 		@Param("cursor")
 		Long cursor,
 		Pageable pageable);
-
-	@Query("""
-		select
-			gm.groupId as groupId,
-			count(gm.id) as memberCount
-		from GroupMember gm
-		where gm.groupId in :groupIds
-			and gm.deletedAt is null
-		group by gm.groupId
-		""")
-	List<GroupMemberCountProjection> findMemberCounts(
-		@Param("groupIds")
-		List<Long> groupIds);
 
 	long countByGroupIdAndDeletedAtIsNull(Long groupId);
 
