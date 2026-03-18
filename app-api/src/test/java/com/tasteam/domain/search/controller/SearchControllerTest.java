@@ -32,7 +32,7 @@ class SearchControllerTest extends BaseControllerWebMvcTest {
 			// given
 			SearchResponse response = new SearchResponse(
 				List.of(
-					new SearchGroupSummary(1L, "맛집모임", "https://example.com/logo.jpg", 10L)),
+					new SearchGroupSummary(1L, "맛집모임", "https://example.com/logo.jpg")),
 				new CursorPageResponse<>(
 					List.of(
 						new SearchRestaurantItem(1L, "맛집식당", "서울시 강남구", "https://example.com/img.jpg",
