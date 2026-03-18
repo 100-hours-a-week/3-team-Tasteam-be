@@ -13,21 +13,24 @@ import com.tasteam.domain.restaurant.repository.projection.RestaurantLocationPro
 public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 
 	@Query(value = """
-		with ranked as (
-		  select r.id, r.name, r.location
+		with nearby as (
+		  select r.id
 		  from restaurant r
-		  left join review rv on rv.restaurant_id = r.id and rv.deleted_at is null
 		  where r.deleted_at is null
 		    and ST_DWithin(r.location::geography,
 		      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
-		  group by r.id, r.name, r.location
-		  order by count(rv.id) desc, r.id asc
-		  limit :limit
+		  order by r.location::geography <-> ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
+		  limit :candidateLimit
 		)
-		select id, name,
-		  ST_Distance(location::geography,
+		select r.id as id, r.name as name,
+		  ST_Distance(r.location::geography,
 		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
-		from ranked
+		from restaurant r
+		join nearby n on n.id = r.id
+		left join review rv on rv.restaurant_id = r.id and rv.deleted_at is null
+		group by r.id, r.name, r.location
+		order by count(rv.id) desc, r.id asc
+		limit :limit
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findHotRestaurants(
 		@Param("latitude")
@@ -36,6 +39,8 @@ public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 		double longitude,
 		@Param("radiusMeter")
 		int radiusMeter,
+		@Param("candidateLimit")
+		int candidateLimit,
 		@Param("limit")
 		int limit);
 
