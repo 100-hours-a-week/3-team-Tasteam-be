@@ -1,0 +1,107 @@
+# Chat Send DB Overhead PromQL
+
+`chat_send_failure_total`, `hikaricp_connection_timeout_total` 모니터링용 PromQL 모음입니다.
+
+## 사전 확인
+
+- `http_server_requests_seconds_count`: 수집됨
+  - 근거: `management.metrics.distribution.percentiles-histogram.http.server.requests: true`
+- `environment` 라벨: 공통 태그로 수집됨
+  - 근거: `management.metrics.tags.environment: ${spring.profiles.active:local}`
+
+## 1) Chat Send Failure (`chat_send_failure_total`)
+
+### 패널: 초당 실패 건수 (전체)
+```promql
+sum(rate(chat_send_failure_total{environment=~"$env", instance=~"$instance"}[1m]))
+```
+
+### 패널: 5분 누적 실패 건수 (전체)
+```promql
+sum(increase(chat_send_failure_total{environment=~"$env", instance=~"$instance"}[5m]))
+```
+
+### 패널: 인스턴스별 5분 누적 실패 건수
+```promql
+sum by (instance) (increase(chat_send_failure_total{environment=~"$env", instance=~"$instance"}[5m]))
+```
+
+### 패널: Chat SEND 실패율 (5m)
+```promql
+(
+  sum(rate(chat_send_failure_total{environment=~"$env", instance=~"$instance"}[5m]))
+)
+/
+clamp_min(
+  sum(rate(http_server_requests_seconds_count{
+    environment=~"$env",
+    instance=~"$instance",
+    method="POST",
+    uri="/api/v1/chat-rooms/{chatRoomId}/messages"
+  }[5m])),
+  1
+)
+```
+
+## 2) Hikari Connection Timeout (`hikaricp_connection_timeout_total`)
+
+### 패널: 초당 DB 커넥션 타임아웃 건수 (전체)
+```promql
+sum(rate(hikaricp_connection_timeout_total{environment=~"$env", instance=~"$instance"}[1m]))
+```
+
+### 패널: 5분 누적 DB 커넥션 타임아웃 건수 (전체)
+```promql
+sum(increase(hikaricp_connection_timeout_total{environment=~"$env", instance=~"$instance"}[5m]))
+```
+
+### 패널: 인스턴스별 5분 누적 DB 커넥션 타임아웃 건수
+```promql
+sum by (instance) (increase(hikaricp_connection_timeout_total{environment=~"$env", instance=~"$instance"}[5m]))
+```
+
+### 패널: Chat SEND 요청 대비 DB 커넥션 타임아웃 비율 (5m)
+```promql
+(
+  sum(rate(hikaricp_connection_timeout_total{environment=~"$env", instance=~"$instance"}[5m]))
+)
+/
+clamp_min(
+  sum(rate(http_server_requests_seconds_count{
+    environment=~"$env",
+    instance=~"$instance",
+    method="POST",
+    uri="/api/v1/chat-rooms/{chatRoomId}/messages"
+  }[5m])),
+  1
+)
+```
+
+## Alert 추천 (옵션)
+
+### Chat SEND 실패 급증
+```promql
+sum(increase(chat_send_failure_total{environment=~"$env", instance=~"$instance"}[5m])) >= 30
+```
+
+### DB 커넥션 타임아웃 발생 감지
+```promql
+sum(increase(hikaricp_connection_timeout_total{environment=~"$env", instance=~"$instance"}[5m])) >= 3
+```
+
+### Chat SEND 실패율 임계치 초과
+```promql
+(
+  sum(rate(chat_send_failure_total{environment=~"$env", instance=~"$instance"}[5m]))
+)
+/
+clamp_min(
+  sum(rate(http_server_requests_seconds_count{
+    environment=~"$env",
+    instance=~"$instance",
+    method="POST",
+    uri="/api/v1/chat-rooms/{chatRoomId}/messages"
+  }[5m])),
+  1
+) > 0.05
+```

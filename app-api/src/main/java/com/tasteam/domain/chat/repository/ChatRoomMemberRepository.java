@@ -20,6 +20,8 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
 
 	boolean existsByChatRoomIdAndMemberIdAndDeletedAtIsNull(Long chatRoomId, Long memberId);
 
+	long countByChatRoomIdAndDeletedAtIsNull(Long chatRoomId);
+
 	@Query("""
 		select new com.tasteam.domain.chat.dto.ChatRoomMemberSnapshot(
 			m.memberId,

@@ -192,6 +192,10 @@ tasteam:
         enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:true}
     webhook:
       enabled: ${TASTEAM_AOP_WEBHOOK_ENABLED:true}
+  metrics:
+    postgres:
+      refresh-delay: ${TASTEAM_METRICS_POSTGRES_REFRESH_DELAY:30000}
+      slow-query-threshold-ms: ${TASTEAM_METRICS_POSTGRES_SLOW_QUERY_THRESHOLD_MS:500}
   local-cache:
     caffeine:
       maximum-size: ${LOCAL_CACHE_CAFFEINE_MAXIMUM_SIZE:1000}
