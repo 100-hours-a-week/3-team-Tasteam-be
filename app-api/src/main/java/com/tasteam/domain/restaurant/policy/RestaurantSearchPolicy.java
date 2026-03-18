@@ -13,4 +13,5 @@ public final class RestaurantSearchPolicy {
 
 	public static final int SECTION_SIZE = 20;
 	public static final int SECTION_RADIUS_METER = 5_000;
+	public static final int SECTION_CANDIDATE_LIMIT = 100;
 }
