@@ -13,6 +13,8 @@
 - `TEST_TYPE=read-heavy|write-heavy|search-only`
 - `USER_POOL`로 로그인 사용자 풀 크기 조정 가능
 - read-heavy는 browsing/searching 혼합, write-heavy는 리뷰/채팅/즐겨찾기 중심입니다.
+- 검색 호출은 기본적으로 약 491,520 조합 (384 keywords = 336 primary + 48 typing-state, x 320 locations x 4 radii)을 사용합니다.
+- 타이핑 중/오타성 검색어는 기본적으로 약 5% 희소 분포로 섞습니다.
 
 ## 전제조건
 
