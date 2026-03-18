@@ -26,7 +26,8 @@ public class MainSectionCacheService {
 	@Transactional(readOnly = true)
 	public List<Long> fetchHotSectionIdsByLocation(double lat, double lon) {
 		return fetchWithRadiusExpansion(lat, lon,
-			(la, lo, radius, limit) -> restaurantRepository.findHotRestaurants(la, lo, radius, limit))
+			(la, lo, radius, limit) -> restaurantRepository.findHotRestaurants(
+				la, lo, radius, RestaurantSearchPolicy.SECTION_CANDIDATE_LIMIT, limit))
 			.stream().map(MainRestaurantDistanceProjection::getId).toList();
 	}
 
