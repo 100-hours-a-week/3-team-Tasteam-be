@@ -312,6 +312,15 @@ detect_total_memory_mb() {
   printf '%s\n' "${mem_mb}"
 }
 
+## 호스트 리소스를 감지하여 컨테이너별 CPU/메모리 한도를 동적으로 계산
+#
+# 계산 흐름:
+#   총 리소스 → 호스트 예약분 차감 → (dev: 인프라 예약분 차감) → 컨테이너 예산
+#   컨테이너 예산 → Backend 70~75% / Alloy 나머지
+#
+# t3.small (2vCPU, ~1950MB) 기준 계산 예시:
+#   메모리: 1950 - 600(호스트) = 1350 → Backend 945m / Alloy 405m
+#   CPU:    2000 - 300(호스트) = 1700 → Backend 1.275 / Alloy 0.425
 set_runtime_resource_limits() {
   local total_vcpu total_mem_mb
   local total_mcpu cpu_host_reserve_mcpu cpu_budget_mcpu
@@ -324,6 +333,7 @@ set_runtime_resource_limits() {
   total_vcpu="$(detect_total_vcpu)"
   total_mem_mb="$(detect_total_memory_mb)"
 
+  # dev 환경: 인프라(모니터링 등) 예약분 차감, 그 외 환경: 0
   if [ "${ENV_NAME}" = "dev" ]; then
     dev_infra_cpu_reserve_mcpu="${DEV_INFRA_CPU_RESERVE_MCPU:-300}"
     dev_infra_mem_reserve_mb="${DEV_INFRA_MEMORY_RESERVE_MB:-1024}"
@@ -339,6 +349,8 @@ set_runtime_resource_limits() {
     dev_infra_mem_reserve_mb=0
   fi
 
+  # --- CPU 예산 ---
+  # 호스트 예약: 15% (최소 300mCPU, 최대 1200mCPU)
   total_mcpu=$((total_vcpu * 1000))
   cpu_host_reserve_mcpu=$((total_mcpu * 15 / 100))
   if [ "${cpu_host_reserve_mcpu}" -lt 300 ]; then
@@ -352,6 +364,7 @@ set_runtime_resource_limits() {
     cpu_budget_mcpu=500
   fi
 
+  # CPU 분배: Backend 75% / Alloy 나머지 (최소 200mCPU 보장)
   backend_mcpu=$((cpu_budget_mcpu * 75 / 100))
   alloy_mcpu=$((cpu_budget_mcpu - backend_mcpu))
   if [ "${alloy_mcpu}" -lt 200 ] && [ "${cpu_budget_mcpu}" -gt 700 ]; then
@@ -359,9 +372,12 @@ set_runtime_resource_limits() {
     backend_mcpu=$((cpu_budget_mcpu - alloy_mcpu))
   fi
 
+  # --- 메모리 예산 ---
+  # 호스트 예약: 25% (최소 600MB, 최대 4096MB)
+  # - 커널+시스템 데몬(dockerd, SSM agent 등) 실측 ~520MB + 버퍼
   mem_host_reserve_mb=$((total_mem_mb * 25 / 100))
-  if [ "${mem_host_reserve_mb}" -lt 768 ]; then
-    mem_host_reserve_mb=768
+  if [ "${mem_host_reserve_mb}" -lt 600 ]; then
+    mem_host_reserve_mb=600
   fi
   if [ "${mem_host_reserve_mb}" -gt 4096 ]; then
     mem_host_reserve_mb=4096
@@ -371,6 +387,7 @@ set_runtime_resource_limits() {
     mem_budget_mb=$((total_mem_mb * 55 / 100))
   fi
 
+  # 메모리 분배: Backend 70% / Alloy 나머지 (최소 384MB 보장)
   backend_mem_mb=$((mem_budget_mb * 70 / 100))
   alloy_mem_mb=$((mem_budget_mb - backend_mem_mb))
   if [ "${alloy_mem_mb}" -lt 384 ] && [ "${mem_budget_mb}" -gt 1280 ]; then
@@ -378,9 +395,11 @@ set_runtime_resource_limits() {
     backend_mem_mb=$((mem_budget_mb - alloy_mem_mb))
   fi
 
+  # soft limit (Docker mem_reservation) — 할당량의 75%
   backend_mem_reservation_mb=$((backend_mem_mb * 75 / 100))
   alloy_mem_reservation_mb=$((alloy_mem_mb * 75 / 100))
 
+  # 환경변수 기본값 설정 (이미 값이 있으면 유지)
   : "${BACKEND_CPU_LIMIT:=$(mcpu_to_cpus "${backend_mcpu}")}"
   : "${ALLOY_CPU_LIMIT:=$(mcpu_to_cpus "${alloy_mcpu}")}"
   : "${BACKEND_MEMORY_LIMIT:=${backend_mem_mb}m}"
