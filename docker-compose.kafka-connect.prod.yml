@@ -1,0 +1,47 @@
+services:
+  kafka-connect:
+    build:
+      context: .
+      dockerfile: docker/kafka-connect/Dockerfile
+    image: tasteam-kafka-connect:prod
+    container_name: tasteam-kafka-connect
+    restart: unless-stopped
+    mem_limit: ${KAFKA_CONNECT_MEM_LIMIT:-1536m}
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      CONNECT_REST_PORT: 8083
+      CONNECT_REST_ADVERTISED_HOST_NAME: ${KAFKA_CONNECT_EXTERNAL_HOST}
+      CONNECT_GROUP_ID: tasteam-connect-cluster
+      CONNECT_CONFIG_STORAGE_TOPIC: tasteam.connect.configs
+      CONNECT_OFFSET_STORAGE_TOPIC: tasteam.connect.offsets
+      CONNECT_STATUS_STORAGE_TOPIC: tasteam.connect.status
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components,/etc/kafka-connect/plugins
+      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
+      KAFKA_HEAP_OPTS: "${KAFKA_CONNECT_HEAP_OPTS:--Xms512M -Xmx768M}"
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      KAFKA_JMX_PORT: 9102
+      KAFKA_JMX_HOSTNAME: ${KAFKA_CONNECT_JMX_HOSTNAME:-localhost}
+      KAFKA_JMX_OPTS: "-Dcom.sun.jndi.rmiregistry.disableAnonBind=true -Djava.rmi.server.hostname=${KAFKA_CONNECT_JMX_HOSTNAME:-localhost} -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=9102"
+    ports:
+      - "8083:8083"
+      - "9102:9102"
+    volumes:
+      - connect_data:/var/lib/kafka-connect
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8083/connectors >/dev/null"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  connect_data:

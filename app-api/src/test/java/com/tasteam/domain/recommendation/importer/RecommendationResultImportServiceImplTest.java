@@ -14,6 +14,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.DisplayName;
@@ -251,6 +252,77 @@ class RecommendationResultImportServiceImplTest {
 		verify(repository).saveAndFlush(any(RestaurantRecommendationModel.class));
 		verify(repository, times(2)).findByVersion("deepfm-1");
 		verify(jdbcRepository).deleteByModelId(3L);
+	}
+
+	@Test
+	@DisplayName("같은 모델 재import 시 기존 데이터 삭제와 신규 적재는 하나의 트랜잭션에서 수행한다")
+	void importResults_replacesRowsWithinSingleTransaction() throws Exception {
+		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
+		RestaurantRecommendationModelRepository repository = mock(RestaurantRecommendationModelRepository.class);
+		RestaurantRecommendationJdbcRepository jdbcRepository = mock(RestaurantRecommendationJdbcRepository.class);
+		RecommendationResultObjectReader objectReader = mock(RecommendationResultObjectReader.class);
+		RecommendationResultCsvReader csvReader = mock(RecommendationResultCsvReader.class);
+		RecommendationImportRowValidator validator = mock(RecommendationImportRowValidator.class);
+		AtomicInteger executeCount = new AtomicInteger();
+		TransactionOperations txOps = mock(TransactionOperations.class);
+		when(txOps.execute(any(TransactionCallback.class))).thenAnswer(invocation -> {
+			executeCount.incrementAndGet();
+			TransactionCallback<?> callback = invocation.getArgument(0);
+			return callback.doInTransaction(null);
+		});
+		RestaurantRecommendationModel model = RestaurantRecommendationModel.loading("deepfm-1");
+		ReflectionTestUtils.setField(model, "id", 1L);
+		BatchExecution execution = BatchExecution.start(
+			com.tasteam.domain.batch.entity.BatchType.RECOMMENDATION_IMPORT_ON_DEMAND,
+			Instant.parse("2026-03-03T09:00:00Z"));
+		RestaurantRecommendationRow row = new RestaurantRecommendationRow(
+			1L,
+			null,
+			11L,
+			0.91,
+			1,
+			"{}",
+			"deepfm-1",
+			Instant.parse("2026-03-03T10:00:00Z"),
+			Instant.parse("2026-03-04T10:00:00Z"));
+
+		when(repository.findByVersion("deepfm-1")).thenReturn(Optional.of(model));
+		when(repository.save(model)).thenReturn(model);
+		when(batchExecutionRepository.save(any(BatchExecution.class))).thenReturn(execution);
+		when(objectReader.openStream("s3://bucket/result.csv")).thenReturn(new ByteArrayInputStream(new byte[0]));
+		when(validator.validateAndConvertOrNull(any(ParsedRecommendationCsvRow.class), eq("deepfm-1"))).thenReturn(row);
+		when(jdbcRepository.batchInsert(eq(1L), any())).thenReturn(1);
+		RecommendationResultImportServiceImpl service = new RecommendationResultImportServiceImpl(
+			batchExecutionRepository,
+			repository,
+			jdbcRepository,
+			objectReader,
+			csvReader,
+			validator,
+			txOps,
+			new SimpleMeterRegistry());
+
+		doAnswer(invocation -> {
+			@SuppressWarnings("unchecked") Consumer<ParsedRecommendationCsvRow> consumer = invocation.getArgument(1);
+			consumer.accept(new ParsedRecommendationCsvRow(
+				2L,
+				"1",
+				"",
+				"11",
+				"0.91",
+				"1",
+				"{}",
+				"deepfm-1",
+				Instant.parse("2026-03-03T10:00:00Z"),
+				Instant.parse("2026-03-04T10:00:00Z")));
+			return null;
+		}).when(csvReader).read(any(), any());
+
+		service.importResults(new RecommendationResultImportRequest("deepfm-1", "s3://bucket/result.csv", "req-1"));
+
+		assertThat(executeCount).hasValue(3);
+		verify(jdbcRepository).deleteByModelId(1L);
+		verify(jdbcRepository).batchInsert(eq(1L), any());
 	}
 
 	private TransactionOperations passthroughTxOps() {
