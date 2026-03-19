@@ -282,6 +282,10 @@ sequenceDiagram
 | `tasteam.analytics.posthog.enabled` | `false` | PostHog 경로 활성화 |
 | `tasteam.analytics.posthog.host` | `https://app.posthog.com` | PostHog host |
 | `tasteam.analytics.posthog.api-key` | 비어있음 | API key |
+| `tasteam.message-queue.kafka.connector.user-activity-s3-sink.tasks-max` | `8` | Kafka Connect S3 Sink task 수 기본값 |
+| `tasteam.message-queue.kafka.connector.user-activity-s3-sink.flush-size` | `100000` | 파일 flush 기준 레코드 수 |
+| `tasteam.message-queue.kafka.connector.user-activity-s3-sink.rotate-interval-ms` | `3600000` | 시간 기반 rotate 주기 |
+| `tasteam.message-queue.kafka.connector.user-activity-s3-sink.rotate-schedule-interval-ms` | `3600000` | 스케줄 기반 rotate 주기 |
 
 ## **[5-2] 코드에서 직접 참조되는 추가 키**
 
@@ -408,3 +412,4 @@ Best effort 구간:
 
 자세한 이슈/PR/커밋/갭 추적은 `TRACEABILITY.md`를 따른다.
 운영 대응 절차는 `RUNBOOK.md`를 따른다.
+로컬 Kafka Connect 안정화 배경과 변경 전후 비교는 `local-kafka-connect-stability.md`를 따른다.
