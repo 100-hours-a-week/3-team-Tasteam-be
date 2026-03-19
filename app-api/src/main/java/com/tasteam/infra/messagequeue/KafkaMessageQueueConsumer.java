@@ -1,12 +1,16 @@
 package com.tasteam.infra.messagequeue;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.common.TopicPartition;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.listener.AcknowledgingMessageListener;
 import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+import org.springframework.kafka.listener.ConsumerAwareRebalanceListener;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.ContainerProperties.AckMode;
 
@@ -37,6 +41,21 @@ public class KafkaMessageQueueConsumer implements MessageQueueConsumer {
 					handler.handle(message);
 					ack.acknowledge();
 				});
+			props.setConsumerRebalanceListener(new ConsumerAwareRebalanceListener() {
+				@Override
+				public void onPartitionsRevokedBeforeCommit(Consumer<?, ?> consumer,
+					Collection<TopicPartition> partitions) {
+					log.info("Kafka 파티션 반환 시작 (커밋 전). topic={}, partitions={}",
+						subscription.topic(), partitions);
+				}
+
+				@Override
+				public void onPartitionsAssigned(Consumer<?, ?> consumer,
+					Collection<TopicPartition> partitions) {
+					log.info("Kafka 파티션 배정 완료. topic={}, partitions={}",
+						subscription.topic(), partitions);
+				}
+			});
 			ConcurrentMessageListenerContainer<String, String> container = new ConcurrentMessageListenerContainer<>(
 				containerFactory.getConsumerFactory(), props);
 			container.setCommonErrorHandler(errorHandler);
