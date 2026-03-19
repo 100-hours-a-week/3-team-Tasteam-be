@@ -79,6 +79,10 @@ public class KafkaMessageQueueProperties {
 	public static class UserActivityS3SinkConnectorProperties {
 		private String bucket;
 		private String region = "ap-northeast-2";
+		private int tasksMax = 8;
+		private int flushSize = 100000;
+		private long rotateIntervalMs = 3600000L;
+		private long rotateScheduleIntervalMs = 3600000L;
 		/** MinIO/LocalStack용 엔드포인트. 비어있으면 AWS S3 직접 사용. */
 		private String endpoint;
 		private boolean pathStyleAccess = false;

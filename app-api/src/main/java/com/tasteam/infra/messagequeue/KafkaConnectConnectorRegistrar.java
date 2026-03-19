@@ -100,7 +100,7 @@ public class KafkaConnectConnectorRegistrar implements ApplicationRunner {
 
 		Map<String, Object> config = new LinkedHashMap<>();
 		config.put("connector.class", "io.confluent.connect.s3.S3SinkConnector");
-		config.put("tasks.max", "8");
+		config.put("tasks.max", String.valueOf(s3.getTasksMax()));
 		config.put("topics", ingest.getTopic());
 		config.put("topics.dir", "");
 		config.put("s3.bucket.name", s3.getBucket());
@@ -109,9 +109,9 @@ public class KafkaConnectConnectorRegistrar implements ApplicationRunner {
 		config.put("aws.secret.access.key", s3.getSecretAccessKey());
 		config.put("format.class", "io.confluent.connect.s3.format.json.JsonFormat");
 		config.put("s3.compression.type", "gzip");
-		config.put("flush.size", "1");
-		config.put("rotate.interval.ms", "10000");
-		config.put("rotate.schedule.interval.ms", "10000");
+		config.put("flush.size", String.valueOf(s3.getFlushSize()));
+		config.put("rotate.interval.ms", String.valueOf(s3.getRotateIntervalMs()));
+		config.put("rotate.schedule.interval.ms", String.valueOf(s3.getRotateScheduleIntervalMs()));
 		config.put("partitioner.class", "io.confluent.connect.storage.partitioner.TimeBasedPartitioner");
 		config.put("partition.duration.ms", "86400000");
 		config.put("timestamp.extractor", "Record");
