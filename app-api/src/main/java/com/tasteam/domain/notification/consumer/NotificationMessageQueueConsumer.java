@@ -29,8 +29,6 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
-// Kafka MessageQueueConsumer 구현이 준비되면 provider 조건을 재검토해 Kafka 경로도 다시 활성화한다.
-@ConditionalOnProperty(prefix = "tasteam.message-queue", name = "provider", havingValue = "redis-stream")
 public class NotificationMessageQueueConsumer {
 
 	private static final String CONSUMER_GROUP = "cg.notification.processor.v1";
