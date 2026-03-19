@@ -46,8 +46,8 @@
     - `docs/spec/tech/async-event-driven-improvement/README.md`: 비동기 이벤트 드리븐 아키텍처 개선 허브 문서입니다.
     - `docs/spec/tech/async-event-driven-improvement/*.md`: outbox, 알림, MQ, 사용자 이벤트, 멱등성 개선 상세 문서입니다.
 
-- 백엔드 트러블슈팅 문서는 로컬 `docs/`가 아니라 통합 Wiki를 source of truth로 관리합니다.
-  - [BE 트러블슈팅 로그](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BBE%5D-%ED%8A%B8%EB%9F%AC%EB%B8%94%EC%8A%88%ED%8C%85-%EB%A1%9C%EA%B7%B8): 백엔드 트러블슈팅 인덱스와 최신 문서 링크.
+- 백엔드 트러블슈팅 문서는 로컬 `docs/`가 아니라 BE Wiki를 source of truth로 관리합니다.
+  - [BE 트러블슈팅 로그](https://github.com/100-hours-a-week/3-team-Tasteam-be/wiki/%5BBE%5D-%ED%8A%B8%EB%9F%AC%EB%B8%94%EC%8A%88%ED%8C%85-%EB%A1%9C%EA%B7%B8): 백엔드 트러블슈팅 인덱스와 최신 문서 링크.
 
 ## 확장 포인트
 
