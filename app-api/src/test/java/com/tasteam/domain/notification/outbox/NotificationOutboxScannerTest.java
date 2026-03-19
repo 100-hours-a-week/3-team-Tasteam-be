@@ -9,6 +9,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.List;
@@ -37,12 +38,16 @@ class NotificationOutboxScannerTest {
 	@Mock
 	private QueueEventPublisher queueEventPublisher;
 
+	@Mock
+	private OutboxScanLock outboxScanLock;
+
 	private NotificationOutboxScanner scanner;
 
 	@BeforeEach
 	void setUp() {
-		scanner = new NotificationOutboxScanner(outboxService, queueEventPublisher);
+		scanner = new NotificationOutboxScanner(outboxService, queueEventPublisher, outboxScanLock);
 		ReflectionTestUtils.setField(scanner, "batchSize", 10);
+		when(outboxScanLock.tryLock()).thenReturn(true);
 	}
 
 	@Nested

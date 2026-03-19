@@ -27,10 +27,15 @@ public class NotificationOutboxScanner {
 
 	private final NotificationOutboxService outboxService;
 	private final QueueEventPublisher queueEventPublisher;
+	private final OutboxScanLock outboxScanLock;
 
 	@ObservedAsyncPipeline(domain = "notification", stage = "outbox_scan")
 	@Scheduled(fixedDelayString = "${tasteam.notification.outbox.scan-delay:30000}")
 	public void scan() {
+		if (!outboxScanLock.tryLock()) {
+			log.debug("다른 인스턴스가 아웃박스 스캔 중. 건너뜁니다.");
+			return;
+		}
 		List<NotificationRequestedPayload> candidates = outboxService.findCandidates(batchSize);
 		if (candidates.isEmpty()) {
 			return;
