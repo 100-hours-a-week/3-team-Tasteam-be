@@ -87,8 +87,11 @@ Tasteam 백엔드 애플리케이션 저장소입니다.
 - [docs 디렉터리 안내](docs/README.md)
 - [테스트 문서 허브](docs/test/README.md)
 
-## 참여자
+## 프로젝트 기여
 
-- [@Y0unse0](https://github.com/Y0unse0)
-- [@ImGdevel](https://github.com/ImGdevel)
-- [@GY102912](https://github.com/GY102912)
+| Sei.Jang | Devon.woo | Gayeon Lee |
+|---|---|---|
+| <img src="https://github.com/Y0unse0.png" width="128" alt="Y0unse0" /> | <img src="https://github.com/ImGdevel.png" width="128" alt="ImGdevel" /> | <img src="https://github.com/GY102912.png" width="128" alt="GY102912" /> |
+| [@Y0unse0](https://github.com/Y0unse0) | [@ImGdevel](https://github.com/ImGdevel) | [@GY102912](https://github.com/GY102912) |
+| Backend | Backend | Backend |
+
