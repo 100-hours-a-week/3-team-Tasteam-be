@@ -49,6 +49,7 @@ CLAUDE.md
 .env
 .env.*
 !.env.example
+!.env.kafka.prod.template
 
 # GitHub issue templates
 /.github/issue
