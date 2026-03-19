@@ -33,7 +33,7 @@ public class KafkaMessageQueueProperties {
 	@Getter
 	@Setter
 	public static class ConsumerProperties {
-		private int concurrency = 1;
+		private int concurrency = 3;
 		private int maxPollRecords = 50;
 		private long pollTimeoutMillis = 1000L;
 		private int sessionTimeoutMs = 30000;
