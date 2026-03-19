@@ -372,48 +372,48 @@ set_runtime_resource_limits() {
     backend_mcpu=$((cpu_budget_mcpu - alloy_mcpu))
   fi
 
-  # --- 메모리 예산 ---
-  # 호스트 예약: 25% (최소 600MB, 최대 4096MB)
-  # - 커널+시스템 데몬(dockerd, SSM agent 등) 실측 ~520MB + 버퍼
-  mem_host_reserve_mb=$((total_mem_mb * 25 / 100))
-  if [ "${mem_host_reserve_mb}" -lt 600 ]; then
-    mem_host_reserve_mb=600
-  fi
-  if [ "${mem_host_reserve_mb}" -gt 4096 ]; then
-    mem_host_reserve_mb=4096
-  fi
-  mem_budget_mb=$((total_mem_mb - mem_host_reserve_mb - dev_infra_mem_reserve_mb))
-  if [ "${mem_budget_mb}" -lt 1024 ]; then
-    mem_budget_mb=$((total_mem_mb * 55 / 100))
-  fi
-
-  # 메모리 분배: Backend 70% / Alloy 나머지 (최소 384MB 보장)
-  backend_mem_mb=$((mem_budget_mb * 70 / 100))
-  alloy_mem_mb=$((mem_budget_mb - backend_mem_mb))
-  if [ "${alloy_mem_mb}" -lt 384 ] && [ "${mem_budget_mb}" -gt 1280 ]; then
-    alloy_mem_mb=384
-    backend_mem_mb=$((mem_budget_mb - alloy_mem_mb))
-  fi
-
-  # soft limit (Docker mem_reservation) — 할당량의 75%
-  backend_mem_reservation_mb=$((backend_mem_mb * 75 / 100))
-  alloy_mem_reservation_mb=$((alloy_mem_mb * 75 / 100))
+  # --- 메모리 ---
+  # 메모리 제한은 compose 파일의 기본값에 위임 (backend: 1024m, alloy: 512m)
+  # t3.small(~1910MB)에서 동적 계산이 너무 빡빡하게 잡히므로 비활성화
+  #
+  # mem_host_reserve_mb=$((total_mem_mb * 25 / 100))
+  # if [ "${mem_host_reserve_mb}" -lt 600 ]; then
+  #   mem_host_reserve_mb=600
+  # fi
+  # if [ "${mem_host_reserve_mb}" -gt 4096 ]; then
+  #   mem_host_reserve_mb=4096
+  # fi
+  # mem_budget_mb=$((total_mem_mb - mem_host_reserve_mb - dev_infra_mem_reserve_mb))
+  # if [ "${mem_budget_mb}" -lt 1024 ]; then
+  #   mem_budget_mb=$((total_mem_mb * 55 / 100))
+  # fi
+  #
+  # backend_mem_mb=$((mem_budget_mb * 70 / 100))
+  # alloy_mem_mb=$((mem_budget_mb - backend_mem_mb))
+  # if [ "${alloy_mem_mb}" -lt 384 ] && [ "${mem_budget_mb}" -gt 1280 ]; then
+  #   alloy_mem_mb=384
+  #   backend_mem_mb=$((mem_budget_mb - alloy_mem_mb))
+  # fi
+  #
+  # backend_mem_reservation_mb=$((backend_mem_mb * 75 / 100))
+  # alloy_mem_reservation_mb=$((alloy_mem_mb * 75 / 100))
+  #
+  # : "${BACKEND_MEMORY_LIMIT:=${backend_mem_mb}m}"
+  # : "${ALLOY_MEMORY_LIMIT:=${alloy_mem_mb}m}"
+  # : "${BACKEND_MEMORY_RESERVATION:=${backend_mem_reservation_mb}m}"
+  # : "${ALLOY_MEMORY_RESERVATION:=${alloy_mem_reservation_mb}m}"
+  # export BACKEND_MEMORY_LIMIT ALLOY_MEMORY_LIMIT
+  # export BACKEND_MEMORY_RESERVATION ALLOY_MEMORY_RESERVATION
 
   # 환경변수 기본값 설정 (이미 값이 있으면 유지)
   : "${BACKEND_CPU_LIMIT:=$(mcpu_to_cpus "${backend_mcpu}")}"
   : "${ALLOY_CPU_LIMIT:=$(mcpu_to_cpus "${alloy_mcpu}")}"
-  : "${BACKEND_MEMORY_LIMIT:=${backend_mem_mb}m}"
-  : "${ALLOY_MEMORY_LIMIT:=${alloy_mem_mb}m}"
-  : "${BACKEND_MEMORY_RESERVATION:=${backend_mem_reservation_mb}m}"
-  : "${ALLOY_MEMORY_RESERVATION:=${alloy_mem_reservation_mb}m}"
 
   export BACKEND_CPU_LIMIT ALLOY_CPU_LIMIT
-  export BACKEND_MEMORY_LIMIT ALLOY_MEMORY_LIMIT
-  export BACKEND_MEMORY_RESERVATION ALLOY_MEMORY_RESERVATION
 
   log "resource limits (host=${total_vcpu}vCPU/${total_mem_mb}MiB, dev-infra-reserve=${dev_infra_cpu_reserve_mcpu}mCPU/${dev_infra_mem_reserve_mb}MiB): \
-backend=${BACKEND_CPU_LIMIT} CPU, ${BACKEND_MEMORY_LIMIT} (reserve ${BACKEND_MEMORY_RESERVATION}); \
-alloy=${ALLOY_CPU_LIMIT} CPU, ${ALLOY_MEMORY_LIMIT} (reserve ${ALLOY_MEMORY_RESERVATION})"
+backend=${BACKEND_CPU_LIMIT} CPU, mem=compose-default; \
+alloy=${ALLOY_CPU_LIMIT} CPU, mem=compose-default"
 }
 
 compose_up() {
