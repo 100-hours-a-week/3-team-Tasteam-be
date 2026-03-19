@@ -74,7 +74,7 @@ public class KafkaMessageQueueConfig {
 			messageQueueKafkaTemplate,
 			(record, exception) -> new TopicPartition(
 				topicNamingPolicy.dlq(record.topic()),
-				record.partition())) {
+				0)) {
 
 			@Override
 			public void accept(org.apache.kafka.clients.consumer.ConsumerRecord<?, ?> record, Exception ex) {

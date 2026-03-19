@@ -286,7 +286,7 @@ tasteam:
         send-timeout-millis: ${KAFKA_PRODUCER_SEND_TIMEOUT_MILLIS:5000}
         transaction-id-prefix: ${KAFKA_TX_ID_PREFIX:tasteam-tx-}
       consumer:
-        concurrency: ${KAFKA_CONSUMER_CONCURRENCY:1}
+        concurrency: ${KAFKA_CONSUMER_CONCURRENCY:3}
         max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS:50}
         poll-timeout-millis: ${KAFKA_CONSUMER_POLL_TIMEOUT_MILLIS:1000}
         session-timeout-ms: ${KAFKA_CONSUMER_SESSION_TIMEOUT_MS:30000}
