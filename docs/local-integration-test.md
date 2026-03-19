@@ -15,6 +15,12 @@ MQ_PROVIDER=kafka
 KAFKA_BOOTSTRAP_SERVERS=localhost:29092
 KAFKA_CONNECT_URL=http://localhost:8083
 KAFKA_CONNECT_CONNECTOR_AUTO_REGISTER=true
+KAFKA_CONNECT_HEAP_OPTS=-Xms512M -Xmx768M
+KAFKA_CONNECT_MEM_LIMIT=1536m
+KAFKA_CONNECT_UA_S3_TASKS_MAX=1
+KAFKA_CONNECT_UA_S3_FLUSH_SIZE=100
+KAFKA_CONNECT_UA_S3_ROTATE_INTERVAL_MS=60000
+KAFKA_CONNECT_UA_S3_ROTATE_SCHEDULE_INTERVAL_MS=60000
 
 ANALYTICS_S3_BUCKET=tasteam-analytics-local
 S3_ENDPOINT=http://localhost:9000
@@ -72,6 +78,10 @@ curl http://localhost:8083/connectors
 # 출력: ["user-activity-s3-sink"]
 ```
 
+주의:
+- Kafka Connect는 커넥터 설정을 내부 토픽에 저장하므로, JSON 파일만 바꾸고 컨테이너만 재시작하면 이전 설정이 복원될 수 있다.
+- 로컬 JSON을 수정한 뒤 기존 커넥터 값을 갱신하려면 아래 `PUT` 요청이나 `docker compose ... down -v` 재기동이 필요하다.
+
 ### Step 4 — FE 기동
 
 ```bash
@@ -110,8 +120,18 @@ aws --endpoint-url=http://localhost:9000 \
 
 ## 커넥터 수동 등록 (자동 등록 미사용 시)
 
+최초 등록:
+
 ```bash
 curl -X POST http://localhost:8083/connectors \
+  -H "Content-Type: application/json" \
+  -d @config/kafka-connect/user-activity-s3-sink.local.json
+```
+
+기존 커넥터 설정 갱신:
+
+```bash
+curl -X PUT http://localhost:8083/connectors/user-activity-s3-sink/config \
   -H "Content-Type: application/json" \
   -d @config/kafka-connect/user-activity-s3-sink.local.json
 ```
