@@ -40,7 +40,23 @@ class KafkaMessageQueuePropertiesBindingTest {
 			Map.entry("tasteam.message-queue.kafka.user-activity-s3-ingest.topic",
 				"evt.user-activity.s3-ingest.custom.v1"),
 			Map.entry("tasteam.message-queue.kafka.user-activity-s3-ingest.dlq-topic",
-				"evt.user-activity.s3-ingest.custom.v1.dlq"));
+				"evt.user-activity.s3-ingest.custom.v1.dlq"),
+			Map.entry("tasteam.message-queue.kafka.connector.auto-register", "true"),
+			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.bucket",
+				"tasteam-analytics-local"),
+			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.region",
+				"ap-northeast-2"),
+			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.tasks-max", "2"),
+			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.flush-size", "250"),
+			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.rotate-interval-ms", "120000"),
+			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.rotate-schedule-interval-ms",
+				"180000"),
+			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.endpoint",
+				"http://minio:9000"),
+			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.path-style-access", "true"),
+			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.access-key-id", "minioadmin"),
+			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.secret-access-key",
+				"minioadmin"));
 		Binder binder = new Binder(new MapConfigurationPropertySource(source));
 
 		// when
@@ -68,6 +84,18 @@ class KafkaMessageQueuePropertiesBindingTest {
 		assertThat(properties.getUserActivityS3Ingest().getTopic()).isEqualTo("evt.user-activity.s3-ingest.custom.v1");
 		assertThat(properties.getUserActivityS3Ingest().getDlqTopic())
 			.isEqualTo("evt.user-activity.s3-ingest.custom.v1.dlq");
+		assertThat(properties.getConnector().isAutoRegister()).isTrue();
+		assertThat(properties.getConnector().getUserActivityS3Sink().getBucket()).isEqualTo("tasteam-analytics-local");
+		assertThat(properties.getConnector().getUserActivityS3Sink().getRegion()).isEqualTo("ap-northeast-2");
+		assertThat(properties.getConnector().getUserActivityS3Sink().getTasksMax()).isEqualTo(2);
+		assertThat(properties.getConnector().getUserActivityS3Sink().getFlushSize()).isEqualTo(250);
+		assertThat(properties.getConnector().getUserActivityS3Sink().getRotateIntervalMs()).isEqualTo(120000L);
+		assertThat(properties.getConnector().getUserActivityS3Sink().getRotateScheduleIntervalMs())
+			.isEqualTo(180000L);
+		assertThat(properties.getConnector().getUserActivityS3Sink().getEndpoint()).isEqualTo("http://minio:9000");
+		assertThat(properties.getConnector().getUserActivityS3Sink().isPathStyleAccess()).isTrue();
+		assertThat(properties.getConnector().getUserActivityS3Sink().getAccessKeyId()).isEqualTo("minioadmin");
+		assertThat(properties.getConnector().getUserActivityS3Sink().getSecretAccessKey()).isEqualTo("minioadmin");
 	}
 
 	@Test
@@ -93,5 +121,10 @@ class KafkaMessageQueuePropertiesBindingTest {
 		assertThat(properties.getConsumer().getRetry().getBackoffMillis()).isEqualTo(1000L);
 		assertThat(properties.getNotification().getTopic()).isEqualTo("evt.notification.dispatch.v1");
 		assertThat(properties.getUserActivityS3Ingest().getTopic()).isEqualTo("evt.user-activity.s3-ingest.v1");
+		assertThat(properties.getConnector().getUserActivityS3Sink().getTasksMax()).isEqualTo(8);
+		assertThat(properties.getConnector().getUserActivityS3Sink().getFlushSize()).isEqualTo(100000);
+		assertThat(properties.getConnector().getUserActivityS3Sink().getRotateIntervalMs()).isEqualTo(3600000L);
+		assertThat(properties.getConnector().getUserActivityS3Sink().getRotateScheduleIntervalMs())
+			.isEqualTo(3600000L);
 	}
 }
