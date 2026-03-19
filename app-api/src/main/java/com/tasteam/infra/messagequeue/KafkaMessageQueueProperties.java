@@ -34,8 +34,14 @@ public class KafkaMessageQueueProperties {
 	@Setter
 	public static class ConsumerProperties {
 		private int concurrency = 1;
-		private int maxPollRecords = 500;
+		private int maxPollRecords = 50;
 		private long pollTimeoutMillis = 1000L;
+		private int sessionTimeoutMs = 30000;
+		private int heartbeatIntervalMs = 10000;
+		private int maxPollIntervalMs = 300000;
+		private int fetchMinBytes = 1024;
+		private int fetchMaxWaitMs = 500;
+		private String partitionAssignmentStrategy = "org.apache.kafka.clients.consumer.CooperativeStickyAssignor";
 		private RetryProperties retry = new RetryProperties();
 	}
 
