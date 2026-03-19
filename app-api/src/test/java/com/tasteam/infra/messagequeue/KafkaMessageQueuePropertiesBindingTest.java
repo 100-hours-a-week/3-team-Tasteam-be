@@ -88,7 +88,7 @@ class KafkaMessageQueuePropertiesBindingTest {
 		assertThat(properties.getProducer().getAcks()).isEqualTo("all");
 		assertThat(properties.getProducer().getRetries()).isEqualTo(3);
 		assertThat(properties.getProducer().getSendTimeoutMillis()).isEqualTo(5000L);
-		assertThat(properties.getConsumer().getConcurrency()).isEqualTo(1);
+		assertThat(properties.getConsumer().getConcurrency()).isEqualTo(3);
 		assertThat(properties.getConsumer().getRetry().getMaxAttempts()).isEqualTo(3);
 		assertThat(properties.getConsumer().getRetry().getBackoffMillis()).isEqualTo(1000L);
 		assertThat(properties.getNotification().getTopic()).isEqualTo("evt.notification.dispatch.v1");
