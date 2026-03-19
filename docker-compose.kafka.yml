@@ -44,6 +44,8 @@ services:
       dockerfile: docker/kafka-connect/Dockerfile
     image: tasteam-kafka-connect:local
     container_name: tasteam-kafka-connect
+    restart: unless-stopped
+    mem_limit: ${KAFKA_CONNECT_MEM_LIMIT:-1536m}
     networks: [tasteam-net]
     depends_on:
       kafka:
@@ -66,6 +68,7 @@ services:
       CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
       CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components,/etc/kafka-connect/plugins
       CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
+      KAFKA_HEAP_OPTS: "${KAFKA_CONNECT_HEAP_OPTS:--Xms512M -Xmx768M}"
       # MinIO credentials (used by S3 Sink Connector as AWS credentials)
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
