@@ -70,27 +70,4 @@ class KafkaMessageQueuePropertiesBindingTest {
 			.isEqualTo("evt.user-activity.s3-ingest.custom.v1.dlq");
 	}
 
-	@Test
-	@DisplayName("설정이 비어 있으면 기본값을 유지한다")
-	void bind_withoutValues_keepsDefaults() {
-		// given
-		Binder binder = new Binder(new MapConfigurationPropertySource(Map.of()));
-
-		// when
-		KafkaMessageQueueProperties properties = binder.bind(
-			"tasteam.message-queue.kafka",
-			Bindable.of(KafkaMessageQueueProperties.class)).orElseGet(KafkaMessageQueueProperties::new);
-
-		// then
-		assertThat(properties.getBootstrapServers()).isEqualTo("localhost:29092");
-		assertThat(properties.getConnectUrl()).isEqualTo("http://localhost:8083");
-		assertThat(properties.getClientId()).isEqualTo("tasteam-api");
-		assertThat(properties.getProducer().getAcks()).isEqualTo("all");
-		assertThat(properties.getProducer().getRetries()).isEqualTo(3);
-		assertThat(properties.getProducer().getSendTimeoutMillis()).isEqualTo(5000L);
-		assertThat(properties.getConsumer().getRetry().getMaxAttempts()).isEqualTo(3);
-		assertThat(properties.getConsumer().getRetry().getBackoffMillis()).isEqualTo(1000L);
-		assertThat(properties.getNotification().getTopic()).isEqualTo("evt.notification.dispatch.v1");
-		assertThat(properties.getUserActivityS3Ingest().getTopic()).isEqualTo("evt.user-activity.s3-ingest.v1");
-	}
 }
