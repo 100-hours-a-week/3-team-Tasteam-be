@@ -1,22 +1,16 @@
-networks:
-  tasteam-kafka-net:
-    name: tasteam-kafka-net
-    driver: bridge
-
 services:
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     container_name: tasteam-kafka
     restart: unless-stopped
-    networks: [tasteam-kafka-net]
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://${KAFKA_EXTERNAL_HOST}:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${KAFKA_EXTERNAL_HOST}:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@${KAFKA_CONTROLLER_HOST}:9093
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -25,67 +19,18 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       CLUSTER_ID: ${KAFKA_CLUSTER_ID}
       KAFKA_JMX_PORT: 9101
-      KAFKA_JMX_HOSTNAME: kafka
-      KAFKA_JMX_OPTS: "-Dcom.sun.jndi.rmiregistry.disableAnonBind=true -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=9101"
+      KAFKA_JMX_HOSTNAME: ${KAFKA_JMX_HOSTNAME:-localhost}
+      KAFKA_JMX_OPTS: "-Dcom.sun.jndi.rmiregistry.disableAnonBind=true -Djava.rmi.server.hostname=${KAFKA_JMX_HOSTNAME:-localhost} -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=9101"
     ports:
       - "29092:29092"
       - "9101:9101"
     volumes:
       - kafka_data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-
-  kafka-connect:
-    build:
-      context: .
-      dockerfile: docker/kafka-connect/Dockerfile
-    image: tasteam-kafka-connect:prod
-    container_name: tasteam-kafka-connect
-    restart: unless-stopped
-    mem_limit: ${KAFKA_CONNECT_MEM_LIMIT:-1536m}
-    networks: [tasteam-kafka-net]
-    depends_on:
-      kafka:
-        condition: service_healthy
-    environment:
-      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
-      CONNECT_REST_PORT: 8083
-      CONNECT_REST_ADVERTISED_HOST_NAME: ${KAFKA_CONNECT_REST_ADVERTISED_HOST_NAME:-kafka-connect}
-      CONNECT_GROUP_ID: tasteam-connect-cluster
-      CONNECT_CONFIG_STORAGE_TOPIC: tasteam.connect.configs
-      CONNECT_OFFSET_STORAGE_TOPIC: tasteam.connect.offsets
-      CONNECT_STATUS_STORAGE_TOPIC: tasteam.connect.status
-      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
-      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
-      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
-      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components,/etc/kafka-connect/plugins
-      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
-      KAFKA_HEAP_OPTS: "${KAFKA_CONNECT_HEAP_OPTS:--Xms512M -Xmx768M}"
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_REGION: ${AWS_REGION}
-      KAFKA_JMX_PORT: 9102
-      KAFKA_JMX_HOSTNAME: kafka-connect
-      KAFKA_JMX_OPTS: "-Dcom.sun.jndi.rmiregistry.disableAnonBind=true -Djava.rmi.server.hostname=kafka-connect -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.rmi.port=9102"
-    ports:
-      - "8083:8083"
-      - "9102:9102"
-    volumes:
-      - connect_data:/var/lib/kafka-connect
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8083/connectors >/dev/null"]
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list >/dev/null 2>&1"]
       interval: 15s
       timeout: 10s
       retries: 10
 
 volumes:
   kafka_data:
-  connect_data:
