@@ -287,8 +287,14 @@ tasteam:
         transaction-id-prefix: ${KAFKA_TX_ID_PREFIX:tasteam-tx-}
       consumer:
         concurrency: ${KAFKA_CONSUMER_CONCURRENCY:1}
-        max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS:500}
+        max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS:50}
         poll-timeout-millis: ${KAFKA_CONSUMER_POLL_TIMEOUT_MILLIS:1000}
+        session-timeout-ms: ${KAFKA_CONSUMER_SESSION_TIMEOUT_MS:30000}
+        heartbeat-interval-ms: ${KAFKA_CONSUMER_HEARTBEAT_INTERVAL_MS:10000}
+        max-poll-interval-ms: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS:300000}
+        fetch-min-bytes: ${KAFKA_CONSUMER_FETCH_MIN_BYTES:1024}
+        fetch-max-wait-ms: ${KAFKA_CONSUMER_FETCH_MAX_WAIT_MS:500}
+        partition-assignment-strategy: ${KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY:org.apache.kafka.clients.consumer.CooperativeStickyAssignor}
         retry:
           max-attempts: ${KAFKA_CONSUMER_RETRY_MAX_ATTEMPTS:3}
           backoff-millis: ${KAFKA_CONSUMER_RETRY_BACKOFF_MILLIS:1000}
