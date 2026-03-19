@@ -1,7 +1,10 @@
 package com.tasteam.infra.messagequeue;
 
+import java.net.InetAddress;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -96,7 +99,19 @@ public class KafkaMessageQueueConfig {
 		configs.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 		configs.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 		DefaultKafkaProducerFactory<String, String> factory = new DefaultKafkaProducerFactory<>(configs);
-		factory.setTransactionIdPrefix(properties.getProducer().getTransactionIdPrefix());
+		String hostname = Optional.ofNullable(System.getenv("HOSTNAME"))
+			.orElseGet(() -> {
+				try {
+					return InetAddress.getLocalHost().getHostName();
+				} catch (Exception e) {
+					return "local";
+				}
+			})
+			.replaceAll("[^a-zA-Z0-9-]", "-")
+			.toLowerCase();
+		String transactionIdPrefix = properties.getProducer().getTransactionIdPrefix() + hostname + "-";
+		factory.setTransactionIdPrefix(transactionIdPrefix);
+		log.info("Kafka transactionIdPrefix 설정. prefix={}", transactionIdPrefix);
 		return factory;
 	}
 
@@ -117,6 +132,14 @@ public class KafkaMessageQueueConfig {
 		configs.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, properties.getConsumer().getMaxPollRecords());
 		configs.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 		configs.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
+		configs.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+		configs.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, properties.getConsumer().getSessionTimeoutMs());
+		configs.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, properties.getConsumer().getHeartbeatIntervalMs());
+		configs.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, properties.getConsumer().getMaxPollIntervalMs());
+		configs.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, properties.getConsumer().getFetchMinBytes());
+		configs.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, properties.getConsumer().getFetchMaxWaitMs());
+		configs.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG,
+			List.of(properties.getConsumer().getPartitionAssignmentStrategy()));
 		configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 		configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 		return new DefaultKafkaConsumerFactory<>(configs);
