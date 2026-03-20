@@ -1,2 +1,5 @@
-// 추후 코드 이동 시 의존성 추가 예정
-dependencies {}
+// analytics 인프라는 domain.analytics 도메인 타입과 app-api 전용 AOP에 의존하므로
+// 현재 단계에서는 app-api에 유지하고 추후 domain 분리 완료 후 이동 예정
+dependencies {
+    api project(':module-common:support')
+}
