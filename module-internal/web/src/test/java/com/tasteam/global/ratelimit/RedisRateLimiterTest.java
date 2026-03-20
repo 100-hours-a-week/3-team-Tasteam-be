@@ -13,11 +13,10 @@ import org.mockito.Mock;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-import com.tasteam.config.annotation.UnitTest;
-
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
-@UnitTest
+@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+@org.junit.jupiter.api.Tag("unit")
 @DisplayName("[유닛](Redis) RedisRateLimiter 단위 테스트")
 class RedisRateLimiterTest {
 

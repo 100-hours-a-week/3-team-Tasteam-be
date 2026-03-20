@@ -12,13 +12,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import com.tasteam.config.annotation.UnitTest;
-
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
-@UnitTest
+@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+@org.junit.jupiter.api.Tag("unit")
 @DisplayName("[유닛](Metrics) ThreadPoolExecutorMetricsSupport 단위 테스트")
 class ThreadPoolExecutorMetricsSupportTest {
 

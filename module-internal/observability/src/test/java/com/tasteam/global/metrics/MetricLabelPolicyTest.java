@@ -6,9 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.tasteam.config.annotation.UnitTest;
-
-@UnitTest
+@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+@org.junit.jupiter.api.Tag("unit")
 @DisplayName("[유닛](Metrics) MetricLabelPolicy 단위 테스트")
 class MetricLabelPolicyTest {
 
