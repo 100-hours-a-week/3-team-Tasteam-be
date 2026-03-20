@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
-import com.tasteam.domain.search.repository.SearchQueryProperties;
 import com.tasteam.domain.search.repository.SearchQueryStrategy;
 import com.tasteam.domain.search.repository.executor.NativeSearchExecutorSupport;
 import com.tasteam.domain.search.repository.executor.NativeSqlFragments;
@@ -19,12 +18,6 @@ import com.tasteam.domain.search.repository.executor.NativeSqlFragments;
 @Component
 public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 
-	private final SearchQueryProperties properties;
-
-	public MvSinglePassExecutor(SearchQueryProperties properties) {
-		this.properties = properties;
-	}
-
 	@Override
 	public SearchQueryStrategy strategy() {
 		return SearchQueryStrategy.MV_SINGLE_PASS;
@@ -34,9 +27,8 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 	public List<SearchRestaurantCursorRow> execute(String keyword, SearchCursor cursor, int size,
 		Double latitude, Double longitude, Double radiusMeters) {
 		boolean withLocation = latitude != null && longitude != null && radiusMeters != null;
-		int limit = properties.getCandidateLimit() * HYBRID_LIMIT_MULTIPLIER;
 		return runNative(buildSql(withLocation), keyword, cursor, size,
-			latitude, longitude, radiusMeters, limit, limit);
+			latitude, longitude, radiusMeters, 0, 0);
 	}
 
 	private String buildSql(boolean withLocation) {
@@ -44,8 +36,10 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 		String distanceExpr = NativeSqlFragments.distanceExprMv(withLocation);
 		String distanceScore = NativeSqlFragments.distanceScoreMv(withLocation);
 
+		// scored CTE: total_score를 한 번만 계산
+		// candidates CTE: 이미 계산된 total_score로 커서 조건 적용 후 LIMIT :size
 		return """
-			WITH candidates AS (
+			WITH scored AS (
 			    SELECT
 			        mv.restaurant_id,
 			        mv.name,
@@ -75,8 +69,27 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 				            OR mv.addr_lower LIKE '%' || :kw || '%'
 				            OR mv.category_names @> ARRAY[:kw]::text[]
 				          )
-				    ORDER BY total_score DESC, mv.updated_at DESC, mv.restaurant_id DESC
-				    LIMIT :text_candidate_limit
+				), candidates AS (
+				    SELECT
+				        restaurant_id,
+				        name,
+				        full_address,
+				        name_exact,
+				        name_similarity,
+				        distance_meters,
+				        category_match,
+				        address_match,
+				        updated_at,
+				        total_score
+				    FROM scored
+				    WHERE (
+				        CAST(:cursor_score AS double precision) IS NULL
+				        OR total_score < CAST(:cursor_score AS double precision)
+				        OR (total_score = CAST(:cursor_score AS double precision) AND updated_at < CAST(:cursor_updated_at AS timestamptz))
+				        OR (total_score = CAST(:cursor_score AS double precision) AND updated_at = CAST(:cursor_updated_at AS timestamptz) AND restaurant_id < CAST(:cursor_id AS bigint))
+				    )
+				    ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC
+				    LIMIT :size
 				)
 				SELECT
 				    restaurant_id,
@@ -89,7 +102,7 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 				    address_match,
 				    updated_at
 				FROM candidates
-				"""
-			+ CURSOR_WHERE_AND_ORDER;
+				ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC
+				""";
 	}
 }

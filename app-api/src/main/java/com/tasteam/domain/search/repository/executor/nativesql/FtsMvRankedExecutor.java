@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
-import com.tasteam.domain.search.repository.SearchQueryProperties;
 import com.tasteam.domain.search.repository.SearchQueryStrategy;
 import com.tasteam.domain.search.repository.executor.NativeSearchExecutorSupport;
 import com.tasteam.domain.search.repository.executor.NativeSqlFragments;
@@ -23,12 +22,6 @@ import com.tasteam.domain.search.repository.executor.NativeSqlFragments;
 @Component
 public class FtsMvRankedExecutor extends NativeSearchExecutorSupport {
 
-	private final SearchQueryProperties properties;
-
-	public FtsMvRankedExecutor(SearchQueryProperties properties) {
-		this.properties = properties;
-	}
-
 	@Override
 	public SearchQueryStrategy strategy() {
 		return SearchQueryStrategy.FTS_MV_RANKED;
@@ -40,8 +33,7 @@ public class FtsMvRankedExecutor extends NativeSearchExecutorSupport {
 		boolean withLocation = latitude != null && longitude != null && radiusMeters != null;
 		return runFtsNative(
 			buildSql(withLocation),
-			keyword, cursor, size, latitude, longitude, radiusMeters,
-			properties.getCandidateLimit() * HYBRID_LIMIT_MULTIPLIER);
+			keyword, cursor, size, latitude, longitude, radiusMeters, 0);
 	}
 
 	private String buildSql(boolean withLocation) {
@@ -55,8 +47,8 @@ public class FtsMvRankedExecutor extends NativeSearchExecutorSupport {
 
 		// tsq CTE: plainto_tsquery를 한 번만 평가해 filtered/scored에서 재사용
 		// filtered CTE: 인덱스 조건만으로 후보 추출 + ST_DistanceSphere 1회 계산
-		// scored CTE: 비용 함수(similarity, ts_rank_cd, CASE WHEN)를 각 1회 계산
-		// ranked CTE: 이미 계산된 컬럼으로 total_score 조합 후 LIMIT
+		// scored CTE: 비용 함수(similarity, ts_rank_cd, CASE WHEN) + total_score를 한 번 계산
+		// ranked CTE: 이미 계산된 total_score로 커서 조건 적용 후 LIMIT :size
 		return "WITH tsq AS ("
 			+ " SELECT plainto_tsquery('simple', :kw) AS q"
 			+ " ),"
@@ -92,7 +84,13 @@ public class FtsMvRankedExecutor extends NativeSearchExecutorSupport {
 			+ "         ts_rank_cd(f.search_vector, tsq.q)::double precision                 AS fts_rank,"
 			+ "         f.distance_meters,"
 			+ "         CASE WHEN f.category_names @> ARRAY[:kw]::text[] THEN 1 ELSE 0 END  AS category_match,"
-			+ "         CASE WHEN f.addr_lower LIKE '%' || :kw || '%' THEN 1 ELSE 0 END     AS address_match"
+			+ "         CASE WHEN f.addr_lower LIKE '%' || :kw || '%' THEN 1 ELSE 0 END     AS address_match,"
+			+ "         (CASE WHEN f.name_lower = :kw THEN 1 ELSE 0 END * 100.0"
+			+ "          + similarity(f.name_lower, :kw)::double precision * 30.0"
+			+ "          + ts_rank_cd(f.search_vector, tsq.q)::double precision * 25.0"
+			+ "          + CASE WHEN f.category_names @> ARRAY[:kw]::text[] THEN 1 ELSE 0 END * 15.0"
+			+ "          + CASE WHEN f.addr_lower LIKE '%' || :kw || '%' THEN 1 ELSE 0 END * 5.0"
+			+ "          + " + distanceScore + ")                                            AS total_score"
 			+ "     FROM filtered f, tsq"
 			+ " ),"
 			+ " ranked AS ("
@@ -107,19 +105,20 @@ public class FtsMvRankedExecutor extends NativeSearchExecutorSupport {
 			+ "         distance_meters,"
 			+ "         category_match,"
 			+ "         address_match,"
-			+ "         (name_exact * 100.0"
-			+ "          + name_similarity * 30.0"
-			+ "          + fts_rank * 25.0"
-			+ "          + category_match * 15.0"
-			+ "          + address_match * 5.0"
-			+ "          + " + distanceScore + ") AS total_score"
+			+ "         total_score"
 			+ "     FROM scored"
+			+ "     WHERE ("
+			+ "         CAST(:cursor_score AS double precision) IS NULL"
+			+ "         OR total_score < CAST(:cursor_score AS double precision)"
+			+ "         OR (total_score = CAST(:cursor_score AS double precision) AND updated_at < CAST(:cursor_updated_at AS timestamptz))"
+			+ "         OR (total_score = CAST(:cursor_score AS double precision) AND updated_at = CAST(:cursor_updated_at AS timestamptz) AND restaurant_id < CAST(:cursor_id AS bigint))"
+			+ "     )"
 			+ "     ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC"
-			+ "     LIMIT :text_candidate_limit"
+			+ "     LIMIT :size"
 			+ " )"
 			+ " SELECT restaurant_id, name, full_address, name_exact, name_similarity, fts_rank,"
 			+ "        distance_meters, category_match, address_match, updated_at"
 			+ " FROM ranked"
-			+ " " + CURSOR_WHERE_AND_ORDER;
+			+ " ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC";
 	}
 }
