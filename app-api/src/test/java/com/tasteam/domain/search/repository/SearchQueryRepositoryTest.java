@@ -64,7 +64,9 @@ class SearchQueryRepositoryTest {
 		jdbcTemplate.execute("""
 			CREATE MATERIALIZED VIEW IF NOT EXISTS restaurant_search_mv AS
 			SELECT
-			    r.id AS restaurant_id,
+			    r.id             AS restaurant_id,
+			    r.name           AS name,
+			    r.full_address   AS full_address,
 			    lower(r.name)         AS name_lower,
 			    lower(r.full_address) AS addr_lower,
 			    r.location,

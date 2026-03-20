@@ -61,14 +61,13 @@ public class JoinAggregateQueryExecutor extends QueryDslSupport implements Searc
 		return getQueryFactory()
 			.select(Projections.constructor(
 				SearchRestaurantCursorRow.class,
-				Projections.constructor(RestaurantSearchRow.class, r.id, r.name, r.fullAddress),
+				Projections.constructor(RestaurantSearchRow.class, r.id, r.name, r.fullAddress, r.updatedAt),
 				nameExactScore,
 				nameSimilarity,
 				Expressions.nullExpression(Double.class),
 				distanceExpr,
 				categoryScore,
-				addressScore,
-				r.updatedAt))
+				addressScore))
 			.from(r)
 			.leftJoin(rfc).on(rfc.restaurant.eq(r))
 			.leftJoin(rfc.foodCategory, fc)
