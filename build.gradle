@@ -102,6 +102,10 @@ subprojects {
         }
     }
 
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs << '-parameters'
+    }
+
     configurations {
         compileOnly {
             extendsFrom annotationProcessor
