@@ -8,8 +8,9 @@ import java.time.ZonedDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
-@org.junit.jupiter.api.Tag("unit")
+import com.tasteam.config.annotation.UnitTest;
+
+@UnitTest
 @DisplayName("[유닛](Rate) RateLimitKeyFactory 단위 테스트")
 class RateLimitKeyFactoryTest {
 

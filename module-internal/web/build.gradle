@@ -11,4 +11,6 @@ dependencies {
     implementation 'io.micrometer:micrometer-core'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.15'
     implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.+'
+
+    testImplementation(testFixtures(project(":module-common:support")))
 }

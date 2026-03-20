@@ -28,11 +28,11 @@ dependencies {
      * Test Fixtures
      * ================================================== */
     testFixturesImplementation 'org.hibernate.orm:hibernate-spatial'
-    testFixturesImplementation 'org.junit.jupiter:junit-jupiter-api'
-    testFixturesImplementation 'org.mockito:mockito-junit-jupiter:5.17.0'
+    testFixturesImplementation(testFixtures(project(":module-common:support")))
 
     /* ==================================================
      * Test
      * ================================================== */
     testImplementation(testFixtures(project(":module-domain:core")))
+    testImplementation(testFixtures(project(":module-common:support")))
 }

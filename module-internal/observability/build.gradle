@@ -10,4 +10,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'io.micrometer:micrometer-core'
     implementation 'com.github.ben-manes.caffeine:caffeine'
+
+    testImplementation(testFixtures(project(":module-common:support")))
 }
