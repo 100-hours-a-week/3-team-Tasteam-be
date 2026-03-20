@@ -12,7 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 /**
  * 순수 단위 테스트를 위한 메타 어노테이션입니다.
  * - @ExtendWith(MockitoExtension.class) : Mockito 확장을 활성화하여 @Mock/@InjectMocks 사용을 지원
- * - @Tag(\"unit\") : Gradle/JUnit에서 단위 테스트만 필터링해 실행할 수 있도록 태그 부여
+ * - @Tag("unit") : Gradle/JUnit에서 단위 테스트만 필터링해 실행할 수 있도록 태그 부여
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

@@ -23,6 +23,8 @@ dependencies {
     implementation project(':module-infra:webhook')
     implementation project(':module-infra:notification')
     implementation project(':module-internal:security')
+    implementation project(':module-internal:observability')
+    implementation project(':module-internal:web')
     implementation project(':module-infra:messaging')
 
     /* ==================================================
@@ -141,6 +143,8 @@ dependencies {
      * ================================================== */
     testImplementation(testFixtures(project(":app-api")))
     testImplementation(testFixtures(project(":module-domain:core")))
+    testImplementation(testFixtures(project(":module-common:support")))
+    testImplementation(testFixtures(project(":module-internal:security")))
     testImplementation "org.springframework.security:spring-security-test"
     testImplementation "com.squareup.okhttp3:mockwebserver:4.12.0"
 
