@@ -12,6 +12,7 @@ import com.querydsl.core.types.dsl.NumberExpression;
 import com.tasteam.domain.common.repository.QueryDslSupport;
 import com.tasteam.domain.restaurant.entity.QRestaurant;
 import com.tasteam.domain.restaurant.entity.Restaurant;
+import com.tasteam.domain.search.dto.RestaurantSearchRow;
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 import com.tasteam.domain.search.repository.SearchQueryStrategy;
@@ -55,7 +56,7 @@ public class OneStepQueryExecutor extends QueryDslSupport implements SearchQuery
 		return getQueryFactory()
 			.select(Projections.constructor(
 				SearchRestaurantCursorRow.class,
-				r,
+				Projections.constructor(RestaurantSearchRow.class, r.id, r.name, r.fullAddress, r.updatedAt),
 				nameExactScore,
 				nameSimilarity,
 				Expressions.nullExpression(Double.class),

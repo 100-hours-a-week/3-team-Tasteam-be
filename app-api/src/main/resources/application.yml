@@ -208,6 +208,9 @@ tasteam:
     ttl:
       search-restaurant-first-page:
         ttl: 5m
+      recent-searches:
+        ttl: ${LOCAL_CACHE_RECENT_SEARCHES_TTL:3m}
+        maximum-size: ${LOCAL_CACHE_RECENT_SEARCHES_MAX_SIZE:5000}
       presigned-url:
         ttl: ${LOCAL_CACHE_PRESIGNED_URL_TTL:240s}
       main-section-hot-all:

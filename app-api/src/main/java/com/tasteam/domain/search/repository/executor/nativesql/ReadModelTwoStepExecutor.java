@@ -108,6 +108,8 @@ public class ReadModelTwoStepExecutor extends NativeSearchExecutorSupport {
 				, scored_base AS (
 				    SELECT
 				        mv.restaurant_id,
+				        mv.name,
+				        mv.full_address,
 				        CASE WHEN mv.name_lower = :kw THEN 1 ELSE 0 END AS name_exact,
 				        similarity(mv.name_lower, :kw)::double precision AS name_similarity,
 				        """
@@ -122,6 +124,8 @@ public class ReadModelTwoStepExecutor extends NativeSearchExecutorSupport {
 				), scored AS (
 				    SELECT
 				        restaurant_id,
+				        name,
+				        full_address,
 				        name_exact,
 				        name_similarity,
 				        distance_meters,
@@ -138,11 +142,14 @@ public class ReadModelTwoStepExecutor extends NativeSearchExecutorSupport {
 				)
 				SELECT
 				    restaurant_id,
+				    name,
+				    full_address,
 				    name_exact,
 				    name_similarity,
 				    distance_meters,
 				    category_match,
-				    address_match
+				    address_match,
+				    updated_at
 				FROM scored
 				"""
 			+ CURSOR_WHERE_AND_ORDER;

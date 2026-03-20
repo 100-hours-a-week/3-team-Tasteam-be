@@ -14,6 +14,7 @@ import com.tasteam.domain.restaurant.entity.QFoodCategory;
 import com.tasteam.domain.restaurant.entity.QRestaurant;
 import com.tasteam.domain.restaurant.entity.QRestaurantFoodCategory;
 import com.tasteam.domain.restaurant.entity.Restaurant;
+import com.tasteam.domain.search.dto.RestaurantSearchRow;
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 import com.tasteam.domain.search.repository.SearchQueryStrategy;
@@ -60,7 +61,7 @@ public class JoinAggregateQueryExecutor extends QueryDslSupport implements Searc
 		return getQueryFactory()
 			.select(Projections.constructor(
 				SearchRestaurantCursorRow.class,
-				r,
+				Projections.constructor(RestaurantSearchRow.class, r.id, r.name, r.fullAddress, r.updatedAt),
 				nameExactScore,
 				nameSimilarity,
 				Expressions.nullExpression(Double.class),

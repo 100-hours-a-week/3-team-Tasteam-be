@@ -71,6 +71,8 @@ public class GeoFirstHybridExecutor extends NativeSearchExecutorSupport {
 			), scored_base AS (
 			    SELECT
 			        r.id AS restaurant_id,
+			        r.name,
+			        r.full_address,
 			        CASE WHEN lower(r.name) = :kw THEN 1 ELSE 0 END AS name_exact,
 			        similarity(lower(r.name), :kw)::double precision AS name_similarity,
 			        t.distance_meters::double precision AS distance_meters,
@@ -89,6 +91,8 @@ public class GeoFirstHybridExecutor extends NativeSearchExecutorSupport {
 			), scored AS (
 			    SELECT
 			        restaurant_id,
+			        name,
+			        full_address,
 			        name_exact,
 			        name_similarity,
 			        distance_meters,
@@ -102,11 +106,14 @@ public class GeoFirstHybridExecutor extends NativeSearchExecutorSupport {
 			)
 			SELECT
 			    restaurant_id,
+			    name,
+			    full_address,
 			    name_exact,
 			    name_similarity,
 			    distance_meters,
 			    category_match,
-			    address_match
+			    address_match,
+			    updated_at
 			FROM scored
 			"""
 			+ CURSOR_WHERE_AND_ORDER;

@@ -1,15 +1,14 @@
 package com.tasteam.domain.search.repository.executor;
 
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.tasteam.domain.common.repository.QueryDslSupport;
-import com.tasteam.domain.restaurant.entity.QRestaurant;
 import com.tasteam.domain.restaurant.entity.Restaurant;
+import com.tasteam.domain.search.dto.RestaurantSearchRow;
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
 
@@ -18,8 +17,8 @@ import jakarta.persistence.Query;
 /**
  * native SQL 기반 검색 전략 실행기의 공통 로직을 담은 추상 클래스.
  * <p>
- * - {@link #runNative}: 6컬럼 결과(ftsRank=null)를 처리하는 일반 native 실행기
- * - {@link #runFtsNative}: 7컬럼 결과(fts_rank 포함)를 처리하는 FTS 전용 실행기
+ * - {@link #runNative}: name/full_address 포함 8컬럼 결과(ftsRank=null)를 처리하는 일반 native 실행기
+ * - {@link #runFtsNative}: name/full_address 포함 9컬럼 결과(fts_rank 포함)를 처리하는 FTS 전용 실행기
  * - {@link #CURSOR_WHERE_AND_ORDER}: 5개 native 전략이 공유하는 커서 페이지네이션 SQL 절
  */
 public abstract class NativeSearchExecutorSupport extends QueryDslSupport implements SearchQueryExecutor {
@@ -47,7 +46,7 @@ public abstract class NativeSearchExecutorSupport extends QueryDslSupport implem
 
 	/**
 	 * 일반 native 전략 실행기.
-	 * 결과 컬럼 순서: restaurant_id, name_exact, name_similarity, distance_meters, category_match, address_match
+	 * 결과 컬럼 순서: restaurant_id, name, full_address, name_exact, name_similarity, distance_meters, category_match, address_match, updated_at
 	 * ftsRank는 null로 고정된다.
 	 */
 	@SuppressWarnings("unchecked")
@@ -83,33 +82,27 @@ public abstract class NativeSearchExecutorSupport extends QueryDslSupport implem
 			return List.of();
 		}
 
-		Map<Long, Restaurant> restaurantMap = fetchRestaurantMap(rows.stream()
-			.map(row -> toLong(row[0]))
-			.toList());
-
 		List<SearchRestaurantCursorRow> result = new ArrayList<>();
 		for (Object[] row : rows) {
-			Long restaurantId = toLong(row[0]);
-			Restaurant restaurant = restaurantMap.get(restaurantId);
-			if (restaurant == null) {
-				continue;
-			}
-			// columns: restaurant_id, name_exact, name_similarity, distance_meters, category_match, address_match
+			// columns: restaurant_id, name, full_address, name_exact, name_similarity, distance_meters, category_match, address_match, updated_at
+			Long id = toLong(row[0]);
+			String name = (String)row[1];
+			String fullAddress = (String)row[2];
 			result.add(new SearchRestaurantCursorRow(
-				restaurant,
-				toInteger(row[1]),
-				toDouble(row[2]),
+				new RestaurantSearchRow(id, name, fullAddress, toInstant(row[8])),
+				toInteger(row[3]),
+				toDouble(row[4]),
 				null,
-				toNullableDouble(row[3]),
-				toInteger(row[4]),
-				toInteger(row[5])));
+				toNullableDouble(row[5]),
+				toInteger(row[6]),
+				toInteger(row[7])));
 		}
 		return result;
 	}
 
 	/**
 	 * FTS 전용 native 실행기.
-	 * 결과 컬럼 순서: restaurant_id, name_exact, name_similarity, fts_rank, distance_meters, category_match, address_match
+	 * 결과 컬럼 순서: restaurant_id, name, full_address, name_exact, name_similarity, fts_rank, distance_meters, category_match, address_match, updated_at
 	 */
 	@SuppressWarnings("unchecked")
 	protected List<SearchRestaurantCursorRow> runFtsNative(String sql, String keyword, SearchCursor cursor, int size,
@@ -139,26 +132,20 @@ public abstract class NativeSearchExecutorSupport extends QueryDslSupport implem
 			return List.of();
 		}
 
-		Map<Long, Restaurant> restaurantMap = fetchRestaurantMap(rows.stream()
-			.map(row -> toLong(row[0]))
-			.toList());
-
 		List<SearchRestaurantCursorRow> result = new ArrayList<>();
 		for (Object[] row : rows) {
-			Long restaurantId = toLong(row[0]);
-			Restaurant restaurant = restaurantMap.get(restaurantId);
-			if (restaurant == null) {
-				continue;
-			}
-			// columns: restaurant_id, name_exact, name_similarity, fts_rank, distance_meters, category_match, address_match
+			// columns: restaurant_id, name, full_address, name_exact, name_similarity, fts_rank, distance_meters, category_match, address_match, updated_at
+			Long id = toLong(row[0]);
+			String name = (String)row[1];
+			String fullAddress = (String)row[2];
 			result.add(new SearchRestaurantCursorRow(
-				restaurant,
-				toInteger(row[1]),
-				toDouble(row[2]),
-				toNullableDouble(row[3]),
-				toNullableDouble(row[4]),
-				toInteger(row[5]),
-				toInteger(row[6])));
+				new RestaurantSearchRow(id, name, fullAddress, toInstant(row[9])),
+				toInteger(row[3]),
+				toDouble(row[4]),
+				toNullableDouble(row[5]),
+				toNullableDouble(row[6]),
+				toInteger(row[7]),
+				toInteger(row[8])));
 		}
 		return result;
 	}
@@ -179,17 +166,6 @@ public abstract class NativeSearchExecutorSupport extends QueryDslSupport implem
 		return SearchScoreCalculator.cursorScoreFts(cursor, radiusMeters);
 	}
 
-	private Map<Long, Restaurant> fetchRestaurantMap(List<Long> ids) {
-		QRestaurant r = QRestaurant.restaurant;
-		Map<Long, Restaurant> map = new HashMap<>();
-		getQueryFactory()
-			.selectFrom(r)
-			.where(r.id.in(ids))
-			.fetch()
-			.forEach(restaurant -> map.put(restaurant.getId(), restaurant));
-		return map;
-	}
-
 	protected Long toLong(Object value) {
 		return ((Number)value).longValue();
 	}
@@ -204,6 +180,19 @@ public abstract class NativeSearchExecutorSupport extends QueryDslSupport implem
 
 	protected Double toNullableDouble(Object value) {
 		return value == null ? null : ((Number)value).doubleValue();
+	}
+
+	protected Instant toInstant(Object value) {
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Instant inst) {
+			return inst;
+		}
+		if (value instanceof java.sql.Timestamp ts) {
+			return ts.toInstant();
+		}
+		return Instant.parse(value.toString());
 	}
 
 	// QueryDslSupport가 요구하는 NumberExpression 유틸 — native Executor에서는 직접 사용하지 않으나

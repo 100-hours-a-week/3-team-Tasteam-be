@@ -542,6 +542,16 @@ OR total_score < CAST(:cursor_score AS double precision)
 
 ---
 
+# **[8-1] 참고 자료**
+
+- [FTS_MV_RANKED 전략 Deep Dive](./fts-mv-ranked-deep-dive.md) — 전략 설계 근거, SQL 전체, 점수식 상세, 인덱스 매핑
+- [EXPLAIN 검증 문서 (Wiki)](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BTroubleshooting%5D-%EA%B2%80%EC%83%89-FTS-MV-RANKED-%EC%A0%84%EB%9E%B5-%EC%84%A4%EA%B3%84-%EB%B0%8F-EXPLAIN-%EA%B2%80%EC%A6%9D) — 11.2K 데이터 실측 EXPLAIN 결과
+- [EXPLAIN 분석 — MV_SINGLE_PASS 설계 (Wiki)](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BTroubleshooting%5D-%EA%B2%80%EC%83%89-%EC%A0%84%EB%9E%B5-EXPLAIN-%EB%B6%84%EC%84%9D-MV-SINGLE-PASS-%EC%84%A4%EA%B3%84) — v1 전략 비교 EXPLAIN
+
+<br>
+
+---
+
 # **[9] 변경이력**
 
 | 버전 | 일자 | 작성자 | 변경 내역 |
