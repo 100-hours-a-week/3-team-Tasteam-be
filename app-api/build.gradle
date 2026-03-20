@@ -23,6 +23,8 @@ dependencies {
     implementation project(':module-infra:webhook')
     implementation project(':module-infra:notification')
     implementation project(':module-internal:security')
+    implementation project(':module-internal:observability')
+    implementation project(':module-internal:web')
     implementation project(':module-infra:messaging')
 
     /* ==================================================

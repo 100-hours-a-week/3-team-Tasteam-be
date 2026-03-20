@@ -1,2 +1,13 @@
-// 추후 코드 이동 시 의존성 추가 예정
-dependencies {}
+dependencies {
+    api project(':module-common:support')
+
+    compileOnly 'org.projectlombok:lombok:1.18.42'
+    annotationProcessor 'org.projectlombok:lombok:1.18.42'
+
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'io.micrometer:micrometer-core'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
+}

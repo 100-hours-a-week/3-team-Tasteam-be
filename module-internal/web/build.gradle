@@ -1,2 +1,14 @@
-// 추후 코드 이동 시 의존성 추가 예정
-dependencies {}
+dependencies {
+    api project(':module-common:support')
+    implementation project(':module-infra:redis')
+
+    compileOnly 'org.projectlombok:lombok:1.18.42'
+    annotationProcessor 'org.projectlombok:lombok:1.18.42'
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'io.micrometer:micrometer-core'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.15'
+    implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.+'
+}
