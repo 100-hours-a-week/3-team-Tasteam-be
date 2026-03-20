@@ -4,9 +4,6 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
-import com.tasteam.domain.restaurant.dto.request.MenuBulkCreateRequest;
-import com.tasteam.domain.restaurant.dto.request.MenuCategoryCreateRequest;
-import com.tasteam.domain.restaurant.dto.request.MenuCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
 import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
 import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
@@ -59,17 +56,4 @@ public final class RestaurantRequestFixture {
 		return new RestaurantReviewListRequest(null, DEFAULT_SIZE);
 	}
 
-	public static MenuCategoryCreateRequest createMenuCategoryRequest() {
-		return new MenuCategoryCreateRequest("메인메뉴", 0);
-	}
-
-	public static MenuCreateRequest createMenuRequest() {
-		return new MenuCreateRequest(1L, "된장찌개", "구수한 된장찌개", 9000, null, null, true, 0);
-	}
-
-	public static MenuBulkCreateRequest createMenuBulkRequest() {
-		return new MenuBulkCreateRequest(List.of(
-			new MenuCreateRequest(1L, "된장찌개", "구수한 된장찌개", 9000, null, null, true, 0),
-			new MenuCreateRequest(1L, "김치찌개", "매콤한 김치찌개", 8000, null, null, false, 1)));
-	}
 }
