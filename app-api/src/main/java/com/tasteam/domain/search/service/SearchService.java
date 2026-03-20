@@ -135,7 +135,7 @@ public class SearchService {
 		return new SearchResponse(groups, restaurants);
 	}
 
-	@Cacheable(value = "recent-searches", key = "#memberId")
+	@Cacheable(value = "recent-searches", key = "#memberId", condition = "#memberId != null")
 	@Transactional(readOnly = true)
 	public OffsetPageResponse<RecentSearchItem> getRecentSearches(Long memberId) {
 		if (memberId == null) {
