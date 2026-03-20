@@ -83,7 +83,7 @@ class SearchStrategyBenchmarkTest {
 		assertThat(result).isNotEmpty();
 
 		List<Long> ids = result.stream()
-			.map(row -> row.restaurant().getId())
+			.map(row -> row.restaurant().id())
 			.collect(Collectors.toList());
 		System.out.printf("[%s] top-5 IDs: %s%n", strategy, ids.subList(0, Math.min(5, ids.size())));
 	}

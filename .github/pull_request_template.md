@@ -4,7 +4,7 @@
 - 
 
 ### Issue
-- close : #
+- Closes: #
 
 ---
 

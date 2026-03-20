@@ -36,11 +36,11 @@ public class SearchResultAssembler {
 		return restaurantData.page().items().stream()
 			.map(SearchRestaurantCursorRow::restaurant)
 			.map(r -> new SearchRestaurantItem(
-				r.getId(),
-				r.getName(),
-				r.getFullAddress(),
-				firstImageUrl(thumbnails.getOrDefault(r.getId(), List.of()), RestaurantImageDto::url),
-				restaurantData.categories().getOrDefault(r.getId(), List.of())))
+				r.id(),
+				r.name(),
+				r.fullAddress(),
+				firstImageUrl(thumbnails.getOrDefault(r.id(), List.of()), RestaurantImageDto::url),
+				restaurantData.categories().getOrDefault(r.id(), List.of())))
 			.toList();
 	}
 

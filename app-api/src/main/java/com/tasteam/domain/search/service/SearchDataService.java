@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.type.GroupStatus;
-import com.tasteam.domain.restaurant.entity.Restaurant;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
 import com.tasteam.domain.search.dto.SearchCursor;
 import com.tasteam.domain.search.dto.SearchRestaurantCursorRow;
@@ -86,12 +85,11 @@ public class SearchDataService {
 				last.distanceMeters(),
 				last.categoryMatch(),
 				last.addressMatch(),
-				last.restaurant().getUpdatedAt(),
-				last.restaurant().getId()));
+				last.restaurant().updatedAt(),
+				last.restaurant().id()));
 
 		List<Long> restaurantIds = page.items().stream()
-			.map(SearchRestaurantCursorRow::restaurant)
-			.map(Restaurant::getId)
+			.map(row -> row.restaurant().id())
 			.toList();
 
 		Map<Long, List<String>> categories = restaurantIds.isEmpty()

@@ -48,6 +48,8 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 			WITH candidates AS (
 			    SELECT
 			        mv.restaurant_id,
+			        mv.name,
+			        mv.full_address,
 			        mv.updated_at,
 			        CASE WHEN mv.name_lower = :kw THEN 1 ELSE 0 END AS name_exact,
 			        similarity(mv.name_lower, :kw)::double precision AS name_similarity,
@@ -78,11 +80,14 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 				)
 				SELECT
 				    restaurant_id,
+				    name,
+				    full_address,
 				    name_exact,
 				    name_similarity,
 				    distance_meters,
 				    category_match,
-				    address_match
+				    address_match,
+				    updated_at
 				FROM candidates
 				"""
 			+ CURSOR_WHERE_AND_ORDER;

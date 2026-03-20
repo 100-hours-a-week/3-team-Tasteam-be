@@ -378,7 +378,8 @@ class SearchQueryRepositoryTest {
 			List<SearchRestaurantCursorRow> peek = searchQueryRepository.searchRestaurantsByKeyword(
 				"치킨", null, 3, LAT, LON, RADIUS_METERS);
 			if (peek.size() > 2) {
-				Restaurant toDelete = peek.get(2).restaurant();
+				Long toDeleteId = peek.get(2).restaurant().id();
+				Restaurant toDelete = restaurantRepository.findById(toDeleteId).orElseThrow();
 				toDelete.softDelete(Instant.now());
 				restaurantRepository.saveAndFlush(toDelete);
 			}
@@ -387,7 +388,11 @@ class SearchQueryRepositoryTest {
 			List<SearchRestaurantCursorRow> page2 = searchQueryRepository.searchRestaurantsByKeyword(
 				"치킨", cursor, 10, LAT, LON, RADIUS_METERS);
 
-			page2.forEach(row -> assertThat(row.restaurant().getDeletedAt()).isNull());
+			Long deletedId = peek.size() > 2 ? peek.get(2).restaurant().id() : null;
+			if (deletedId != null) {
+				List<Long> page2Ids = ids(page2);
+				assertThat(page2Ids).doesNotContain(deletedId);
+			}
 		}
 	}
 
@@ -559,7 +564,7 @@ class SearchQueryRepositoryTest {
 
 	private List<Long> ids(List<SearchRestaurantCursorRow> rows) {
 		return rows.stream()
-			.map(row -> row.restaurant().getId())
+			.map(row -> row.restaurant().id())
 			.collect(Collectors.toList());
 	}
 
@@ -571,8 +576,8 @@ class SearchQueryRepositoryTest {
 			row.distanceMeters(),
 			row.categoryMatch(),
 			row.addressMatch(),
-			row.restaurant().getUpdatedAt(),
-			row.restaurant().getId());
+			row.restaurant().updatedAt(),
+			row.restaurant().id());
 	}
 
 	private void saveRestaurants(String baseName, int count) {
