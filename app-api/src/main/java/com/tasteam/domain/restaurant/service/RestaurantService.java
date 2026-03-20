@@ -20,7 +20,6 @@ import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.service.DomainImageLinker;
 import com.tasteam.domain.group.repository.GroupRepository;
-import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.dto.GroupRestaurantSearchCondition;
 import com.tasteam.domain.restaurant.dto.NearbyRestaurantSearchCondition;
 import com.tasteam.domain.restaurant.dto.RestaurantCursor;
@@ -42,7 +41,6 @@ import com.tasteam.domain.restaurant.entity.RestaurantAddress;
 import com.tasteam.domain.restaurant.entity.RestaurantFoodCategory;
 import com.tasteam.domain.restaurant.entity.RestaurantWeeklySchedule;
 import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
-import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
 import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
 import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantAddressRepository;
@@ -57,6 +55,8 @@ import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.infra.geocode.dto.GeocodingResult;
+import com.tasteam.infra.geocode.naver.NaverGeocodingClient;
 
 import lombok.RequiredArgsConstructor;
 

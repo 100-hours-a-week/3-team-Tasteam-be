@@ -1,4 +1,4 @@
-package com.tasteam.domain.restaurant.geocoding;
+package com.tasteam.infra.geocode.naver;
 
 import java.util.List;
 
@@ -6,9 +6,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.infra.geocode.dto.GeocodingResult;
 
 import lombok.RequiredArgsConstructor;
 

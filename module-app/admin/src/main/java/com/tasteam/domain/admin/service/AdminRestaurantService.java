@@ -23,8 +23,7 @@ import com.tasteam.domain.admin.dto.response.AdminRestaurantListItem;
 import com.tasteam.domain.file.entity.DomainImage;
 import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.repository.DomainImageRepository;
-import com.tasteam.domain.file.service.DomainImageLinker;
-import com.tasteam.domain.file.service.FileService;
+import com.tasteam.domain.file.service.AdminFileService;
 import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
 import com.tasteam.domain.restaurant.dto.response.RestaurantImageDto;
 import com.tasteam.domain.restaurant.entity.FoodCategory;
@@ -33,10 +32,10 @@ import com.tasteam.domain.restaurant.entity.RestaurantAddress;
 import com.tasteam.domain.restaurant.entity.RestaurantFoodCategory;
 import com.tasteam.domain.restaurant.entity.RestaurantWeeklySchedule;
 import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
+import com.tasteam.domain.restaurant.repository.AdminRestaurantQueryRepository;
 import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantAddressRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantFoodCategoryRepository;
-import com.tasteam.domain.restaurant.repository.RestaurantQueryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantWeeklyScheduleRepository;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryProjection;
@@ -53,7 +52,7 @@ import lombok.RequiredArgsConstructor;
 public class AdminRestaurantService {
 
 	private final RestaurantRepository restaurantRepository;
-	private final RestaurantQueryRepository restaurantQueryRepository;
+	private final AdminRestaurantQueryRepository restaurantQueryRepository;
 	private final RestaurantAddressRepository restaurantAddressRepository;
 	private final RestaurantFoodCategoryRepository restaurantFoodCategoryRepository;
 	private final FoodCategoryRepository foodCategoryRepository;
@@ -63,8 +62,7 @@ public class AdminRestaurantService {
 	private final NaverGeocodingClient naverGeocodingClient;
 	private final RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
 	private final RestaurantEventPublisher eventPublisher;
-	private final FileService fileService;
-	private final DomainImageLinker domainImageLinker;
+	private final AdminFileService fileService;
 
 	@Transactional(readOnly = true)
 	public Page<AdminRestaurantListItem> getRestaurants(
@@ -228,7 +226,7 @@ public class AdminRestaurantService {
 	}
 
 	private void saveImagesIfPresent(Restaurant restaurant, List<UUID> imageIds) {
-		domainImageLinker.linkImages(DomainType.RESTAURANT, restaurant.getId(), imageIds);
+		fileService.linkImages(DomainType.RESTAURANT, restaurant.getId(), imageIds);
 	}
 
 	private void saveWeeklySchedulesIfPresent(Restaurant restaurant, List<WeeklyScheduleRequest> schedules) {

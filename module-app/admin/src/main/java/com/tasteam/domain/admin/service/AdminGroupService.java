@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.tasteam.domain.admin.dto.request.AdminGroupCreateRequest;
 import com.tasteam.domain.admin.dto.response.AdminGroupListItem;
 import com.tasteam.domain.file.entity.DomainType;
-import com.tasteam.domain.file.service.FileService;
+import com.tasteam.domain.file.service.AdminFileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.group.type.GroupStatus;
@@ -30,7 +30,7 @@ public class AdminGroupService {
 	private final GroupRepository groupRepository;
 	private final GeometryFactory geometryFactory;
 	private final NaverGeocodingClient naverGeocodingClient;
-	private final FileService fileService;
+	private final AdminFileService fileService;
 
 	@Transactional(readOnly = true)
 	public Page<AdminGroupListItem> getGroups(Pageable pageable) {

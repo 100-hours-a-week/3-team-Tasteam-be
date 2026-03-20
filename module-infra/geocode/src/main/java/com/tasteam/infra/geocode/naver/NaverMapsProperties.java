@@ -1,4 +1,4 @@
-package com.tasteam.domain.restaurant.geocoding;
+package com.tasteam.infra.geocode.naver;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

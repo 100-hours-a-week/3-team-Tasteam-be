@@ -1,4 +1,4 @@
-package com.tasteam.domain.restaurant.dto;
+package com.tasteam.infra.geocode.dto;
 
 public record GeocodingResult(
 	String sido,

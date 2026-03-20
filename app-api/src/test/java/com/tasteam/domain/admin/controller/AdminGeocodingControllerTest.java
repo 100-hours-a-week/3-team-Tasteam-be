@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.tasteam.config.BaseAdminControllerWebMvcTest;
-import com.tasteam.domain.restaurant.dto.GeocodingResult;
+import com.tasteam.infra.geocode.dto.GeocodingResult;
 
 @DisplayName("[유닛](Admin) AdminGeocodingController 단위 테스트")
 class AdminGeocodingControllerTest extends BaseAdminControllerWebMvcTest {
