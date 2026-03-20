@@ -113,7 +113,9 @@ public abstract class NativeSearchExecutorSupport extends QueryDslSupport implem
 
 		query.setParameter("kw", keywordLower);
 		query.setParameter("size", size);
-		query.setParameter("text_candidate_limit", Math.max(size, textCandidateLimit));
+		if (sql.contains(":text_candidate_limit")) {
+			query.setParameter("text_candidate_limit", Math.max(size, textCandidateLimit));
+		}
 		query.setParameter("cursor_score", cursorScore);
 		query.setParameter("cursor_updated_at", cursor == null ? null : cursor.updatedAt());
 		query.setParameter("cursor_id", cursor == null ? null : cursor.id());
