@@ -1,0 +1,13 @@
+dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.42'
+    annotationProcessor 'org.projectlombok:lombok:1.18.42'
+
+    // HttpStatus (값 타입 enum)
+    implementation 'org.springframework:spring-web'
+
+    // Jackson (DTO 직렬화)
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // Jakarta Validation (SafeKeyword 어노테이션)
+    implementation 'jakarta.validation:jakarta.validation-api'
+}

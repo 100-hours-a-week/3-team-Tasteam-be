@@ -11,6 +11,11 @@ configurations.configureEach {
 
 dependencies {
     /* ==================================================
+     * Internal Modules
+     * ================================================== */
+    implementation project(':module-common:support')
+
+    /* ==================================================
      * Core / Web
      * ================================================== */
     implementation "org.springframework.boot:spring-boot-starter-web:3.5.9"

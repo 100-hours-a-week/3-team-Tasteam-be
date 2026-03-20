@@ -136,3 +136,29 @@ subprojects {
 }
 
 apply from: "${rootDir}/gradle/flyway/flywayCreate.gradle"
+
+// ── 신규 모듈 플러그인 설정 ────────────────────────────────────────
+
+// module-app:* — Spring Boot executable jar
+configure([
+    project(':module-app:api'),
+    project(':module-app:admin'),
+    project(':module-app:batch')
+]) {
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+}
+
+// 나머지 신규 라이브러리 모듈 (module-app:* 제외)
+configure(subprojects.findAll { p ->
+    p.path.startsWith(':module-') && !p.path.startsWith(':module-app:')
+}) {
+    apply plugin: 'java-library'
+    apply plugin: 'io.spring.dependency-management'
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:3.5.9"
+        }
+    }
+}

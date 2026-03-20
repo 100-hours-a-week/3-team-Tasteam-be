@@ -3,8 +3,6 @@ package com.tasteam.global.utils;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tasteam.global.exception.business.BusinessException;
@@ -13,7 +11,6 @@ import com.tasteam.global.exception.code.CommonErrorCode;
 /**
  * Cursor 인코딩/디코딩 유틸리티
  */
-@Component
 public class CursorCodec {
 
 	private final ObjectMapper objectMapper;
