@@ -1,5 +1,6 @@
 package com.tasteam.infra.ai;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -27,7 +28,8 @@ public class AiClientConfig {
 
 	@Bean
 	@ConditionalOnProperty(prefix = "ai", name = "stub-enabled", havingValue = "false", matchIfMissing = true)
-	public AiClient aiClient(RestClient aiRestClient) {
+	public AiClient aiClient(@Qualifier("aiRestClient")
+	RestClient aiRestClient) {
 		return new AiClient(aiRestClient);
 	}
 

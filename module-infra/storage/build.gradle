@@ -1,2 +1,12 @@
-// 추후 코드 이동 시 의존성 추가 예정
-dependencies {}
+dependencies {
+    api project(':module-common:support')
+
+    compileOnly 'org.projectlombok:lombok:1.18.42'
+    annotationProcessor 'org.projectlombok:lombok:1.18.42'
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'com.amazonaws:aws-java-sdk-s3:1.12.538'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'net.coobird:thumbnailator:0.4.20'
+    implementation 'org.sejda.imageio:webp-imageio:0.1.6'
+}

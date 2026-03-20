@@ -15,6 +15,15 @@ dependencies {
      * ================================================== */
     implementation project(':module-common:support')
     implementation project(':module-domain:core')
+    implementation project(':module-infra:persistence')
+    implementation project(':module-infra:redis')
+    implementation project(':module-infra:geocode')
+    implementation project(':module-infra:storage')
+    implementation project(':module-infra:ai')
+    implementation project(':module-infra:webhook')
+    implementation project(':module-infra:notification')
+    implementation project(':module-internal:security')
+    implementation project(':module-infra:messaging')
 
     /* ==================================================
      * Core / Web

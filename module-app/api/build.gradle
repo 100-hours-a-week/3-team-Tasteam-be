@@ -1,2 +1,6 @@
 // 추후 코드 이동 시 의존성 추가 예정
 dependencies {}
+
+// 소스가 없는 스켈레톤 모듈 — bootJar/jar 비활성화
+bootJar.enabled = false
+jar.enabled = false

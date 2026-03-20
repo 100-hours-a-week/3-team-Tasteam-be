@@ -1,2 +1,10 @@
-// 추후 코드 이동 시 의존성 추가 예정
-dependencies {}
+dependencies {
+    api project(':module-common:support')
+
+    compileOnly 'org.projectlombok:lombok:1.18.42'
+    annotationProcessor 'org.projectlombok:lombok:1.18.42'
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+}

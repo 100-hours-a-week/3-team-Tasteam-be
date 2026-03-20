@@ -1,2 +1,16 @@
-// 추후 코드 이동 시 의존성 추가 예정
-dependencies {}
+dependencies {
+    api project(':module-common:support')
+
+    compileOnly 'org.projectlombok:lombok:1.18.42'
+    annotationProcessor 'org.projectlombok:lombok:1.18.42'
+
+    // Email (SES)
+    implementation 'com.amazonaws:aws-java-sdk-ses:1.12.538'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+    // Push (Firebase FCM + Web Push)
+    implementation 'com.google.firebase:firebase-admin:9.7.0'
+    implementation 'nl.martijndwars:web-push:5.1.2'
+
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+}
