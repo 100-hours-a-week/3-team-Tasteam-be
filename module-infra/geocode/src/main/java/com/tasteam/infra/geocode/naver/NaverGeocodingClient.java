@@ -8,13 +8,14 @@ import org.springframework.web.client.RestClientResponseException;
 
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.infra.geocode.GeocodingClient;
 import com.tasteam.infra.geocode.dto.GeocodingResult;
 
 import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class NaverGeocodingClient {
+public class NaverGeocodingClient implements GeocodingClient {
 
 	private final RestClient naverMapsRestClient;
 

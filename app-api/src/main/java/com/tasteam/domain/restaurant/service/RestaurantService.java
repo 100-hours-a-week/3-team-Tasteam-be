@@ -55,8 +55,8 @@ import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.infra.geocode.GeocodingClient;
 import com.tasteam.infra.geocode.dto.GeocodingResult;
-import com.tasteam.infra.geocode.naver.NaverGeocodingClient;
 
 import lombok.RequiredArgsConstructor;
 
@@ -76,7 +76,7 @@ public class RestaurantService {
 	private final GroupRestaurantSearchConditionValidator groupRestaurantSearchConditionValidator;
 	private final RestaurantFoodCategoryValidator restaurantFoodCategoryValidator;
 	private final GeometryFactory geometryFactory;
-	private final NaverGeocodingClient naverGeocodingClient;
+	private final GeocodingClient geocodingClient;
 	private final RestaurantScheduleService restaurantScheduleService;
 	private final RestaurantReadService restaurantReadService;
 	private final RestaurantImageService restaurantImageService;
@@ -299,7 +299,7 @@ public class RestaurantService {
 				.collect(Collectors.toUnmodifiableSet());
 
 		// 위치 정보 검색
-		GeocodingResult result = naverGeocodingClient.geocode(request.address());
+		GeocodingResult result = geocodingClient.geocode(request.address());
 
 		// 위치 정보 생성
 		Coordinate coordinate = new Coordinate(result.longitude(), result.latitude());

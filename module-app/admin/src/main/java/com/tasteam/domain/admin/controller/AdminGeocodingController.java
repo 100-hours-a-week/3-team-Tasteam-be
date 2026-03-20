@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tasteam.domain.admin.controller.docs.AdminGeocodingControllerDocs;
 import com.tasteam.domain.admin.dto.response.AdminGeocodingResponse;
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.infra.geocode.GeocodingClient;
 import com.tasteam.infra.geocode.dto.GeocodingResult;
-import com.tasteam.infra.geocode.naver.NaverGeocodingClient;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/admin/geocoding")
 public class AdminGeocodingController implements AdminGeocodingControllerDocs {
 
-	private final NaverGeocodingClient naverGeocodingClient;
+	private final GeocodingClient geocodingClient;
 
 	@Override
 	@GetMapping
@@ -29,7 +29,7 @@ public class AdminGeocodingController implements AdminGeocodingControllerDocs {
 		@RequestParam
 		String query) {
 
-		GeocodingResult result = naverGeocodingClient.geocode(query);
+		GeocodingResult result = geocodingClient.geocode(query);
 		return SuccessResponse.success(new AdminGeocodingResponse(result.latitude(), result.longitude()));
 	}
 }

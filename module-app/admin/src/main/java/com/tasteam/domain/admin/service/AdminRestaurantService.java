@@ -42,8 +42,8 @@ import com.tasteam.domain.restaurant.repository.projection.RestaurantCategoryPro
 import com.tasteam.domain.restaurant.validator.RestaurantFoodCategoryValidator;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
+import com.tasteam.infra.geocode.GeocodingClient;
 import com.tasteam.infra.geocode.dto.GeocodingResult;
-import com.tasteam.infra.geocode.naver.NaverGeocodingClient;
 
 import lombok.RequiredArgsConstructor;
 
@@ -59,7 +59,7 @@ public class AdminRestaurantService {
 	private final RestaurantFoodCategoryValidator restaurantFoodCategoryValidator;
 	private final DomainImageRepository domainImageRepository;
 	private final GeometryFactory geometryFactory;
-	private final NaverGeocodingClient naverGeocodingClient;
+	private final GeocodingClient geocodingClient;
 	private final RestaurantWeeklyScheduleRepository weeklyScheduleRepository;
 	private final RestaurantEventPublisher eventPublisher;
 	private final AdminFileService fileService;
@@ -147,7 +147,7 @@ public class AdminRestaurantService {
 		Set<Long> foodCategoryIdSet = categoryIds.stream()
 			.collect(Collectors.toUnmodifiableSet());
 
-		GeocodingResult result = naverGeocodingClient.geocode(request.address());
+		GeocodingResult result = geocodingClient.geocode(request.address());
 
 		Coordinate coordinate = new Coordinate(result.longitude(), result.latitude());
 		Point location = geometryFactory.createPoint(coordinate);

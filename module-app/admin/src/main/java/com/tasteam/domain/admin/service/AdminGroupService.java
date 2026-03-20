@@ -18,8 +18,8 @@ import com.tasteam.domain.file.service.AdminFileService;
 import com.tasteam.domain.group.entity.Group;
 import com.tasteam.domain.group.repository.GroupRepository;
 import com.tasteam.domain.group.type.GroupStatus;
+import com.tasteam.infra.geocode.GeocodingClient;
 import com.tasteam.infra.geocode.dto.GeocodingResult;
-import com.tasteam.infra.geocode.naver.NaverGeocodingClient;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,7 +29,7 @@ public class AdminGroupService {
 
 	private final GroupRepository groupRepository;
 	private final GeometryFactory geometryFactory;
-	private final NaverGeocodingClient naverGeocodingClient;
+	private final GeocodingClient geocodingClient;
 	private final AdminFileService fileService;
 
 	@Transactional(readOnly = true)
@@ -55,7 +55,7 @@ public class AdminGroupService {
 
 	@Transactional
 	public Long createGroup(AdminGroupCreateRequest request) {
-		GeocodingResult result = naverGeocodingClient.geocode(request.address());
+		GeocodingResult result = geocodingClient.geocode(request.address());
 
 		Coordinate coordinate = new Coordinate(result.longitude(), result.latitude());
 		Point location = geometryFactory.createPoint(coordinate);
