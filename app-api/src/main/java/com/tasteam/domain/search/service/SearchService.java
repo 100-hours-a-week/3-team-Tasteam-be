@@ -9,6 +9,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -133,6 +135,7 @@ public class SearchService {
 		return new SearchResponse(groups, restaurants);
 	}
 
+	@Cacheable(value = "recent-searches", key = "#memberId")
 	@Transactional(readOnly = true)
 	public OffsetPageResponse<RecentSearchItem> getRecentSearches(Long memberId) {
 		if (memberId == null) {
@@ -156,6 +159,7 @@ public class SearchService {
 			new OffsetPagination(0, DEFAULT_PAGE_SIZE, 1, data.size()));
 	}
 
+	@CacheEvict(value = "recent-searches", key = "#memberId")
 	@Transactional
 	public void deleteRecentSearch(Long memberId, Long historyId) {
 		if (memberId == null) {
