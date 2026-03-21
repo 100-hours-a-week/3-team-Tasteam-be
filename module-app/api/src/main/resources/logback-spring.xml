@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+    <!-- 환경변수로 경로 관리 -->
+    <property name="LOG_FILE_PATH" value="${LOG_FILE_PATH:-./logs/application.log}" />
+    <property name="LOG_MAX_FILE_SIZE" value="${LOG_MAX_FILE_SIZE:-100MB}" />
+    <property name="LOG_MAX_HISTORY" value="${LOG_MAX_HISTORY:-30}" />
+
+    <conversionRule conversionWord="clr" class="org.springframework.boot.logging.logback.ColorConverter" />
+
+    <!-- 파일 Appender: Loki용 JSON 포맷 (dev/prod 공통) -->
+    <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE_PATH}</file>
+        <append>true</append>
+
+        <!-- Logstash JSON Encoder -->
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <includeMdcKeyName>spanId</includeMdcKeyName>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE_PATH}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>${LOG_MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${LOG_MAX_HISTORY}</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 비동기 Appender: 대량 로그 발생 시에도 애플리케이션 블락 방지 -->
+    <appender name="ASYNC_JSON_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="JSON_FILE" />
+        <!-- 큐 크기: 기본 256 → 2048로 증가 (대량 로그 대비) -->
+        <queueSize>2048</queueSize>
+        <!-- 큐가 80% 차면 TRACE/DEBUG/INFO 로그 드롭 (WARN/ERROR는 보존) -->
+        <discardingThreshold>410</discardingThreshold>
+        <!-- 애플리케이션 종료 시 큐의 모든 로그를 기록할 때까지 대기 -->
+        <includeCallerData>false</includeCallerData>
+        <!-- 큐가 가득 차도 애플리케이션을 블로킹하지 않음 (로그 드롭 허용) -->
+        <neverBlock>true</neverBlock>
+        <maxFlushTime>5000</maxFlushTime>
+    </appender>
+
+    <springProfile name="!prod">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>INFO</level>
+            </filter>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, UTC} %clr(%-5level){DEBUG=magenta, INFO=green, WARN=yellow, ERROR=red} %cyan([%10.10thread]) %clr(pid=%property{PID}){blue} %magenta(%-40logger{35}) : %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <!-- Hibernate 로그: DEV/LOCAL에서 SQL 단계 진행 점검을 위해 INFO 허용 -->
+        <logger name="org.hibernate.SQL" level="INFO" additivity="false">
+            <appender-ref ref="STDOUT" />
+        </logger>
+        <logger name="org.hibernate.orm" level="WARN" />
+        <logger name="org.hibernate.query" level="WARN" />
+
+        <!-- AWS SDK 로그 제한 -->
+        <logger name="com.amazonaws" level="WARN" />
+
+        <!-- HikariCP 로그 제한 -->
+        <logger name="com.zaxxer.hikari" level="INFO" />
+
+        <!-- Spring Framework 로그 제한 -->
+        <logger name="org.springframework.orm.jpa" level="INFO" />
+        <logger name="org.springframework.web.client" level="INFO" />
+        <logger name="org.springframework.web.servlet" level="INFO" />
+        <logger name="org.springframework.security" level="INFO" />
+
+        <!-- 자신의 애플리케이션만 DEBUG 허용 -->
+        <logger name="com.tasteam" level="DEBUG" />
+        <!-- 더미 시딩 패키지: DEV/LOCAL에서 단계 추적용 INFO 허용 -->
+        <logger name="com.tasteam.batch.dummy" level="INFO" />
+
+        <!-- Root 레벨을 INFO로 변경하여 불필요한 DEBUG 로그 차단 -->
+        <root level="INFO">
+            <appender-ref ref="STDOUT" />
+            <appender-ref ref="ASYNC_JSON_FILE" />
+        </root>
+    </springProfile>
+
+    <springProfile name="stg">
+        <!-- stg: SQL/더미 시딩 로그 I/O 절감 위해 WARN 유지 -->
+        <logger name="org.hibernate.SQL" level="WARN" additivity="false">
+            <appender-ref ref="STDOUT" />
+        </logger>
+        <logger name="org.hibernate.orm" level="WARN" />
+        <logger name="org.hibernate.query" level="WARN" />
+        <logger name="com.tasteam.batch.dummy" level="WARN" />
+    </springProfile>
+
+    <springProfile name="prod">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>INFO</level>
+            </filter>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, UTC} %clr(%-5level){DEBUG=magenta, INFO=green, WARN=yellow, ERROR=red} %cyan([%10.10thread]) %clr(pid=%property{PID}){blue} %magenta(%-40logger{35}) : %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <logger name="org.hibernate.SQL" level="WARN" additivity="false">
+            <appender-ref ref="STDOUT" />
+        </logger>
+
+        <root level="INFO">
+            <appender-ref ref="STDOUT" />
+            <appender-ref ref="ASYNC_JSON_FILE" />
+        </root>
+    </springProfile>
+</configuration>
