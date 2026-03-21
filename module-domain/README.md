@@ -10,12 +10,26 @@ JPA 엔티티, 도메인 이벤트, 정책(Policy), 타입(Enum), 요청/응답 
 
 ## 의존성 위치
 
-```
-module-app:* / module-internal:security / module-infra:persistence / module-infra:messaging
-        ↓ (이 레이어를 참조)
-   module-domain:core
-        ↓
-   module-common:support
+```mermaid
+graph BT
+    classDef app fill:#4F46E5,stroke:#3730A3,color:#fff,rx:6
+    classDef internal fill:#0891B2,stroke:#0E7490,color:#fff,rx:6
+    classDef infra fill:#059669,stroke:#047857,color:#fff,rx:6
+    classDef domain fill:#D97706,stroke:#B45309,color:#fff,rx:6
+    classDef common fill:#DC2626,stroke:#B91C1C,color:#fff,rx:6
+
+    APP["module-app:*\napi · admin · batch"]:::app
+    SEC["module-internal:security"]:::internal
+    PERSIST["module-infra:persistence"]:::infra
+    MSG["module-infra:messaging"]:::infra
+    DOMAIN["module-domain:core"]:::domain
+    COMMON["module-common:support"]:::common
+
+    APP -->|depends on| DOMAIN
+    SEC -->|depends on| DOMAIN
+    PERSIST -->|depends on| DOMAIN
+    MSG -->|depends on| DOMAIN
+    DOMAIN -->|depends on| COMMON
 ```
 
 ---
