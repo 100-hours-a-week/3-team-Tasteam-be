@@ -36,52 +36,11 @@ jobs:
           cache: 'gradle'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Detect changed modules
-        id: changed-modules
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.sha }}"
-
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || true)
-
-          echo "changed_files<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$CHANGED_FILES" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-          app_changed=false
-          other_changed=false
-
-          if [ -n "$CHANGED_FILES" ]; then
-            while IFS= read -r file; do
-              [ -z "$file" ] && continue
-              if [[ "$file" == module-app/* ]]; then
-                app_changed=true
-              else
-                other_changed=true
-              fi
-            done <<< "$CHANGED_FILES"
-          fi
-
-          if [ "$app_changed" = "true" ] && [ "$other_changed" = "false" ]; then
-            echo "app_only=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "app_only=false" >> "$GITHUB_OUTPUT"
-          fi
+        uses: gradle/gradle-build-action@v2
 
       # 테스트 실행
       - name: Run Tests
-        if: steps.changed-modules.outputs.app_only != 'true'
-        run: ./gradlew --parallel --build-cache test
-
-      - name: Run app module tests only
-        if: steps.changed-modules.outputs.app_only == 'true'
-        run: ./gradlew --parallel --build-cache :module-app:api:test :module-app:admin:test :module-app:batch:test
+        run: ./gradlew test
 
       # 테스트 실패 디스코드 알림
       - name: Notify Test Failure
@@ -130,7 +89,7 @@ jobs:
           cache: 'gradle'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/gradle-build-action@v2
 
       # CodeQL 보안 분석 - 빌드 전에 초기화
       - name: Initialize CodeQL
@@ -141,7 +100,7 @@ jobs:
 
       # 메인 코드 컴파일 (보안 분석용)
       - name: Compile Main Sources
-        run: ./gradlew --no-build-cache clean classes
+        run: ./gradlew classes
 
       # CodeQL 분석 수행
       - name: Perform CodeQL Analysis
@@ -151,7 +110,7 @@ jobs:
 
       # 보안 분석 - SpotBugs (메인 코드만 분석)
       - name: Run SpotBugs Security Analysis
-        run: ./gradlew --build-cache :module-app:api:spotbugsMain
+        run: ./gradlew :app-api:spotbugsMain
         continue-on-error: true
 
       # SpotBugs 리포트 업로드
@@ -160,7 +119,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: spotbugs-report-${{ github.sha }}
-          path: module-app/api/build/reports/spotbugs/main/spotbugs.html
+          path: app-api/build/reports/spotbugs/main/spotbugs.html
           retention-days: 7
 
       # 보안 스캔 실패 알림 (성공 시 알림 없음)
@@ -229,7 +188,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: module-app/api/Dockerfile
+          file: app-api/Dockerfile
           push: true
           tags: |
             ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ env.IMAGE_TAG_SHA }}

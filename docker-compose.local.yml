@@ -1,25 +1,31 @@
 networks:
-  tasteam-module-net:
-    name: tasteam-module-net
+  tasteam-net:
+    name: tasteam-net
     driver: bridge
 
 services:
-  module-db:
+  db:
     image: postgis/postgis:17-3.4
-    networks: [tasteam-module-net]
+
+    container_name: tasteam-db
+    networks: [tasteam-net]
     command:
       - postgres
       - -c
       - shared_preload_libraries=pg_stat_statements
       - -c
       - track_io_timing=on
+    env_file:
+      - .env.local
     environment:
-      POSTGRES_DB: ${DB_NAME:-tasteam}
+      POSTGRES_DB: tasteam
       POSTGRES_USER: ${DB_USERNAME:-tasteam}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-tasteam}
       TZ: Asia/Seoul
+    ports:
+      - "5432:5432"
     volumes:
-      - module-app-postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./docker/postgis/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
@@ -27,56 +33,61 @@ services:
       timeout: 5s
       retries: 5
 
-  module-redis:
+  redis:
     image: redis:7
-    networks: [tasteam-module-net]
+    container_name: tasteam-redis
+    networks: [tasteam-net]
+    ports:
+      - "6379:6379"
     volumes:
-      - module-app-redis-data:/data
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  module-api:
+  api:
     build:
       context: .
-      dockerfile: module-app/api/Dockerfile
-    image: tasteam-module-api:local
-    networks: [tasteam-module-net]
+      dockerfile: app-api/Dockerfile
+    image: tasteam-api:local
+    container_name: tasteam-api
+    networks: [tasteam-net]
+    ports:
+      - "${SERVER_PORT:-8081}:${SERVER_PORT:-8081}"
     depends_on:
-      module-db:
-        condition: service_healthy
-      module-redis:
+      db:
         condition: service_healthy
     env_file:
       - .env.local
     environment:
-      SPRING_PROFILES_ACTIVE: local
-      SERVER_PORT: 8080
-      DB_URL: jdbc:postgresql://module-db:5432/${DB_NAME:-tasteam}
-      DB_USERNAME: ${DB_USERNAME:-tasteam}
-      DB_PASSWORD: ${DB_PASSWORD:-tasteam}
-      FLYWAY_URL: jdbc:postgresql://module-db:5432/${DB_NAME:-tasteam}
-      FLYWAY_USER: ${DB_USERNAME:-tasteam}
-      FLYWAY_PASSWORD: ${DB_PASSWORD:-tasteam}
-      REDIS_HOST: module-redis
-      REDIS_PORT: 6379
-      MQ_ENABLED: false
-      MQ_PROVIDER: none
-      WEBHOOK_ENABLED: false
-      FIREBASE_ENABLED: false
-      SENTRY_DSN: ""
-      TRACING_ENABLED: false
-      TASTEAM_AOP_WEBHOOK_ENABLED: false
-      TASTEAM_AOP_TRACING_ENABLED: false
-    ports:
-      - "8080:8080"
-  module-worker:
-    image: busybox:1.36
-    networks: [tasteam-module-net]
-    command: ["sh", "-c", "while true; do sleep 3600; done"]
+      SERVER_PORT: ${SERVER_PORT:-8081}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://db:5432/tasteam}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-tasteam}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-tasteam}
+      SPRING_FLYWAY_URL: ${SPRING_FLYWAY_URL:-jdbc:postgresql://db:5432/tasteam}
+      SPRING_FLYWAY_USER: ${SPRING_FLYWAY_USER:-tasteam}
+      SPRING_FLYWAY_PASSWORD: ${SPRING_FLYWAY_PASSWORD:-tasteam}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      TASTEAM_SEARCH_QUERY_STRATEGY: ${TASTEAM_SEARCH_QUERY_STRATEGY:-TWO_STEP}
+      TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:-200}
+      # Message Queue (Kafka 통합 테스트 시 활성화)
+      MQ_ENABLED: ${MQ_ENABLED:-false}
+      MQ_PROVIDER: ${MQ_PROVIDER:-none}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_CONNECT_URL: ${KAFKA_CONNECT_URL:-http://kafka-connect:8083}
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-tasteam-api}
+      KAFKA_CONNECT_CONNECTOR_AUTO_REGISTER: ${KAFKA_CONNECT_CONNECTOR_AUTO_REGISTER:-false}
+      # S3 (MinIO 로컬 테스트용)
+      ANALYTICS_S3_BUCKET: ${ANALYTICS_S3_BUCKET:-tasteam-analytics-local}
+      AWS_REGION: ${AWS_REGION:-ap-northeast-2}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_PATH_STYLE_ACCESS: ${S3_PATH_STYLE_ACCESS:-true}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
 
 volumes:
-  module-app-postgres-data:
-  module-app-redis-data:
+  postgres_data:
+  redis_data:

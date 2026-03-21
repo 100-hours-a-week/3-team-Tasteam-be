@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasteam Admin</title>
+    <link rel="stylesheet" href="/admin/css/admin.css">
+    <script>
+        (function () {
+            var token = localStorage.getItem('authToken');
+            var path = window.location.pathname;
+            var isLoginPage = path === '/admin' || path === '/admin/' || path === '/admin/index.html';
+            if (!token && !isLoginPage) {
+                window.location.replace('/admin/');
+            }
+        }());
+    </script>
+</head>
+<body>
+    <div id="admin-app-root"></div>
+    <script src="/admin/js/admin-utils.js" type="module"></script>
+    <script src="/admin/js/admin-layout.js" type="module"></script>
+    <script src="/admin/js/api.js" type="module"></script>
+    <script src="/admin/js/auth.js" type="module"></script>
+    <script src="/admin/js/image-optimizer.js" type="module"></script>
+    <script src="/admin/js/views/login.view.js" type="module"></script>
+    <script src="/admin/js/views/dashboard.view.js" type="module"></script>
+    <script src="/admin/js/views/restaurants.view.js" type="module"></script>
+    <script src="/admin/js/views/restaurant-form.view.js" type="module"></script>
+    <script src="/admin/js/views/restaurant-edit.view.js" type="module"></script>
+    <script src="/admin/js/views/restaurant-menu.view.js" type="module"></script>
+    <script src="/admin/js/views/promotions.view.js" type="module"></script>
+    <script src="/admin/js/promotion-image-editor.js" type="module"></script>
+    <script src="/admin/js/views/promotion-form.view.js" type="module"></script>
+    <script src="/admin/js/views/promotion-edit.view.js" type="module"></script>
+    <script src="/admin/js/views/announcements.view.js" type="module"></script>
+    <script src="/admin/js/views/announcement-form.view.js" type="module"></script>
+    <script src="/admin/js/views/groups.view.js" type="module"></script>
+    <script src="/admin/js/views/reports.view.js" type="module"></script>
+    <script src="/admin/js/views/reviews.view.js" type="module"></script>
+    <script src="/admin/js/views/jobs.view.js" type="module"></script>
+    <script src="/admin/js/views/notifications.view.js" type="module"></script>
+    <script src="/admin/js/views/dummy.view.js" type="module"></script>
+    <script src="/admin/js/views/not-found.view.js" type="module"></script>
+    <script src="/admin/js/admin-router.js" type="module"></script>
+    <script src="/admin/js/admin-app.js" type="module"></script>
+</body>
+</html>
