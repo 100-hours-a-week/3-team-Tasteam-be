@@ -38,9 +38,50 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Detect changed modules
+        id: changed-modules
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.sha }}"
+
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || true)
+
+          echo "changed_files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$CHANGED_FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+          app_changed=false
+          other_changed=false
+
+          if [ -n "$CHANGED_FILES" ]; then
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              if [[ "$file" == module-app/* ]]; then
+                app_changed=true
+              else
+                other_changed=true
+              fi
+            done <<< "$CHANGED_FILES"
+          fi
+
+          if [ "$app_changed" = "true" ] && [ "$other_changed" = "false" ]; then
+            echo "app_only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "app_only=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # 테스트 실행
       - name: Run Tests
+        if: steps.changed-modules.outputs.app_only != 'true'
         run: ./gradlew --parallel --build-cache test
+
+      - name: Run app module tests only
+        if: steps.changed-modules.outputs.app_only == 'true'
+        run: ./gradlew --parallel --build-cache :module-app:api:test :module-app:admin:test :module-app:batch:test
 
       # 테스트 실패 디스코드 알림
       - name: Notify Test Failure
