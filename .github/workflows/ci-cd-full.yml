@@ -141,7 +141,7 @@ jobs:
 
       # 메인 코드 컴파일 (보안 분석용)
       - name: Compile Main Sources
-        run: ./gradlew --build-cache classes
+        run: ./gradlew --no-build-cache clean classes
 
       # CodeQL 분석 수행
       - name: Perform CodeQL Analysis
