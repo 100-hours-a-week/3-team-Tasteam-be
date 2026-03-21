@@ -1,0 +1,429 @@
+## ====== 서버 설정 ======
+server:
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: framework
+
+## ====== Spring 설정 ======
+spring:
+  application:
+    name: tasteam-api
+  threads:
+    virtual:
+      enabled: true
+  config:
+    import:
+      - optional:classpath:application.local.yml
+      - optional:classpath:application.dev.yml
+      - optional:classpath:application.stg.yml
+      - optional:classpath:application.prod.yml
+
+  output:
+    ansi:
+      enabled: ALWAYS
+
+  jpa:
+    open-in-view: false
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+  security:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+      allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+      allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+      allow-credentials: true
+      max-age: 3600
+      exposed-headers: ${CORS_EXPOSED_HEADERS:Authorization}
+
+    jwt:
+      secret: ${JWT_SECRET:local-secret-12skjdfhli2ijfdle2hf3uihci23hfciuhwi32ifhwh39f2fhcl23h1234}
+      accessTokenExpiration: ${JWT_ACCESS_TOKEN_EXPIRATION:60000}
+      refreshTokenExpiration: ${JWT_REFRESH_TOKEN_EXPIRATION:180000}
+
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/api/v1/auth/oauth/callback/{registrationId}"
+            scope:
+              - email
+              - profile
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/api/v1/auth/oauth/callback/{registrationId}"
+            scope:
+              - profile_nickname
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+springdoc:
+  api-docs:
+    path: /api/v1/v3/api-docs
+  swagger-ui:
+    path: /api/v1/swagger-ui.html
+
+## ====== 커스텀 설정 ======
+ai:
+  base-url: ${AI_BASE_URL:http://localhost:8001}
+  response-timeout: ${AI_RESPONSE_TIMEOUT:30s}
+
+chat:
+  websocket:
+    heartbeat:
+      enabled: ${CHAT_WEBSOCKET_HEARTBEAT_ENABLED:true}
+      server-to-client: ${CHAT_WEBSOCKET_HEARTBEAT_SERVER_TO_CLIENT:15000}
+      client-to-server: ${CHAT_WEBSOCKET_HEARTBEAT_CLIENT_TO_SERVER:15000}
+  stream:
+    enabled: ${CHAT_STREAM_ENABLED:true}
+    bootstrap-enabled: ${CHAT_STREAM_BOOTSTRAP_ENABLED:true}
+    bootstrap-batch-size: ${CHAT_STREAM_BOOTSTRAP_BATCH_SIZE:100}
+    max-total-subscriptions: ${CHAT_STREAM_MAX_TOTAL_SUBSCRIPTIONS:1000}
+    executor-thread-pool-size: ${CHAT_STREAM_EXECUTOR_THREAD_POOL_SIZE:${CHAT_STREAM_PARTITION_COUNT:16}}
+    executor-queue-capacity: ${CHAT_STREAM_EXECUTOR_QUEUE_CAPACITY:256}
+    partition-count: ${CHAT_STREAM_PARTITION_COUNT:16}
+    max-allowed-partitions: ${CHAT_STREAM_MAX_ALLOWED_PARTITIONS:128}
+    partition-consume-enabled: ${CHAT_STREAM_PARTITION_CONSUME_ENABLED:true}
+    dual-write-enabled: ${CHAT_STREAM_DUAL_WRITE_ENABLED:true}
+    legacy-room-consume-enabled: ${CHAT_STREAM_LEGACY_ROOM_CONSUME_ENABLED:false}
+    ws-pubsub-broadcast-enabled: ${CHAT_STREAM_WS_PUBSUB_BROADCAST_ENABLED:false}
+    ws-pubsub-channel: ${CHAT_STREAM_WS_PUBSUB_CHANNEL:chat:websocket:broadcast}
+
+tasteam:
+  admin:
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
+  domain:
+    service: ${SERVICE_DOMAIN:https://tasteam.kr}
+    api: ${API_DOMAIN:https://api.tasteam.kr}
+  search:
+    query:
+      strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:MV_SINGLE_PASS}
+      fallback-strategy: ${TASTEAM_SEARCH_QUERY_FALLBACK_STRATEGY:ONE_STEP}
+      candidate-limit: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:200}
+    mv-refresh:
+      enabled: ${TASTEAM_SEARCH_MV_REFRESH_ENABLED:false}
+      fixed-delay: ${TASTEAM_SEARCH_MV_REFRESH_FIXED_DELAY:PT15M}
+  storage:
+    type: ${STORAGE_TYPE:dummy}
+    region: ${STORAGE_REGION:}
+    bucket: ${STORAGE_BUCKET:}
+    base-url: ${STORAGE_BASE_URL:}
+    endpoint: ${S3_ENDPOINT:}
+    path-style-access: ${S3_PATH_STYLE_ACCESS:false}
+    access-mode: ${STORAGE_ACCESS_MODE:public}
+    access-key: ${STORAGE_ACCESS_KEY:}
+    secret-key: ${STORAGE_SECRET_KEY:}
+    presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:300}
+    temp-upload-prefix: ${STORAGE_TEMP_UPLOAD_PREFIX:uploads/temp}
+  file:
+    cleanup:
+      ttl-seconds: ${FILE_CLEANUP_TTL_SECONDS:86400}
+      fixed-delay-ms: ${FILE_CLEANUP_FIXED_DELAY_MS:3600000}
+    upload:
+      min-size-bytes: ${FILE_UPLOAD_MIN_SIZE_BYTES:1}
+      max-size-bytes: ${FILE_UPLOAD_MAX_SIZE_BYTES:10485760}
+      allowed-content-types: ${FILE_UPLOAD_ALLOWED_CONTENT_TYPES:image/jpeg,image/jpg,image/png,image/webp}
+  ai:
+    analysis:
+      summary-batch-size: ${TASTEAM_AI_ANALYSIS_SUMMARY_BATCH_SIZE:10}
+      comparison-min-reviews: ${TASTEAM_AI_ANALYSIS_COMPARISON_MIN_REVIEWS:10}
+      comparison-batch-size: ${TASTEAM_AI_ANALYSIS_COMPARISON_BATCH_SIZE:10}
+    comparison:
+      cron: ${TASTEAM_AI_COMPARISON_CRON:0 0 3 * * *}
+      zone: ${TASTEAM_AI_COMPARISON_ZONE:Asia/Seoul}
+  image:
+    optimization:
+      enabled: ${IMAGE_OPTIMIZATION_ENABLED:false}
+      cron: ${IMAGE_OPTIMIZATION_CRON:0 0 3 * * ?}
+      batch-size: ${IMAGE_OPTIMIZATION_BATCH_SIZE:100}
+      cleanup-cron: ${IMAGE_OPTIMIZATION_CLEANUP_CRON:0 0 4 * * ?}
+  batch:
+    vector-upload:
+      cron: ${TASTEAM_BATCH_VECTOR_UPLOAD_CRON:0 0 3 * * ?}
+      zone: ${TASTEAM_BATCH_VECTOR_UPLOAD_ZONE:Asia/Seoul}
+      worker-pool-size: ${TASTEAM_BATCH_VECTOR_UPLOAD_WORKER_POOL_SIZE:4}
+    raw-export:
+      enabled: ${TASTEAM_BATCH_RAW_EXPORT_ENABLED:false}
+      cron: ${TASTEAM_BATCH_RAW_EXPORT_CRON:0 15 2 * * ?}
+      zone: ${TASTEAM_BATCH_RAW_EXPORT_ZONE:Asia/Seoul}
+    user-activity-s3-success-marker:
+      enabled: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_ENABLED:false}
+      cron: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_CRON:0 30 0 * * ?}
+      zone: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_ZONE:Asia/Seoul}
+    review-analysis:
+      worker-pool-size: ${TASTEAM_BATCH_REVIEW_ANALYSIS_WORKER_POOL_SIZE:4}
+      finish-timeout: ${TASTEAM_BATCH_REVIEW_ANALYSIS_FINISH_TIMEOUT:10m}
+    restaurant-comparison:
+      # TODO: 임시 매일 4시. 원래는 매주 일요일 4시로 변경 — cron: 0 0 4 ? * SUN
+      cron: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_CRON:0 0 4 * * ?}
+      zone: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_ZONE:Asia/Seoul}
+      worker-pool-size: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_WORKER_POOL_SIZE:4}
+      finish-timeout: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_TIMEOUT:10m}
+      finish-check-interval: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_CHECK_INTERVAL:PT1M}
+  aop:
+    metrics:
+      enabled: ${METRICS_AOP_ENABLED:true}
+      api-metrics:
+        enabled: ${METRICS_API_ENABLED:true}
+      transaction-metrics:
+        enabled: ${METRICS_TX_ENABLED:true}
+    tracing:
+      enabled: ${TRACING_AOP_ENABLED:false}
+      transaction-tracing:
+        enabled: ${TRACING_TX_ENABLED:false}
+    logging:
+      enabled: ${TASTEAM_AOP_LOGGING_ENABLED:true}
+      api-logging:
+        enabled: ${TASTEAM_AOP_LOGGING_API_LOGGING_ENABLED:true}
+      exception-logging:
+        enabled: ${TASTEAM_AOP_LOGGING_EXCEPTION_LOGGING_ENABLED:true}
+      transactional-query-logging:
+        enabled: ${TASTEAM_AOP_LOGGING_TRANSACTIONAL_QUERY_LOGGING_ENABLED:true}
+      service-performance:
+        enabled: ${TASTEAM_AOP_LOGGING_SERVICE_PERFORMANCE_ENABLED:true}
+      ai-analysis-performance:
+        enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:true}
+    webhook:
+      enabled: ${TASTEAM_AOP_WEBHOOK_ENABLED:true}
+  metrics:
+    postgres:
+      refresh-delay: ${TASTEAM_METRICS_POSTGRES_REFRESH_DELAY:30000}
+      slow-query-threshold-ms: ${TASTEAM_METRICS_POSTGRES_SLOW_QUERY_THRESHOLD_MS:500}
+  local-cache:
+    caffeine:
+      maximum-size: ${LOCAL_CACHE_CAFFEINE_MAXIMUM_SIZE:1000}
+      expire-after-write: ${LOCAL_CACHE_CAFFEINE_EXPIRE_AFTER_WRITE:10m}
+      record-stats: ${LOCAL_CACHE_CAFFEINE_RECORD_STATS:true}
+    ttl:
+      search-restaurant-first-page:
+        ttl: 5m
+      recent-searches:
+        ttl: ${LOCAL_CACHE_RECENT_SEARCHES_TTL:3m}
+        maximum-size: ${LOCAL_CACHE_RECENT_SEARCHES_MAX_SIZE:5000}
+      presigned-url:
+        ttl: ${LOCAL_CACHE_PRESIGNED_URL_TTL:240s}
+      main-section-hot-all:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-new-all:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-ai-all:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-hot-geo:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-new-geo:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-ai-geo:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-banners:
+        ttl: ${LOCAL_CACHE_PROMOTION_TTL:6h}
+        jitter: ${LOCAL_CACHE_PROMOTION_JITTER:5m}
+      main-splash:
+        ttl: ${LOCAL_CACHE_PROMOTION_TTL:6h}
+        jitter: ${LOCAL_CACHE_PROMOTION_JITTER:5m}
+      restaurant-location:
+        ttl: ${LOCAL_CACHE_RESTAURANT_LOCATION_TTL:2h}
+        jitter: ${LOCAL_CACHE_RESTAURANT_LOCATION_JITTER:30s}
+        maximum-size: ${LOCAL_CACHE_RESTAURANT_LOCATION_MAX_SIZE:10000}
+      restaurant-categories:
+        ttl: ${LOCAL_CACHE_RESTAURANT_META_TTL:6h}
+        jitter: ${LOCAL_CACHE_RESTAURANT_META_JITTER:5m}
+        maximum-size: ${LOCAL_CACHE_RESTAURANT_META_MAX_SIZE:5000}
+      restaurant-thumbnail:
+        ttl: ${LOCAL_CACHE_RESTAURANT_META_TTL:6h}
+        jitter: ${LOCAL_CACHE_RESTAURANT_META_JITTER:5m}
+        maximum-size: ${LOCAL_CACHE_RESTAURANT_META_MAX_SIZE:5000}
+      restaurant-summary:
+        ttl: ${LOCAL_CACHE_RESTAURANT_META_TTL:6h}
+        jitter: ${LOCAL_CACHE_RESTAURANT_META_JITTER:5m}
+        maximum-size: ${LOCAL_CACHE_RESTAURANT_META_MAX_SIZE:5000}
+      reverse-geocode:
+        ttl: ${LOCAL_CACHE_REVERSE_GEOCODE_TTL:24h}
+  webhook:
+    enabled: ${WEBHOOK_ENABLED:false}
+    provider: ${WEBHOOK_PROVIDER:discord}
+    include-stack-trace: ${WEBHOOK_INCLUDE_STACK_TRACE:false}
+    discord:
+      url: ${DISCORD_WEBHOOK_URL:}
+      batch-report-url: ${DISCORD_BATCH_REPORT_WEBHOOK_URL:}
+    slack:
+      url: ${SLACK_WEBHOOK_URL:}
+    retry:
+      max-attempts: ${WEBHOOK_RETRY_MAX:3}
+      backoff-ms: ${WEBHOOK_RETRY_BACKOFF:1000}
+    filters:
+      min-http-status: ${WEBHOOK_MIN_HTTP_STATUS:500}
+      exclude-error-codes: ${WEBHOOK_EXCLUDE_ERROR_CODES:}
+  message-queue:
+    enabled: ${MQ_ENABLED:false}
+    provider: ${MQ_PROVIDER:none}
+    topic-prefix: ${MQ_TOPIC_PREFIX:tasteam}
+    default-consumer-group: ${MQ_DEFAULT_CONSUMER_GROUP:tasteam-api}
+    poll-timeout-millis: ${MQ_POLL_TIMEOUT_MILLIS:1000}
+    max-retries: ${MQ_MAX_RETRIES:3}
+    kafka:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+      connect-url: ${KAFKA_CONNECT_URL:http://localhost:8083}
+      client-id: ${KAFKA_CLIENT_ID:tasteam-api}
+      producer:
+        acks: ${KAFKA_PRODUCER_ACKS:all}
+        retries: ${KAFKA_PRODUCER_RETRIES:3}
+        batch-size: ${KAFKA_PRODUCER_BATCH_SIZE:16384}
+        linger-ms: ${KAFKA_PRODUCER_LINGER_MS:5}
+        send-timeout-millis: ${KAFKA_PRODUCER_SEND_TIMEOUT_MILLIS:5000}
+        transaction-id-prefix: ${KAFKA_TX_ID_PREFIX:tasteam-tx-}
+      consumer:
+        concurrency: ${KAFKA_CONSUMER_CONCURRENCY:3}
+        max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS:50}
+        poll-timeout-millis: ${KAFKA_CONSUMER_POLL_TIMEOUT_MILLIS:1000}
+        session-timeout-ms: ${KAFKA_CONSUMER_SESSION_TIMEOUT_MS:30000}
+        heartbeat-interval-ms: ${KAFKA_CONSUMER_HEARTBEAT_INTERVAL_MS:10000}
+        max-poll-interval-ms: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS:300000}
+        fetch-min-bytes: ${KAFKA_CONSUMER_FETCH_MIN_BYTES:1024}
+        fetch-max-wait-ms: ${KAFKA_CONSUMER_FETCH_MAX_WAIT_MS:500}
+        partition-assignment-strategy: ${KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY:org.apache.kafka.clients.consumer.CooperativeStickyAssignor}
+        retry:
+          max-attempts: ${KAFKA_CONSUMER_RETRY_MAX_ATTEMPTS:3}
+          backoff-millis: ${KAFKA_CONSUMER_RETRY_BACKOFF_MILLIS:1000}
+      notification:
+        topic: ${NOTIFICATION_MQ_TOPIC:evt.notification.dispatch.v1}
+        consumer-group: ${NOTIFICATION_MQ_CONSUMER_GROUP:cg.notification.processor.v1}
+        dlq-topic: ${NOTIFICATION_MQ_DLQ_TOPIC:evt.notification.dispatch.v1.dlq}
+      user-activity-s3-ingest:
+        topic: ${USER_ACTIVITY_S3_INGEST_MQ_TOPIC:evt.user-activity.s3-ingest.v1}
+        dlq-topic: ${USER_ACTIVITY_S3_INGEST_MQ_DLQ_TOPIC:evt.user-activity.s3-ingest.v1.dlq}
+      connector:
+        auto-register: ${KAFKA_CONNECT_CONNECTOR_AUTO_REGISTER:false}
+        user-activity-s3-sink:
+          bucket: ${ANALYTICS_S3_BUCKET:}
+          region: ${AWS_REGION:ap-northeast-2}
+          tasks-max: ${KAFKA_CONNECT_UA_S3_TASKS_MAX:8}
+          flush-size: ${KAFKA_CONNECT_UA_S3_FLUSH_SIZE:100000}
+          rotate-interval-ms: ${KAFKA_CONNECT_UA_S3_ROTATE_INTERVAL_MS:3600000}
+          rotate-schedule-interval-ms: ${KAFKA_CONNECT_UA_S3_ROTATE_SCHEDULE_INTERVAL_MS:3600000}
+          endpoint: ${KAFKA_CONNECT_S3_ENDPOINT:${S3_ENDPOINT:}}
+          path-style-access: ${S3_PATH_STYLE_ACCESS:false}
+          access-key-id: ${AWS_ACCESS_KEY_ID:}
+          secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+  notification:
+    email:
+      provider: ${NOTIFICATION_EMAIL_PROVIDER:log}
+      ses:
+        region: ${NOTIFICATION_EMAIL_SES_REGION:ap-northeast-2}
+        access-key: ${NOTIFICATION_EMAIL_SES_ACCESS_KEY:}
+        secret-key: ${NOTIFICATION_EMAIL_SES_SECRET_KEY:}
+        from-address: ${NOTIFICATION_EMAIL_SES_FROM_ADDRESS:noreply@tasteam.kr}
+        charset: ${NOTIFICATION_EMAIL_SES_CHARSET:UTF-8}
+      rate-limit:
+        # fixed-window policy
+        enabled: ${NOTIFICATION_EMAIL_RATE_LIMIT_ENABLED:true}
+        prefix: ${NOTIFICATION_EMAIL_RATE_LIMIT_PREFIX:rl:mail}
+        action: ${NOTIFICATION_EMAIL_RATE_LIMIT_ACTION:send}
+        timezone: ${NOTIFICATION_EMAIL_RATE_LIMIT_TIMEZONE:Asia/Seoul}
+        trusted-proxies: ${NOTIFICATION_EMAIL_RATE_LIMIT_TRUSTED_PROXIES:127.0.0.1,::1,0:0:0:0:0:0:0:1}
+        email1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1M_LIMIT:1}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1M_TTL_SECONDS:60}
+        ip1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_IP_1M_LIMIT:5}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_IP_1M_TTL_SECONDS:60}
+        user1m:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_USER_1M_LIMIT:5}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_USER_1M_TTL_SECONDS:60}
+        email1d:
+          limit: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1D_LIMIT:10}
+          ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_EMAIL_1D_TTL_SECONDS:86400}
+        block-ttl-seconds: ${NOTIFICATION_EMAIL_RATE_LIMIT_BLOCK_TTL_SECONDS:86400}
+    outbox:
+      scan-delay: ${NOTIFICATION_OUTBOX_SCAN_DELAY:30000}
+      batch-size: ${NOTIFICATION_OUTBOX_BATCH_SIZE:100}
+    consumer:
+      group: ${NOTIFICATION_CONSUMER_GROUP:cg.notification.processor.v1}
+      dlq-topic: ${NOTIFICATION_DLQ_TOPIC:evt.notification.v1.dlq}
+    circuit-breaker:
+      fcm:
+        failure-threshold: ${NOTIFICATION_CB_FCM_FAILURE_THRESHOLD:5}
+        open-duration-seconds: ${NOTIFICATION_CB_FCM_OPEN_DURATION_SECONDS:60}
+      email:
+        failure-threshold: ${NOTIFICATION_CB_EMAIL_FAILURE_THRESHOLD:3}
+        open-duration-seconds: ${NOTIFICATION_CB_EMAIL_OPEN_DURATION_SECONDS:300}
+  analytics:
+    ingest:
+      enabled: ${ANALYTICS_INGEST_ENABLED:true}
+      route: ${ANALYTICS_INGEST_ROUTE:s3}
+      max-batch-size: ${ANALYTICS_INGEST_MAX_BATCH_SIZE:50}
+      allowlist: ${ANALYTICS_INGEST_ALLOWLIST:ui.page.viewed,ui.page.dwelled,ui.restaurant.clicked,ui.restaurant.viewed,ui.review.write_started,ui.review.submitted,ui.search.executed,ui.group.clicked,ui.group.viewed,ui.favorite.sheet_opened,ui.favorite.updated,ui.event.clicked,ui.tab.changed}
+      rate-limit:
+        max-requests: ${ANALYTICS_INGEST_RATE_LIMIT_MAX_REQUESTS:120}
+        window: ${ANALYTICS_INGEST_RATE_LIMIT_WINDOW:PT1M}
+    dispatch:
+      enabled: ${ANALYTICS_DISPATCH_ENABLED:true}
+      batch-size: ${ANALYTICS_DISPATCH_BATCH_SIZE:100}
+      fixed-delay: ${ANALYTICS_DISPATCH_FIXED_DELAY:PT1M}
+      retry:
+        base-delay: ${ANALYTICS_DISPATCH_RETRY_BASE_DELAY:PT10S}
+        max-delay: ${ANALYTICS_DISPATCH_RETRY_MAX_DELAY:PT10M}
+      circuit:
+        failure-threshold: ${ANALYTICS_DISPATCH_CIRCUIT_FAILURE_THRESHOLD:5}
+        open-duration: ${ANALYTICS_DISPATCH_CIRCUIT_OPEN_DURATION:PT1M}
+    posthog:
+      enabled: ${ANALYTICS_POSTHOG_ENABLED:false}
+      host: ${ANALYTICS_POSTHOG_HOST:https://app.posthog.com}
+      api-key: ${ANALYTICS_POSTHOG_API_KEY:}
+      connect-timeout: ${ANALYTICS_POSTHOG_CONNECT_TIMEOUT:2s}
+      read-timeout: ${ANALYTICS_POSTHOG_READ_TIMEOUT:3s}
+
+
+## ====== 운영 & 관리 ======
+management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        tasteam.api.request.duration: true
+        tasteam.transaction.duration: true
+        tasteam.transaction.query.count: true
+    tags:
+      application: tasteam-api
+      environment: ${spring.profiles.active:local}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,caches
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    enabled: ${TRACING_ENABLED:false}
+    sampling:
+      probability: 0.1
+  otlp:
+    tracing:
+      endpoint: ${OTEL_ENDPOINT:http://localhost:4318/v1/traces}
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${spring.profiles.active:local}
+  traces-sample-rate: 0.1
+  send-default-pii: false
+
+logging:
+  level:
+    org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: OFF
