@@ -47,7 +47,7 @@ public class GeoFirstHybridExecutor extends NativeSearchExecutorSupport {
 			WITH geo_candidates AS (
 			    SELECT
 			        r.id,
-			        ST_DistanceSphere(r.location, ST_MakePoint(:lng, :lat)) AS distance_meters
+			        ST_Distance(geography(r.location), geography(ST_MakePoint(:lng, :lat))) AS distance_meters
 			    FROM restaurant r
 			    WHERE r.deleted_at IS NULL
 			      AND ST_DWithin(geography(r.location), geography(ST_MakePoint(:lng, :lat)), :radius_m)

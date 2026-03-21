@@ -10,10 +10,10 @@ public final class NativeSqlFragments {
 
 	private NativeSqlFragments() {}
 
-	/** restaurant_search_mv 기반 지리 필터 (ST_DWithin 조건) */
+	/** restaurant_search_mv 기반 지리 필터 (ST_DWithin 조건, location_geo 직접 사용) */
 	public static String geoFilter(boolean withLocation) {
 		return withLocation
-			? "AND ST_DWithin(geography(mv.location), geography(ST_MakePoint(:lng, :lat)), :radius_m)"
+			? "AND ST_DWithin(mv.location_geo, geography(ST_MakePoint(:lng, :lat)), :radius_m)"
 			: "";
 	}
 
@@ -24,24 +24,24 @@ public final class NativeSqlFragments {
 			: "";
 	}
 
-	/** restaurant_search_mv 기반 거리 표현식 */
+	/** restaurant_search_mv 기반 거리 표현식 (location_geo 직접 사용) */
 	public static String distanceExprMv(boolean withLocation) {
 		return withLocation
-			? "ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat))"
+			? "ST_Distance(mv.location_geo, geography(ST_MakePoint(:lng, :lat)))"
 			: "NULL::double precision ";
 	}
 
 	/** restaurant 테이블 기반 거리 표현식 */
 	public static String distanceExprRestaurant(boolean withLocation) {
 		return withLocation
-			? "ST_DistanceSphere(r.location, ST_MakePoint(:lng, :lat))"
+			? "ST_Distance(geography(r.location), geography(ST_MakePoint(:lng, :lat)))"
 			: "NULL::double precision ";
 	}
 
-	/** restaurant_search_mv 기반 거리 점수 SQL 절 */
+	/** restaurant_search_mv 기반 거리 점수 SQL 절 (location_geo 직접 사용) */
 	public static String distanceScoreMv(boolean withLocation) {
 		return withLocation
-			? "GREATEST(0.0, 1.0 - (ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat)) / :radius_m)) * 50.0"
+			? "GREATEST(0.0, 1.0 - (ST_Distance(mv.location_geo, geography(ST_MakePoint(:lng, :lat))) / :radius_m)) * 50.0"
 			: "0.0";
 	}
 }

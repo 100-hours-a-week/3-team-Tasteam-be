@@ -46,8 +46,8 @@ public class ReadModelTwoStepExecutor extends NativeSearchExecutorSupport {
 				    SELECT mv.restaurant_id AS id
 				    FROM restaurant_search_mv mv
 				    WHERE mv.deleted_at IS NULL
-				      AND ST_DWithin(geography(mv.location), geography(ST_MakePoint(:lng, :lat)), :radius_m)
-				    ORDER BY ST_DistanceSphere(mv.location, ST_MakePoint(:lng, :lat)) ASC, mv.updated_at DESC, mv.restaurant_id DESC
+				      AND ST_DWithin(mv.location_geo, geography(ST_MakePoint(:lng, :lat)), :radius_m)
+				    ORDER BY ST_Distance(mv.location_geo, geography(ST_MakePoint(:lng, :lat))) ASC, mv.updated_at DESC, mv.restaurant_id DESC
 				    LIMIT :geo_candidate_limit
 				)
 				, candidate_ids AS (

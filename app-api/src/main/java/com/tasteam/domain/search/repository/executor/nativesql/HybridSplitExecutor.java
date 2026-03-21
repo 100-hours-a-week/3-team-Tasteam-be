@@ -48,7 +48,7 @@ public class HybridSplitExecutor extends NativeSearchExecutorSupport {
 				    FROM restaurant r
 				    WHERE r.deleted_at IS NULL
 				      AND ST_DWithin(geography(r.location), geography(ST_MakePoint(:lng, :lat)), :radius_m)
-				    ORDER BY ST_DistanceSphere(r.location, ST_MakePoint(:lng, :lat)) ASC, r.updated_at DESC, r.id DESC
+				    ORDER BY ST_Distance(geography(r.location), geography(ST_MakePoint(:lng, :lat))) ASC, r.updated_at DESC, r.id DESC
 				    LIMIT :geo_candidate_limit
 				)
 				, candidate_ids AS (
