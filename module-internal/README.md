@@ -10,15 +10,37 @@
 
 ## 의존성 위치
 
-```
-module-app:api / module-app:admin / module-app:batch
-        ↓ (이 레이어를 참조)
-   module-internal:web / security / observability
-        ↓
-   module-common:support
-   module-domain:core (security만)
-   module-infra:redis (web, security)
-   module-infra:webhook (security만)
+```mermaid
+graph BT
+    classDef app fill:#4F46E5,stroke:#3730A3,color:#fff,rx:6
+    classDef internal fill:#0891B2,stroke:#0E7490,color:#fff,rx:6
+    classDef infra fill:#059669,stroke:#047857,color:#fff,rx:6
+    classDef domain fill:#D97706,stroke:#B45309,color:#fff,rx:6
+    classDef common fill:#DC2626,stroke:#B91C1C,color:#fff,rx:6
+
+    API["module-app:api"]:::app
+    ADMIN["module-app:admin"]:::app
+    BATCH["module-app:batch"]:::app
+
+    SEC["security"]:::internal
+    WEB["web"]:::internal
+    OBS["observability"]:::internal
+
+    REDIS["module-infra:redis"]:::infra
+    WEBHOOK["module-infra:webhook"]:::infra
+    DOMAIN["module-domain:core"]:::domain
+    COMMON["module-common:support"]:::common
+
+    API --> SEC & WEB & OBS
+    ADMIN --> SEC & WEB & OBS
+    BATCH --> SEC & WEB & OBS
+
+    SEC -->|domain 참조| DOMAIN
+    SEC -->|토큰 블랙리스트| REDIS
+    SEC -->|감사 로그| WEBHOOK
+    WEB -->|Rate Limiting| REDIS
+
+    SEC & WEB & OBS --> COMMON
 ```
 
 ---
