@@ -8,7 +8,7 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! ./gradlew test; then
+if ! ./gradlew --parallel --build-cache :module-app:api:test :module-app:admin:test :module-app:batch:test; then
   echo "⛔ 테스트 실패! 푸시가 중단됩니다."
   exit 1
 fi
