@@ -9,7 +9,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.AliasFor;
+import org.springframework.test.context.ContextConfiguration;
 
+import com.tasteam.api.ApiApplication;
 import com.tasteam.config.TestSecurityConfig;
 
 /**
@@ -23,6 +25,7 @@ import com.tasteam.config.TestSecurityConfig;
 @WebMvcTest
 @AutoConfigureMockMvc(addFilters = false)
 @Import(TestSecurityConfig.class)
+@ContextConfiguration(classes = ApiApplication.class)
 public @interface ControllerWebMvcTest{
 
 	@AliasFor(annotation = WebMvcTest.class, attribute = "value")
