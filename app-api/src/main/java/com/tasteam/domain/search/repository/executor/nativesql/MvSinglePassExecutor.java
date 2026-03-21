@@ -14,6 +14,8 @@ import com.tasteam.domain.search.repository.executor.NativeSqlFragments;
  * MV_SINGLE_PASS 전략 실행기.
  * restaurant_search_mv 뷰를 단일 패스로 스캔해 텍스트 조건·스코어링·정렬을 한 번에 처리한다.
  * 별도의 후보 수집 없이 뷰의 인덱스를 직접 활용하므로 쿼리가 단순하다.
+ * <p>
+ * 점수식: name_exact*100 + name_similarity*30 + category_match*15 + address_match*5 + distance*50
  */
 @Component
 public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
@@ -77,6 +79,8 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 				        address_match,
 				        (name_exact * 100.0
 				         + name_similarity * 30.0
+				         + category_match * 15.0
+				         + address_match * 5.0
 				         + """
 			+ distanceScore
 			+ """
