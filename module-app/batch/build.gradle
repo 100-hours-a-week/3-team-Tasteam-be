@@ -118,7 +118,7 @@ dependencies {
     /* ==================================================
      * Test
      * ================================================== */
-    testImplementation(testFixtures(project(':app-api')))
+    testImplementation(testFixtures(project(':module-app:api')))
     testImplementation(testFixtures(project(':module-domain:core')))
     testImplementation(testFixtures(project(':module-common:support')))
     testImplementation(testFixtures(project(':module-internal:security')))
