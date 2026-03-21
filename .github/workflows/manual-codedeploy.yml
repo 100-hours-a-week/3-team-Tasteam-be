@@ -140,11 +140,7 @@ jobs:
           ECR_REGISTRY=${ECR_REGISTRY}
           ECR_REPO_BACKEND=${ECR_REPO_BACKEND}
           IMAGE_TAG=${{ steps.source.outputs.source_sha }}
-<<<<<<< HEAD
           HEALTH_RETRIES=120
-=======
-          HEALTH_RETRIES=75
->>>>>>> ffb956cd (🔁 ci: CodeDeploy 헬스체크 리트라이 횟수 증가 (45→75))
           EODEPLOY
 
           chmod +x deploy.sh stop.sh health.sh traffic.sh switch.sh rollback.sh
