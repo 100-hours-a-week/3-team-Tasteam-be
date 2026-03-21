@@ -113,6 +113,8 @@ tasteam:
     presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:300}
   analytics:
     bucket: ${ANALYTICS_BUCKET:tasteam-dev-analytics}
+    ingest:
+      route: db
   webhook:
     enabled: false
     provider: discord
