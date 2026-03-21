@@ -1,0 +1,68 @@
+package com.tasteam.domain.chat.stream;
+
+import java.time.Duration;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.listener.PatternTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.data.redis.stream.StreamMessageListenerContainer;
+import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import com.tasteam.domain.chat.config.ChatStreamProperties;
+import com.tasteam.global.aop.ObservedExecutor;
+
+@Configuration
+@EnableConfigurationProperties(ChatStreamProperties.class)
+@ConditionalOnProperty(name = "spring.data.redis.enabled", havingValue = "true", matchIfMissing = true)
+public class ChatStreamConfig {
+
+	@Bean(destroyMethod = "shutdown")
+	@ObservedExecutor(name = "chat_stream")
+	public ThreadPoolTaskExecutor chatStreamExecutor(ChatStreamProperties properties) {
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(properties.executorThreadPoolSize());
+		executor.setMaxPoolSize(properties.executorThreadPoolSize());
+		executor.setQueueCapacity(properties.executorQueueCapacity());
+		executor.setThreadNamePrefix("chat-stream-");
+		return executor;
+	}
+
+	@Bean(destroyMethod = "stop")
+	public StreamMessageListenerContainer<String, MapRecord<String, String, String>> chatStreamListenerContainer(
+		RedisConnectionFactory connectionFactory,
+		ThreadPoolTaskExecutor chatStreamExecutor) {
+		StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options = StreamMessageListenerContainerOptions
+			.<String, MapRecord<String, String, String>>builder()
+			.pollTimeout(Duration.ofSeconds(1))
+			.batchSize(10)
+			.serializer(new StringRedisSerializer())
+			.executor(chatStreamExecutor)
+			.build();
+
+		return StreamMessageListenerContainer.create(connectionFactory, options);
+	}
+
+	@Bean(destroyMethod = "destroy")
+	@ConditionalOnProperty(name = "chat.stream.ws-pubsub-broadcast-enabled", havingValue = "true")
+	public RedisMessageListenerContainer chatWsBroadcastListenerContainer(
+		RedisConnectionFactory connectionFactory,
+		ChatWsBroadcastSubscriber chatWsBroadcastSubscriber,
+		@Qualifier("chatStreamExecutor")
+		ThreadPoolTaskExecutor chatStreamExecutor,
+		ChatStreamProperties properties) {
+		RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+		container.setConnectionFactory(connectionFactory);
+		container.setTaskExecutor(chatStreamExecutor);
+		container.setSubscriptionExecutor(chatStreamExecutor);
+		container.addMessageListener(chatWsBroadcastSubscriber, new PatternTopic(properties.wsPubSubChannel()));
+		return container;
+	}
+}

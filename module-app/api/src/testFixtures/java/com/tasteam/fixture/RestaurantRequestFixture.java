@@ -1,0 +1,59 @@
+package com.tasteam.fixture;
+
+import java.time.LocalTime;
+import java.util.List;
+import java.util.UUID;
+
+import com.tasteam.domain.restaurant.dto.request.NearbyRestaurantQueryParams;
+import com.tasteam.domain.restaurant.dto.request.RestaurantCreateRequest;
+import com.tasteam.domain.restaurant.dto.request.RestaurantReviewListRequest;
+import com.tasteam.domain.restaurant.dto.request.RestaurantUpdateRequest;
+import com.tasteam.domain.restaurant.dto.request.WeeklyScheduleRequest;
+
+public final class RestaurantRequestFixture {
+
+	public static final Double DEFAULT_LAT = 37.5665;
+	public static final Double DEFAULT_LNG = 126.9780;
+	public static final Integer DEFAULT_RADIUS = 1000;
+	public static final Integer DEFAULT_SIZE = 20;
+	public static final String DEFAULT_NAME = "테스트식당";
+	public static final String DEFAULT_ADDRESS = "서울시 강남구 테헤란로 1";
+	public static final String DEFAULT_PHONE_NUMBER = "02-1234-5678";
+
+	private RestaurantRequestFixture() {}
+
+	public static NearbyRestaurantQueryParams createNearbyParams() {
+		return new NearbyRestaurantQueryParams(DEFAULT_LAT, DEFAULT_LNG, DEFAULT_RADIUS, null, null, DEFAULT_SIZE);
+	}
+
+	public static NearbyRestaurantQueryParams createNearbyParams(Double lat, Double longitude) {
+		return new NearbyRestaurantQueryParams(lat, longitude, DEFAULT_RADIUS, null, null, DEFAULT_SIZE);
+	}
+
+	public static RestaurantCreateRequest createRestaurantRequest() {
+		return new RestaurantCreateRequest(
+			DEFAULT_NAME,
+			DEFAULT_ADDRESS,
+			DEFAULT_PHONE_NUMBER,
+			List.of(1L, 2L),
+			List.of(UUID.randomUUID()),
+			List.of(new WeeklyScheduleRequest(1, LocalTime.of(9, 0), LocalTime.of(22, 0), false, null, null)));
+	}
+
+	public static RestaurantCreateRequest createRestaurantRequest(String name, String address, String phoneNumber,
+		List<UUID> imageIds) {
+		return new RestaurantCreateRequest(name, address, phoneNumber, null, imageIds, null);
+	}
+
+	public static RestaurantUpdateRequest createUpdateRequest() {
+		return new RestaurantUpdateRequest(
+			"수정된식당",
+			List.of(1L),
+			List.of(UUID.randomUUID()));
+	}
+
+	public static RestaurantReviewListRequest createReviewListRequest() {
+		return new RestaurantReviewListRequest(null, DEFAULT_SIZE);
+	}
+
+}
