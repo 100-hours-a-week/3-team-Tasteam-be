@@ -9,12 +9,10 @@ import java.util.Set;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.tasteam.domain.analytics.api.ActivityEvent;
 import com.tasteam.domain.analytics.ingest.dto.request.ClientActivityEventItemRequest;
-import com.tasteam.domain.analytics.persistence.UserActivityEventStoreService;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.AnalyticsErrorCode;
 
@@ -29,10 +27,9 @@ public class ClientActivityIngestService {
 
 	private final AnalyticsIngestProperties ingestProperties;
 	private final ClientActivityIngestRateLimiter rateLimiter;
-	private final UserActivityEventStoreService userActivityEventStoreService;
+	private final ClientActivityIngestSink clientActivityIngestSink;
 	private final Clock clock = Clock.systemUTC();
 
-	@Transactional
 	public int ingest(Long memberId, String anonymousId, List<ClientActivityEventItemRequest> events) {
 		validateBatch(events);
 		String normalizedAnonymousId = normalizeAnonymousId(anonymousId);
@@ -45,7 +42,7 @@ public class ClientActivityIngestService {
 		Set<String> allowedEventNames = ingestProperties.allowedEventNames();
 		for (ClientActivityEventItemRequest eventItem : events) {
 			validateAllowlist(allowedEventNames, eventItem.eventName());
-			userActivityEventStoreService.store(toActivityEvent(memberId, normalizedAnonymousId, eventItem));
+			clientActivityIngestSink.ingest(toActivityEvent(memberId, normalizedAnonymousId, eventItem));
 		}
 		return events.size();
 	}
