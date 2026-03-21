@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "tasteam.message-queue", name = "provider", havingValue = "kafka")
 public class UserActivityS3SinkPublisher implements ActivitySink {
 
 	private final MessageQueueProducer messageQueueProducer;

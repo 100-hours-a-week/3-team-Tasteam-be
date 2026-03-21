@@ -154,6 +154,9 @@ tasteam:
     bucket: ${ANALYTICS_BUCKET:tasteam-prod-analytics}
     ingest:
       route: s3
+  message-queue:
+    enabled: ${MQ_ENABLED:true}
+    provider: ${MQ_PROVIDER:kafka}
   file:
     cleanup:
       ttl-seconds: ${FILE_CLEANUP_TTL_SECONDS:}
