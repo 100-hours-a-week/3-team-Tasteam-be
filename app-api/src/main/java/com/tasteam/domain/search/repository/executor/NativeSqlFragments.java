@@ -38,10 +38,10 @@ public final class NativeSqlFragments {
 			: "NULL::double precision ";
 	}
 
-	/** restaurant_search_mv 기반 거리 점수 SQL 절 (location_geo 직접 사용) */
+	/** restaurant_search_mv 기반 거리 점수 SQL 절 (이미 계산된 distance_meters 컬럼 참조) */
 	public static String distanceScoreMv(boolean withLocation) {
 		return withLocation
-			? "GREATEST(0.0, 1.0 - (ST_Distance(mv.location_geo, geography(ST_MakePoint(:lng, :lat))) / :radius_m)) * 50.0"
+			? "GREATEST(0.0, 1.0 - (distance_meters / :radius_m)) * 50.0"
 			: "0.0";
 	}
 }
