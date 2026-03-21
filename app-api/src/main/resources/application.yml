@@ -366,6 +366,7 @@ tasteam:
   analytics:
     ingest:
       enabled: ${ANALYTICS_INGEST_ENABLED:true}
+      route: ${ANALYTICS_INGEST_ROUTE:s3}
       max-batch-size: ${ANALYTICS_INGEST_MAX_BATCH_SIZE:50}
       allowlist: ${ANALYTICS_INGEST_ALLOWLIST:ui.page.viewed,ui.page.dwelled,ui.restaurant.clicked,ui.restaurant.viewed,ui.review.write_started,ui.review.submitted,ui.search.executed,ui.group.clicked,ui.group.viewed,ui.favorite.sheet_opened,ui.favorite.updated,ui.event.clicked,ui.tab.changed}
       rate-limit:

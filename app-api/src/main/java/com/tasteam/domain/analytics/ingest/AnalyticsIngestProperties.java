@@ -17,6 +17,7 @@ import lombok.Setter;
 public class AnalyticsIngestProperties {
 
 	private boolean enabled = true;
+	private String route = "s3";
 	private int maxBatchSize = 50;
 	private List<String> allowlist = List.of(
 		"ui.page.viewed",
@@ -37,6 +38,18 @@ public class AnalyticsIngestProperties {
 
 	public int validatedMaxBatchSize() {
 		return Math.max(1, maxBatchSize);
+	}
+
+	public String validatedRoute() {
+		if (!StringUtils.hasText(route)) {
+			return "s3";
+		}
+
+		String normalized = route.trim().toLowerCase();
+		return switch (normalized) {
+			case "db", "s3" -> normalized;
+			default -> "s3";
+		};
 	}
 
 	public Set<String> allowedEventNames() {
