@@ -42,6 +42,7 @@ const TEST_GROUP = {
     id: parsePositiveIntEnv('TEST_GROUP_ID', 2002),
     code: __ENV.TEST_GROUP_CODE || 'LOCAL-1234',
 };
+const TEST_SUBGROUP_ID = parsePositiveIntEnv('TEST_SUBGROUP_ID', 4002);
 const GROUP_SEARCH_KEYWORDS = parseCsvEnv('GROUP_SEARCH_KEYWORDS').length > 0
     ? parseCsvEnv('GROUP_SEARCH_KEYWORDS')
     : ['테스트'];
@@ -1185,6 +1186,25 @@ export function getMyFavoriteRestaurants(token) {
     return res;
 }
 
+export function getFavoriteTargets(token) {
+    const res = http.get(
+        `${BASE_URL}/api/v1/members/me/favorite-targets`,
+        { headers: getHeaders(token), tags: { name: 'favorite_targets', type: 'read' } }
+    );
+    check(res, { '찜 대상 조회 성공 (200)': (r) => r.status === 200 });
+    return res;
+}
+
+export function getRestaurantFavoriteTargets(token, restaurantId) {
+    if (!restaurantId) return null;
+    const res = http.get(
+        `${BASE_URL}/api/v1/members/me/restaurants/${restaurantId}/favorite-targets`,
+        { headers: getHeaders(token), tags: { name: 'restaurant_favorite_targets', type: 'read' } }
+    );
+    check(res, { '음식점별 찜 대상 조회 성공 (200)': (r) => r.status === 200 });
+    return res;
+}
+
 export function getNotifications(token) {
     const res = http.get(
         `${BASE_URL}/api/v1/members/me/notifications`,
@@ -1437,6 +1457,350 @@ export function removeFavoriteRestaurant(token, restaurantId) {
         { headers: getHeaders(token), tags: { name: 'remove_favorite', type: 'write' } }
     );
     check(res, { '즐겨찾기 삭제 성공 (200 or 204)': (r) => r.status === 200 || r.status === 204 });
+    return res;
+}
+
+export function toggleFavoriteRestaurant(token, restaurantId) {
+    if (!restaurantId) return { action: 'skipped', response: null };
+
+    const addRes = addFavoriteRestaurant(token, restaurantId);
+    if (!addRes) {
+        return { action: 'skipped', response: null };
+    }
+
+    if (addRes.status === 200 || addRes.status === 201) {
+        return { action: 'add', response: addRes };
+    }
+
+    if (addRes.status === 409) {
+        const removeRes = removeFavoriteRestaurant(token, restaurantId);
+        return { action: 'remove', response: removeRes };
+    }
+
+    return { action: 'noop', response: addRes };
+}
+
+const CLIENT_ACTIVITY_EVENT_CATALOG = [
+    {
+        name: 'ui.page.viewed',
+        requiredProperties: ['pageKey', 'pathTemplate', 'referrerPathTemplate', 'sessionId'],
+    },
+    {
+        name: 'ui.page.dwelled',
+        requiredProperties: ['pageKey', 'pathTemplate', 'dwellMs', 'exitType', 'sessionId'],
+    },
+    {
+        name: 'ui.restaurant.clicked',
+        requiredProperties: ['restaurantId', 'fromPageKey', 'position'],
+    },
+    {
+        name: 'ui.restaurant.viewed',
+        requiredProperties: ['restaurantId', 'fromPageKey'],
+    },
+    {
+        name: 'ui.review.write_started',
+        requiredProperties: ['restaurantId', 'fromPageKey'],
+    },
+    {
+        name: 'ui.review.submitted',
+        requiredProperties: ['restaurantId', 'groupId', 'subgroupId'],
+    },
+    {
+        name: 'ui.search.executed',
+        requiredProperties: ['fromPageKey', 'resultRestaurantCount', 'resultGroupCount', 'queryLength', 'hasFilter'],
+    },
+    {
+        name: 'ui.group.clicked',
+        requiredProperties: ['groupId', 'fromPageKey'],
+    },
+    {
+        name: 'ui.favorite.sheet_opened',
+        requiredProperties: ['restaurantId', 'fromPageKey'],
+    },
+    {
+        name: 'ui.favorite.updated',
+        requiredProperties: ['restaurantId', 'selectedTargetCount', 'fromPageKey'],
+    },
+    {
+        name: 'ui.event.clicked',
+        requiredProperties: ['eventId', 'fromPageKey'],
+    },
+    {
+        name: 'ui.tab.changed',
+        requiredProperties: ['fromTab', 'toTab', 'fromPageKey'],
+    },
+];
+
+const CLIENT_ACTIVITY_EVENT_NAMES = CLIENT_ACTIVITY_EVENT_CATALOG.map((item) => item.name);
+const CLIENT_ACTIVITY_PAGE_CONTEXTS = [
+    { pageKey: 'home', pathTemplate: '/home' },
+    { pageKey: 'search', pathTemplate: '/search' },
+    { pageKey: 'restaurant-detail', pathTemplate: '/restaurants/:restaurantId' },
+    { pageKey: 'write-review', pathTemplate: '/write-review' },
+    { pageKey: 'group-detail', pathTemplate: '/groups/:groupId' },
+];
+const CLIENT_ACTIVITY_EXIT_TYPES = ['navigate', 'background', 'close'];
+const CLIENT_ACTIVITY_TABS = ['home', 'search', 'group', 'profile'];
+const CLIENT_ACTIVITY_PLATFORMS = ['IOS', 'ANDROID', 'WEB'];
+const CLIENT_ACTIVITY_DISTANCE_BUCKETS = ['0_500', '500_1000', '1000_3000', '3000_plus'];
+
+function randomClientActivityId(prefix) {
+    const randomPart = Math.random().toString(36).slice(2, 10);
+    return `${prefix}-${Date.now()}-${randomPart}`;
+}
+
+function randomClientActivityItem(list, fallback = null) {
+    if (!Array.isArray(list) || list.length === 0) {
+        return fallback;
+    }
+    return list[Math.floor(Math.random() * list.length)];
+}
+
+function randomClientActivityPageContext() {
+    return randomClientActivityItem(CLIENT_ACTIVITY_PAGE_CONTEXTS, CLIENT_ACTIVITY_PAGE_CONTEXTS[0]);
+}
+
+function pickClientActivityRestaurantId({
+    restaurantPool = [],
+    hotRestaurants = [],
+    coldRestaurants = [],
+    restaurantHotShare = 0.3,
+} = {}) {
+    const weightedPick = pickFromHotspot(hotRestaurants, coldRestaurants, clampRatio(restaurantHotShare, 0.3, { allowZero: true }));
+    if (weightedPick) {
+        return weightedPick;
+    }
+
+    const flatPick = randomClientActivityItem(restaurantPool);
+    if (flatPick) {
+        return flatPick;
+    }
+
+    if (TEST_RESTAURANT_ID > 0) {
+        return TEST_RESTAURANT_ID;
+    }
+
+    return Math.floor(Math.random() * 9000) + 1000;
+}
+
+function buildClientActivityProperties(eventName, overrides = {}) {
+    const pageContext = overrides.pageContext || randomClientActivityPageContext();
+    const restaurantId = overrides.restaurantId || pickClientActivityRestaurantId(overrides);
+    const groupId = overrides.groupId || TEST_GROUP.id;
+    const subgroupId = overrides.subgroupId || TEST_SUBGROUP_ID;
+    const sessionId = overrides.sessionId || randomClientActivityId('session');
+    const fromPageKey = overrides.fromPageKey || pageContext.pageKey;
+
+    switch (eventName) {
+        case 'ui.page.viewed':
+            return {
+                pageKey: pageContext.pageKey,
+                pathTemplate: pageContext.pathTemplate,
+                referrerPathTemplate: overrides.referrerPathTemplate || '/home',
+                sessionId,
+                platform: randomClientActivityItem(CLIENT_ACTIVITY_PLATFORMS, 'WEB'),
+            };
+        case 'ui.page.dwelled':
+            return {
+                pageKey: pageContext.pageKey,
+                pathTemplate: pageContext.pathTemplate,
+                dwellMs: overrides.dwellMs || Math.floor(Math.random() * 9000) + 1000,
+                exitType: overrides.exitType || randomClientActivityItem(CLIENT_ACTIVITY_EXIT_TYPES, 'navigate'),
+                sessionId,
+            };
+        case 'ui.restaurant.clicked':
+            return {
+                restaurantId,
+                fromPageKey,
+                position: overrides.position || Math.floor(Math.random() * 20) + 1,
+            };
+        case 'ui.restaurant.viewed':
+        case 'ui.review.write_started':
+        case 'ui.favorite.sheet_opened':
+            return {
+                restaurantId,
+                fromPageKey,
+            };
+        case 'ui.review.submitted':
+            return {
+                restaurantId,
+                groupId,
+                subgroupId,
+            };
+        case 'ui.search.executed':
+            return {
+                fromPageKey,
+                resultRestaurantCount: overrides.resultRestaurantCount || Math.floor(Math.random() * 30),
+                resultGroupCount: overrides.resultGroupCount || Math.floor(Math.random() * 10),
+                queryLength: overrides.queryLength || Math.floor(Math.random() * 8) + 2,
+                hasFilter: overrides.hasFilter !== undefined ? overrides.hasFilter : Math.random() < 0.4,
+                distanceBucket: overrides.distanceBucket || randomClientActivityItem(CLIENT_ACTIVITY_DISTANCE_BUCKETS, '0_500'),
+            };
+        case 'ui.group.clicked':
+            return {
+                groupId,
+                fromPageKey,
+            };
+        case 'ui.favorite.updated':
+            return {
+                restaurantId,
+                selectedTargetCount: overrides.selectedTargetCount || Math.floor(Math.random() * 3) + 1,
+                fromPageKey,
+            };
+        case 'ui.event.clicked':
+            return {
+                eventId: overrides.clickedEventId || randomClientActivityId('promo'),
+                fromPageKey,
+            };
+        case 'ui.tab.changed': {
+            const fromTab = overrides.fromTab || randomClientActivityItem(CLIENT_ACTIVITY_TABS, 'home');
+            const toTab = overrides.toTab || randomClientActivityItem(
+                CLIENT_ACTIVITY_TABS.filter((tab) => tab !== fromTab),
+                'search'
+            );
+            return {
+                fromTab,
+                toTab,
+                fromPageKey,
+            };
+        }
+        default:
+            return {
+                pageKey: pageContext.pageKey,
+                pathTemplate: pageContext.pathTemplate,
+                sessionId,
+            };
+    }
+}
+
+export function getClientActivityEventNames() {
+    return [...CLIENT_ACTIVITY_EVENT_NAMES];
+}
+
+export function createClientActivityAnonymousPool(size = 200) {
+    return Array.from({ length: Math.max(1, size) }, () => randomClientActivityId('anon'));
+}
+
+export function pickClientActivityIdentity(tokens = [], anonymousIds = [], mode = 'mixed', memberShare = 0.5) {
+    const normalizedMode = String(mode || 'mixed').toLowerCase();
+    const safeMemberShare = clampRatio(memberShare, 0.5, { allowZero: true });
+
+    if (normalizedMode === 'member' && tokens.length > 0) {
+        return { token: randomClientActivityItem(tokens), anonymousId: null, identityMode: 'member' };
+    }
+
+    if (normalizedMode === 'anonymous' || tokens.length === 0) {
+        return {
+            token: null,
+            anonymousId: randomClientActivityItem(anonymousIds, randomClientActivityId('anon')),
+            identityMode: 'anonymous',
+        };
+    }
+
+    if (anonymousIds.length === 0) {
+        return { token: randomClientActivityItem(tokens), anonymousId: null, identityMode: 'member' };
+    }
+
+    if (Math.random() < safeMemberShare) {
+        return { token: randomClientActivityItem(tokens), anonymousId: null, identityMode: 'member' };
+    }
+
+    return {
+        token: null,
+        anonymousId: randomClientActivityItem(anonymousIds, randomClientActivityId('anon')),
+        identityMode: 'anonymous',
+    };
+}
+
+export function buildClientActivityEvent({
+    eventName = randomClientActivityItem(CLIENT_ACTIVITY_EVENT_NAMES, 'ui.page.viewed'),
+    eventId = randomClientActivityId('evt'),
+    eventVersion = 'v1',
+    occurredAt = new Date().toISOString(),
+    properties = null,
+    restaurantPool = [],
+    hotRestaurants = [],
+    coldRestaurants = [],
+    restaurantHotShare = 0.3,
+    groupId = TEST_GROUP.id,
+    subgroupId = TEST_SUBGROUP_ID,
+    pageContext = null,
+} = {}) {
+    return {
+        eventId,
+        eventName,
+        eventVersion,
+        occurredAt,
+        properties: properties || buildClientActivityProperties(eventName, {
+            restaurantPool,
+            hotRestaurants,
+            coldRestaurants,
+            restaurantHotShare,
+            groupId,
+            subgroupId,
+            pageContext,
+        }),
+    };
+}
+
+export function buildClientActivityBatch({
+    batchSize = 1,
+    eventNames = CLIENT_ACTIVITY_EVENT_NAMES,
+    restaurantPool = [],
+    hotRestaurants = [],
+    coldRestaurants = [],
+    restaurantHotShare = 0.3,
+    groupId = TEST_GROUP.id,
+    subgroupId = TEST_SUBGROUP_ID,
+} = {}) {
+    const boundedBatchSize = Math.max(1, Math.min(Number(batchSize) || 1, 50));
+    const resolvedNames = Array.isArray(eventNames) && eventNames.length > 0 ? eventNames : CLIENT_ACTIVITY_EVENT_NAMES;
+    const events = [];
+
+    for (let i = 0; i < boundedBatchSize; i++) {
+        events.push(buildClientActivityEvent({
+            eventName: randomClientActivityItem(resolvedNames, CLIENT_ACTIVITY_EVENT_NAMES[0]),
+            restaurantPool,
+            hotRestaurants,
+            coldRestaurants,
+            restaurantHotShare,
+            groupId,
+            subgroupId,
+        }));
+    }
+
+    return events;
+}
+
+export function ingestClientActivityEvents({ token = null, anonymousId = null, events = [], tags = {} } = {}) {
+    if (!Array.isArray(events) || events.length === 0) {
+        return null;
+    }
+
+    const headers = getHeaders(token);
+    if (!token) {
+        headers['X-Anonymous-Id'] = anonymousId || randomClientActivityId('anon');
+    }
+
+    const payload = JSON.stringify({
+        anonymousId: token ? null : (anonymousId || null),
+        events,
+    });
+
+    const res = http.post(
+        `${BASE_URL}/api/v1/analytics/events`,
+        payload,
+        {
+            headers,
+            tags: { name: 'client_activity_ingest', type: 'write', ...tags },
+        }
+    );
+
+    check(res, {
+        '클라이언트 이벤트 적재 성공 (200)': (r) => r.status === 200,
+        'acceptedCount 일치': (r) => r.status !== 200 || r.json('data.acceptedCount') === events.length,
+    });
+
     return res;
 }
 
