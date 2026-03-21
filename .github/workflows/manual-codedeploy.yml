@@ -118,7 +118,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: app-api/Dockerfile
+          file: module-app/api/Dockerfile
           push: true
           tags: |
             ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ steps.source.outputs.source_sha }}
