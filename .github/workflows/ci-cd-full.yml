@@ -36,11 +36,11 @@ jobs:
           cache: 'gradle'
 
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/actions/setup-gradle@v4
 
       # 테스트 실행
       - name: Run Tests
-        run: ./gradlew test
+        run: ./gradlew --parallel --build-cache test
 
       # 테스트 실패 디스코드 알림
       - name: Notify Test Failure
@@ -89,7 +89,7 @@ jobs:
           cache: 'gradle'
 
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/actions/setup-gradle@v4
 
       # CodeQL 보안 분석 - 빌드 전에 초기화
       - name: Initialize CodeQL
@@ -100,7 +100,7 @@ jobs:
 
       # 메인 코드 컴파일 (보안 분석용)
       - name: Compile Main Sources
-        run: ./gradlew classes
+        run: ./gradlew --build-cache classes
 
       # CodeQL 분석 수행
       - name: Perform CodeQL Analysis
@@ -110,7 +110,7 @@ jobs:
 
       # 보안 분석 - SpotBugs (메인 코드만 분석)
       - name: Run SpotBugs Security Analysis
-        run: ./gradlew :module-app:api:spotbugsMain
+        run: ./gradlew --build-cache :module-app:api:spotbugsMain
         continue-on-error: true
 
       # SpotBugs 리포트 업로드

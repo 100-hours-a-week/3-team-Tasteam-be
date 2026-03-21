@@ -25,7 +25,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/actions/setup-gradle@v4
 
       # 1주차 생략
       # formatting
@@ -39,7 +39,7 @@ jobs:
 
       # 빌드
       - name: Build with Gradle
-        run: ./gradlew build -x test
+        run: ./gradlew --parallel --build-cache build -x test
 
       # Feature 브랜치에서는 테스트와 SonarCloud 생략
 
