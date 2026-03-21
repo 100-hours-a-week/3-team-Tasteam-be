@@ -10,13 +10,39 @@
 
 ## 의존성 위치
 
-```
-module-app:* / module-internal:*
-        ↓ (이 레이어를 참조)
-   module-infra:persistence / redis / messaging / storage / notification / geocode / ai / webhook / analytics
-        ↓
-   module-domain:core (persistence, messaging만)
-   module-common:support (전체)
+```mermaid
+graph BT
+    classDef app fill:#4F46E5,stroke:#3730A3,color:#fff,rx:6
+    classDef internal fill:#0891B2,stroke:#0E7490,color:#fff,rx:6
+    classDef infra fill:#059669,stroke:#047857,color:#fff,rx:6
+    classDef infraLimited fill:#065F46,stroke:#047857,color:#fff,rx:6
+    classDef domain fill:#D97706,stroke:#B45309,color:#fff,rx:6
+    classDef common fill:#DC2626,stroke:#B91C1C,color:#fff,rx:6
+
+    APP["module-app:*"]:::app
+    INTERNAL["module-internal:*"]:::internal
+
+    subgraph INFRA_LAYER["  module-infra  "]
+        P["persistence"]:::infraLimited
+        R["redis"]:::infra
+        M["messaging"]:::infraLimited
+        S["storage"]:::infra
+        N["notification"]:::infra
+        G["geocode"]:::infra
+        AI["ai"]:::infra
+        W["webhook"]:::infra
+        AN["analytics"]:::infra
+    end
+
+    DOMAIN["module-domain:core"]:::domain
+    COMMON["module-common:support"]:::common
+
+    APP --> INFRA_LAYER
+    INTERNAL --> R
+    INTERNAL --> W
+    P -->|domain 참조 허용| DOMAIN
+    M -->|domain 참조 허용| DOMAIN
+    INFRA_LAYER --> COMMON
 ```
 
 ---
