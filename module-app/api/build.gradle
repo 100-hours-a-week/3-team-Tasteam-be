@@ -1,6 +1,7 @@
 plugins {
     id 'org.springframework.boot'
     id 'io.spring.dependency-management'
+    id 'java-test-fixtures'
 }
 
 configurations.configureEach {
@@ -116,9 +117,17 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     /* ==================================================
+     * Test Fixtures
+     * ================================================== */
+    testFixturesImplementation project(':module-domain:core')
+    testFixturesImplementation 'org.assertj:assertj-core:3.27.6'
+    testFixturesImplementation 'com.fasterxml.jackson.core:jackson-databind'
+    testFixturesImplementation 'org.hibernate.orm:hibernate-spatial'
+
+    /* ==================================================
      * Test
      * ================================================== */
-    testImplementation(testFixtures(project(':app-api')))
+    testImplementation(testFixtures(project(':module-app:api')))
     testImplementation(testFixtures(project(':module-domain:core')))
     testImplementation(testFixtures(project(':module-common:support')))
     testImplementation(testFixtures(project(':module-internal:security')))
