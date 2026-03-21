@@ -152,6 +152,8 @@ tasteam:
     temp-upload-prefix: ${STORAGE_TEMP_UPLOAD_PREFIX:}
   analytics:
     bucket: ${ANALYTICS_BUCKET:tasteam-stg-analytics}
+    ingest:
+      route: s3
   file:
     cleanup:
       ttl-seconds: ${FILE_CLEANUP_TTL_SECONDS:}
