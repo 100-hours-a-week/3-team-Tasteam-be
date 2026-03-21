@@ -20,7 +20,6 @@ import com.tasteam.domain.file.entity.DomainType;
 import com.tasteam.domain.file.repository.DomainImageRepository;
 import com.tasteam.domain.file.service.DomainImageLinker;
 import com.tasteam.domain.group.repository.GroupRepository;
-import com.tasteam.domain.restaurant.dto.GeocodingResult;
 import com.tasteam.domain.restaurant.dto.GroupRestaurantSearchCondition;
 import com.tasteam.domain.restaurant.dto.NearbyRestaurantSearchCondition;
 import com.tasteam.domain.restaurant.dto.RestaurantCursor;
@@ -42,7 +41,6 @@ import com.tasteam.domain.restaurant.entity.RestaurantAddress;
 import com.tasteam.domain.restaurant.entity.RestaurantFoodCategory;
 import com.tasteam.domain.restaurant.entity.RestaurantWeeklySchedule;
 import com.tasteam.domain.restaurant.event.RestaurantEventPublisher;
-import com.tasteam.domain.restaurant.geocoding.NaverGeocodingClient;
 import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
 import com.tasteam.domain.restaurant.repository.FoodCategoryRepository;
 import com.tasteam.domain.restaurant.repository.RestaurantAddressRepository;
@@ -57,6 +55,8 @@ import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.GroupErrorCode;
 import com.tasteam.global.exception.code.RestaurantErrorCode;
 import com.tasteam.global.utils.CursorCodec;
+import com.tasteam.infra.geocode.GeocodingClient;
+import com.tasteam.infra.geocode.dto.GeocodingResult;
 
 import lombok.RequiredArgsConstructor;
 
@@ -76,7 +76,7 @@ public class RestaurantService {
 	private final GroupRestaurantSearchConditionValidator groupRestaurantSearchConditionValidator;
 	private final RestaurantFoodCategoryValidator restaurantFoodCategoryValidator;
 	private final GeometryFactory geometryFactory;
-	private final NaverGeocodingClient naverGeocodingClient;
+	private final GeocodingClient geocodingClient;
 	private final RestaurantScheduleService restaurantScheduleService;
 	private final RestaurantReadService restaurantReadService;
 	private final RestaurantImageService restaurantImageService;
@@ -299,7 +299,7 @@ public class RestaurantService {
 				.collect(Collectors.toUnmodifiableSet());
 
 		// 위치 정보 검색
-		GeocodingResult result = naverGeocodingClient.geocode(request.address());
+		GeocodingResult result = geocodingClient.geocode(request.address());
 
 		// 위치 정보 생성
 		Coordinate coordinate = new Coordinate(result.longitude(), result.latitude());

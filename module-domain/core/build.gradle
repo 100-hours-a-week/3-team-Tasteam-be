@@ -15,6 +15,9 @@ dependencies {
     // Jackson (enum @JsonCreator 등)
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
+    // Validation (DTO @NotNull, @Size 등)
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
     // PostGIS Spatial (restaurant entity)
     implementation 'org.hibernate.orm:hibernate-spatial'
 
