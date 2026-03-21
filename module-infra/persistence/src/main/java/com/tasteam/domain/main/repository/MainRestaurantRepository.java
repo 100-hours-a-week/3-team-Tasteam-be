@@ -177,6 +177,7 @@ public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 		    ST_X(r.location::geometry) as longitude
 		from restaurant r
 		where r.id in (:ids)
+		  and r.location is not null
 		""", nativeQuery = true)
 	List<RestaurantLocationProjection> findLocationsByIds(
 		@Param("ids")

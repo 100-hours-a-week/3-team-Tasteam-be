@@ -29,13 +29,7 @@ spring:
         generate_statistics: false
 
   flyway:
-    enabled: true
-    url: ${FLYWAY_URL:${DB_URL:jdbc:postgresql://localhost:5432/tasteam}}
-    user: ${FLYWAY_USER:${DB_USERNAME:tasteam}}
-    password: ${FLYWAY_PASSWORD:${DB_PASSWORD:tasteam}}
-    locations: classpath:db/migration
-    out-of-order: false
-    baseline-on-migrate: false
+    enabled: false
 
   sql:
     init:
