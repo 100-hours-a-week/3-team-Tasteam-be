@@ -1,0 +1,47 @@
+# ===============================
+# 1. Build stage
+# ===============================
+FROM gradle:9.2.1-jdk21 AS builder
+
+WORKDIR /app
+
+# build.gradle의 git 명령 실행을 위해 git 설치
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Gradle wrapper & 캐시 레이어
+COPY gradlew .
+COPY gradle gradle
+COPY build.gradle settings.gradle ./
+COPY module-app/api/build.gradle module-app/api/build.gradle
+COPY module-app/batch/build.gradle module-app/batch/build.gradle
+
+RUN ./gradlew dependencies --no-daemon || true
+
+# 소스 복사
+COPY . .
+
+# module-app batch 기준 bootJar
+RUN ./gradlew :module-app:batch:bootJar --no-daemon \
+    && BOOT_JAR="$(find /app/module-app/batch/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' ! -name '*-test-fixtures.jar' | sort | tail -n 1)" \
+    && test -n "${BOOT_JAR}" \
+    && cp "${BOOT_JAR}" /app/module-app/batch/build/libs/app-batch-exec.jar
+
+# ===============================
+# 2. Runtime stage
+# ===============================
+FROM amazoncorretto:21
+
+WORKDIR /app
+
+# 빌드 결과 복사
+COPY --from=builder /app/module-app/batch/build/libs/app-batch-exec.jar app.jar
+
+EXPOSE 8082
+
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-Xss256k", \
+  "-jar", "/app/app.jar"]
