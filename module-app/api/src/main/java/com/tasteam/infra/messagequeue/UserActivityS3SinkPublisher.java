@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -26,8 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "tasteam.message-queue", name = "enabled", havingValue = "true")
-@ConditionalOnProperty(prefix = "tasteam.message-queue", name = "provider", havingValue = "kafka")
+@ConditionalOnExpression("'${tasteam.message-queue.enabled:false}'.equals('true') && '${tasteam.message-queue.provider:none}'.equals('kafka')")
 public class UserActivityS3SinkPublisher implements ActivitySink {
 
 	private final MessageQueueProducer messageQueueProducer;
