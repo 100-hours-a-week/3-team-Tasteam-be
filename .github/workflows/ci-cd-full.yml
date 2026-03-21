@@ -110,7 +110,7 @@ jobs:
 
       # 보안 분석 - SpotBugs (메인 코드만 분석)
       - name: Run SpotBugs Security Analysis
-        run: ./gradlew :app-api:spotbugsMain
+        run: ./gradlew :module-app:api:spotbugsMain
         continue-on-error: true
 
       # SpotBugs 리포트 업로드
@@ -119,7 +119,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: spotbugs-report-${{ github.sha }}
-          path: app-api/build/reports/spotbugs/main/spotbugs.html
+          path: module-app/api/build/reports/spotbugs/main/spotbugs.html
           retention-days: 7
 
       # 보안 스캔 실패 알림 (성공 시 알림 없음)
@@ -188,7 +188,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: app-api/Dockerfile
+          file: module-app/api/Dockerfile
           push: true
           tags: |
             ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ env.IMAGE_TAG_SHA }}

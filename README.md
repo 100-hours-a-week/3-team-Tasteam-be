@@ -50,7 +50,7 @@ Tasteam 백엔드 애플리케이션 저장소입니다.
 
 | 경로 | 역할 |
 |---|---|
-| `app-api/` | 현재 Spring Boot 메인 애플리케이션과 API 진입점 |
+| `module-app/api/` | 현재 Spring Boot 메인 애플리케이션과 API 진입점 |
 | `app-admin/`, `app-batch/` | 관리자/배치 실행 자산 정리 공간 |
 | `domain/`, `domain-core/`, `domain-rdb/` | 도메인 모델, 영속 계층, RDB 연계 코드 |
 | `common/`, `common-infra/`, `common-security/`, `common-support/`, `common-web/` | 공통 웹/보안/인프라/지원 코드 |
@@ -66,9 +66,9 @@ Tasteam 백엔드 애플리케이션 저장소입니다.
 |---|---|---|
 | Spotless | `build.gradle`, `.husky/pre-commit` | Java 포맷 강제 |
 | Checkstyle | `build.gradle`, `config/checkstyle/*` | 네이버 룰 기반 스타일 검사 |
-| JaCoCo | `build.gradle`, `app-api/build.gradle` | 테스트 커버리지 리포트와 최소 기준 검증 |
-| SpotBugs + FindSecBugs | `app-api/build.gradle`, `.github/workflows/ci-cd-full.yml` | 잠재 버그와 보안 취약 패턴 정적 분석 |
-| Java Test Fixtures | `app-api/build.gradle`, `src/testFixtures/java` | 공용 테스트 픽스처 재사용 |
+| JaCoCo | `build.gradle`, `module-app/api/build.gradle` | 테스트 커버리지 리포트와 최소 기준 검증 |
+| SpotBugs + FindSecBugs | `module-app/api/build.gradle`, `.github/workflows/ci-cd-full.yml` | 잠재 버그와 보안 취약 패턴 정적 분석 |
+| Java Test Fixtures | `module-app/api/build.gradle`, `src/testFixtures/java` | 공용 테스트 픽스처 재사용 |
 
 ### 로컬 점검 명령
 
@@ -76,7 +76,7 @@ Tasteam 백엔드 애플리케이션 저장소입니다.
 ./gradlew spotlessCheck
 ./gradlew checkstyleMain checkstyleTest
 ./gradlew test jacocoTestReport jacocoTestCoverageVerification
-./gradlew :app-api:spotbugsMain
+./gradlew :module-app:api:spotbugsMain
 ```
 
 ## 컨벤션과 참고 문서
@@ -94,4 +94,3 @@ Tasteam 백엔드 애플리케이션 저장소입니다.
 | <img src="https://github.com/Y0unse0.png" width="128" alt="Y0unse0" /> | <img src="https://github.com/ImGdevel.png" width="128" alt="ImGdevel" /> | <img src="https://github.com/GY102912.png" width="128" alt="GY102912" /> |
 | [@Y0unse0](https://github.com/Y0unse0) | [@ImGdevel](https://github.com/ImGdevel) | [@GY102912](https://github.com/GY102912) |
 | Backend | Backend | Backend |
-
