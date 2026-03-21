@@ -44,6 +44,8 @@ tasteam:
     dispatch-outbox:
       metrics:
         refresh-delay: 86400000
+    ingest:
+      route: db
   notification:
     outbox:
       metrics:
