@@ -6,7 +6,7 @@ tasks.register('flywayCreate') {
         }
 
         def timestamp = new Date().format("yyyyMMddHHmmss")
-        def migrationDir = file("${rootDir}/module-app/api/src/main/resources/db/migration")
+        def migrationDir = file("${rootDir}/app-api/src/main/resources/db/migration")
         migrationDir.mkdirs()
 
         def file = new File(

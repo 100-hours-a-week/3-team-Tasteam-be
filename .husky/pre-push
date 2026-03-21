@@ -3,27 +3,12 @@
 set -euo pipefail
 
 echo "🔁 실행 테스트를 진행합니다..."
-
-if pids=$(pgrep -f "gradlew .*test" 2>/dev/null); then
-  echo "⚠️  현재 다른 Gradle 테스트가 실행 중입니다."
-  echo "   감지된 PID: ${pids}"
-  echo "   충돌을 피하려면 해당 프로세스 종료 후 푸시해 주세요."
-  echo "   테스트 충돌이 빈번하면 즉시 종료하려면 PRE_PUSH_KILL_TESTS=1 으로 설정하세요."
-  if [ "${PRE_PUSH_KILL_TESTS:-0}" = "1" ]; then
-    echo "   감지된 테스트 프로세스를 종료합니다."
-    echo "${pids}" | xargs -r kill -TERM || true
-    sleep 1
-  else
-    exit 1
-  fi
-fi
-
 if ! docker info >/dev/null 2>&1; then
   echo "⛔ Docker가 감지되지 않습니다. 통합 테스트( Testcontainers )가 필요하므로 푸시를 진행할 수 없습니다."
   exit 1
 fi
 
-if ! ./gradlew --parallel --build-cache :module-app:api:test :module-app:admin:test :module-app:batch:test; then
+if ! ./gradlew test; then
   echo "⛔ 테스트 실패! 푸시가 중단됩니다."
   exit 1
 fi

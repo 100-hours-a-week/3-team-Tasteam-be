@@ -96,11 +96,11 @@ jobs:
 
       - name: Setup Gradle
         if: ${{ inputs.run_tests }}
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/gradle-build-action@v2
 
       - name: Run tests
         if: ${{ inputs.run_tests }}
-        run: ./gradlew --parallel --build-cache test
+        run: ./gradlew test
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -118,7 +118,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: module-app/api/Dockerfile
+          file: app-api/Dockerfile
           push: true
           tags: |
             ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY_BACKEND }}:${{ steps.source.outputs.source_sha }}

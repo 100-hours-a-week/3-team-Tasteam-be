@@ -23,57 +23,9 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'gradle'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Detect changed modules
-        id: changed-modules
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          BASE_SHA="${{ github.event.before }}"
-          HEAD_SHA="${{ github.sha }}"
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          fi
-
-          if [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ] || [ -z "$BASE_SHA" ]; then
-            BASE_SHA=$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || true)
-          fi
-          if [ -z "$BASE_SHA" ]; then
-            CHANGED_FILES=""
-          else
-            CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || true)
-          fi
-
-          echo "changed_files<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$CHANGED_FILES" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-          app_changed=false
-          other_changed=false
-
-          if [ -n "$CHANGED_FILES" ]; then
-            while IFS= read -r file; do
-              [ -z "$file" ] && continue
-              if [[ "$file" == module-app/* ]]; then
-                app_changed=true
-              else
-                other_changed=true
-              fi
-            done <<< "$CHANGED_FILES"
-          fi
-
-          if [ "$app_changed" = "true" ] && [ "$other_changed" = "false" ]; then
-            echo "app_only=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "app_only=false" >> "$GITHUB_OUTPUT"
-          fi
-          echo "app_changed=$app_changed" >> "$GITHUB_OUTPUT"
-          echo "other_changed=$other_changed" >> "$GITHUB_OUTPUT"
+        uses: gradle/gradle-build-action@v2
 
       # 1주차 생략
       # formatting
@@ -87,11 +39,7 @@ jobs:
 
       # 빌드
       - name: Build with Gradle
-        run: ./gradlew --parallel --no-build-cache build -x test -x spotlessCheck
-
-      - name: Run app module tests only
-        if: steps.changed-modules.outputs.app_only == 'true'
-        run: ./gradlew --parallel --no-build-cache :module-app:api:test :module-app:admin:test :module-app:batch:test
+        run: ./gradlew build -x test
 
       # Feature 브랜치에서는 테스트와 SonarCloud 생략
 
