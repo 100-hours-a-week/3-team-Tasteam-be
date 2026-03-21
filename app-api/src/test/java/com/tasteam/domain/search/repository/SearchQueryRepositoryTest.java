@@ -61,8 +61,9 @@ class SearchQueryRepositoryTest {
 	}
 
 	private void createSearchMvIfAbsent() {
+		jdbcTemplate.execute("DROP MATERIALIZED VIEW IF EXISTS restaurant_search_mv");
 		jdbcTemplate.execute("""
-			CREATE MATERIALIZED VIEW IF NOT EXISTS restaurant_search_mv AS
+			CREATE MATERIALIZED VIEW restaurant_search_mv AS
 			SELECT
 			    r.id             AS restaurant_id,
 			    r.name           AS name,
@@ -70,6 +71,7 @@ class SearchQueryRepositoryTest {
 			    lower(r.name)         AS name_lower,
 			    lower(r.full_address) AS addr_lower,
 			    r.location,
+			    r.location::geography AS location_geo,
 			    r.updated_at,
 			    r.deleted_at,
 			    COALESCE(
@@ -90,6 +92,8 @@ class SearchQueryRepositoryTest {
 			LEFT JOIN food_category fc ON fc.id = rfc.food_category_id
 			GROUP BY r.id, r.name, r.full_address, r.location, r.updated_at, r.deleted_at
 			""");
+		jdbcTemplate.execute(
+			"CREATE UNIQUE INDEX idx_restaurant_search_mv_restaurant_id ON restaurant_search_mv (restaurant_id)");
 	}
 
 	@AfterEach

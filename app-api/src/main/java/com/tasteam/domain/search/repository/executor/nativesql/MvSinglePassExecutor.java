@@ -36,10 +36,11 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 		String distanceExpr = NativeSqlFragments.distanceExprMv(withLocation);
 		String distanceScore = NativeSqlFragments.distanceScoreMv(withLocation);
 
-		// scored CTE: total_score를 한 번만 계산
+		// scored_raw CTE: similarity 등 비용 함수를 각각 1회만 계산
+		// scored CTE: scored_raw의 이미 계산된 컬럼을 참조해 total_score 산출 (중복 호출 없음)
 		// candidates CTE: 이미 계산된 total_score로 커서 조건 적용 후 LIMIT :size
 		return """
-			WITH scored AS (
+			WITH scored_raw AS (
 			    SELECT
 			        mv.restaurant_id,
 			        mv.name,
@@ -51,24 +52,36 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 			+ distanceExpr + """
 				AS distance_meters,
 				CASE WHEN mv.category_names @> ARRAY[:kw]::text[] THEN 1 ELSE 0 END AS category_match,
-				CASE WHEN mv.addr_lower LIKE '%' || :kw || '%' THEN 1 ELSE 0 END AS address_match,
-				(
-				    CASE WHEN mv.name_lower = :kw THEN 1 ELSE 0 END * 100.0
-				    + similarity(mv.name_lower, :kw)::double precision * 30.0
-				    + """
-			+ distanceScore + """
-				) AS total_score
+				CASE WHEN mv.addr_lower LIKE '%' || :kw || '%' THEN 1 ELSE 0 END AS address_match
 				FROM restaurant_search_mv mv
 				WHERE mv.deleted_at IS NULL
 				  """
 			+ geoFilter
 			+ """
-				      AND (
-				            mv.name_lower LIKE '%' || :kw || '%'
-				            OR mv.name_lower % :kw
-				            OR mv.addr_lower LIKE '%' || :kw || '%'
-				            OR mv.category_names @> ARRAY[:kw]::text[]
-				          )
+				          AND (
+				                mv.name_lower LIKE '%' || :kw || '%'
+				                OR mv.name_lower % :kw
+				                OR mv.addr_lower LIKE '%' || :kw || '%'
+				                OR mv.category_names @> ARRAY[:kw]::text[]
+				              )
+				), scored AS (
+				    SELECT
+				        restaurant_id,
+				        name,
+				        full_address,
+				        updated_at,
+				        name_exact,
+				        name_similarity,
+				        distance_meters,
+				        category_match,
+				        address_match,
+				        (name_exact * 100.0
+				         + name_similarity * 30.0
+				         + """
+			+ distanceScore
+			+ """
+				        ) AS total_score
+				    FROM scored_raw
 				), candidates AS (
 				    SELECT
 				        restaurant_id,
