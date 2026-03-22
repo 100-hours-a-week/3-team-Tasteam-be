@@ -6,8 +6,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -32,6 +35,8 @@ public class ClientActivityIngestService {
 	private final ClientActivityIngestRateLimiter rateLimiter;
 	private final UserActivityEventStoreService userActivityEventStoreService;
 	private final ObjectProvider<UserActivityS3SinkPublisher> userActivityS3SinkPublisherProvider;
+	@Qualifier("clientActivityPublishExecutor")
+	private final Executor clientActivityPublishExecutor;
 	private final Clock clock = Clock.systemUTC();
 
 	public int ingest(Long memberId, String anonymousId, List<ClientActivityEventItemRequest> events) {
@@ -48,8 +53,14 @@ public class ClientActivityIngestService {
 			throw new IllegalStateException("UserActivityS3SinkPublisher 빈이 없어 S3 direct ingest를 처리할 수 없습니다.");
 		}
 		List<ActivityEvent> activityEvents = prepareEvents(memberId, anonymousId, events);
-		for (ActivityEvent activityEvent : activityEvents) {
-			userActivityS3SinkPublisher.sink(activityEvent);
+		try {
+			clientActivityPublishExecutor.execute(() -> {
+				for (ActivityEvent activityEvent : activityEvents) {
+					userActivityS3SinkPublisher.sink(activityEvent);
+				}
+			});
+		} catch (RejectedExecutionException ex) {
+			throw new BusinessException(AnalyticsErrorCode.ANALYTICS_INGEST_RATE_LIMIT_EXCEEDED);
 		}
 		return activityEvents.size();
 	}

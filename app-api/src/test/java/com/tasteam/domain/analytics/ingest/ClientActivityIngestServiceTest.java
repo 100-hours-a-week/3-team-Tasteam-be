@@ -12,6 +12,8 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,10 +32,11 @@ import com.tasteam.infra.messagequeue.UserActivityS3SinkPublisher;
 @DisplayName("[유닛](Client) ClientActivityIngestService 단위 테스트")
 class ClientActivityIngestServiceTest {
 
+	private static final Executor DIRECT_EXECUTOR = Runnable::run;
+
 	@Test
 	@DisplayName("인증 사용자 요청이면 허용 이벤트를 동일 저장 경로로 저장한다")
 	void ingest_storesAllowedEventsForAuthenticatedMember() {
-		// given
 		AnalyticsIngestProperties properties = defaultProperties();
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
@@ -43,15 +46,14 @@ class ClientActivityIngestServiceTest {
 			properties,
 			rateLimiter,
 			storeService,
-			publisherProvider);
+			publisherProvider,
+			DIRECT_EXECUTOR);
 
 		ClientActivityEventItemRequest first = eventItem("evt-1", "ui.restaurant.viewed", null);
 		ClientActivityEventItemRequest second = eventItem("evt-2", "ui.group.viewed", "v3");
 
-		// when
 		int accepted = service.ingest(10L, null, List.of(first, second));
 
-		// then
 		assertThat(accepted).isEqualTo(2);
 		verify(rateLimiter).tryAcquire("member:10");
 		ArgumentCaptor<ActivityEvent> captor = ArgumentCaptor.forClass(ActivityEvent.class);
@@ -67,7 +69,6 @@ class ClientActivityIngestServiceTest {
 	@Test
 	@DisplayName("익명 요청에서 anonymousId가 없으면 수집을 거부한다")
 	void ingest_rejectsAnonymousRequestWhenAnonymousIdMissing() {
-		// given
 		AnalyticsIngestProperties properties = defaultProperties();
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
@@ -76,10 +77,10 @@ class ClientActivityIngestServiceTest {
 			properties,
 			rateLimiter,
 			storeService,
-			publisherProvider);
+			publisherProvider,
+			DIRECT_EXECUTOR);
 		ClientActivityEventItemRequest item = eventItem("evt-1", "ui.restaurant.viewed", null);
 
-		// when & then
 		assertThatThrownBy(() -> service.ingest(null, "   ", List.of(item)))
 			.isInstanceOf(BusinessException.class)
 			.extracting(ex -> ((BusinessException)ex).getErrorCode())
@@ -90,7 +91,6 @@ class ClientActivityIngestServiceTest {
 	@Test
 	@DisplayName("allowlist에 없는 이벤트가 포함되면 수집을 거부한다")
 	void ingest_rejectsEventWhenNotAllowlisted() {
-		// given
 		AnalyticsIngestProperties properties = defaultProperties();
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
@@ -100,10 +100,10 @@ class ClientActivityIngestServiceTest {
 			properties,
 			rateLimiter,
 			storeService,
-			publisherProvider);
+			publisherProvider,
+			DIRECT_EXECUTOR);
 		ClientActivityEventItemRequest item = eventItem("evt-1", "ui.unknown.event", null);
 
-		// when & then
 		assertThatThrownBy(() -> service.ingest(null, "anon-1", List.of(item)))
 			.isInstanceOf(BusinessException.class)
 			.extracting(ex -> ((BusinessException)ex).getErrorCode())
@@ -115,7 +115,6 @@ class ClientActivityIngestServiceTest {
 	@Test
 	@DisplayName("배치 크기가 제한을 초과하면 수집을 거부한다")
 	void ingest_rejectsWhenBatchSizeExceeded() {
-		// given
 		AnalyticsIngestProperties properties = defaultProperties();
 		properties.setMaxBatchSize(1);
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
@@ -125,9 +124,9 @@ class ClientActivityIngestServiceTest {
 			properties,
 			rateLimiter,
 			storeService,
-			publisherProvider);
+			publisherProvider,
+			DIRECT_EXECUTOR);
 
-		// when & then
 		assertThatThrownBy(() -> service.ingest(10L, null, List.of(
 			eventItem("evt-1", "ui.restaurant.viewed", null),
 			eventItem("evt-2", "ui.review.submitted", null))))
@@ -140,7 +139,6 @@ class ClientActivityIngestServiceTest {
 	@Test
 	@DisplayName("요청 빈도가 제한을 초과하면 수집을 거부한다")
 	void ingest_rejectsWhenRateLimitExceeded() {
-		// given
 		AnalyticsIngestProperties properties = defaultProperties();
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
@@ -150,10 +148,10 @@ class ClientActivityIngestServiceTest {
 			properties,
 			rateLimiter,
 			storeService,
-			publisherProvider);
+			publisherProvider,
+			DIRECT_EXECUTOR);
 		ClientActivityEventItemRequest item = eventItem("evt-1", "ui.restaurant.viewed", null);
 
-		// when & then
 		assertThatThrownBy(() -> service.ingest(null, "anon-1", List.of(item)))
 			.isInstanceOf(BusinessException.class)
 			.extracting(ex -> ((BusinessException)ex).getErrorCode())
@@ -164,7 +162,6 @@ class ClientActivityIngestServiceTest {
 	@Test
 	@DisplayName("properties에 null 값이 포함되어도 null-safe 정규화 후 저장한다")
 	void ingest_normalizesNullPropertyEntries() {
-		// given
 		AnalyticsIngestProperties properties = defaultProperties();
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
@@ -174,7 +171,8 @@ class ClientActivityIngestServiceTest {
 			properties,
 			rateLimiter,
 			storeService,
-			publisherProvider);
+			publisherProvider,
+			DIRECT_EXECUTOR);
 
 		Map<String, Object> rawProperties = new LinkedHashMap<>();
 		rawProperties.put("restaurantId", 1L);
@@ -187,10 +185,8 @@ class ClientActivityIngestServiceTest {
 			Instant.parse("2026-02-19T00:00:00Z"),
 			rawProperties);
 
-		// when
 		int accepted = service.ingest(null, "anon-1", List.of(item));
 
-		// then
 		assertThat(accepted).isEqualTo(1);
 		ArgumentCaptor<ActivityEvent> captor = ArgumentCaptor.forClass(ActivityEvent.class);
 		verify(storeService).store(captor.capture());
@@ -215,7 +211,8 @@ class ClientActivityIngestServiceTest {
 			properties,
 			rateLimiter,
 			storeService,
-			publisherProvider);
+			publisherProvider,
+			DIRECT_EXECUTOR);
 
 		int accepted = service.ingestToS3(10L, null, List.of(
 			eventItem("evt-1", "ui.restaurant.viewed", null),
@@ -224,6 +221,34 @@ class ClientActivityIngestServiceTest {
 		assertThat(accepted).isEqualTo(2);
 		verify(publisher, times(2)).sink(org.mockito.ArgumentMatchers.any(ActivityEvent.class));
 		verifyNoInteractions(storeService);
+	}
+
+	@Test
+	@DisplayName("S3 direct ingest 위임 큐가 포화되면 fast-fail 한다")
+	void ingestToS3_rejectsWhenPublishExecutorIsSaturated() {
+		AnalyticsIngestProperties properties = defaultProperties();
+		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
+		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
+		UserActivityS3SinkPublisher publisher = mock(UserActivityS3SinkPublisher.class);
+		ObjectProvider<UserActivityS3SinkPublisher> publisherProvider = mock(ObjectProvider.class);
+		Executor rejectingExecutor = command -> {
+			throw new RejectedExecutionException("queue full");
+		};
+		when(rateLimiter.tryAcquire("member:10")).thenReturn(true);
+		when(publisherProvider.getIfAvailable()).thenReturn(publisher);
+		ClientActivityIngestService service = new ClientActivityIngestService(
+			properties,
+			rateLimiter,
+			storeService,
+			publisherProvider,
+			rejectingExecutor);
+
+		assertThatThrownBy(() -> service.ingestToS3(10L, null, List.of(
+			eventItem("evt-1", "ui.restaurant.viewed", null))))
+			.isInstanceOf(BusinessException.class)
+			.extracting(ex -> ((BusinessException)ex).getErrorCode())
+			.isEqualTo(AnalyticsErrorCode.ANALYTICS_INGEST_RATE_LIMIT_EXCEEDED.name());
+		verifyNoInteractions(storeService, publisher);
 	}
 
 	private AnalyticsIngestProperties defaultProperties() {
