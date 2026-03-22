@@ -118,7 +118,9 @@ public class KafkaMessageQueueConfig {
 	@Bean
 	public KafkaTemplate<String, String> messageQueueKafkaTemplate(
 		ProducerFactory<String, String> messageQueueKafkaProducerFactory) {
-		return new KafkaTemplate<>(messageQueueKafkaProducerFactory);
+		KafkaTemplate<String, String> kafkaTemplate = new KafkaTemplate<>(messageQueueKafkaProducerFactory);
+		kafkaTemplate.setAllowNonTransactional(true);
+		return kafkaTemplate;
 	}
 
 	@Bean
