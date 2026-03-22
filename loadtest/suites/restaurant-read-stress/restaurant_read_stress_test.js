@@ -8,9 +8,11 @@ import {
     getRestaurantDetail,
     getRestaurantMenus,
     getRestaurantReviews,
+    getSubgroupReviews,
     extractRestaurantIdsFromSectionsResponse,
     pickRandomRestaurantId,
     pickRestaurantId,
+    pickSubgroupId,
     prepareHotspotPools,
     randomLocation,
     resolveGroupContext,
@@ -40,7 +42,8 @@ const SCENARIO_OPTIONS = {
             },
         },
         thresholds: {
-            'http_req_duration{type:read}': ['p(95)<1500'],
+            'http_req_duration{type:read,surface:restaurant-detail}': ['p(95)<1500'],
+            'http_req_duration{type:read,surface:review-list}': ['p(95)<1500'],
             'http_req_failed': ['rate<0.01'],
         },
     },
@@ -61,7 +64,30 @@ const SCENARIO_OPTIONS = {
             },
         },
         thresholds: {
-            'http_req_duration{type:read}': ['p(95)<1800'],
+            'http_req_duration{type:read,surface:restaurant-list}': ['p(95)<1800'],
+            'http_req_duration{type:read,surface:restaurant-detail}': ['p(95)<1800'],
+            'http_req_duration{type:read,surface:review-list}': ['p(95)<1800'],
+            'http_req_failed': ['rate<0.01'],
+        },
+    },
+    'review-list-heavy': {
+        setupTimeout: '5m',
+        scenarios: {
+            restaurant_read: {
+                executor: 'ramping-vus',
+                startVUs: 10,
+                stages: [
+                    { target: 50, duration: '2m' },
+                    { target: 180, duration: '4m' },
+                    { target: 320, duration: '4m' },
+                    { target: 320, duration: '4m' },
+                    { target: 0, duration: '2m' },
+                ],
+                exec: 'reviewListHeavy',
+            },
+        },
+        thresholds: {
+            'http_req_duration{type:read,surface:review-list}': ['p(95)<1800'],
             'http_req_failed': ['rate<0.01'],
         },
     },
@@ -146,6 +172,42 @@ export function listThenDetail(data) {
 
     metrics.add(successCount, 'restaurant_read_success_count');
     sleep(0.5 + Math.random());
+}
+
+function pickReviewPageSize() {
+    const sizes = [10, 20, 50];
+    return sizes[Math.floor(Math.random() * sizes.length)];
+}
+
+export function reviewListHeavy(data) {
+    if (!data || !data.tokens || data.tokens.length === 0) return;
+
+    const token = data.tokens[Math.floor(Math.random() * data.tokens.length)];
+    const state = createState();
+    state.token = token;
+    state.hotspot = data.hotspot || null;
+
+    let successCount = 0;
+    const restaurantId = pickRestaurantId(state);
+    const subgroupId = pickSubgroupId(state);
+    const size = pickReviewPageSize();
+
+    if (restaurantId) {
+        const reviewRes = getRestaurantReviews(token, restaurantId, { size });
+        if (reviewRes && reviewRes.response && reviewRes.response.status === 200) {
+            successCount++;
+        }
+    }
+
+    if (subgroupId && Math.random() < 0.5) {
+        const subgroupReviewRes = getSubgroupReviews(token, subgroupId, { size });
+        if (subgroupReviewRes && subgroupReviewRes.status === 200) {
+            successCount++;
+        }
+    }
+
+    metrics.add(successCount, 'restaurant_read_success_count');
+    sleep(0.3 + Math.random() * 0.7);
 }
 
 export function teardown() {
