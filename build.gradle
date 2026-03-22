@@ -125,6 +125,7 @@ subprojects {
     }
 
     tasks.withType(Test).configureEach {
+        systemProperty "testcontainers.reuse.enable", "true"
         useJUnitPlatform()
     }
 

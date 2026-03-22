@@ -68,8 +68,6 @@ naver:
 tasteam:
   analytics:
     bucket: ${ANALYTICS_S3_BUCKET:tasteam-analytics-local}
-    ingest:
-      route: db
   message-queue:
     kafka:
       connector:

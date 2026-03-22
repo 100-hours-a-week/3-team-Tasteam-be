@@ -2,7 +2,6 @@ package com.tasteam;
 
 import org.springframework.boot.SpringApplication;
 
-import com.tasteam.api.ApiApplication;
 import com.tasteam.config.TestcontainersConfiguration;
 
 public class TestApiApplication {
