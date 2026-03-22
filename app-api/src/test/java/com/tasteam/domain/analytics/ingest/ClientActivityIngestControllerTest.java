@@ -36,7 +36,7 @@ class ClientActivityIngestControllerTest {
 				"v1",
 				Instant.parse("2026-02-19T00:00:00Z"),
 				Map.of())));
-		when(service.ingest(null, "anon-header", request.events())).thenReturn(1);
+		when(service.ingestToS3(null, "anon-header", request.events())).thenReturn(1);
 
 		// when
 		SuccessResponse<ClientActivityEventsIngestResponse> response = controller.ingest(
@@ -45,7 +45,7 @@ class ClientActivityIngestControllerTest {
 			request);
 
 		// then
-		verify(service).ingest(null, "anon-header", request.events());
+		verify(service).ingestToS3(null, "anon-header", request.events());
 		assertThat(response.getData()).isNotNull();
 		assertThat(response.getData().acceptedCount()).isEqualTo(1);
 	}
