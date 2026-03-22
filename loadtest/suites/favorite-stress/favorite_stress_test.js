@@ -4,8 +4,11 @@ import {
     batchLogin,
     createState,
     getFavoriteTargets,
+    getMyFavoriteRestaurants,
     getRestaurantFavoriteTargets,
+    getSubgroupFavoriteRestaurants,
     pickRestaurantId,
+    pickSubgroupId,
     prepareHotspotPools,
     randomLocation,
     resolveGroupContext,
@@ -60,7 +63,28 @@ const SCENARIO_OPTIONS = {
             },
         },
         thresholds: {
-            'http_req_duration{type:read}': ['p(95)<1500'],
+            'http_req_duration{type:read,surface:favorite-targets}': ['p(95)<1500'],
+            'http_req_failed': ['rate<0.01'],
+        },
+    },
+    'list-read': {
+        setupTimeout: '5m',
+        scenarios: {
+            favorite: {
+                executor: 'ramping-vus',
+                startVUs: 5,
+                stages: [
+                    { target: 30, duration: '2m' },
+                    { target: 120, duration: '4m' },
+                    { target: 220, duration: '4m' },
+                    { target: 220, duration: '4m' },
+                    { target: 0, duration: '2m' },
+                ],
+                exec: 'listRead',
+            },
+        },
+        thresholds: {
+            'http_req_duration{type:read,surface:favorite-list}': ['p(95)<1500'],
             'http_req_failed': ['rate<0.01'],
         },
     },
@@ -81,7 +105,8 @@ const SCENARIO_OPTIONS = {
             },
         },
         thresholds: {
-            'http_req_duration{type:read}': ['p(95)<1500'],
+            'http_req_duration{type:read,surface:favorite-targets}': ['p(95)<1500'],
+            'http_req_duration{type:read,surface:favorite-list}': ['p(95)<1500'],
             'http_req_duration{type:write}': ['p(95)<2500'],
             'http_req_failed': ['rate<0.01'],
         },
@@ -159,11 +184,65 @@ export function targetsRead(data) {
 export function mixedFavorite(data) {
     if (!data || !data.tokens || data.tokens.length === 0) return;
 
-    if (Math.random() < 0.6) {
+    const roll = Math.random();
+    if (roll < 0.45) {
         targetsRead(data);
+    } else if (roll < 0.7) {
+        listRead(data);
     } else {
         toggleOnly(data);
     }
+}
+
+function nextCursorFrom(res) {
+    if (!res || res.status !== 200) return null;
+    try {
+        return res.json('data.pagination.nextCursor') || null;
+    } catch (e) {
+        return null;
+    }
+}
+
+export function listRead(data) {
+    if (!data || !data.tokens || data.tokens.length === 0) return;
+
+    const token = data.tokens[Math.floor(Math.random() * data.tokens.length)];
+    const state = createState();
+    state.token = token;
+    state.hotspot = data.hotspot || null;
+
+    let successCount = 0;
+    const myFavoritesRes = getMyFavoriteRestaurants(token);
+    if (myFavoritesRes && myFavoritesRes.status === 200) {
+        successCount++;
+
+        const nextCursor = nextCursorFrom(myFavoritesRes);
+        if (nextCursor && Math.random() < 0.3) {
+            const nextPageRes = getMyFavoriteRestaurants(token, { cursor: nextCursor });
+            if (nextPageRes && nextPageRes.status === 200) {
+                successCount++;
+            }
+        }
+    }
+
+    const subgroupId = pickSubgroupId(state);
+    if (subgroupId) {
+        const subgroupFavoritesRes = getSubgroupFavoriteRestaurants(token, subgroupId);
+        if (subgroupFavoritesRes && subgroupFavoritesRes.status === 200) {
+            successCount++;
+
+            const nextCursor = nextCursorFrom(subgroupFavoritesRes);
+            if (nextCursor && Math.random() < 0.3) {
+                const nextPageRes = getSubgroupFavoriteRestaurants(token, subgroupId, { cursor: nextCursor });
+                if (nextPageRes && nextPageRes.status === 200) {
+                    successCount++;
+                }
+            }
+        }
+    }
+
+    metrics.add(successCount, 'favorite_success_count');
+    sleep(0.3 + Math.random() * 0.7);
 }
 
 export function teardown() {

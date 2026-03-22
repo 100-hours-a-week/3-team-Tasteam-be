@@ -18,6 +18,8 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-tasteam}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-tasteam}
       TZ: Asia/Seoul
+    ports:
+      - "5432:5432"
     volumes:
       - 3-team-tasteam-be_postgres_data:/var/lib/postgresql/data
       - ./docker/postgis/init:/docker-entrypoint-initdb.d
@@ -30,6 +32,8 @@ services:
   redis:
     image: redis:7
     networks: [tasteam-net]
+    ports:
+      - "6379:6379"
     volumes:
       - app-redis-data:/data
     healthcheck:
