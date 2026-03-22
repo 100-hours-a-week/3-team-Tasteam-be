@@ -1,8 +1,8 @@
 package com.tasteam.domain.analytics.ingest;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -37,7 +37,7 @@ class ClientActivityIngestControllerWebMvcTest extends BaseControllerWebMvcTest 
 				"v1",
 				Instant.parse("2026-02-01T12:00:00Z"),
 				Map.of("source", "mobile"))));
-		given(clientActivityIngestService.ingest(anyLong(), anyString(), any()))
+		given(clientActivityIngestService.ingestToS3(nullable(Long.class), anyString(), any()))
 			.willReturn(1);
 
 		// when & then
@@ -76,7 +76,7 @@ class ClientActivityIngestControllerWebMvcTest extends BaseControllerWebMvcTest 
 				"v1",
 				Instant.parse("2026-02-01T12:00:00Z"),
 				Map.of("source", "mobile"))));
-		given(clientActivityIngestService.ingest(anyLong(), anyString(), any()))
+		given(clientActivityIngestService.ingestToS3(nullable(Long.class), anyString(), any()))
 			.willThrow(new BusinessException(AnalyticsErrorCode.ANALYTICS_INGEST_RATE_LIMIT_EXCEEDED));
 
 		// when & then

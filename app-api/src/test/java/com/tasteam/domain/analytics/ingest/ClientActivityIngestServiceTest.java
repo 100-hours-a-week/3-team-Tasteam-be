@@ -3,6 +3,7 @@ package com.tasteam.domain.analytics.ingest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -15,6 +16,7 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.ObjectProvider;
 
 import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.analytics.api.ActivityEvent;
@@ -22,6 +24,7 @@ import com.tasteam.domain.analytics.ingest.dto.request.ClientActivityEventItemRe
 import com.tasteam.domain.analytics.persistence.UserActivityEventStoreService;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.AnalyticsErrorCode;
+import com.tasteam.infra.messagequeue.UserActivityS3SinkPublisher;
 
 @UnitTest
 @DisplayName("[유닛](Client) ClientActivityIngestService 단위 테스트")
@@ -34,8 +37,13 @@ class ClientActivityIngestServiceTest {
 		AnalyticsIngestProperties properties = defaultProperties();
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
+		ObjectProvider<UserActivityS3SinkPublisher> publisherProvider = mock(ObjectProvider.class);
 		when(rateLimiter.tryAcquire("member:10")).thenReturn(true);
-		ClientActivityIngestService service = new ClientActivityIngestService(properties, rateLimiter, storeService);
+		ClientActivityIngestService service = new ClientActivityIngestService(
+			properties,
+			rateLimiter,
+			storeService,
+			publisherProvider);
 
 		ClientActivityEventItemRequest first = eventItem("evt-1", "ui.restaurant.viewed", null);
 		ClientActivityEventItemRequest second = eventItem("evt-2", "ui.group.viewed", "v3");
@@ -47,7 +55,7 @@ class ClientActivityIngestServiceTest {
 		assertThat(accepted).isEqualTo(2);
 		verify(rateLimiter).tryAcquire("member:10");
 		ArgumentCaptor<ActivityEvent> captor = ArgumentCaptor.forClass(ActivityEvent.class);
-		verify(storeService, org.mockito.Mockito.times(2)).store(captor.capture());
+		verify(storeService, times(2)).store(captor.capture());
 		ActivityEvent firstStoredEvent = captor.getAllValues().get(0);
 		assertThat(firstStoredEvent.eventId()).isEqualTo("evt-1");
 		assertThat(firstStoredEvent.eventVersion()).isEqualTo("v1");
@@ -63,7 +71,12 @@ class ClientActivityIngestServiceTest {
 		AnalyticsIngestProperties properties = defaultProperties();
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
-		ClientActivityIngestService service = new ClientActivityIngestService(properties, rateLimiter, storeService);
+		ObjectProvider<UserActivityS3SinkPublisher> publisherProvider = mock(ObjectProvider.class);
+		ClientActivityIngestService service = new ClientActivityIngestService(
+			properties,
+			rateLimiter,
+			storeService,
+			publisherProvider);
 		ClientActivityEventItemRequest item = eventItem("evt-1", "ui.restaurant.viewed", null);
 
 		// when & then
@@ -71,7 +84,7 @@ class ClientActivityIngestServiceTest {
 			.isInstanceOf(BusinessException.class)
 			.extracting(ex -> ((BusinessException)ex).getErrorCode())
 			.isEqualTo(AnalyticsErrorCode.ANALYTICS_INGEST_ANONYMOUS_ID_REQUIRED.name());
-		verifyNoInteractions(rateLimiter, storeService);
+		verifyNoInteractions(rateLimiter, storeService, publisherProvider);
 	}
 
 	@Test
@@ -81,8 +94,13 @@ class ClientActivityIngestServiceTest {
 		AnalyticsIngestProperties properties = defaultProperties();
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
+		ObjectProvider<UserActivityS3SinkPublisher> publisherProvider = mock(ObjectProvider.class);
 		when(rateLimiter.tryAcquire("anonymous:anon-1")).thenReturn(true);
-		ClientActivityIngestService service = new ClientActivityIngestService(properties, rateLimiter, storeService);
+		ClientActivityIngestService service = new ClientActivityIngestService(
+			properties,
+			rateLimiter,
+			storeService,
+			publisherProvider);
 		ClientActivityEventItemRequest item = eventItem("evt-1", "ui.unknown.event", null);
 
 		// when & then
@@ -91,7 +109,7 @@ class ClientActivityIngestServiceTest {
 			.extracting(ex -> ((BusinessException)ex).getErrorCode())
 			.isEqualTo(AnalyticsErrorCode.ANALYTICS_INGEST_EVENT_NOT_ALLOWED.name());
 		verify(rateLimiter).tryAcquire("anonymous:anon-1");
-		verifyNoInteractions(storeService);
+		verifyNoInteractions(storeService, publisherProvider);
 	}
 
 	@Test
@@ -102,7 +120,12 @@ class ClientActivityIngestServiceTest {
 		properties.setMaxBatchSize(1);
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
-		ClientActivityIngestService service = new ClientActivityIngestService(properties, rateLimiter, storeService);
+		ObjectProvider<UserActivityS3SinkPublisher> publisherProvider = mock(ObjectProvider.class);
+		ClientActivityIngestService service = new ClientActivityIngestService(
+			properties,
+			rateLimiter,
+			storeService,
+			publisherProvider);
 
 		// when & then
 		assertThatThrownBy(() -> service.ingest(10L, null, List.of(
@@ -111,7 +134,7 @@ class ClientActivityIngestServiceTest {
 			.isInstanceOf(BusinessException.class)
 			.extracting(ex -> ((BusinessException)ex).getErrorCode())
 			.isEqualTo(AnalyticsErrorCode.ANALYTICS_INGEST_BATCH_LIMIT_EXCEEDED.name());
-		verifyNoInteractions(rateLimiter, storeService);
+		verifyNoInteractions(rateLimiter, storeService, publisherProvider);
 	}
 
 	@Test
@@ -121,8 +144,13 @@ class ClientActivityIngestServiceTest {
 		AnalyticsIngestProperties properties = defaultProperties();
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
+		ObjectProvider<UserActivityS3SinkPublisher> publisherProvider = mock(ObjectProvider.class);
 		when(rateLimiter.tryAcquire("anonymous:anon-1")).thenReturn(false);
-		ClientActivityIngestService service = new ClientActivityIngestService(properties, rateLimiter, storeService);
+		ClientActivityIngestService service = new ClientActivityIngestService(
+			properties,
+			rateLimiter,
+			storeService,
+			publisherProvider);
 		ClientActivityEventItemRequest item = eventItem("evt-1", "ui.restaurant.viewed", null);
 
 		// when & then
@@ -130,7 +158,7 @@ class ClientActivityIngestServiceTest {
 			.isInstanceOf(BusinessException.class)
 			.extracting(ex -> ((BusinessException)ex).getErrorCode())
 			.isEqualTo(AnalyticsErrorCode.ANALYTICS_INGEST_RATE_LIMIT_EXCEEDED.name());
-		verifyNoInteractions(storeService);
+		verifyNoInteractions(storeService, publisherProvider);
 	}
 
 	@Test
@@ -140,8 +168,13 @@ class ClientActivityIngestServiceTest {
 		AnalyticsIngestProperties properties = defaultProperties();
 		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
 		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
+		ObjectProvider<UserActivityS3SinkPublisher> publisherProvider = mock(ObjectProvider.class);
 		when(rateLimiter.tryAcquire("anonymous:anon-1")).thenReturn(true);
-		ClientActivityIngestService service = new ClientActivityIngestService(properties, rateLimiter, storeService);
+		ClientActivityIngestService service = new ClientActivityIngestService(
+			properties,
+			rateLimiter,
+			storeService,
+			publisherProvider);
 
 		Map<String, Object> rawProperties = new LinkedHashMap<>();
 		rawProperties.put("restaurantId", 1L);
@@ -166,6 +199,31 @@ class ClientActivityIngestServiceTest {
 		assertThat(storedProperties).containsEntry("source", "CLIENT");
 		assertThat(storedProperties).doesNotContainKey("subgroupId");
 		assertThat(storedProperties).doesNotContainKey("");
+	}
+
+	@Test
+	@DisplayName("S3 direct ingest는 publisher로만 이벤트를 전달한다")
+	void ingestToS3_publishesEventsWithoutUsingDbStore() {
+		AnalyticsIngestProperties properties = defaultProperties();
+		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
+		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
+		UserActivityS3SinkPublisher publisher = mock(UserActivityS3SinkPublisher.class);
+		ObjectProvider<UserActivityS3SinkPublisher> publisherProvider = mock(ObjectProvider.class);
+		when(rateLimiter.tryAcquire("member:10")).thenReturn(true);
+		when(publisherProvider.getIfAvailable()).thenReturn(publisher);
+		ClientActivityIngestService service = new ClientActivityIngestService(
+			properties,
+			rateLimiter,
+			storeService,
+			publisherProvider);
+
+		int accepted = service.ingestToS3(10L, null, List.of(
+			eventItem("evt-1", "ui.restaurant.viewed", null),
+			eventItem("evt-2", "ui.review.submitted", null)));
+
+		assertThat(accepted).isEqualTo(2);
+		verify(publisher, times(2)).sink(org.mockito.ArgumentMatchers.any(ActivityEvent.class));
+		verifyNoInteractions(storeService);
 	}
 
 	private AnalyticsIngestProperties defaultProperties() {
