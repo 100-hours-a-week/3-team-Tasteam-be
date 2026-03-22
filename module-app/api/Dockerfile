@@ -26,7 +26,7 @@ COPY . .
 RUN ./gradlew :module-app:api:bootJar --no-daemon \
     && BOOT_JAR="$(find /app/module-app/api/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' ! -name '*-test-fixtures.jar' | sort | tail -n 1)" \
     && test -n "${BOOT_JAR}" \
-    && cp "${BOOT_JAR}" /app/module-app/api/build/libs/app-api-exec.jar
+    && cp "${BOOT_JAR}" /app/module-app/api/build/libs/app-api.jar
 
 # ===============================
 # 2. Runtime stage
@@ -36,7 +36,7 @@ FROM amazoncorretto:21
 WORKDIR /app
 
 # 빌드 결과 복사
-COPY --from=builder /app/module-app/api/build/libs/app-api-exec.jar app.jar
+COPY --from=builder /app/module-app/api/build/libs/app-api.jar app.jar
 
 EXPOSE 8080
 
