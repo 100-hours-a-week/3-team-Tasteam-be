@@ -140,6 +140,7 @@ jobs:
           ECR_REGISTRY=${ECR_REGISTRY}
           ECR_REPO_BACKEND=${ECR_REPO_BACKEND}
           IMAGE_TAG=${{ steps.source.outputs.source_sha }}
+          HEALTH_RETRIES=120
           EODEPLOY
 
           chmod +x deploy.sh stop.sh health.sh traffic.sh switch.sh rollback.sh
