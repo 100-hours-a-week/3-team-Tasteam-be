@@ -125,6 +125,17 @@ function getHeaders(token = null) {
     return headers;
 }
 
+function buildQueryString(params = {}) {
+    const entries = Object.entries(params)
+        .filter(([, value]) => value !== null && value !== undefined && value !== '');
+    if (entries.length === 0) {
+        return '';
+    }
+    return entries
+        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+        .join('&');
+}
+
 function clampPercent(value, fallback) {
     if (!Number.isFinite(value)) return fallback;
     if (value <= 0) return fallback;
@@ -436,7 +447,7 @@ export function getRestaurantDetail(token, restaurantId) {
 
     const res = http.get(
         `${BASE_URL}/api/v1/restaurants/${restaurantId}`,
-        { headers: getHeaders(token), tags: { name: 'restaurant_detail', type: 'read' } }
+        { headers: getHeaders(token), tags: { name: 'restaurant_detail', type: 'read', surface: 'restaurant-detail' } }
     );
 
     check(res, {
@@ -449,12 +460,13 @@ export function getRestaurantDetail(token, restaurantId) {
 /**
  * 음식점 리뷰 목록 조회
  */
-export function getRestaurantReviews(token, restaurantId) {
+export function getRestaurantReviews(token, restaurantId, { cursor = null, size = null } = {}) {
     if (!restaurantId) return { response: null, reviewId: null };
+    const query = buildQueryString({ cursor, size });
 
     const res = http.get(
-        `${BASE_URL}/api/v1/restaurants/${restaurantId}/reviews`,
-        { headers: getHeaders(token), tags: { name: 'restaurant_reviews', type: 'read' } }
+        `${BASE_URL}/api/v1/restaurants/${restaurantId}/reviews${query ? `?${query}` : ''}`,
+        { headers: getHeaders(token), tags: { name: 'restaurant_reviews', type: 'read', surface: 'review-list' } }
     );
 
     check(res, {
@@ -587,7 +599,7 @@ export function createReview(token, groupId, keywordIds, restaurantId = null) {
     const res = http.post(
         `${BASE_URL}/api/v1/restaurants/${restaurantId}/reviews`,
         payload,
-        { headers: getHeaders(token), tags: { name: 'create_review', type: 'write' } }
+        { headers: getHeaders(token), tags: { name: 'create_review', type: 'write', surface: 'review-create' } }
     );
 
     check(res, {
@@ -1017,7 +1029,7 @@ export function getHomePage(token, lat = null, lon = null) {
         : randomLocation();
     const res = http.get(
         `${BASE_URL}/api/v1/main/home?latitude=${loc.lat}&longitude=${loc.lon}`,
-        { headers: getHeaders(token), tags: { name: 'home_page', type: 'read' } }
+        { headers: getHeaders(token), tags: { name: 'home_page', type: 'read', surface: 'restaurant-list' } }
     );
     check(res, { '홈 페이지 조회 성공 (200)': (r) => r.status === 200 });
     return res;
@@ -1026,7 +1038,7 @@ export function getHomePage(token, lat = null, lon = null) {
 export function getFoodCategories() {
     const res = http.get(
         `${BASE_URL}/api/v1/food-categories`,
-        { headers: getHeaders(), tags: { name: 'food_categories', type: 'read' } }
+        { headers: getHeaders(), tags: { name: 'food_categories', type: 'read', surface: 'restaurant-list' } }
     );
     check(res, { '음식 카테고리 조회 성공 (200)': (r) => r.status === 200 });
     return res;
@@ -1036,7 +1048,7 @@ export function getRestaurantMenus(token, restaurantId) {
     if (!restaurantId) return null;
     const res = http.get(
         `${BASE_URL}/api/v1/restaurants/${restaurantId}/menus`,
-        { headers: getHeaders(token), tags: { name: 'restaurant_menus', type: 'read' } }
+        { headers: getHeaders(token), tags: { name: 'restaurant_menus', type: 'read', surface: 'restaurant-detail' } }
     );
     check(res, { '음식점 메뉴 조회 성공 (200)': (r) => r.status === 200 });
     return res;
@@ -1177,19 +1189,31 @@ export function getMyReviews(token) {
     return res;
 }
 
-export function getMyFavoriteRestaurants(token) {
+export function getMyFavoriteRestaurants(token, { cursor = null } = {}) {
+    const query = buildQueryString({ cursor });
     const res = http.get(
-        `${BASE_URL}/api/v1/members/me/favorites/restaurants`,
-        { headers: getHeaders(token), tags: { name: 'my_favorites', type: 'read' } }
+        `${BASE_URL}/api/v1/members/me/favorites/restaurants${query ? `?${query}` : ''}`,
+        { headers: getHeaders(token), tags: { name: 'my_favorites', type: 'read', surface: 'favorite-list' } }
     );
     check(res, { '즐겨찾기 음식점 조회 성공 (200)': (r) => r.status === 200 });
+    return res;
+}
+
+export function getSubgroupFavoriteRestaurants(token, subgroupId, { cursor = null } = {}) {
+    if (!subgroupId) return null;
+    const query = buildQueryString({ cursor });
+    const res = http.get(
+        `${BASE_URL}/api/v1/members/me/subgroups/${subgroupId}/favorites/restaurants${query ? `?${query}` : ''}`,
+        { headers: getHeaders(token), tags: { name: 'subgroup_favorites', type: 'read', surface: 'favorite-list' } }
+    );
+    check(res, { '서브그룹 즐겨찾기 음식점 조회 성공 (200)': (r) => r.status === 200 });
     return res;
 }
 
 export function getFavoriteTargets(token) {
     const res = http.get(
         `${BASE_URL}/api/v1/members/me/favorite-targets`,
-        { headers: getHeaders(token), tags: { name: 'favorite_targets', type: 'read' } }
+        { headers: getHeaders(token), tags: { name: 'favorite_targets', type: 'read', surface: 'favorite-targets' } }
     );
     check(res, { '찜 대상 조회 성공 (200)': (r) => r.status === 200 });
     return res;
@@ -1199,7 +1223,7 @@ export function getRestaurantFavoriteTargets(token, restaurantId) {
     if (!restaurantId) return null;
     const res = http.get(
         `${BASE_URL}/api/v1/members/me/restaurants/${restaurantId}/favorite-targets`,
-        { headers: getHeaders(token), tags: { name: 'restaurant_favorite_targets', type: 'read' } }
+        { headers: getHeaders(token), tags: { name: 'restaurant_favorite_targets', type: 'read', surface: 'favorite-targets' } }
     );
     check(res, { '음식점별 찜 대상 조회 성공 (200)': (r) => r.status === 200 });
     return res;
@@ -1345,11 +1369,12 @@ export function getSubgroupDetail(token, subgroupId) {
     return res;
 }
 
-export function getSubgroupReviews(token, subgroupId) {
+export function getSubgroupReviews(token, subgroupId, { cursor = null, size = null } = {}) {
     if (!subgroupId) return null;
+    const query = buildQueryString({ cursor, size });
     const res = http.get(
-        `${BASE_URL}/api/v1/subgroups/${subgroupId}/reviews`,
-        { headers: getHeaders(token), tags: { name: 'subgroup_reviews', type: 'read' } }
+        `${BASE_URL}/api/v1/subgroups/${subgroupId}/reviews${query ? `?${query}` : ''}`,
+        { headers: getHeaders(token), tags: { name: 'subgroup_reviews', type: 'read', surface: 'review-list' } }
     );
     check(res, { '서브그룹 리뷰 조회 성공 (200)': (r) => r.status === 200 });
     return res;
@@ -1443,7 +1468,7 @@ export function addFavoriteRestaurant(token, restaurantId) {
     const res = http.post(
         `${BASE_URL}/api/v1/members/me/favorites/restaurants`,
         payload,
-        { headers: getHeaders(token), tags: { name: 'add_favorite', type: 'write' } }
+        { headers: getHeaders(token), tags: { name: 'add_favorite', type: 'write', surface: 'favorite-toggle' } }
     );
     check(res, { '즐겨찾기 추가 성공 (200/201) 또는 이미 존재 (409)': (r) => r.status === 200 || r.status === 201 || r.status === 409 });
     return res;
@@ -1454,7 +1479,7 @@ export function removeFavoriteRestaurant(token, restaurantId) {
     const res = http.del(
         `${BASE_URL}/api/v1/members/me/favorites/restaurants/${restaurantId}`,
         null,
-        { headers: getHeaders(token), tags: { name: 'remove_favorite', type: 'write' } }
+        { headers: getHeaders(token), tags: { name: 'remove_favorite', type: 'write', surface: 'favorite-toggle' } }
     );
     check(res, { '즐겨찾기 삭제 성공 (200 or 204)': (r) => r.status === 200 || r.status === 204 });
     return res;
