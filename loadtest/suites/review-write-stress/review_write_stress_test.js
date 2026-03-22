@@ -34,7 +34,7 @@ export const options = withQuickRunOptions({
         },
     },
     thresholds: {
-        'http_req_duration{type:write}': ['p(95)<3000'],
+        'http_req_duration{type:write,surface:review-create}': ['p(95)<3000'],
         'http_req_failed': ['rate<0.01'],
     },
 });

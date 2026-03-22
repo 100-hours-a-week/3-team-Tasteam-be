@@ -17,9 +17,9 @@
 | [`suites/realistic/`](suites/realistic) | 실제 사용자 여정 기반 통합 부하 | 약 42분 | 기본 추천 시작점 |
 | [`suites/breakpoint/`](suites/breakpoint) | SLO 위반이 시작되는 지점 탐색 | 약 5분 | 조회/쓰기 비율 80:20 |
 | [`suites/search-stress/`](suites/search-stress) | 검색 API 집중 부하 | 약 6분 | 비로그인 실행 가능 |
-| [`suites/restaurant-read-stress/`](suites/restaurant-read-stress) | 음식점 목록/상세 조회 집중 부하 | 약 16분 | AI 요약/상세 읽기 관찰용 |
-| [`suites/review-write-stress/`](suites/review-write-stress) | 리뷰 작성 집중 부하 | 약 16분 | 리뷰 작성 후 분석 트리거 관찰용 |
-| [`suites/favorite-stress/`](suites/favorite-stress) | 찜 토글/찜 대상 조회 집중 부하 | 약 16분 | 찜 읽기/쓰기 분리 검증용 |
+| [`suites/restaurant-read-stress/`](suites/restaurant-read-stress) | 음식점 목록/상세/리뷰 조회 집중 부하 | 약 16분 | AI 요약/상세 및 리뷰 목록 읽기 관찰용 |
+| [`suites/review-write-stress/`](suites/review-write-stress) | 리뷰 작성 집중 부하 | 약 16분 | 리뷰 작성 및 analytics/event 후속 경로 관찰용 |
+| [`suites/favorite-stress/`](suites/favorite-stress) | 찜 목록/찜 대상/찜 토글 집중 부하 | 약 16분 | 찜 읽기/쓰기 분리 검증용 |
 | [`suites/client-activity-db-store-stress/`](suites/client-activity-db-store-stress) | 클라이언트 이벤트 DB 저장 루트 집중 부하 | 약 16분 | `analytics/events` DB 저장 내구성 검증용 |
 | [`suites/client-activity-kafka-publish-spike/`](suites/client-activity-kafka-publish-spike) | 클라이언트 이벤트 Kafka publish spike | 약 5분 | `analytics/events` 저장 후 MQ/Connect 피크 관찰용 |
 | [`suites/stress/`](suites/stress) | read-heavy / write-heavy / search-only 지속 부하 | 약 20분 | `TEST_TYPE` 선택 |
