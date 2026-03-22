@@ -1,12 +1,13 @@
-package com.tasteam.api;
+package com.tasteam;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = {"com.tasteam"})
+@SpringBootApplication
 public class ApiApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(ApiApplication.class, args);
 	}
+
 }

@@ -2,6 +2,7 @@ plugins {
     id 'org.springframework.boot'
     id 'io.spring.dependency-management'
     id 'java-test-fixtures'
+    id 'com.github.spotbugs' version '6.0.26'
 }
 
 configurations.configureEach {
@@ -29,56 +30,62 @@ dependencies {
     /* ==================================================
      * Core / Web
      * ================================================== */
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation "org.springframework.boot:spring-boot-starter-web:3.5.9"
+    implementation "org.springframework.boot:spring-boot-starter-webflux:3.5.9"
+    implementation "org.springframework.boot:spring-boot-starter-validation:3.5.9"
 
     /* ==================================================
      * Security / OAuth2 / JWT
      * ================================================== */
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation "org.springframework.boot:spring-boot-starter-security:3.5.9"
+    implementation "org.springframework.boot:spring-boot-starter-oauth2-client:3.5.9"
 
-    implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+    // JWT
+    implementation "io.jsonwebtoken:jjwt-api:0.13.0"
+    runtimeOnly  "io.jsonwebtoken:jjwt-impl:0.13.0"
+    runtimeOnly  "io.jsonwebtoken:jjwt-jackson:0.13.0"
 
     /* ==================================================
      * Persistence
      * ================================================== */
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    runtimeOnly 'org.postgresql:postgresql:42.7.8'
-    implementation 'org.hibernate.orm:hibernate-spatial'
+    // JPA (PostgreSQL)
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa:3.5.9"
+    runtimeOnly  "org.postgresql:postgresql:42.7.8"
+    implementation "org.hibernate.orm:hibernate-spatial"
 
-    implementation 'org.flywaydb:flyway-core'
-    implementation 'org.flywaydb:flyway-database-postgresql'
+    // Flyway (DB Migration)
+    implementation "org.flywaydb:flyway-core"
+    implementation "org.flywaydb:flyway-database-postgresql"
+
+    // MongoDB
+    // implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
 
     /* ==================================================
      * QueryDSL
      * ================================================== */
-    implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
-    annotationProcessor 'com.querydsl:querydsl-apt:5.1.0:jakarta'
-    annotationProcessor 'jakarta.annotation:jakarta.annotation-api:2.1.1'
-    annotationProcessor 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+    implementation "com.querydsl:querydsl-jpa:5.1.0:jakarta"
+    annotationProcessor "com.querydsl:querydsl-apt:5.1.0:jakarta"
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api:2.1.1"
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api:3.1.0"
 
     /* ==================================================
      * Cache
      * ================================================== */
-    implementation 'org.springframework.boot:spring-boot-starter-cache'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'com.github.ben-manes.caffeine:caffeine:3.2.3'
+    implementation "org.springframework.boot:spring-boot-starter-cache:3.5.9"
+    implementation "org.springframework.boot:spring-boot-starter-data-redis:3.5.9"
+    implementation "com.github.ben-manes.caffeine:caffeine:3.2.3"
 
     /* ==================================================
      * WebSocket / Messaging
      * ================================================== */
-    implementation 'org.springframework.boot:spring-boot-starter-websocket'
-    implementation 'org.springframework.kafka:spring-kafka'
+    implementation "org.springframework.boot:spring-boot-starter-websocket"
+    implementation "org.springframework.kafka:spring-kafka"
 
     /* ==================================================
      * Push Notification
      * ================================================== */
-    implementation 'com.google.firebase:firebase-admin:9.7.0'
-    implementation 'nl.martijndwars:web-push:5.1.2'
+    implementation "com.google.firebase:firebase-admin:9.7.0"
+    implementation "nl.martijndwars:web-push:5.1.2"
 
     /* ==================================================
      * Email
@@ -88,67 +95,85 @@ dependencies {
     /* ==================================================
      * Observability / API Docs
      * ================================================== */
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.15'
-    implementation 'net.logstash.logback:logstash-logback-encoder:9.0'
+    implementation "org.springframework.boot:spring-boot-starter-actuator:3.5.9"
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.15"
+    implementation "net.logstash.logback:logstash-logback-encoder:9.0"
     implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.+'
+    // Phase 3: 분산 트레이싱 (TRACING_ENABLED=true + OTEL_ENDPOINT 설정 시 활성화)
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
     /* ==================================================
      * Storage (S3) & Email (SES)
      * ================================================== */
-    implementation 'com.amazonaws:aws-java-sdk-s3:1.12.538'
-    implementation 'com.amazonaws:aws-java-sdk-ses:1.12.538'
+    implementation "com.amazonaws:aws-java-sdk-s3:1.12.538"
+    implementation "com.amazonaws:aws-java-sdk-ses:1.12.538"
 
     /* ==================================================
      * Image Processing
      * ================================================== */
-    implementation 'net.coobird:thumbnailator:0.4.20'
-    implementation 'org.sejda.imageio:webp-imageio:0.1.6'
+    implementation "net.coobird:thumbnailator:0.4.20"
+    implementation "org.sejda.imageio:webp-imageio:0.1.6"
+
+    /* ==================================================
+     * Image Processing
+     * ================================================== */
+    implementation "net.coobird:thumbnailator:0.4.20"
+    implementation "org.sejda.imageio:webp-imageio:0.1.6"
 
     /* ==================================================
      * Developer Productivity
      * ================================================== */
-    compileOnly 'org.projectlombok:lombok:1.18.42'
-    annotationProcessor 'org.projectlombok:lombok:1.18.42'
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    compileOnly "org.projectlombok:lombok:1.18.42"
+    annotationProcessor "org.projectlombok:lombok:1.18.42"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:3.5.9"
+    developmentOnly "org.springframework.boot:spring-boot-devtools:3.5.9"
 
     /* ==================================================
      * Test Fixtures
      * ================================================== */
     testFixturesImplementation project(':module-domain:core')
-    testFixturesImplementation 'org.assertj:assertj-core:3.27.6'
-    testFixturesImplementation 'com.fasterxml.jackson.core:jackson-databind'
-    testFixturesImplementation 'org.hibernate.orm:hibernate-spatial'
+    testFixturesImplementation "org.assertj:assertj-core:3.27.6"
+    testFixturesImplementation "com.fasterxml.jackson.core:jackson-databind"
+    testFixturesImplementation "org.hibernate.orm:hibernate-spatial"
 
     /* ==================================================
      * Test
      * ================================================== */
-    testImplementation(testFixtures(project(':module-app:api')))
-    testImplementation(testFixtures(project(':module-domain:core')))
-    testImplementation(testFixtures(project(':module-common:support')))
-    testImplementation(testFixtures(project(':module-internal:security')))
-    testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    testImplementation(testFixtures(project(":app-api")))
+    testImplementation(testFixtures(project(":module-domain:core")))
+    testImplementation(testFixtures(project(":module-common:support")))
+    testImplementation(testFixtures(project(":module-internal:security")))
+    testImplementation "org.springframework.security:spring-security-test"
+    testImplementation "com.squareup.okhttp3:mockwebserver:4.12.0"
 
-    testImplementation platform('org.testcontainers:testcontainers-bom:1.21.4')
-    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation platform("org.testcontainers:testcontainers-bom:1.21.4")
+    testImplementation "org.springframework.boot:spring-boot-testcontainers:3.5.9"
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:kafka'
+    // testImplementation 'org.testcontainers:mongodb'
 
-    testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
-    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation "com.tngtech.archunit:archunit-junit5:1.3.0"
+    testImplementation "org.springframework.kafka:spring-kafka-test"
+
+    // Find Security Bugs
+    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.13.0'
 }
 
-// ====== 테스트 설정 ====== //
+// ====== 테스트 설정 분리 ====== //
+
+def calculateTestForks() {
+    // 통합 테스트 컨텍스트가 동일 DB/Testcontainers를 공유하므로 병렬 실행을 1로 제한
+    return 1
+}
 
 tasks.withType(Test).configureEach {
-    systemProperty 'spring.profiles.active', 'test'
-    maxParallelForks = 1
+    systemProperty "spring.profiles.active", "test"
+    maxParallelForks = calculateTestForks()
+    // Gradle의 테스트 출력 스토어가 비정상 종료로 깨지면(EOF) XML 리포트 생성 단계에서 실패할 수 있다.
+    // 테스트 실행 전 결과/임시 디렉토리를 정리해 flaky한 실패를 방지한다.
     doFirst {
         delete file("$buildDir/test-results/$name")
         delete file("$buildDir/tmp/$name")
@@ -159,6 +184,8 @@ tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'perf'
     }
+    // 중단된 테스트로 인해 jacoco exec 파일이 깨지면(EOF) 이후 리포트 생성이 실패할 수 있다.
+    // 매 실행마다 exec를 초기화해서 flaky한 pre-push 실패를 방지한다.
     doFirst {
         delete file("$buildDir/jacoco/test.exec")
     }
@@ -188,21 +215,115 @@ tasks.register('performanceTest', Test) {
     outputs.upToDateWhen { false }
 }
 
+// 테스트 종료 후 잔여 Testcontainers 컨테이너 정리
 tasks.register('cleanupTestcontainers', Exec) {
     group = 'verification'
     description = 'Stop and remove Testcontainers-managed containers after tests'
+    // org.testcontainers 라벨이 있는 컨테이너만 정리 (없으면 무시)
     commandLine 'bash', '-lc', 'docker ps -aq --filter "label=org.testcontainers" | xargs -r docker rm -f'
     ignoreExitValue = true
 }
 
 tasks.jacocoTestReport {
     dependsOn tasks.test
+    // test 실패 시에는 리포트를 만들지 않는다(실패 원인 노이즈 감소).
     onlyIf {
         tasks.test.state.failure == null
     }
+
     reports {
         html.required = true
         xml.required = true
         csv.required = false
+    }
+}
+
+// SpotBugs 설정 (보안 체크)
+spotbugs {
+    ignoreFailures = true
+    showStackTraces = true
+    showProgress = true
+    effort = 'max'
+    reportLevel = 'low'
+}
+
+spotbugsMain {
+    classDirs = files(sourceSets.main.output.classesDirs)
+    auxClassPaths = configurations.compileClasspath + configurations.runtimeClasspath
+
+    reports {
+        html {
+            required = true
+            outputLocation = file("$buildDir/reports/spotbugs/main/spotbugs.html")
+            stylesheet = 'fancy-hist.xsl'
+        }
+        xml {
+            required = false
+        }
+    }
+}
+
+// ====== JaCoCo 설정 보강 ====== //
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+def jacocoMinimumCoverage = 0.50
+
+def configureJacocoClassDirs(task) {
+    afterEvaluate {
+        task.classDirectories.setFrom(files(task.classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/Q*.class',
+                '**/infra/**',
+                '**/swagger/**',
+                '**/entity/id/**',
+                '**/*Application.class',
+                '**/*Config*.class',
+                '**/common/aop/**',
+                '**/dto/**',
+                '**/*Dto*.class',
+                '**/exception/**',
+                '**/Client**'
+            ])
+        }))
+    }
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+    configureJacocoClassDirs(it)
+
+    executionData.setFrom(fileTree(buildDir).include("/jacoco/*.exec").exclude("/jacoco/performanceTest.exec"))
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn test
+    configureJacocoClassDirs(it)
+    violationRules {
+        rule {
+            limit {
+                minimum = jacocoMinimumCoverage
+            }
+        }
+    }
+}
+
+spotbugsTest {
+    reports {
+        html {
+            required = true
+            outputLocation = file("$buildDir/reports/spotbugs/test/spotbugs.html")
+            stylesheet = 'fancy-hist.xsl'
+        }
+        xml {
+            required = false
+        }
     }
 }
