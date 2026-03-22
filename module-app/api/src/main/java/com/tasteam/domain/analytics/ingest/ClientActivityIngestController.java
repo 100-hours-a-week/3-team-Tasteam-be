@@ -37,7 +37,8 @@ public class ClientActivityIngestController implements ClientActivityIngestContr
 		@RequestBody @Valid
 		ClientActivityEventsIngestRequest request) {
 		String resolvedAnonymousId = resolveAnonymousId(request.anonymousId(), headerAnonymousId);
-		int acceptedCount = clientActivityIngestService.ingest(memberId, resolvedAnonymousId, request.events());
+		// int acceptedCount = clientActivityIngestService.ingest(memberId, resolvedAnonymousId, request.events());
+		int acceptedCount = clientActivityIngestService.ingestToS3(memberId, resolvedAnonymousId, request.events());
 		return SuccessResponse.success(new ClientActivityEventsIngestResponse(acceptedCount));
 	}
 
