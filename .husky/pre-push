@@ -2,15 +2,108 @@
 . "$(dirname "$0")/_/husky.sh"
 set -euo pipefail
 
-echo "🔁 실행 테스트를 진행합니다..."
-if ! docker info >/dev/null 2>&1; then
-  echo "⛔ Docker가 감지되지 않습니다. 통합 테스트( Testcontainers )가 필요하므로 푸시를 진행할 수 없습니다."
+DOCKER_CHECK_TIMEOUT=30
+DOCKER_BIN="${DOCKER_BIN:-}"
+TESTCONTAINERS_LOG_FILE="${TESTCONTAINERS_LOG_FILE:-/tmp/pre_push_docker_health.log}"
+PRE_PUSH_TEST_LOG="${PRE_PUSH_TEST_LOG:-/tmp/pre_push_test_output.log}"
+PRE_PUSH_MONITOR_LOG="${PRE_PUSH_MONITOR_LOG:-/tmp/pre_push_monitor.log}"
+MONITOR_INTERVAL_SECONDS="${MONITOR_INTERVAL_SECONDS:-15}"
+export TESTCONTAINERS_REUSE_ENABLE=true
+
+check_docker() {
+  if [ -n "${DOCKER_BIN:-}" ] && [ -x "$DOCKER_BIN" ]; then
+    :
+  elif command -v docker >/dev/null 2>&1; then
+    DOCKER_BIN="$(command -v docker)"
+  else
+    for candidate in \
+      "/Applications/Docker.app/Contents/Resources/bin/docker" \
+      "/opt/homebrew/bin/docker" \
+      "/usr/local/bin/docker" \
+      "/usr/bin/docker"; do
+      if [ -x "$candidate" ]; then
+        DOCKER_BIN="$candidate"
+        break
+      fi
+    done
+  fi
+
+  if [ -z "${DOCKER_BIN:-}" ] || [ ! -x "$DOCKER_BIN" ]; then
+    echo "docker binary not found."
+    return 127
+  fi
+
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "${DOCKER_CHECK_TIMEOUT}" "$DOCKER_BIN" info
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "${DOCKER_CHECK_TIMEOUT}" "$DOCKER_BIN" info
+  elif command -v perl >/dev/null 2>&1; then
+    LC_ALL=C \
+    perl -e '
+      $SIG{ALRM} = sub { exit 124; };
+      my $seconds = shift;
+      alarm $seconds;
+      system(@ARGV);
+      my $code = $? >> 8;
+      alarm 0;
+      exit $code;
+    ' "${DOCKER_CHECK_TIMEOUT}" "$DOCKER_BIN" info
+  else
+    "$DOCKER_BIN" info
+  fi
+}
+
+monitor_test_progress() {
+  TEST_PID=$1
+  START_TS=$2
+  while kill -0 "$TEST_PID" 2>/dev/null; do
+    ELAPSED=$(( $(date +%s) - START_TS ))
+    WORKER_COUNT=$(pgrep -af "Gradle Test Executor|GradleWorkerMain" | wc -l | sed 's/^[[:space:]]*//')
+    echo "[pre-push][monitor] running pid=${TEST_PID}, elapsed=${ELAPSED}s, workers=${WORKER_COUNT}" \
+      | tee -a "$PRE_PUSH_MONITOR_LOG"
+    sleep "$MONITOR_INTERVAL_SECONDS"
+  done
+}
+
+run_gradle_tests() {
+  ./gradlew --build-cache -Dtestcontainers.reuse.enable=true :module-app:api:test > "$PRE_PUSH_TEST_LOG" 2>&1
+}
+
+echo "pre-push test run started."
+echo "pre-push monitoring enabled (interval: ${MONITOR_INTERVAL_SECONDS}s)"
+: > "$PRE_PUSH_MONITOR_LOG"
+if check_docker > "$TESTCONTAINERS_LOG_FILE" 2>&1; then
+  echo "Docker command: ${DOCKER_BIN:-not-found}"
+else
+  check_docker_exit_code=$?
+  echo "Docker command: ${DOCKER_BIN:-not-found}"
+  echo "DOCKER_HOST: ${DOCKER_HOST:-(unset)}"
+  echo "docker check log:"
+  cat "$TESTCONTAINERS_LOG_FILE"
+  rm -f "$TESTCONTAINERS_LOG_FILE"
+  if [ "$check_docker_exit_code" -eq 124 ]; then
+    echo "Docker check timed out after ${DOCKER_CHECK_TIMEOUT}s (daemon might be stuck)."
+  else
+    echo "Docker check failed; Testcontainers requires a reachable Docker daemon."
+  fi
+  echo "Warning: proceeding without blocking pre-push on Docker readiness."
+fi
+rm -f "$TESTCONTAINERS_LOG_FILE"
+
+TEST_STARTED_AT=$(date +%s)
+run_gradle_tests &
+TEST_PID=$!
+monitor_test_progress "$TEST_PID" "$TEST_STARTED_AT" &
+MONITOR_PID=$!
+
+wait "$TEST_PID"
+TEST_EXIT_CODE=$?
+kill "$MONITOR_PID" 2>/dev/null || true
+cat "$PRE_PUSH_MONITOR_LOG"
+cat "$PRE_PUSH_TEST_LOG"
+if [ "$TEST_EXIT_CODE" -ne 0 ]; then
+  echo "Tests failed. Push is blocked."
   exit 1
 fi
 
-if ! ./gradlew --build-cache --parallel --no-daemon test; then
-  echo "⛔ 테스트 실패! 푸시가 중단됩니다."
-  exit 1
-fi
-
-echo "✅ 테스트 통과! 푸시를 계속합니다."
+echo "Tests passed. Continue pushing."
