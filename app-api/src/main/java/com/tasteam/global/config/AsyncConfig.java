@@ -118,6 +118,28 @@ public class AsyncConfig implements AsyncConfigurer {
 		return executor;
 	}
 
+	@Bean(name = "clientActivityPublishExecutor")
+	public Executor clientActivityPublishExecutor(
+		@Value("${tasteam.analytics.ingest.executor.core-pool-size:2}")
+		int corePoolSize,
+		@Value("${tasteam.analytics.ingest.executor.max-pool-size:8}")
+		int maxPoolSize,
+		@Value("${tasteam.analytics.ingest.executor.queue-capacity:500}")
+		int queueCapacity,
+		@Nullable
+		MeterRegistry meterRegistry) {
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(Math.max(1, corePoolSize));
+		executor.setMaxPoolSize(Math.max(Math.max(1, corePoolSize), maxPoolSize));
+		executor.setQueueCapacity(Math.max(0, queueCapacity));
+		executor.setThreadNamePrefix("client-activity-publish-");
+		if (meterRegistry != null) {
+			executor
+				.setRejectedExecutionHandler(buildRejectedExecutionHandler(meterRegistry, "client_activity_publish"));
+		}
+		return executor;
+	}
+
 	@Override
 	public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
 		return (ex, method, params) -> log.error("비동기 메서드 {}에서 예외 발생: {}", method.getName(),

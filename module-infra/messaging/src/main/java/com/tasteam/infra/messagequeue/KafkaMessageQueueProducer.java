@@ -1,10 +1,7 @@
 package com.tasteam.infra.messagequeue;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 
 import com.tasteam.infra.messagequeue.exception.MessageQueuePublishException;
 import com.tasteam.infra.messagequeue.serialization.QueueMessageSerializer;
@@ -24,21 +21,28 @@ public class KafkaMessageQueueProducer implements MessageQueueProducer {
 	public void publish(QueueMessage message) {
 		String serialized = serializer.serialize(message);
 		try {
-			kafkaTemplate.executeInTransaction(ops -> {
-				try {
-					return ops.send(message.topic(), message.key(), serialized)
-						.get(kafkaProperties.getProducer().getSendTimeoutMillis(), TimeUnit.MILLISECONDS);
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					throw new RuntimeException(e);
-				} catch (ExecutionException | TimeoutException e) {
-					throw new RuntimeException(e);
-				}
-			});
-			log.debug("Kafka publish 성공. topic={}, messageId={}", message.topic(), message.messageId());
+			kafkaTemplate.send(message.topic(), message.key(), serialized)
+				.whenComplete((result, ex) -> handlePublishResult(message, result, ex));
+			log.debug("Kafka publish 요청 전송. topic={}, messageId={}", message.topic(), message.messageId());
 		} catch (Exception ex) {
 			log.error("Kafka publish 실패. topic={}, messageId={}", message.topic(), message.messageId(), ex);
 			throw new MessageQueuePublishException(message.topic(), message.messageId(), ex);
 		}
+	}
+
+	private void handlePublishResult(QueueMessage message, SendResult<String, String> result, Throwable ex) {
+		if (ex != null) {
+			log.error("Kafka publish 비동기 실패. topic={}, messageId={}", message.topic(), message.messageId(), ex);
+			return;
+		}
+		if (result != null && result.getRecordMetadata() != null) {
+			log.debug("Kafka publish 성공. topic={}, partition={}, offset={}, messageId={}",
+				message.topic(),
+				result.getRecordMetadata().partition(),
+				result.getRecordMetadata().offset(),
+				message.messageId());
+			return;
+		}
+		log.debug("Kafka publish 성공. topic={}, messageId={}", message.topic(), message.messageId());
 	}
 }
