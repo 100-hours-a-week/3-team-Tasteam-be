@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @Configuration
 @EntityScan(basePackages = "com.tasteam")
-@EnableJpaRepositories(basePackages = "com.tasteam")
+@EnableJpaRepositories(basePackages = "com.tasteam", entityManagerFactoryRef = "entityManagerFactory", transactionManagerRef = "transactionManager")
 public class DatabaseConfig {
 	// Explicit scan to ensure JPA entities/repositories are picked up in all profiles.
 }

@@ -16,9 +16,14 @@
 ##   OTEL_ENDPOINT=http://tempo:4318/v1/traces                    (api 컨테이너 사용 시)
 ##   OTEL_ENDPOINT=http://localhost:4318/v1/traces                (로컬 직접 실행 시)
 ##   SPRING_METRICS_TARGET=host.docker.internal:8080             (bootRun 사용 시, 기본값)
-##   SPRING_METRICS_TARGET=api:8080                              (docker-compose api 사용 시)
+##   SPRING_METRICS_TARGET=api:8080                        (docker-compose api 사용 시)
 ##   MONITORING_LOKI_PORT=13100                                  (호스트 포트 충돌 시)
 ##   MONITORING_PROMETHEUS_PORT=19090                            (호스트 포트 충돌 시)
+
+networks:
+  tasteam-net:
+    name: ${MONITORING_NETWORK:-tasteam-net}
+    driver: bridge
 
 services:
   api:
@@ -29,6 +34,8 @@ services:
       TRACING_TX_ENABLED: ${TRACING_TX_ENABLED:-true}
       OTEL_ENDPOINT: ${OTEL_ENDPOINT:-http://tempo:4318/v1/traces}
       SPRING_FLYWAY_OUT_OF_ORDER: ${SPRING_FLYWAY_OUT_OF_ORDER:-true}
+    networks:
+      - tasteam-net
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
@@ -42,6 +49,8 @@ services:
       DATA_SOURCE_PASS: ${POSTGRES_EXPORTER_DATA_SOURCE_PASS:-tasteam}
     ports:
       - "${MONITORING_POSTGRES_EXPORTER_PORT:-9187}:9187"
+    networks:
+      - tasteam-net
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -49,6 +58,8 @@ services:
     privileged: true
     ports:
       - "${MONITORING_CADVISOR_PORT:-8088}:8080"
+    networks:
+      - tasteam-net
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
@@ -69,6 +80,8 @@ services:
       - /:/rootfs:ro
     ports:
       - "${MONITORING_NODE_EXPORTER_PORT:-9100}:9100"
+    networks:
+      - tasteam-net
 
   redis-exporter:
     image: oliver006/redis_exporter:latest
@@ -79,13 +92,12 @@ services:
       - "${MONITORING_REDIS_EXPORTER_PORT:-9121}:9121"
     depends_on:
       - redis
+    networks:
+      - tasteam-net
 
   prometheus:
     image: prom/prometheus:latest
     container_name: tasteam-prometheus
-    networks:
-      - default
-      - tasteam-net
     command:
       - --enable-feature=exemplar-storage
       - --config.file=/etc/prometheus/prometheus.yml
@@ -96,6 +108,8 @@ services:
       - prometheus_data:/prometheus
     ports:
       - "${MONITORING_PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - tasteam-net
 
   loki:
     image: grafana/loki:3.4.2
@@ -107,6 +121,8 @@ services:
       - loki_data:/loki
     ports:
       - "${MONITORING_LOKI_PORT:-3100}:3100"
+    networks:
+      - tasteam-net
 
   tempo:
     image: grafana/tempo:2.10.2
@@ -119,6 +135,8 @@ services:
       - "${MONITORING_TEMPO_PORT:-3200}:3200"   # Tempo HTTP UI
       - "${MONITORING_OTLP_GRPC_PORT:-4317}:4317"   # OTLP gRPC
       - "${MONITORING_OTLP_HTTP_PORT:-4318}:4318"   # OTLP HTTP
+    networks:
+      - tasteam-net
 
   grafana:
     image: grafana/grafana:latest
@@ -142,6 +160,8 @@ services:
       - loki
       - prometheus
       - tempo
+    networks:
+      - tasteam-net
 
   alloy:
     image: grafana/alloy:v1.14.0-rc.1
@@ -169,6 +189,8 @@ services:
       - api
       - loki
       - prometheus
+    networks:
+      - tasteam-net
 
 volumes:
   loki_data:
