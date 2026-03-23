@@ -53,8 +53,10 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 				        CASE WHEN mv.name_lower = :kw THEN 1 ELSE 0 END AS name_exact,
 				        CASE
 				            WHEN mv.name_lower = :kw THEN 1.0
-				            WHEN mv.name_lower LIKE :kw || '%' THEN """
-				+ SHORT_KEYWORD_PREFIX_SIMILARITY + """
+				            WHEN mv.name_lower LIKE :kw || '%' THEN
+				"""
+				+ SHORT_KEYWORD_PREFIX_SIMILARITY
+				+ """
 				            ELSE 0.0
 				        END AS name_similarity,
 				        """
