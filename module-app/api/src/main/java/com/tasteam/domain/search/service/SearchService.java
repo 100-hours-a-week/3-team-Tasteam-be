@@ -96,7 +96,7 @@ public class SearchService {
 			groupFuture.cancel(true);
 			restaurantFuture.cancel(true);
 			groupData = searchDataService.fetchGroups(keyword, pageSize);
-			restaurantData = searchDataService.fetchRestaurantsWithFallback(
+			restaurantData = searchDataService.fetchRestaurants(
 				keyword, request.cursor(), pageSize,
 				request.latitude(), request.longitude(), radiusMeters);
 		} catch (ExecutionException e) {

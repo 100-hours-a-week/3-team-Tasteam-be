@@ -7,9 +7,6 @@ server:
 spring:
   application:
     name: tasteam-batch
-  threads:
-    virtual:
-      enabled: true
   config:
     import:
       - optional:classpath:application.local.yml
@@ -109,7 +106,6 @@ tasteam:
   search:
     query:
       strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:MV_SINGLE_PASS}
-      fallback-strategy: ${TASTEAM_SEARCH_QUERY_FALLBACK_STRATEGY:ONE_STEP}
       candidate-limit: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:200}
     mv-refresh:
       enabled: ${TASTEAM_SEARCH_MV_REFRESH_ENABLED:false}
@@ -279,7 +275,6 @@ tasteam:
     max-retries: ${MQ_MAX_RETRIES:3}
     kafka:
       bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
-      connect-url: ${KAFKA_CONNECT_URL:http://localhost:8083}
       client-id: ${KAFKA_CLIENT_ID:tasteam-batch}
       producer:
         acks: ${KAFKA_PRODUCER_ACKS:all}
@@ -308,19 +303,6 @@ tasteam:
       user-activity-s3-ingest:
         topic: ${USER_ACTIVITY_S3_INGEST_MQ_TOPIC:evt.user-activity.s3-ingest.v1}
         dlq-topic: ${USER_ACTIVITY_S3_INGEST_MQ_DLQ_TOPIC:evt.user-activity.s3-ingest.v1.dlq}
-      connector:
-        auto-register: ${KAFKA_CONNECT_CONNECTOR_AUTO_REGISTER:false}
-        user-activity-s3-sink:
-          bucket: ${ANALYTICS_S3_BUCKET:}
-          region: ${AWS_REGION:ap-northeast-2}
-          tasks-max: ${KAFKA_CONNECT_UA_S3_TASKS_MAX:8}
-          flush-size: ${KAFKA_CONNECT_UA_S3_FLUSH_SIZE:100000}
-          rotate-interval-ms: ${KAFKA_CONNECT_UA_S3_ROTATE_INTERVAL_MS:3600000}
-          rotate-schedule-interval-ms: ${KAFKA_CONNECT_UA_S3_ROTATE_SCHEDULE_INTERVAL_MS:3600000}
-          endpoint: ${KAFKA_CONNECT_S3_ENDPOINT:${S3_ENDPOINT:}}
-          path-style-access: ${S3_PATH_STYLE_ACCESS:false}
-          access-key-id: ${AWS_ACCESS_KEY_ID:}
-          secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
   notification:
     email:
       provider: ${NOTIFICATION_EMAIL_PROVIDER:log}

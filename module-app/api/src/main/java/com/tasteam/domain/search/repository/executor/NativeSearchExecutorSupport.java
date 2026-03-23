@@ -57,6 +57,9 @@ public abstract class NativeSearchExecutorSupport extends QueryDslSupport implem
 		Double cursorScore = cursor == null ? null : cursorScore(cursor, radiusMeters);
 
 		query.setParameter("kw", keywordLower);
+		if (sql.contains(":kw_prefix_query")) {
+			query.setParameter("kw_prefix_query", toPrefixTsQuery(keywordLower));
+		}
 		query.setParameter("size", size);
 		if (sql.contains(":text_candidate_limit")) {
 			query.setParameter("text_candidate_limit", Math.max(size, textCandidateLimit));
@@ -98,6 +101,17 @@ public abstract class NativeSearchExecutorSupport extends QueryDslSupport implem
 				toInteger(row[7])));
 		}
 		return result;
+	}
+
+	protected String toPrefixTsQuery(String keywordLower) {
+		String[] tokens = keywordLower.trim().split("\\s+");
+		List<String> parts = new ArrayList<>();
+		for (String token : tokens) {
+			if (!token.isBlank()) {
+				parts.add(token + ":*");
+			}
+		}
+		return parts.isEmpty() ? keywordLower + ":*" : String.join(" & ", parts);
 	}
 
 	/**

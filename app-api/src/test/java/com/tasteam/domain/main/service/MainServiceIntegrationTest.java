@@ -83,12 +83,18 @@ class MainServiceIntegrationTest {
 		@Test
 		@DisplayName("위치 정보가 없으면 홈 섹션이 구성된다")
 		void getHomeWithoutLocation() {
-			restaurantRepository.save(createRestaurant("홈 맛집"));
+			Restaurant restaurant = restaurantRepository.save(createRestaurant("홈 맛집"));
+			FoodCategory category = foodCategoryRepository.save(FoodCategory.create("한식"));
+			restaurantFoodCategoryRepository.save(RestaurantFoodCategory.create(restaurant, category));
+			saveAiAnalysisFixtures(restaurant.getId(), "홈 요약", 80);
 
-			HomePageResponse response = mainService.getHome(null, new MainPageRequest(null, null));
+			HomePageResponse response = mainService.getHome(1L, new MainPageRequest(null, null));
 
 			assertThat(response.banners()).isNotNull();
-			assertThat(response.sections()).hasSize(2);
+			assertThat(response.sections()).hasSize(3);
+			assertThat(response.sections().get(0).type()).isEqualTo("RECOMMEND");
+			assertThat(response.sections().get(0).items()).isEmpty();
+			assertThat(response.sections().get(1).groups()).isNotEmpty();
 		}
 	}
 

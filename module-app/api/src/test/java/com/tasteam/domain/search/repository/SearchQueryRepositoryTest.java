@@ -515,6 +515,37 @@ class SearchQueryRepositoryTest {
 		}
 
 		@Test
+		@DisplayName("2글자 키워드는 exact가 prefix보다 높은 점수로 반환된다")
+		void shortKeywordExactRanksHigherThanPrefix() {
+			Restaurant exact = createRestaurant("치킨", point(LON, LAT));
+			Restaurant prefix = createRestaurant("치킨집", point(LON, LAT));
+			restaurantRepository.saveAll(List.of(prefix, exact));
+			restaurantRepository.flush();
+			refreshMv();
+
+			List<SearchRestaurantCursorRow> result = searchQueryRepository.searchRestaurantsByKeyword(
+				"치킨", null, 10, LAT, LON, RADIUS_METERS);
+
+			assertThat(result).isNotEmpty();
+			assertThat(ids(result)).contains(exact.getId(), prefix.getId());
+			assertThat(result.get(0).restaurant().id()).isEqualTo(exact.getId());
+		}
+
+		@Test
+		@DisplayName("3글자 키워드는 기존 유사도 분기로 검색된다")
+		void longKeywordBranchReturnsMatches() {
+			Restaurant similar = createRestaurant("강남역맛집", point(LON, LAT));
+			restaurantRepository.saveAndFlush(similar);
+			refreshMv();
+
+			List<SearchRestaurantCursorRow> result = searchQueryRepository.searchRestaurantsByKeyword(
+				"강남역", null, 10, LAT, LON, RADIUS_METERS);
+
+			assertThat(result).isNotEmpty();
+			assertThat(ids(result)).contains(similar.getId());
+		}
+
+		@Test
 		@DisplayName("MV_SINGLE_PASS 결과의 ftsRank 필드는 null이다 (FTS 컬럼 없음)")
 		void ftsRankIsNull() {
 			restaurantRepository.saveAndFlush(createRestaurant("치킨", point(LON, LAT)));

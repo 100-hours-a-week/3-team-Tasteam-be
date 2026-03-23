@@ -224,6 +224,29 @@ class ClientActivityIngestServiceTest {
 	}
 
 	@Test
+	@DisplayName("S3 direct ingest publisher가 없으면 503으로 실패한다")
+	void ingestToS3_rejectsWhenPublisherUnavailable() {
+		AnalyticsIngestProperties properties = defaultProperties();
+		ClientActivityIngestRateLimiter rateLimiter = mock(ClientActivityIngestRateLimiter.class);
+		UserActivityEventStoreService storeService = mock(UserActivityEventStoreService.class);
+		ObjectProvider<UserActivityS3SinkPublisher> publisherProvider = mock(ObjectProvider.class);
+		when(publisherProvider.getIfAvailable()).thenReturn(null);
+		ClientActivityIngestService service = new ClientActivityIngestService(
+			properties,
+			rateLimiter,
+			storeService,
+			publisherProvider,
+			DIRECT_EXECUTOR);
+
+		assertThatThrownBy(() -> service.ingestToS3(10L, null, List.of(
+			eventItem("evt-1", "ui.restaurant.viewed", null))))
+			.isInstanceOf(BusinessException.class)
+			.extracting(ex -> ((BusinessException)ex).getErrorCode())
+			.isEqualTo(AnalyticsErrorCode.ANALYTICS_INGEST_UNAVAILABLE.name());
+		verifyNoInteractions(rateLimiter, storeService);
+	}
+
+	@Test
 	@DisplayName("S3 direct ingest 위임 큐가 포화되면 fast-fail 한다")
 	void ingestToS3_rejectsWhenPublishExecutorIsSaturated() {
 		AnalyticsIngestProperties properties = defaultProperties();

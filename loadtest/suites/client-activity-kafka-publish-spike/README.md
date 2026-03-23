@@ -9,11 +9,12 @@
 
 ## 특성
 
-- `TEST_TYPE=single-burst-small-batch|single-burst-large-batch|double-spike-recovery|mixed-identity-spike`
+- `TEST_TYPE=single-burst-small-batch|single-burst-large-batch|double-spike-recovery|mixed-identity-spike|steady-soak`
 - `single-burst-small-batch`: 작은 배치로 요청 수 자체를 급증시킴
 - `single-burst-large-batch`: 요청당 이벤트 수를 키워 serialize/publish 양을 키움
 - `double-spike-recovery`: 첫 burst 회복 전후를 포함한 2회 피크
 - `mixed-identity-spike`: member/anonymous를 섞은 운영 유사 spike
+- `steady-soak`: 낮거나 중간 수준 rate를 장시간 유지하며 publish 실패, lag 누적, executor 포화를 확인
 
 ## 주 관측 포인트
 
@@ -28,4 +29,13 @@
 ```bash
 cd loadtest/suites/client-activity-kafka-publish-spike
 TEST_TYPE=mixed-identity-spike ./run-client-activity-kafka-publish-spike.sh --no-prometheus
+```
+
+```bash
+cd loadtest/suites/client-activity-kafka-publish-spike
+TEST_TYPE=steady-soak \
+SOAK_TARGET_RATE=40 \
+SOAK_DURATION=30m \
+BATCH_SIZE=2 \
+./run-client-activity-kafka-publish-spike.sh --no-prometheus
 ```

@@ -111,6 +111,11 @@ chat:
     ws-pubsub-channel: ${CHAT_STREAM_WS_PUBSUB_CHANNEL:chat:websocket:broadcast}
 
 tasteam:
+  message-queue:
+    kafka:
+      user-activity-s3-ingest:
+        topic: ${USER_ACTIVITY_S3_INGEST_MQ_TOPIC:evt.stg.user-activity.s3-ingest.v1}
+        dlq-topic: ${USER_ACTIVITY_S3_INGEST_MQ_DLQ_TOPIC:evt.stg.user-activity.s3-ingest.v1.dlq}
   auth:
     test:
       access-token-expiration-ms: ${TASTEAM_TEST_AUTH_ACCESS_TOKEN_EXPIRATION_MS:172800000}

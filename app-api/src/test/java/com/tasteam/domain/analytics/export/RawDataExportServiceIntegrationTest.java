@@ -64,8 +64,8 @@ class RawDataExportServiceIntegrationTest {
 
 	@BeforeEach
 	void clearStoragePrefix() {
-		deleteAllByPrefix("raw/restaurants/dt=" + TEST_DT + "/");
-		deleteAllByPrefix("raw/menus/dt=" + TEST_DT + "/");
+		deleteAllByPrefix("evt.user-activity.s3-ingest.v1/raw/restaurants/dt=" + TEST_DT + "/");
+		deleteAllByPrefix("evt.user-activity.s3-ingest.v1/raw/menus/dt=" + TEST_DT + "/");
 	}
 
 	@Test
@@ -89,8 +89,8 @@ class RawDataExportServiceIntegrationTest {
 			EnumSet.of(RawDataType.RESTAURANTS, RawDataType.MENUS),
 			"it-1"));
 
-		String restaurantPrefix = "raw/restaurants/dt=2026-03-11/";
-		String menuPrefix = "raw/menus/dt=2026-03-11/";
+		String restaurantPrefix = "evt.user-activity.s3-ingest.v1/raw/restaurants/dt=2026-03-11/";
+		String menuPrefix = "evt.user-activity.s3-ingest.v1/raw/menus/dt=2026-03-11/";
 		String restaurantCsv = new String(
 			storageClient.downloadObject(restaurantPrefix + "part-00001.csv"),
 			StandardCharsets.UTF_8);

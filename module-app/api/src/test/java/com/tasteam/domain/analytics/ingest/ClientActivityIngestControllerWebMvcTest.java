@@ -86,4 +86,27 @@ class ClientActivityIngestControllerWebMvcTest extends BaseControllerWebMvcTest 
 			.andExpect(status().isTooManyRequests())
 			.andExpect(jsonPath("$.code").value("ANALYTICS_INGEST_RATE_LIMIT_EXCEEDED"));
 	}
+
+	@Test
+	@DisplayName("수집 경로가 준비되지 않았으면 503으로 실패한다")
+	void 이벤트_수집_경로미준비_실패() throws Exception {
+		// given
+		ClientActivityEventsIngestRequest request = new ClientActivityEventsIngestRequest(
+			"anon-1",
+			List.of(new ClientActivityEventItemRequest(
+				"evt-1",
+				"ui.restaurant.viewed",
+				"v1",
+				Instant.parse("2026-02-01T12:00:00Z"),
+				Map.of("source", "mobile"))));
+		given(clientActivityIngestService.ingestToS3(nullable(Long.class), anyString(), any()))
+			.willThrow(new BusinessException(AnalyticsErrorCode.ANALYTICS_INGEST_UNAVAILABLE));
+
+		// when & then
+		mockMvc.perform(post("/api/v1/analytics/events")
+			.contentType(APPLICATION_JSON)
+			.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isServiceUnavailable())
+			.andExpect(jsonPath("$.code").value("ANALYTICS_INGEST_UNAVAILABLE"));
+	}
 }
