@@ -113,6 +113,11 @@ chat:
     ws-pubsub-channel: ${CHAT_STREAM_WS_PUBSUB_CHANNEL:chat:websocket:broadcast}
 
 tasteam:
+  message-queue:
+    kafka:
+      user-activity-s3-ingest:
+        topic: ${USER_ACTIVITY_S3_INGEST_MQ_TOPIC:evt.user-activity.s3-ingest.v1}
+        dlq-topic: ${USER_ACTIVITY_S3_INGEST_MQ_DLQ_TOPIC:evt.user-activity.s3-ingest.v1.dlq}
   notification:
     email:
       provider: ${NOTIFICATION_EMAIL_PROVIDER:ses}
