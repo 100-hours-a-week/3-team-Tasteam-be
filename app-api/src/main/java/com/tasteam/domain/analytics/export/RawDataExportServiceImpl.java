@@ -95,6 +95,7 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		BatchExecution execution = startBatchExecution();
 		List<RawDataExportItemResult> items = new ArrayList<>();
 		int successCount = 0;
+		int staleCount = 0;
 		int totalJobs = targets.size();
 		runtimeDiagnostics.logSnapshot("start", command, dt, totalJobs, successCount);
 		try {
@@ -102,16 +103,22 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 				if (!targets.contains(type)) {
 					continue;
 				}
+				if (isAlreadyExported(type, dt)) {
+					log.info("raw data export skipped (already exported). type={}, dt={}, requestId={}",
+						type, dt, command.requestId());
+					staleCount += 1;
+					continue;
+				}
 				items.add(upload(type, dt, command.requestId()));
 				successCount += 1;
 			}
-			finishBatchExecution(execution, totalJobs, successCount, BatchExecutionStatus.COMPLETED);
+			finishBatchExecution(execution, totalJobs, successCount, staleCount, BatchExecutionStatus.COMPLETED);
 			runtimeDiagnostics.logSnapshot("completed", command, dt, totalJobs, successCount);
 			recordCounter("analytics.raw_export.execute.total", "stage", "total", "result", "success");
 			recordTimer("analytics.raw_export.execute.duration", totalSample, "stage", "total", "result", "success");
 			return new RawDataExportResult(dt, List.copyOf(items));
 		} catch (RuntimeException ex) {
-			finishBatchExecution(execution, totalJobs, successCount, BatchExecutionStatus.FAILED);
+			finishBatchExecution(execution, totalJobs, successCount, staleCount, BatchExecutionStatus.FAILED);
 			runtimeDiagnostics.logSnapshot("failed", command, dt, totalJobs, successCount);
 			log.error("raw data export failed. batchExecutionId={}, requestId={}, dt={}, totalJobs={}, successCount={}",
 				execution.getId(), command.requestId(), dt, totalJobs, successCount, ex);
@@ -119,6 +126,13 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			recordTimer("analytics.raw_export.execute.duration", totalSample, "stage", "total", "result", "failed");
 			throw ex;
 		}
+	}
+
+	private boolean isAlreadyExported(RawDataType type, LocalDate dt) {
+		String prefix = rawTopicPrefix() + "/" + type.pathSegment() + "/dt=" + dt + "/";
+		String successObjectKey = prefix + SUCCESS_FILE_NAME;
+		List<String> found = listObjects(successObjectKey);
+		return !found.isEmpty();
 	}
 
 	private RawDataExportItemResult upload(RawDataType type, LocalDate dt, String requestId) {
@@ -293,15 +307,15 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		storageClient.uploadObject(objectKey, file, contentType);
 	}
 
-	private void finishBatchExecution(BatchExecution execution, int totalJobs, int successCount,
+	private void finishBatchExecution(BatchExecution execution, int totalJobs, int successCount, int staleCount,
 		BatchExecutionStatus finalStatus) {
-		int failedCount = Math.max(0, totalJobs - successCount);
+		int failedCount = Math.max(0, totalJobs - successCount - staleCount);
 		execution.finish(
 			Instant.now(),
 			totalJobs,
 			successCount,
 			failedCount,
-			0,
+			staleCount,
 			finalStatus);
 		batchExecutionRepository.save(execution);
 	}
