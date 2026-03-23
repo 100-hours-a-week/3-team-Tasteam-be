@@ -57,9 +57,9 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 				"""
 				+ SHORT_KEYWORD_PREFIX_SIMILARITY
 				+ """
-				            ELSE 0.0
-				        END AS name_similarity,
-				        """
+					    ELSE 0.0
+					END AS name_similarity,
+					"""
 				+ distanceExpr + """
 					AS distance_meters,
 					CASE WHEN mv.category_names @> ARRAY[:kw]::text[] THEN 1 ELSE 0 END AS category_match,

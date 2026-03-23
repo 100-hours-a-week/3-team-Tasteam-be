@@ -95,6 +95,8 @@ naver:
     api-key: ${NAVER_MAPS_API_KEY:dummy}
 
 tasteam:
+  message-queue:
+    enabled: ${MQ_ENABLED:true}
   notification:
     email:
       provider: ${NOTIFICATION_EMAIL_PROVIDER:ses}
