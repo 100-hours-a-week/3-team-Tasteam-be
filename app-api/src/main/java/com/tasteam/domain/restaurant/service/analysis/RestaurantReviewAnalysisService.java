@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.tasteam.domain.review.entity.Review;
@@ -61,55 +60,6 @@ public class RestaurantReviewAnalysisService {
 		} catch (Exception e) {
 			log.warn("AI review-created analysis failed. restaurantId={}", restaurantId, e);
 
-		} finally {
-			analysisLock.unlock(restaurantId);
-		}
-	}
-
-	@Scheduled(cron = "${tasteam.ai.comparison.cron:0 0 3 * * *}", zone = "${tasteam.ai.comparison.zone:Asia/Seoul}")
-	public void runScheduledComparisonAnalysis() {
-		List<Long> restaurantIds = reviewRepository.findDistinctRestaurantIdsByDeletedAtIsNull();
-		log.info(
-			"Scheduled comparison analysis started. restaurantCount={}, minReviews={}, batchSize={}",
-			restaurantIds.size(),
-			policyProperties.getComparisonMinReviews(),
-			policyProperties.getComparisonBatchSize());
-
-		if (restaurantIds.isEmpty()) {
-			log.debug("Scheduled comparison analysis skipped. no restaurants with active reviews.");
-			return;
-		}
-
-		for (Long restaurantId : restaurantIds) {
-			runComparisonAnalysisForRestaurant(restaurantId);
-		}
-		log.info("Scheduled comparison analysis finished. restaurantCount={}", restaurantIds.size());
-	}
-
-	private void runComparisonAnalysisForRestaurant(long restaurantId) {
-		if (!analysisLock.tryLock(restaurantId)) {
-			log.debug("Comparison scheduled analysis skipped due to lock contention. restaurantId={}", restaurantId);
-			return;
-		}
-
-		try {
-			int reviewCount = Math.toIntExact(reviewRepository.countByRestaurantIdAndDeletedAtIsNull(restaurantId));
-			boolean shouldRun = comparisonTriggerPolicy.shouldRun(reviewCount);
-			if (shouldRun) {
-				log.debug("Comparison scheduled analysis will run. restaurantId={}, reviewCount={}", restaurantId,
-					reviewCount);
-				executeComparison(restaurantId);
-			} else {
-				log.debug(
-					"Comparison scheduled analysis skipped by policy. restaurantId={}, reviewCount={}, minReviews={}, batchSize={}, remainder={}",
-					restaurantId,
-					reviewCount,
-					policyProperties.getComparisonMinReviews(),
-					policyProperties.getComparisonBatchSize(),
-					reviewCount % policyProperties.getComparisonBatchSize());
-			}
-		} catch (Exception e) {
-			log.warn("AI comparison scheduled analysis failed. restaurantId={}", restaurantId, e);
 		} finally {
 			analysisLock.unlock(restaurantId);
 		}
