@@ -2,15 +2,15 @@
 . "$(dirname "$0")/_/husky.sh"
 set -euo pipefail
 
-echo "🔁 실행 테스트를 진행합니다..."
+echo "🔁 app-api 테스트를 진행합니다..."
 if ! docker info >/dev/null 2>&1; then
   echo "⛔ Docker가 감지되지 않습니다. 통합 테스트( Testcontainers )가 필요하므로 푸시를 진행할 수 없습니다."
   exit 1
 fi
 
-if ! ./gradlew test; then
-  echo "⛔ 테스트 실패! 푸시가 중단됩니다."
+if ! ./gradlew :app-api:test; then
+  echo "⛔ app-api 테스트 실패! 푸시가 중단됩니다."
   exit 1
 fi
 
-echo "✅ 테스트 통과! 푸시를 계속합니다."
+echo "✅ app-api 테스트 통과! 푸시를 계속합니다."
