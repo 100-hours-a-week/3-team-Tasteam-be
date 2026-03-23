@@ -28,8 +28,12 @@ public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 		from restaurant r
 		join nearby n on n.id = r.id
 		left join review rv on rv.restaurant_id = r.id and rv.deleted_at is null
-		group by r.id, r.name, r.location
-		order by count(rv.id) desc, r.id asc
+		left join restaurant_review_sentiment s on s.restaurant_id = r.id
+		group by r.id, r.name, r.location, s.positive_percent
+		order by case when s.positive_percent is null then 1 else 0 end asc,
+		  coalesce(s.positive_percent, 0) desc,
+		  count(rv.id) desc,
+		  r.id asc
 		limit :limit
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findHotRestaurants(
@@ -99,10 +103,14 @@ public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 		select r.id as id, r.name as name, cast(null as double precision) as distanceMeter
 		from restaurant r
 		left join review rv on rv.restaurant_id = r.id and rv.deleted_at is null
+		left join restaurant_review_sentiment s on s.restaurant_id = r.id
 		where r.deleted_at is null
 		  and r.id not in (:excludeIds)
-		group by r.id
-		order by count(rv.id) desc, r.id asc
+		group by r.id, r.name, s.positive_percent
+		order by case when s.positive_percent is null then 1 else 0 end asc,
+		  coalesce(s.positive_percent, 0) desc,
+		  count(rv.id) desc,
+		  r.id asc
 		limit :limit
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findHotRestaurantsAll(
@@ -141,6 +149,89 @@ public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 		int limit);
 
 	@Query(value = """
+		select r.id as id, r.name as name,
+		  ST_Distance(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
+		from restaurant r
+		join restaurant_food_category rfc on rfc.restaurant_id = r.id
+		join food_category fc on fc.id = rfc.food_category_id
+		where r.deleted_at is null
+		  and lower(fc.name) = lower(:categoryName)
+		  and ST_DWithin(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
+		order by r.location::geography <-> ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
+		  r.id asc
+		limit :limit
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findDistanceRestaurantsByCategory(
+		@Param("latitude")
+		double latitude,
+		@Param("longitude")
+		double longitude,
+		@Param("radiusMeter")
+		int radiusMeter,
+		@Param("categoryName")
+		String categoryName,
+		@Param("limit")
+		int limit);
+
+	@Query(value = """
+		select r.id as id, r.name as name,
+		  ST_Distance(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
+		from restaurant r
+		join restaurant_food_category rfc on rfc.restaurant_id = r.id
+		join food_category fc on fc.id = rfc.food_category_id
+		left join review rv on rv.restaurant_id = r.id and rv.deleted_at is null
+		left join restaurant_review_sentiment s on s.restaurant_id = r.id
+		where r.deleted_at is null
+		  and lower(fc.name) = lower(:categoryName)
+		  and ST_DWithin(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
+		group by r.id, r.name, r.location, s.positive_percent
+		order by case when s.positive_percent is null then 1 else 0 end asc,
+		  coalesce(s.positive_percent, 0) desc,
+		  count(rv.id) desc,
+		  ST_Distance(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) asc,
+		  r.id asc
+		limit :limit
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findHotRestaurantsByCategory(
+		@Param("latitude")
+		double latitude,
+		@Param("longitude")
+		double longitude,
+		@Param("radiusMeter")
+		int radiusMeter,
+		@Param("categoryName")
+		String categoryName,
+		@Param("limit")
+		int limit);
+
+	@Query(value = """
+		select r.id as id, r.name as name, cast(null as double precision) as distanceMeter
+		from restaurant r
+		join restaurant_food_category rfc on rfc.restaurant_id = r.id
+		join food_category fc on fc.id = rfc.food_category_id
+		left join review rv on rv.restaurant_id = r.id and rv.deleted_at is null
+		left join restaurant_review_sentiment s on s.restaurant_id = r.id
+		where r.deleted_at is null
+		  and lower(fc.name) = lower(:categoryName)
+		group by r.id, r.name, s.positive_percent
+		order by case when s.positive_percent is null then 1 else 0 end asc,
+		  coalesce(s.positive_percent, 0) desc,
+		  count(rv.id) desc,
+		  r.id asc
+		limit :limit
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findHotRestaurantsAllByCategory(
+		@Param("categoryName")
+		String categoryName,
+		@Param("limit")
+		int limit);
+
+	@Query(value = """
 		select r.id as id, r.name as name, cast(null as double precision) as distanceMeter
 		from restaurant r
 		where r.deleted_at is null
@@ -170,6 +261,15 @@ public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 		double latitude,
 		@Param("longitude")
 		double longitude);
+
+	@Query(value = """
+		select r.id as id, r.name as name, cast(null as double precision) as distanceMeter
+		from restaurant r
+		where r.id in (:ids)
+		""", nativeQuery = true)
+	List<MainRestaurantDistanceProjection> findRestaurantsByIds(
+		@Param("ids")
+		List<Long> ids);
 
 	@Query(value = """
 		select r.id as id, r.name as name,

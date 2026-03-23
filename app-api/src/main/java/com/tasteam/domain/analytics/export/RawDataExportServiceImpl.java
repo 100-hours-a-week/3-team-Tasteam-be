@@ -25,6 +25,8 @@ import com.tasteam.domain.batch.entity.BatchExecutionStatus;
 import com.tasteam.domain.batch.entity.BatchType;
 import com.tasteam.domain.batch.repository.BatchExecutionRepository;
 import com.tasteam.global.metrics.MetricLabelPolicy;
+import com.tasteam.infra.messagequeue.QueueTopic;
+import com.tasteam.infra.messagequeue.TopicNamingPolicy;
 import com.tasteam.infra.storage.StorageClient;
 
 import io.micrometer.core.instrument.DistributionSummary;
@@ -36,7 +38,6 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class RawDataExportServiceImpl implements RawDataExportService {
 
-	private static final String BASE_PREFIX = "raw";
 	// TODO(recommendation-pipeline): 현재는 dt 기준 full-snapshot REPLACE 방식.
 	// 증분 적재가 필요해지면 source 쿼리를 updated_at/변경 이벤트 기준으로 분리하고
 	// append 가능한 파티셔닝/중복제거 전략을 함께 설계해 전환한다.
@@ -50,6 +51,7 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 	private final StorageClient storageClient;
 	private final BatchExecutionRepository batchExecutionRepository;
 	private final MeterRegistry meterRegistry;
+	private final TopicNamingPolicy topicNamingPolicy;
 	private String analyticsBucket;
 	private RawDataExportRuntimeDiagnostics runtimeDiagnostics = RawDataExportRuntimeDiagnostics.noop();
 
@@ -57,10 +59,12 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 		RawDataExportSourceJdbcRepository sourceRepository,
 		StorageClient storageClient,
 		BatchExecutionRepository batchExecutionRepository,
+		TopicNamingPolicy topicNamingPolicy,
 		MeterRegistry meterRegistry) {
 		this.sourceRepository = sourceRepository;
 		this.storageClient = storageClient;
 		this.batchExecutionRepository = batchExecutionRepository;
+		this.topicNamingPolicy = topicNamingPolicy;
 		this.meterRegistry = meterRegistry;
 	}
 
@@ -120,7 +124,7 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 	private RawDataExportItemResult upload(RawDataType type, LocalDate dt, String requestId) {
 		Timer.Sample typeSample = Timer.start(meterRegistry);
 		String typeTag = type.pathSegment();
-		String prefix = BASE_PREFIX + "/" + type.pathSegment() + "/dt=" + dt + "/";
+		String prefix = rawTopicPrefix() + "/" + type.pathSegment() + "/dt=" + dt + "/";
 		String dataObjectKey = prefix + DATA_FILE_NAME;
 		String successObjectKey = prefix + SUCCESS_FILE_NAME;
 		List<String> existingObjects = listObjects(prefix);
@@ -259,6 +263,10 @@ public class RawDataExportServiceImpl implements RawDataExportService {
 			return storageClient.listObjects(analyticsBucket, prefix);
 		}
 		return storageClient.listObjects(prefix);
+	}
+
+	private String rawTopicPrefix() {
+		return topicNamingPolicy.main(QueueTopic.USER_ACTIVITY_S3_INGEST) + "/raw";
 	}
 
 	private void deleteObject(String objectKey) {

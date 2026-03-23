@@ -28,6 +28,8 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.analytics.config.AnalyticsProperties;
 import com.tasteam.domain.batch.entity.BatchExecution;
 import com.tasteam.domain.batch.repository.BatchExecutionRepository;
+import com.tasteam.infra.messagequeue.QueueTopic;
+import com.tasteam.infra.messagequeue.TopicNamingPolicy;
 import com.tasteam.infra.storage.StorageClient;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -42,10 +44,11 @@ class RawDataExportServiceImplTest {
 		RawDataExportSourceJdbcRepository sourceRepository = mock(RawDataExportSourceJdbcRepository.class);
 		StorageClient storageClient = mock(StorageClient.class);
 		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
+		TopicNamingPolicy topicNamingPolicy = mock(TopicNamingPolicy.class);
 		RawDataExportServiceImpl service = new RawDataExportServiceImpl(sourceRepository, storageClient,
-			batchExecutionRepository, new SimpleMeterRegistry());
+			batchExecutionRepository, topicNamingPolicy, new SimpleMeterRegistry());
 		LocalDate dt = LocalDate.of(2026, 3, 11);
-		String prefix = "raw/restaurants/dt=2026-03-11/";
+		String prefix = "evt.user-activity.s3-ingest.v1/raw/restaurants/dt=2026-03-11/";
 		String dataKey = prefix + "part-00001.csv";
 		String successKey = prefix + "_SUCCESS";
 
@@ -55,6 +58,7 @@ class RawDataExportServiceImplTest {
 			consumer.accept(List.of("1", "식당A"));
 			return null;
 		}).when(sourceRepository).streamRestaurants(any(CsvRowConsumer.class));
+		when(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY_S3_INGEST)).thenReturn("evt.user-activity.s3-ingest.v1");
 		when(storageClient.listObjects(prefix)).thenReturn(List.of());
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
@@ -86,10 +90,11 @@ class RawDataExportServiceImplTest {
 		RawDataExportSourceJdbcRepository sourceRepository = mock(RawDataExportSourceJdbcRepository.class);
 		StorageClient storageClient = mock(StorageClient.class);
 		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
+		TopicNamingPolicy topicNamingPolicy = mock(TopicNamingPolicy.class);
 		RawDataExportServiceImpl service = new RawDataExportServiceImpl(sourceRepository, storageClient,
-			batchExecutionRepository, new SimpleMeterRegistry());
+			batchExecutionRepository, topicNamingPolicy, new SimpleMeterRegistry());
 		LocalDate dt = LocalDate.of(2026, 3, 11);
-		String prefix = "raw/menus/dt=2026-03-11/";
+		String prefix = "evt.user-activity.s3-ingest.v1/raw/menus/dt=2026-03-11/";
 
 		when(sourceRepository.menuHeaders()).thenReturn(List.of("restaurant_id", "menu_count"));
 		doAnswer(invocation -> {
@@ -97,6 +102,7 @@ class RawDataExportServiceImplTest {
 			consumer.accept(List.of("1", "2"));
 			return null;
 		}).when(sourceRepository).streamMenus(any(CsvRowConsumer.class));
+		when(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY_S3_INGEST)).thenReturn("evt.user-activity.s3-ingest.v1");
 		when(storageClient.listObjects(prefix)).thenReturn(List.of(prefix + "part-00001.csv", prefix + "_SUCCESS"));
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
@@ -114,10 +120,11 @@ class RawDataExportServiceImplTest {
 		RawDataExportSourceJdbcRepository sourceRepository = mock(RawDataExportSourceJdbcRepository.class);
 		StorageClient storageClient = mock(StorageClient.class);
 		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
+		TopicNamingPolicy topicNamingPolicy = mock(TopicNamingPolicy.class);
 		RawDataExportServiceImpl service = new RawDataExportServiceImpl(sourceRepository, storageClient,
-			batchExecutionRepository, new SimpleMeterRegistry());
+			batchExecutionRepository, topicNamingPolicy, new SimpleMeterRegistry());
 		LocalDate dt = LocalDate.of(2026, 3, 11);
-		String prefix = "raw/restaurants/dt=2026-03-11/";
+		String prefix = "evt.user-activity.s3-ingest.v1/raw/restaurants/dt=2026-03-11/";
 		String successKey = prefix + "_SUCCESS";
 
 		when(sourceRepository.restaurantHeaders()).thenReturn(List.of("restaurant_id", "restaurant_name"));
@@ -126,6 +133,7 @@ class RawDataExportServiceImplTest {
 			consumer.accept(List.of("1", "식당A"));
 			return null;
 		}).when(sourceRepository).streamRestaurants(any(CsvRowConsumer.class));
+		when(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY_S3_INGEST)).thenReturn("evt.user-activity.s3-ingest.v1");
 		when(storageClient.listObjects(prefix)).thenReturn(List.of());
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
@@ -146,11 +154,12 @@ class RawDataExportServiceImplTest {
 		RawDataExportSourceJdbcRepository sourceRepository = mock(RawDataExportSourceJdbcRepository.class);
 		StorageClient storageClient = mock(StorageClient.class);
 		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
+		TopicNamingPolicy topicNamingPolicy = mock(TopicNamingPolicy.class);
 		RawDataExportServiceImpl service = new RawDataExportServiceImpl(sourceRepository, storageClient,
-			batchExecutionRepository, new SimpleMeterRegistry());
+			batchExecutionRepository, topicNamingPolicy, new SimpleMeterRegistry());
 		LocalDate dt = LocalDate.of(2026, 3, 11);
 		String bucket = "tasteam-stg-analytics";
-		String prefix = "raw/restaurants/dt=2026-03-11/";
+		String prefix = "evt.user-activity.s3-ingest.v1/raw/restaurants/dt=2026-03-11/";
 		String dataKey = prefix + "part-00001.csv";
 		String successKey = prefix + "_SUCCESS";
 
@@ -164,6 +173,7 @@ class RawDataExportServiceImplTest {
 			consumer.accept(List.of("1", "식당A"));
 			return null;
 		}).when(sourceRepository).streamRestaurants(any(CsvRowConsumer.class));
+		when(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY_S3_INGEST)).thenReturn("evt.user-activity.s3-ingest.v1");
 		when(storageClient.listObjects(bucket, prefix)).thenReturn(List.of());
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
