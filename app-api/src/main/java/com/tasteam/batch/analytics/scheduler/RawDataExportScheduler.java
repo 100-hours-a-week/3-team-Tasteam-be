@@ -1,8 +1,10 @@
 package com.tasteam.batch.analytics.scheduler;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Component;
 import com.tasteam.domain.analytics.export.RawDataExportCommand;
 import com.tasteam.domain.analytics.export.RawDataExportService;
 import com.tasteam.domain.analytics.export.RawDataType;
+import com.tasteam.global.lock.RedisDistributedLockManager;
+import com.tasteam.global.lock.RedisDistributedLockManager.LockHandle;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,15 +27,26 @@ import lombok.extern.slf4j.Slf4j;
 public class RawDataExportScheduler {
 
 	private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
+	private static final String LOCK_KEY = "lock:batch:analytics:raw-export";
+	private static final Duration LOCK_TTL = Duration.ofMinutes(25);
 
 	private final RawDataExportService rawDataExportService;
+	private final RedisDistributedLockManager distributedLockManager;
 
-	@Scheduled(cron = "${tasteam.batch.raw-export.cron:0 15 2 * * ?}", zone = "${tasteam.batch.raw-export.zone:Asia/Seoul}")
-	public void runDaily() {
+	@Scheduled(cron = "${tasteam.batch.raw-export.cron:0 45 * * * ?}", zone = "${tasteam.batch.raw-export.zone:Asia/Seoul}")
+	public void run() {
+		Optional<LockHandle> lockHandleOpt = distributedLockManager.tryLock(LOCK_KEY, LOCK_TTL);
+		if (lockHandleOpt.isEmpty()) {
+			log.info("raw data export scheduler skipped. another instance already owns lock. key={}", LOCK_KEY);
+			return;
+		}
+
 		LocalDate dt = LocalDate.now(KST_ZONE);
 		String requestId = "raw-export-scheduled-" + UUID.randomUUID();
-		log.info("raw data export scheduler started. dt={}, requestId={}", dt, requestId);
-		rawDataExportService.export(
-			new RawDataExportCommand(dt, EnumSet.allOf(RawDataType.class), requestId));
+		try (LockHandle ignored = lockHandleOpt.get()) {
+			log.info("raw data export scheduler started. dt={}, requestId={}", dt, requestId);
+			rawDataExportService.export(
+				new RawDataExportCommand(dt, EnumSet.allOf(RawDataType.class), requestId));
+		}
 	}
 }
