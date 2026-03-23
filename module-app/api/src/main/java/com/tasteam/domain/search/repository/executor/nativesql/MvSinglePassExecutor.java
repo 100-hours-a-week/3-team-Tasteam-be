@@ -20,6 +20,9 @@ import com.tasteam.domain.search.repository.executor.NativeSqlFragments;
 @Component
 public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 
+	private static final double SHORT_KEYWORD_PREFIX_SIMILARITY = 0.8;
+	private static final int SHORT_KEYWORD_MAX_LENGTH = 2;
+
 	@Override
 	public SearchQueryStrategy strategy() {
 		return SearchQueryStrategy.MV_SINGLE_PASS;
@@ -29,14 +32,109 @@ public class MvSinglePassExecutor extends NativeSearchExecutorSupport {
 	public List<SearchRestaurantCursorRow> execute(String keyword, SearchCursor cursor, int size,
 		Double latitude, Double longitude, Double radiusMeters) {
 		boolean withLocation = latitude != null && longitude != null && radiusMeters != null;
-		return runNative(buildSql(withLocation), keyword, cursor, size,
+		boolean shortKeyword = keyword.codePointCount(0, keyword.length()) <= SHORT_KEYWORD_MAX_LENGTH;
+		return runNative(buildSql(withLocation, shortKeyword), keyword, cursor, size,
 			latitude, longitude, radiusMeters, 0, 0);
 	}
 
-	private String buildSql(boolean withLocation) {
+	private String buildSql(boolean withLocation, boolean shortKeyword) {
 		String geoFilter = NativeSqlFragments.geoFilter(withLocation);
 		String distanceExpr = NativeSqlFragments.distanceExprMv(withLocation);
 		String distanceScore = NativeSqlFragments.distanceScoreMv(withLocation);
+
+		if (shortKeyword) {
+			return """
+				WITH scored_raw AS (
+				    SELECT
+				        mv.restaurant_id,
+				        mv.name,
+				        mv.full_address,
+				        mv.updated_at,
+				        CASE WHEN mv.name_lower = :kw THEN 1 ELSE 0 END AS name_exact,
+				        CASE
+				            WHEN mv.name_lower = :kw THEN 1.0
+				            WHEN mv.name_lower LIKE :kw || '%' THEN """
+				+ SHORT_KEYWORD_PREFIX_SIMILARITY + """
+				            ELSE 0.0
+				        END AS name_similarity,
+				        """
+				+ distanceExpr + """
+					AS distance_meters,
+					CASE WHEN mv.category_names @> ARRAY[:kw]::text[] THEN 1 ELSE 0 END AS category_match,
+					CASE
+					    WHEN mv.search_vector @@ to_tsquery('simple', :kw_prefix_query)
+					         AND mv.name_lower <> :kw
+					         AND mv.name_lower NOT LIKE :kw || '%'
+					         AND NOT (mv.category_names @> ARRAY[:kw]::text[])
+					    THEN 1 ELSE 0
+					END AS address_match
+					FROM restaurant_search_mv mv
+					WHERE mv.deleted_at IS NULL
+					  """
+				+ geoFilter
+				+ """
+					          AND (
+					                mv.name_lower = :kw
+					                OR mv.name_lower LIKE :kw || '%'
+					                OR mv.category_names @> ARRAY[:kw]::text[]
+					                OR mv.search_vector @@ to_tsquery('simple', :kw_prefix_query)
+					              )
+					), scored AS (
+					    SELECT
+					        restaurant_id,
+					        name,
+					        full_address,
+					        updated_at,
+					        name_exact,
+					        name_similarity,
+					        distance_meters,
+					        category_match,
+					        address_match,
+					        (name_exact * 100.0
+					         + name_similarity * 30.0
+					         + category_match * 15.0
+					         + address_match * 5.0
+					         + """
+				+ distanceScore
+				+ """
+					        ) AS total_score
+					    FROM scored_raw
+					), candidates AS (
+					    SELECT
+					        restaurant_id,
+					        name,
+					        full_address,
+					        name_exact,
+					        name_similarity,
+					        distance_meters,
+					        category_match,
+					        address_match,
+					        updated_at,
+					        total_score
+					    FROM scored
+					    WHERE (
+					        CAST(:cursor_score AS double precision) IS NULL
+					        OR total_score < CAST(:cursor_score AS double precision)
+					        OR (total_score = CAST(:cursor_score AS double precision) AND updated_at < CAST(:cursor_updated_at AS timestamptz))
+					        OR (total_score = CAST(:cursor_score AS double precision) AND updated_at = CAST(:cursor_updated_at AS timestamptz) AND restaurant_id < CAST(:cursor_id AS bigint))
+					    )
+					    ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC
+					    LIMIT :size
+					)
+					SELECT
+					    restaurant_id,
+					    name,
+					    full_address,
+					    name_exact,
+					    name_similarity,
+					    distance_meters,
+					    category_match,
+					    address_match,
+					    updated_at
+					FROM candidates
+					ORDER BY total_score DESC, updated_at DESC, restaurant_id DESC
+					""";
+		}
 
 		// scored_raw CTE: similarity 등 비용 함수를 각각 1회만 계산
 		// scored CTE: scored_raw의 이미 계산된 컬럼을 참조해 total_score 산출 (중복 호출 없음)
