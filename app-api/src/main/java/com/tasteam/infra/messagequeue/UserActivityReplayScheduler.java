@@ -2,7 +2,6 @@ package com.tasteam.infra.messagequeue;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.tasteam.domain.analytics.resilience.UserActivityReplayMetricsCollector;
@@ -23,7 +22,7 @@ public class UserActivityReplayScheduler {
 	@Value("${tasteam.analytics.replay.batch-size:100}")
 	private int replayBatchSize;
 
-	@Scheduled(fixedDelayString = "${tasteam.analytics.replay.fixed-delay:PT1M}")
+	// @Scheduled(fixedDelayString = "${tasteam.analytics.replay.fixed-delay:PT1M}")
 	public void replayPendingEvents() {
 		long startedAtNanos = System.nanoTime();
 		UserActivityReplayResult result = userActivityReplayRunner.runPendingReplay(replayBatchSize);
