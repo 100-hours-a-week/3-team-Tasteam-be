@@ -22,7 +22,6 @@ class KafkaMessageQueuePropertiesBindingTest {
 		// given
 		Map<String, String> source = Map.ofEntries(
 			Map.entry("tasteam.message-queue.kafka.bootstrap-servers", "kafka-1:9092,kafka-2:9092"),
-			Map.entry("tasteam.message-queue.kafka.connect-url", "http://connect:8083"),
 			Map.entry("tasteam.message-queue.kafka.client-id", "tasteam-app"),
 			Map.entry("tasteam.message-queue.kafka.producer.acks", "1"),
 			Map.entry("tasteam.message-queue.kafka.producer.retries", "5"),
@@ -40,23 +39,7 @@ class KafkaMessageQueuePropertiesBindingTest {
 			Map.entry("tasteam.message-queue.kafka.user-activity-s3-ingest.topic",
 				"evt.user-activity.s3-ingest.custom.v1"),
 			Map.entry("tasteam.message-queue.kafka.user-activity-s3-ingest.dlq-topic",
-				"evt.user-activity.s3-ingest.custom.v1.dlq"),
-			Map.entry("tasteam.message-queue.kafka.connector.auto-register", "true"),
-			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.bucket",
-				"tasteam-analytics-local"),
-			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.region",
-				"ap-northeast-2"),
-			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.tasks-max", "2"),
-			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.flush-size", "250"),
-			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.rotate-interval-ms", "120000"),
-			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.rotate-schedule-interval-ms",
-				"180000"),
-			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.endpoint",
-				"http://minio:9000"),
-			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.path-style-access", "true"),
-			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.access-key-id", "minioadmin"),
-			Map.entry("tasteam.message-queue.kafka.connector.user-activity-s3-sink.secret-access-key",
-				"minioadmin"));
+				"evt.user-activity.s3-ingest.custom.v1.dlq"));
 		Binder binder = new Binder(new MapConfigurationPropertySource(source));
 
 		// when
@@ -66,7 +49,6 @@ class KafkaMessageQueuePropertiesBindingTest {
 
 		// then
 		assertThat(properties.getBootstrapServers()).isEqualTo("kafka-1:9092,kafka-2:9092");
-		assertThat(properties.getConnectUrl()).isEqualTo("http://connect:8083");
 		assertThat(properties.getClientId()).isEqualTo("tasteam-app");
 		assertThat(properties.getProducer().getAcks()).isEqualTo("1");
 		assertThat(properties.getProducer().getRetries()).isEqualTo(5);
@@ -84,18 +66,6 @@ class KafkaMessageQueuePropertiesBindingTest {
 		assertThat(properties.getUserActivityS3Ingest().getTopic()).isEqualTo("evt.user-activity.s3-ingest.custom.v1");
 		assertThat(properties.getUserActivityS3Ingest().getDlqTopic())
 			.isEqualTo("evt.user-activity.s3-ingest.custom.v1.dlq");
-		assertThat(properties.getConnector().isAutoRegister()).isTrue();
-		assertThat(properties.getConnector().getUserActivityS3Sink().getBucket()).isEqualTo("tasteam-analytics-local");
-		assertThat(properties.getConnector().getUserActivityS3Sink().getRegion()).isEqualTo("ap-northeast-2");
-		assertThat(properties.getConnector().getUserActivityS3Sink().getTasksMax()).isEqualTo(2);
-		assertThat(properties.getConnector().getUserActivityS3Sink().getFlushSize()).isEqualTo(250);
-		assertThat(properties.getConnector().getUserActivityS3Sink().getRotateIntervalMs()).isEqualTo(120000L);
-		assertThat(properties.getConnector().getUserActivityS3Sink().getRotateScheduleIntervalMs())
-			.isEqualTo(180000L);
-		assertThat(properties.getConnector().getUserActivityS3Sink().getEndpoint()).isEqualTo("http://minio:9000");
-		assertThat(properties.getConnector().getUserActivityS3Sink().isPathStyleAccess()).isTrue();
-		assertThat(properties.getConnector().getUserActivityS3Sink().getAccessKeyId()).isEqualTo("minioadmin");
-		assertThat(properties.getConnector().getUserActivityS3Sink().getSecretAccessKey()).isEqualTo("minioadmin");
 	}
 
 }
