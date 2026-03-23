@@ -14,7 +14,7 @@ server-side domain event와 client ingest가 최종 저장소(`user_activity_eve
 | `UserActivitySourceOutboxSink` | 기본 활성 | domain event는 우선 source outbox로 수렴 |
 | `UserActivityS3SinkPublisher` | MQ on일 때만 활성 | MQ off면 최종 저장까지 가지 않을 수 있음 |
 | `Kafka Connect S3 Sink Connector` | MQ 소비 후 `UserActivityEventStoreService.store()` | final store 도달 핵심 경로 |
-| `ClientActivityIngestService` | `UserActivityEventStoreService`로 direct store | client ingest는 final store 기준 완결 |
+| `ClientActivityIngestService` | `UserActivityS3SinkPublisher`로 direct ingest topic 발행 | MQ 운영 경로 의존, dev/stg/prod는 misconfiguration 시 startup fail-fast |
 
 ## 3. 왜 문제인가
 

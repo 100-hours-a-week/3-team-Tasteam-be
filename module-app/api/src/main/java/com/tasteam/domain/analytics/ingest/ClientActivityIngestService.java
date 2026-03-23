@@ -45,7 +45,7 @@ public class ClientActivityIngestService {
 	public int ingestToS3(Long memberId, String anonymousId, List<ClientActivityEventItemRequest> events) {
 		UserActivityS3SinkPublisher userActivityS3SinkPublisher = userActivityS3SinkPublisherProvider.getIfAvailable();
 		if (userActivityS3SinkPublisher == null) {
-			throw new IllegalStateException("UserActivityS3SinkPublisher 빈이 없어 S3 direct ingest를 처리할 수 없습니다.");
+			throw new BusinessException(AnalyticsErrorCode.ANALYTICS_INGEST_UNAVAILABLE);
 		}
 		List<ActivityEvent> activityEvents = prepareEvents(memberId, anonymousId, events);
 		for (ActivityEvent activityEvent : activityEvents) {

@@ -167,8 +167,10 @@ sequenceDiagram
   - 배치 수 제한
   - allowlist 이벤트만 허용
   - 레이트리밋 초과 시 429
-- 저장:
-  - `UserActivityEventStoreService` 동일 경로 재사용
+- 수집 경로:
+  - `ClientActivityIngestService.ingestToS3()`가 `UserActivityS3SinkPublisher`로 direct ingest topic 발행
+  - dev/stg/prod에서 MQ provider가 비활성이면 startup fail-fast
+  - 런타임에 direct ingest 경로가 준비되지 않았으면 503 반환
 
 ```mermaid
 sequenceDiagram
@@ -177,15 +179,21 @@ sequenceDiagram
     participant API as ClientActivityIngestController
     participant Service as ClientActivityIngestService
     participant RL as ClientActivityIngestRateLimiter
+    participant MqPub as UserActivityS3SinkPublisher
+    participant MQ as user-activity-s3-ingest topic
+    participant Connector as Kafka Connect S3 Sink Connector
     participant Store as UserActivityEventStoreService
     participant EventDB as user_activity_event
 
     Client->>API: POST /api/v1/analytics/events
-    API->>Service: ingest(memberId, anonymousId, events)
+    API->>Service: ingestToS3(memberId, anonymousId, events)
     Service->>Service: validateBatch + validateAllowlist
     Service->>RL: tryAcquire(rateLimitKey)
     alt allowed
-      Service->>Store: store(ActivityEvent)
+      Service->>MqPub: sink(ActivityEvent)
+      MqPub->>MQ: publish(message)
+      MQ->>Connector: deliver
+      Connector->>Store: store(ActivityEvent)
       Store->>EventDB: INSERT ON CONFLICT(event_id) DO NOTHING
       Service-->>API: acceptedCount
     else blocked

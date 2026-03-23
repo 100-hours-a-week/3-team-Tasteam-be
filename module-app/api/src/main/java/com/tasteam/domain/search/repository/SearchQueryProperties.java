@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 public class SearchQueryProperties {
 
 	private SearchQueryStrategy strategy = SearchQueryStrategy.ONE_STEP;
-	private SearchQueryStrategy fallbackStrategy = SearchQueryStrategy.ONE_STEP;
 	private int candidateLimit = 200;
 
 	public SearchQueryStrategy getStrategy() {
@@ -17,14 +16,6 @@ public class SearchQueryProperties {
 
 	public void setStrategy(SearchQueryStrategy strategy) {
 		this.strategy = strategy;
-	}
-
-	public SearchQueryStrategy getFallbackStrategy() {
-		return fallbackStrategy;
-	}
-
-	public void setFallbackStrategy(SearchQueryStrategy fallbackStrategy) {
-		this.fallbackStrategy = fallbackStrategy;
 	}
 
 	public int getCandidateLimit() {
