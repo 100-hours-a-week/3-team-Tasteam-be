@@ -17,6 +17,13 @@ const TEST_TYPE = __ENV.TEST_TYPE || 'mixed-identity-spike';
 const USER_POOL = Number(__ENV.USER_POOL || '160');
 const ANONYMOUS_POOL = Number(__ENV.ANONYMOUS_POOL || '2400');
 const MEMBER_SHARE = Number(__ENV.MEMBER_SHARE || '0.5');
+const SOAK_START_RATE = Number(__ENV.SOAK_START_RATE || '10');
+const SOAK_TARGET_RATE = Number(__ENV.SOAK_TARGET_RATE || '40');
+const SOAK_PRE_ALLOCATED_VUS = Number(__ENV.SOAK_PRE_ALLOCATED_VUS || '80');
+const SOAK_MAX_VUS = Number(__ENV.SOAK_MAX_VUS || '160');
+const SOAK_RAMP_UP = __ENV.SOAK_RAMP_UP || '2m';
+const SOAK_DURATION = __ENV.SOAK_DURATION || '30m';
+const SOAK_RAMP_DOWN = __ENV.SOAK_RAMP_DOWN || '1m';
 
 const successfulRequests = new Counter('client_activity_kafka_request_success_count');
 const acceptedEvents = new Counter('client_activity_kafka_event_success_count');
@@ -110,6 +117,28 @@ const SCENARIO_OPTIONS = {
                     { target: 0, duration: '30s' },
                 ],
                 exec: 'mixedIdentitySpike',
+            },
+        },
+        thresholds: {
+            'http_req_duration{name:client_activity_ingest}': ['p(95)<2000'],
+            'http_req_failed': ['rate<0.02'],
+        },
+    },
+    'steady-soak': {
+        setupTimeout: '5m',
+        scenarios: {
+            clientActivityKafka: {
+                executor: 'ramping-arrival-rate',
+                timeUnit: '1s',
+                startRate: SOAK_START_RATE,
+                preAllocatedVUs: SOAK_PRE_ALLOCATED_VUS,
+                maxVUs: SOAK_MAX_VUS,
+                stages: [
+                    { target: SOAK_TARGET_RATE, duration: SOAK_RAMP_UP },
+                    { target: SOAK_TARGET_RATE, duration: SOAK_DURATION },
+                    { target: 0, duration: SOAK_RAMP_DOWN },
+                ],
+                exec: 'steadySoak',
             },
         },
         thresholds: {
@@ -232,6 +261,17 @@ export function mixedIdentitySpike(data) {
         batchSize: Number(__ENV.BATCH_SIZE || '6'),
         restaurantHotShare: Number(__ENV.RESTAURANT_HOT_SHARE || '0.4'),
         batchProfile: 'mixed',
+    });
+}
+
+export function steadySoak(data) {
+    runKafkaSpikeIteration(data, {
+        scenario: 'steady_soak',
+        identityMode: 'mixed',
+        memberShare: Number(__ENV.MEMBER_SHARE || '0.5'),
+        batchSize: Number(__ENV.BATCH_SIZE || '2'),
+        restaurantHotShare: Number(__ENV.RESTAURANT_HOT_SHARE || '0.4'),
+        batchProfile: 'steady-soak',
     });
 }
 
