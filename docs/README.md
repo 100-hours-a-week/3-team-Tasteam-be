@@ -19,6 +19,18 @@
 - `docs/policy/`: 운영/빌드/의존성 등 정책 문서를 모아둔 공간입니다.
   - `dependency-versions.md`: 의존성 버전 선택 이유 문서입니다.
   - `logging-policy.md`: 로그 저장/압축 정책 문서입니다.
+- `docs/test/`: 백엔드 테스트 계약, 실행 전략, 레이어별 테스트 규약 문서를 모아둔 공간입니다.
+  - `docs/test/README.md`: 테스트 레이어 책임, 커스텀 테스트 어노테이션, 현재 갭을 정리한 허브 문서입니다.
+  - `docs/test/TEST_EXECUTION_STRATEGY.md`: Gradle 태스크/태그, Testcontainers, 공통 Fake/Mock, 컨텍스트 재사용 규칙 문서입니다.
+  - `docs/test/TEST_COMMON_CONVENTION.md`: 테스트 공통 작성 규칙 문서입니다.
+  - `docs/test/DOMAIN_TEST_CONVENTION.md`: 도메인 엔티티/정책 테스트 규약 문서입니다.
+  - `docs/test/REPOSITORY_TEST_CONVENTION.md`: JPA/QueryDSL 리포지토리 테스트 규약 문서입니다.
+  - `docs/test/CONTROLLER_WEBMVC_TEST_CONVENTION.md`: WebMvc 슬라이스 테스트 규약 문서입니다.
+  - `docs/test/INTEGRATION_TEST_CONVENTION.md`: 서비스 통합, HTTP 통합, MQ 플로우, 성능 테스트 구분 문서입니다.
+  - `docs/test/TEST_DOUBLE_CONVENTION.md`: Fake/Stub/Mock/Spy 우선순위와 사용 규칙 문서입니다.
+  - `docs/test/TEST_FIXTURE_CONVENTION.md`: 공용 Fixture와 `java-test-fixtures` 사용 규칙 문서입니다.
+  - `docs/test/USECASE_TEST_TARGETS.md`: 현재 통합/성능 테스트 인벤토리와 보장 시나리오 문서입니다.
+  - `docs/test/ASYNC_TEST_GUIDE.md`: 비동기 이벤트/리스너 테스트 전략 문서입니다.
 - `docs/spec/`: 설계 산출물(ERD, API 명세)을 모아둔 공간입니다.
   - `docs/spec/erd/`: ERD 파일 저장
   - `docs/spec/api/`: API 명세서 저장
@@ -27,9 +39,15 @@
     - `docs/spec/tech/event/README.md`: 이벤트/공지 조회 API와 데이터 모델 설계 문서입니다.
     - `docs/spec/tech/bootstrap/README.md`: 로컬/개발 초기 데이터 부트스트랩 설계 문서입니다.
     - `docs/spec/tech/flyway/README.md`: Flyway 사용 방법과 운영/배포 절차를 정리한 문서입니다.
+    - `docs/spec/tech/observability/README.md`: `/actuator/prometheus` 기준 메트릭 노출 감사와 분류 문서입니다.
     - `docs/spec/tech/user-activity/README.md`: 사용자 이벤트 수집 모듈의 현재 구현 구조/흐름/설정 계약 문서입니다.
     - `docs/spec/tech/user-activity/RUNBOOK.md`: 사용자 이벤트 수집 장애 탐지/조사/복구 운영 런북 문서입니다.
     - `docs/spec/tech/user-activity/TRACEABILITY.md`: 이슈/PR/커밋/코드/테스트 추적성과 갭 리포트 문서입니다.
+    - `docs/spec/tech/async-event-driven-improvement/README.md`: 비동기 이벤트 드리븐 아키텍처 개선 허브 문서입니다.
+    - `docs/spec/tech/async-event-driven-improvement/*.md`: outbox, 알림, MQ, 사용자 이벤트, 멱등성 개선 상세 문서입니다.
+
+- 백엔드 트러블슈팅 문서는 로컬 `docs/`가 아니라 BE Wiki를 source of truth로 관리합니다.
+  - [BE 트러블슈팅 로그](https://github.com/100-hours-a-week/3-team-Tasteam-be/wiki/%5BBE%5D-%ED%8A%B8%EB%9F%AC%EB%B8%94%EC%8A%88%ED%8C%85-%EB%A1%9C%EA%B7%B8): 백엔드 트러블슈팅 인덱스와 최신 문서 링크.
 
 ## 확장 포인트
 

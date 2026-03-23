@@ -1,0 +1,177 @@
+## 로컬 전용 모니터링 오버레이 (Alloy + Prometheus + Loki + Tempo + Grafana)
+## 사용법: docker compose -f docker-compose.local.yml -f docker-compose.local-monitoring.yml up -d --build
+## 이 파일은 local 개발 오버레이 전용이며 stg/prod 배포 경로와 무관하다.
+##
+## 접속:
+##   Grafana:    http://localhost:3001  (admin / admin)
+##   Prometheus: http://localhost:9090
+##   Loki:       http://localhost:3100
+##   Tempo:      http://localhost:3200
+##   Alloy:      http://localhost:12345/metrics
+##
+## 필요 환경변수 (.env.local):
+##   TRACING_AOP_ENABLED=true
+##   TRACING_TX_ENABLED=true
+##   TRACING_ENABLED=true
+##   OTEL_ENDPOINT=http://tempo:4318/v1/traces                    (api 컨테이너 사용 시)
+##   OTEL_ENDPOINT=http://localhost:4318/v1/traces                (로컬 직접 실행 시)
+##   SPRING_METRICS_TARGET=host.docker.internal:8080             (bootRun 사용 시, 기본값)
+##   SPRING_METRICS_TARGET=api:8080                              (docker-compose api 사용 시)
+##   MONITORING_LOKI_PORT=13100                                  (호스트 포트 충돌 시)
+##   MONITORING_PROMETHEUS_PORT=19090                            (호스트 포트 충돌 시)
+
+services:
+  api:
+    environment:
+      REDIS_HOST: redis
+      TRACING_ENABLED: ${TRACING_ENABLED:-true}
+      TRACING_AOP_ENABLED: ${TRACING_AOP_ENABLED:-true}
+      TRACING_TX_ENABLED: ${TRACING_TX_ENABLED:-true}
+      OTEL_ENDPOINT: ${OTEL_ENDPOINT:-http://tempo:4318/v1/traces}
+      SPRING_FLYWAY_OUT_OF_ORDER: ${SPRING_FLYWAY_OUT_OF_ORDER:-true}
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: tasteam-postgres-exporter
+    command:
+      - --collector.stat_statements
+      - --collector.stat_statements.include_query
+    environment:
+      DATA_SOURCE_URI: ${POSTGRES_EXPORTER_DATA_SOURCE_URI:-db:5432/tasteam?sslmode=disable}
+      DATA_SOURCE_USER: ${POSTGRES_EXPORTER_DATA_SOURCE_USER:-tasteam}
+      DATA_SOURCE_PASS: ${POSTGRES_EXPORTER_DATA_SOURCE_PASS:-tasteam}
+    ports:
+      - "${MONITORING_POSTGRES_EXPORTER_PORT:-9187}:9187"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: tasteam-cadvisor
+    privileged: true
+    ports:
+      - "${MONITORING_CADVISOR_PORT:-8088}:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: tasteam-node-exporter
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($|/)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "${MONITORING_NODE_EXPORTER_PORT:-9100}:9100"
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: tasteam-redis-exporter
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - "${MONITORING_REDIS_EXPORTER_PORT:-9121}:9121"
+    depends_on:
+      - redis
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tasteam-prometheus
+    networks:
+      - default
+      - tasteam-net
+    command:
+      - --enable-feature=exemplar-storage
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${MONITORING_PROMETHEUS_PORT:-9090}:9090"
+
+  loki:
+    image: grafana/loki:3.4.2
+    container_name: tasteam-loki
+    command:
+      - -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./monitoring/loki/loki.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    ports:
+      - "${MONITORING_LOKI_PORT:-3100}:3100"
+
+  tempo:
+    image: grafana/tempo:2.10.2
+    container_name: tasteam-tempo
+    command: [ "-config.file=/etc/tempo/config.yaml" ]
+    volumes:
+      - ./monitoring/tempo/config.yaml:/etc/tempo/config.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "${MONITORING_TEMPO_PORT:-3200}:3200"   # Tempo HTTP UI
+      - "${MONITORING_OTLP_GRPC_PORT:-4317}:4317"   # OTLP gRPC
+      - "${MONITORING_OTLP_HTTP_PORT:-4318}:4318"   # OTLP HTTP
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tasteam-grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_FEATURE_TOGGLES_ENABLE=exemplarTraceIdDestinations traceqlEditor
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "${MONITORING_GRAFANA_PORT:-3001}:3000"
+    depends_on:
+      - alloy
+      - postgres-exporter
+      - redis-exporter
+      - node-exporter
+      - cadvisor
+      - loki
+      - prometheus
+      - tempo
+
+  alloy:
+    image: grafana/alloy:v1.14.0-rc.1
+    container_name: tasteam-alloy
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - LOKI_HOST=loki
+      - PROMETHEUS_HOST=prometheus
+      - SPRING_METRICS_TARGET=${SPRING_METRICS_TARGET:-host.docker.internal:8080}
+      - MONITORING_ENVIRONMENT=${MONITORING_ENVIRONMENT:-local}
+      - MONITORING_INSTANCE=${MONITORING_INSTANCE:-tasteam-local}
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --stability.level=experimental
+      - /etc/alloy/config.alloy
+    ports:
+      - "${MONITORING_ALLOY_PORT:-12345}:12345"
+    depends_on:
+      - api
+      - loki
+      - prometheus
+
+volumes:
+  loki_data:
+  prometheus_data:
+  tempo_data:
+  grafana_data:

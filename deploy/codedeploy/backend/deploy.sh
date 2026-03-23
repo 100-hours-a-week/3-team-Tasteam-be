@@ -28,6 +28,9 @@ BACKEND_COMPOSE_FILE="${BACKEND_COMPOSE_FILE:-${SCRIPT_DIR}/docker-compose.backe
 DEV_INFRA_COMPOSE_FILE="${DEV_INFRA_COMPOSE_FILE:-${SCRIPT_DIR}/docker-compose.dev-infra.yml}"
 DEV_INFRA_DB_CONTAINER="${DEV_INFRA_DB_CONTAINER:-tasteam-dev-db}"
 DEV_INFRA_REDIS_CONTAINER="${DEV_INFRA_REDIS_CONTAINER:-tasteam-dev-redis}"
+DEV_INFRA_KAFKA_CONTAINER="${DEV_INFRA_KAFKA_CONTAINER:-tasteam-dev-kafka}"
+DEV_INFRA_KAFKA_CONNECT_CONTAINER="${DEV_INFRA_KAFKA_CONNECT_CONTAINER:-tasteam-dev-kafka-connect}"
+DEV_INFRA_ENABLE_KAFKA="${DEV_INFRA_ENABLE_KAFKA:-}"
 DEV_INFRA_COMPOSE_PROJECT_NAME="${DEV_INFRA_COMPOSE_PROJECT_NAME:-tasteam-dev-infra}"
 MONITORING_ENV_FILE="${MONITORING_ENV_FILE:-${APP_DIR}/monitoring.env}"
 ALLOY_COMPOSE_FILE="${ALLOY_COMPOSE_FILE:-${SCRIPT_DIR}/docker-compose.alloy.yml}"
@@ -198,6 +201,37 @@ validate_required_backend_env() {
   done
 }
 
+validate_mq_env() {
+  local mq_enabled mq_provider kafka_bootstrap
+  mq_enabled="$(read_env_value "MQ_ENABLED")"
+  mq_provider="$(read_env_value "MQ_PROVIDER")"
+
+  case "${mq_enabled}" in
+    true|TRUE|True|1|yes|YES|on|ON)
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  if [ -z "${mq_provider}" ] || [ "${mq_provider}" = "PLACEHOLDER" ]; then
+    log "MQ_ENABLED=true but MQ_PROVIDER is missing in ${BACKEND_ENV_FILE}"
+    exit 1
+  fi
+
+  case "${mq_provider}" in
+    kafka|KAFKA)
+      kafka_bootstrap="$(read_env_value "KAFKA_BOOTSTRAP_SERVERS")"
+      if [ -z "${kafka_bootstrap}" ] || [ "${kafka_bootstrap}" = "PLACEHOLDER" ]; then
+        log "MQ_PROVIDER=kafka requires KAFKA_BOOTSTRAP_SERVERS in ${BACKEND_ENV_FILE}"
+        exit 1
+      fi
+      ;;
+    *)
+      ;;
+  esac
+}
+
 validate_backend_env() {
   local max_file_size max_history
   max_file_size="$(read_env_value "LOG_MAX_FILE_SIZE")"
@@ -222,6 +256,164 @@ validate_backend_env() {
     log "LOG_MAX_HISTORY format invalid: ${max_history} (expected integer)"
     exit 1
   fi
+}
+
+trim_trailing_zeros() {
+  local value="$1"
+  printf '%s' "${value}" | sed -E 's/\.?0+$//'
+}
+
+mcpu_to_cpus() {
+  local milli_cpu="$1"
+  local cpu_value
+
+  cpu_value="$(awk -v m="${milli_cpu}" 'BEGIN { printf "%.3f", m / 1000 }')"
+  trim_trailing_zeros "${cpu_value}"
+}
+
+detect_total_vcpu() {
+  local vcpu
+
+  vcpu="$(getconf _NPROCESSORS_ONLN 2>/dev/null || true)"
+  if [ -z "${vcpu}" ] && command -v nproc >/dev/null 2>&1; then
+    vcpu="$(nproc 2>/dev/null || true)"
+  fi
+
+  if ! printf '%s' "${vcpu}" | grep -Eq '^[0-9]+$'; then
+    vcpu=2
+  fi
+  if [ "${vcpu}" -lt 1 ]; then
+    vcpu=1
+  fi
+
+  printf '%s\n' "${vcpu}"
+}
+
+detect_total_memory_mb() {
+  local mem_kb mem_mb mem_bytes
+
+  mem_kb="$(awk '/MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || true)"
+  if printf '%s' "${mem_kb}" | grep -Eq '^[0-9]+$'; then
+    mem_mb=$((mem_kb / 1024))
+  elif command -v sysctl >/dev/null 2>&1; then
+    mem_bytes="$(sysctl -n hw.memsize 2>/dev/null || true)"
+    if printf '%s' "${mem_bytes}" | grep -Eq '^[0-9]+$'; then
+      mem_mb=$((mem_bytes / 1024 / 1024))
+    fi
+  fi
+
+  if ! printf '%s' "${mem_mb:-}" | grep -Eq '^[0-9]+$'; then
+    mem_mb=4096
+  fi
+  if [ "${mem_mb}" -lt 1024 ]; then
+    mem_mb=1024
+  fi
+
+  printf '%s\n' "${mem_mb}"
+}
+
+## 호스트 리소스를 감지하여 컨테이너별 CPU/메모리 한도를 동적으로 계산
+#
+# 계산 흐름:
+#   총 리소스 → 호스트 예약분 차감 → (dev: 인프라 예약분 차감) → 컨테이너 예산
+#   컨테이너 예산 → Backend 70~75% / Alloy 나머지
+#
+# t3.small (2vCPU, ~1950MB) 기준 계산 예시:
+#   메모리: 1950 - 600(호스트) = 1350 → Backend 945m / Alloy 405m
+#   CPU:    2000 - 300(호스트) = 1700 → Backend 1.275 / Alloy 0.425
+set_runtime_resource_limits() {
+  local total_vcpu total_mem_mb
+  local total_mcpu cpu_host_reserve_mcpu cpu_budget_mcpu
+  local backend_mcpu alloy_mcpu
+  local mem_host_reserve_mb mem_budget_mb
+  local backend_mem_mb alloy_mem_mb
+  local backend_mem_reservation_mb alloy_mem_reservation_mb
+  local dev_infra_cpu_reserve_mcpu dev_infra_mem_reserve_mb
+
+  total_vcpu="$(detect_total_vcpu)"
+  total_mem_mb="$(detect_total_memory_mb)"
+
+  # dev 환경: 인프라(모니터링 등) 예약분 차감, 그 외 환경: 0
+  if [ "${ENV_NAME}" = "dev" ]; then
+    dev_infra_cpu_reserve_mcpu="${DEV_INFRA_CPU_RESERVE_MCPU:-300}"
+    dev_infra_mem_reserve_mb="${DEV_INFRA_MEMORY_RESERVE_MB:-1024}"
+
+    if ! printf '%s' "${dev_infra_cpu_reserve_mcpu}" | grep -Eq '^[0-9]+$'; then
+      dev_infra_cpu_reserve_mcpu=300
+    fi
+    if ! printf '%s' "${dev_infra_mem_reserve_mb}" | grep -Eq '^[0-9]+$'; then
+      dev_infra_mem_reserve_mb=1024
+    fi
+  else
+    dev_infra_cpu_reserve_mcpu=0
+    dev_infra_mem_reserve_mb=0
+  fi
+
+  # --- CPU 예산 ---
+  # 호스트 예약: 15% (최소 300mCPU, 최대 1200mCPU)
+  total_mcpu=$((total_vcpu * 1000))
+  cpu_host_reserve_mcpu=$((total_mcpu * 15 / 100))
+  if [ "${cpu_host_reserve_mcpu}" -lt 300 ]; then
+    cpu_host_reserve_mcpu=300
+  fi
+  if [ "${cpu_host_reserve_mcpu}" -gt 1200 ]; then
+    cpu_host_reserve_mcpu=1200
+  fi
+  cpu_budget_mcpu=$((total_mcpu - cpu_host_reserve_mcpu - dev_infra_cpu_reserve_mcpu))
+  if [ "${cpu_budget_mcpu}" -lt 500 ]; then
+    cpu_budget_mcpu=500
+  fi
+
+  # CPU 분배: Backend 75% / Alloy 나머지 (최소 200mCPU 보장)
+  backend_mcpu=$((cpu_budget_mcpu * 75 / 100))
+  alloy_mcpu=$((cpu_budget_mcpu - backend_mcpu))
+  if [ "${alloy_mcpu}" -lt 200 ] && [ "${cpu_budget_mcpu}" -gt 700 ]; then
+    alloy_mcpu=200
+    backend_mcpu=$((cpu_budget_mcpu - alloy_mcpu))
+  fi
+
+  # --- 메모리 ---
+  # 메모리 제한은 compose 파일의 기본값에 위임 (backend: 1024m, alloy: 512m)
+  # t3.small(~1910MB)에서 동적 계산이 너무 빡빡하게 잡히므로 비활성화
+  #
+  # mem_host_reserve_mb=$((total_mem_mb * 25 / 100))
+  # if [ "${mem_host_reserve_mb}" -lt 600 ]; then
+  #   mem_host_reserve_mb=600
+  # fi
+  # if [ "${mem_host_reserve_mb}" -gt 4096 ]; then
+  #   mem_host_reserve_mb=4096
+  # fi
+  # mem_budget_mb=$((total_mem_mb - mem_host_reserve_mb - dev_infra_mem_reserve_mb))
+  # if [ "${mem_budget_mb}" -lt 1024 ]; then
+  #   mem_budget_mb=$((total_mem_mb * 55 / 100))
+  # fi
+  #
+  # backend_mem_mb=$((mem_budget_mb * 70 / 100))
+  # alloy_mem_mb=$((mem_budget_mb - backend_mem_mb))
+  # if [ "${alloy_mem_mb}" -lt 384 ] && [ "${mem_budget_mb}" -gt 1280 ]; then
+  #   alloy_mem_mb=384
+  #   backend_mem_mb=$((mem_budget_mb - alloy_mem_mb))
+  # fi
+  #
+  # backend_mem_reservation_mb=$((backend_mem_mb * 75 / 100))
+  # alloy_mem_reservation_mb=$((alloy_mem_mb * 75 / 100))
+  #
+  # : "${BACKEND_MEMORY_LIMIT:=${backend_mem_mb}m}"
+  # : "${ALLOY_MEMORY_LIMIT:=${alloy_mem_mb}m}"
+  # : "${BACKEND_MEMORY_RESERVATION:=${backend_mem_reservation_mb}m}"
+  # : "${ALLOY_MEMORY_RESERVATION:=${alloy_mem_reservation_mb}m}"
+  # export BACKEND_MEMORY_LIMIT ALLOY_MEMORY_LIMIT
+  # export BACKEND_MEMORY_RESERVATION ALLOY_MEMORY_RESERVATION
+
+  # 환경변수 기본값 설정 (이미 값이 있으면 유지)
+  : "${BACKEND_CPU_LIMIT:=$(mcpu_to_cpus "${backend_mcpu}")}"
+  : "${ALLOY_CPU_LIMIT:=$(mcpu_to_cpus "${alloy_mcpu}")}"
+
+  export BACKEND_CPU_LIMIT ALLOY_CPU_LIMIT
+
+  log "resource limits (host=${total_vcpu}vCPU/${total_mem_mb}MiB, dev-infra-reserve=${dev_infra_cpu_reserve_mcpu}mCPU/${dev_infra_mem_reserve_mb}MiB): \
+backend=${BACKEND_CPU_LIMIT} CPU, mem=compose-default; \
+alloy=${ALLOY_CPU_LIMIT} CPU, mem=compose-default"
 }
 
 compose_up() {
@@ -301,6 +493,33 @@ start_dev_infra() {
 
   wait_container_healthy "${DEV_INFRA_DB_CONTAINER}" 60 2
   wait_container_healthy "${DEV_INFRA_REDIS_CONTAINER}" 30 2
+
+  local enable_kafka mq_enabled mq_provider
+  enable_kafka="${DEV_INFRA_ENABLE_KAFKA}"
+  if [ -z "${enable_kafka}" ]; then
+    mq_enabled="$(read_env_value "MQ_ENABLED")"
+    mq_provider="$(read_env_value "MQ_PROVIDER")"
+    if [ "${mq_enabled}" = "true" ] && [ "${mq_provider}" = "kafka" ]; then
+      enable_kafka="true"
+    else
+      enable_kafka="false"
+    fi
+  fi
+
+  if [ "${enable_kafka}" = "true" ]; then
+    log "start dev local infra (kafka/kafka-connect): ${DEV_INFRA_COMPOSE_FILE}"
+    docker rm -f "${DEV_INFRA_KAFKA_CONTAINER}" "${DEV_INFRA_KAFKA_CONNECT_CONTAINER}" >/dev/null 2>&1 || true
+    compose_up \
+      --project-name "${DEV_INFRA_COMPOSE_PROJECT_NAME}" \
+      --env-file "${BACKEND_ENV_FILE}" \
+      -f "${DEV_INFRA_COMPOSE_FILE}" \
+      up -d kafka kafka-connect
+    wait_container_healthy "${DEV_INFRA_KAFKA_CONTAINER}" 60 2
+    wait_container_healthy "${DEV_INFRA_KAFKA_CONNECT_CONTAINER}" 60 2
+  else
+    log "skip kafka dev infra (DEV_INFRA_ENABLE_KAFKA=${enable_kafka})"
+  fi
+
   log "dev local infra is ready"
 }
 
@@ -378,8 +597,10 @@ deploy_backend() {
   fetch_ssm_env "/${ENV_NAME}/tasteam/backend" "${BACKEND_ENV_FILE}"
   upsert_env_value "SPRING_PROFILES_ACTIVE" "${ENV_NAME}"
   validate_required_backend_env
+  validate_mq_env
   validate_backend_env
   start_dev_infra
+  set_runtime_resource_limits
 
   local image
   image="${ECR_REGISTRY}/${ECR_REPO_BACKEND}:${IMAGE_TAG}"

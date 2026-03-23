@@ -1,3 +1,30 @@
 rootProject.name = 'tasteam'
 
-include 'app-api'
+include 'app-api'   // 기존 모듈 — 병행 운영 유지
+
+// ── Application Modules ──────────────────────────
+include 'module-app:api'
+include 'module-app:admin'
+include 'module-app:batch'
+
+// ── Domain Module ─────────────────────────────────
+include 'module-domain:core'
+
+// ── Internal Technology Modules ───────────────────
+include 'module-internal:web'
+include 'module-internal:security'
+include 'module-internal:observability'
+
+// ── Infrastructure Adapter Modules ────────────────
+include 'module-infra:persistence'
+include 'module-infra:redis'
+include 'module-infra:messaging'
+include 'module-infra:storage'
+include 'module-infra:notification'
+include 'module-infra:analytics'
+include 'module-infra:webhook'
+include 'module-infra:geocode'
+include 'module-infra:ai'
+
+// ── Common Support Module ─────────────────────────
+include 'module-common:support'

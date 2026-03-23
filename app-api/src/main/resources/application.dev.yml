@@ -111,6 +111,8 @@ tasteam:
     base-url: ${STORAGE_BASE_URL:https://tasteam.kr}
     access-mode: ${STORAGE_ACCESS_MODE:public}
     presigned-expiration-seconds: ${STORAGE_PRESIGNED_EXPIRATION_SECONDS:300}
+  analytics:
+    bucket: ${ANALYTICS_BUCKET:tasteam-dev-analytics}
   webhook:
     enabled: false
     provider: discord
@@ -140,3 +142,7 @@ tasteam:
     project-id: ${FIREBASE_PROJECT_ID:}
     service-account-base64: ${FIREBASE_SERVICE_ACCOUNT_BASE64:}
     service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
+  search:
+    mv-refresh:
+      enabled: true
+      fixed-delay: PT15M

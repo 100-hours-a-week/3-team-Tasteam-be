@@ -1,14 +1,26 @@
+networks:
+  tasteam-net:
+    name: tasteam-net
+    driver: bridge
+
 services:
   db:
     image: postgis/postgis:17-3.4
 
     container_name: tasteam-db
+    networks: [tasteam-net]
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - track_io_timing=on
     env_file:
       - .env.local
     environment:
       POSTGRES_DB: tasteam
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME:-tasteam}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tasteam}
       TZ: Asia/Seoul
     ports:
       - "5432:5432"
@@ -16,7 +28,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgis/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d tasteam"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,6 +36,7 @@ services:
   redis:
     image: redis:7
     container_name: tasteam-redis
+    networks: [tasteam-net]
     ports:
       - "6379:6379"
     volumes:
@@ -40,18 +53,40 @@ services:
       dockerfile: app-api/Dockerfile
     image: tasteam-api:local
     container_name: tasteam-api
+    networks: [tasteam-net]
     ports:
-      - "8080:8080"
+      - "${SERVER_PORT:-8081}:${SERVER_PORT:-8081}"
     depends_on:
       db:
         condition: service_healthy
     env_file:
       - .env.local
     environment:
-      SERVER_PORT: 8080
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/tasteam
-      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SERVER_PORT: ${SERVER_PORT:-8081}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://db:5432/tasteam}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-tasteam}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-tasteam}
+      SPRING_FLYWAY_URL: ${SPRING_FLYWAY_URL:-jdbc:postgresql://db:5432/tasteam}
+      SPRING_FLYWAY_USER: ${SPRING_FLYWAY_USER:-tasteam}
+      SPRING_FLYWAY_PASSWORD: ${SPRING_FLYWAY_PASSWORD:-tasteam}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      TASTEAM_SEARCH_QUERY_STRATEGY: ${TASTEAM_SEARCH_QUERY_STRATEGY:-TWO_STEP}
+      TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:-200}
+      # Message Queue (Kafka 통합 테스트 시 활성화)
+      MQ_ENABLED: ${MQ_ENABLED:-false}
+      MQ_PROVIDER: ${MQ_PROVIDER:-none}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_CONNECT_URL: ${KAFKA_CONNECT_URL:-http://kafka-connect:8083}
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-tasteam-api}
+      KAFKA_CONNECT_CONNECTOR_AUTO_REGISTER: ${KAFKA_CONNECT_CONNECTOR_AUTO_REGISTER:-false}
+      # S3 (MinIO 로컬 테스트용)
+      ANALYTICS_S3_BUCKET: ${ANALYTICS_S3_BUCKET:-tasteam-analytics-local}
+      AWS_REGION: ${AWS_REGION:-ap-northeast-2}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_PATH_STYLE_ACCESS: ${S3_PATH_STYLE_ACCESS:-true}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
 
 volumes:
   postgres_data:

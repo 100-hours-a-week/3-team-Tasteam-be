@@ -9,6 +9,7 @@ on:
         type: choice
         default: main
         options:
+          - develop
           - main
       target_environment:
         description: '배포 대상 환경'
@@ -16,8 +17,9 @@ on:
         type: choice
         default: stg
         options:
-          - stg
           - prod
+          - stg
+          - develop
       run_tests:
         description: '배포 전 테스트 실행 여부'
         required: true
@@ -35,38 +37,38 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.target_environment == 'prod' && 'production' || 'staging' }}
+    environment: ${{ inputs.target_environment == 'prod' && 'production' || (inputs.target_environment == 'stg' && 'staging' || 'development') }}
     timeout-minutes: 30
 
     env:
       AWS_REGION: ap-northeast-2
       DEPLOY_DIR: deploy/codedeploy/backend
       IMAGE_TAG_LATEST: latest
-      DEPLOY_ENV_NAME: ${{ inputs.target_environment }}
+      DEPLOY_ENV_NAME: ${{ inputs.target_environment == 'develop' && 'dev' || inputs.target_environment }}
       DEPLOYMENT_CONFIG_NAME: ${{ inputs.target_environment == 'prod' && 'CodeDeployDefault.OneAtATime' || 'CodeDeployDefault.AllAtOnce' }}
-      GHA_CACHE_SCOPE: backend-codedeploy-${{ inputs.target_environment }}
-      TARGET_ENV_LABEL: ${{ inputs.target_environment == 'prod' && '운영' || '스테이징' }}
+      GHA_CACHE_SCOPE: ${{ inputs.target_environment == 'develop' && 'backend-codedeploy-dev' || format('backend-codedeploy-{0}', inputs.target_environment) }}
+      TARGET_ENV_LABEL: ${{ inputs.target_environment == 'prod' && '운영' || (inputs.target_environment == 'stg' && '스테이징' || '개발') }}
 
     steps:
       - name: Validate deploy request
         run: |
           set -euo pipefail
           case "${{ inputs.source_branch }}" in
-            main)
+            develop|main)
               echo "source branch: ${{ inputs.source_branch }}"
               ;;
             *)
-              echo "manual deploy is only supported on main. current=${{ inputs.source_branch }}" >&2
+              echo "manual deploy is only supported on develop or main. current=${{ inputs.source_branch }}" >&2
               exit 1
               ;;
           esac
 
           case "${{ inputs.target_environment }}" in
-            stg|prod)
+            prod|stg|develop)
               echo "target environment: ${{ inputs.target_environment }}"
               ;;
             *)
-              echo "manual deploy is only supported on stg or prod. current=${{ inputs.target_environment }}" >&2
+              echo "manual deploy is only supported on prod, stg or develop. current=${{ inputs.target_environment }}" >&2
               exit 1
               ;;
           esac
@@ -138,6 +140,7 @@ jobs:
           ECR_REGISTRY=${ECR_REGISTRY}
           ECR_REPO_BACKEND=${ECR_REPO_BACKEND}
           IMAGE_TAG=${{ steps.source.outputs.source_sha }}
+          HEALTH_RETRIES=120
           EODEPLOY
 
           chmod +x deploy.sh stop.sh health.sh traffic.sh switch.sh rollback.sh

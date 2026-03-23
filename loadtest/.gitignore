@@ -1,0 +1,11 @@
+# 실행 산출물
+results/
+# 실행 결과 산출물(별도 보존 폴더)
+result/
+# 임시/캐시 산출물
+__pycache__/
+*.pyc
+# 더미 부하테스트 SQL 산출물/임시 SQL
+seed/*.sql
+# 로컬 실행 환경
+.venv-locust/

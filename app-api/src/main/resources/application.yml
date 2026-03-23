@@ -7,6 +7,9 @@ server:
 spring:
   application:
     name: tasteam-api
+  threads:
+    virtual:
+      enabled: true
   config:
     import:
       - optional:classpath:application.local.yml
@@ -20,6 +23,10 @@ spring:
 
   jpa:
     open-in-view: false
+  data:
+    redis:
+      repositories:
+        enabled: false
 
   security:
     cors:
@@ -77,6 +84,20 @@ chat:
       enabled: ${CHAT_WEBSOCKET_HEARTBEAT_ENABLED:true}
       server-to-client: ${CHAT_WEBSOCKET_HEARTBEAT_SERVER_TO_CLIENT:15000}
       client-to-server: ${CHAT_WEBSOCKET_HEARTBEAT_CLIENT_TO_SERVER:15000}
+  stream:
+    enabled: ${CHAT_STREAM_ENABLED:true}
+    bootstrap-enabled: ${CHAT_STREAM_BOOTSTRAP_ENABLED:true}
+    bootstrap-batch-size: ${CHAT_STREAM_BOOTSTRAP_BATCH_SIZE:100}
+    max-total-subscriptions: ${CHAT_STREAM_MAX_TOTAL_SUBSCRIPTIONS:1000}
+    executor-thread-pool-size: ${CHAT_STREAM_EXECUTOR_THREAD_POOL_SIZE:${CHAT_STREAM_PARTITION_COUNT:16}}
+    executor-queue-capacity: ${CHAT_STREAM_EXECUTOR_QUEUE_CAPACITY:256}
+    partition-count: ${CHAT_STREAM_PARTITION_COUNT:16}
+    max-allowed-partitions: ${CHAT_STREAM_MAX_ALLOWED_PARTITIONS:128}
+    partition-consume-enabled: ${CHAT_STREAM_PARTITION_CONSUME_ENABLED:true}
+    dual-write-enabled: ${CHAT_STREAM_DUAL_WRITE_ENABLED:true}
+    legacy-room-consume-enabled: ${CHAT_STREAM_LEGACY_ROOM_CONSUME_ENABLED:false}
+    ws-pubsub-broadcast-enabled: ${CHAT_STREAM_WS_PUBSUB_BROADCAST_ENABLED:false}
+    ws-pubsub-channel: ${CHAT_STREAM_WS_PUBSUB_CHANNEL:chat:websocket:broadcast}
 
 tasteam:
   admin:
@@ -87,13 +108,19 @@ tasteam:
     api: ${API_DOMAIN:https://api.tasteam.kr}
   search:
     query:
-      strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:TWO_STEP}
+      strategy: ${TASTEAM_SEARCH_QUERY_STRATEGY:MV_SINGLE_PASS}
+      fallback-strategy: ${TASTEAM_SEARCH_QUERY_FALLBACK_STRATEGY:ONE_STEP}
       candidate-limit: ${TASTEAM_SEARCH_QUERY_CANDIDATE_LIMIT:200}
+    mv-refresh:
+      enabled: ${TASTEAM_SEARCH_MV_REFRESH_ENABLED:false}
+      fixed-delay: ${TASTEAM_SEARCH_MV_REFRESH_FIXED_DELAY:PT15M}
   storage:
     type: ${STORAGE_TYPE:dummy}
     region: ${STORAGE_REGION:}
     bucket: ${STORAGE_BUCKET:}
     base-url: ${STORAGE_BASE_URL:}
+    endpoint: ${S3_ENDPOINT:}
+    path-style-access: ${S3_PATH_STYLE_ACCESS:false}
     access-mode: ${STORAGE_ACCESS_MODE:public}
     access-key: ${STORAGE_ACCESS_KEY:}
     secret-key: ${STORAGE_SECRET_KEY:}
@@ -126,6 +153,14 @@ tasteam:
       cron: ${TASTEAM_BATCH_VECTOR_UPLOAD_CRON:0 0 3 * * ?}
       zone: ${TASTEAM_BATCH_VECTOR_UPLOAD_ZONE:Asia/Seoul}
       worker-pool-size: ${TASTEAM_BATCH_VECTOR_UPLOAD_WORKER_POOL_SIZE:4}
+    raw-export:
+      enabled: ${TASTEAM_BATCH_RAW_EXPORT_ENABLED:false}
+      cron: ${TASTEAM_BATCH_RAW_EXPORT_CRON:0 15 2 * * ?}
+      zone: ${TASTEAM_BATCH_RAW_EXPORT_ZONE:Asia/Seoul}
+    user-activity-s3-success-marker:
+      enabled: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_ENABLED:false}
+      cron: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_CRON:0 30 0 * * ?}
+      zone: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_ZONE:Asia/Seoul}
     review-analysis:
       worker-pool-size: ${TASTEAM_BATCH_REVIEW_ANALYSIS_WORKER_POOL_SIZE:4}
       finish-timeout: ${TASTEAM_BATCH_REVIEW_ANALYSIS_FINISH_TIMEOUT:10m}
@@ -137,6 +172,16 @@ tasteam:
       finish-timeout: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_TIMEOUT:10m}
       finish-check-interval: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_CHECK_INTERVAL:PT1M}
   aop:
+    metrics:
+      enabled: ${METRICS_AOP_ENABLED:true}
+      api-metrics:
+        enabled: ${METRICS_API_ENABLED:true}
+      transaction-metrics:
+        enabled: ${METRICS_TX_ENABLED:true}
+    tracing:
+      enabled: ${TRACING_AOP_ENABLED:false}
+      transaction-tracing:
+        enabled: ${TRACING_TX_ENABLED:false}
     logging:
       enabled: ${TASTEAM_AOP_LOGGING_ENABLED:true}
       api-logging:
@@ -151,14 +196,65 @@ tasteam:
         enabled: ${TASTEAM_AOP_LOGGING_AI_ANALYSIS_PERFORMANCE_ENABLED:true}
     webhook:
       enabled: ${TASTEAM_AOP_WEBHOOK_ENABLED:true}
+  metrics:
+    postgres:
+      refresh-delay: ${TASTEAM_METRICS_POSTGRES_REFRESH_DELAY:30000}
+      slow-query-threshold-ms: ${TASTEAM_METRICS_POSTGRES_SLOW_QUERY_THRESHOLD_MS:500}
   local-cache:
     caffeine:
       maximum-size: ${LOCAL_CACHE_CAFFEINE_MAXIMUM_SIZE:1000}
       expire-after-write: ${LOCAL_CACHE_CAFFEINE_EXPIRE_AFTER_WRITE:10m}
       record-stats: ${LOCAL_CACHE_CAFFEINE_RECORD_STATS:true}
     ttl:
+      search-restaurant-first-page:
+        ttl: 5m
+      recent-searches:
+        ttl: ${LOCAL_CACHE_RECENT_SEARCHES_TTL:3m}
+        maximum-size: ${LOCAL_CACHE_RECENT_SEARCHES_MAX_SIZE:5000}
       presigned-url:
         ttl: ${LOCAL_CACHE_PRESIGNED_URL_TTL:240s}
+      main-section-hot-all:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-new-all:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-ai-all:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-hot-geo:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-new-geo:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-section-ai-geo:
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1h}
+        jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
+      main-banners:
+        ttl: ${LOCAL_CACHE_PROMOTION_TTL:6h}
+        jitter: ${LOCAL_CACHE_PROMOTION_JITTER:5m}
+      main-splash:
+        ttl: ${LOCAL_CACHE_PROMOTION_TTL:6h}
+        jitter: ${LOCAL_CACHE_PROMOTION_JITTER:5m}
+      restaurant-location:
+        ttl: ${LOCAL_CACHE_RESTAURANT_LOCATION_TTL:2h}
+        jitter: ${LOCAL_CACHE_RESTAURANT_LOCATION_JITTER:30s}
+        maximum-size: ${LOCAL_CACHE_RESTAURANT_LOCATION_MAX_SIZE:10000}
+      restaurant-categories:
+        ttl: ${LOCAL_CACHE_RESTAURANT_META_TTL:6h}
+        jitter: ${LOCAL_CACHE_RESTAURANT_META_JITTER:5m}
+        maximum-size: ${LOCAL_CACHE_RESTAURANT_META_MAX_SIZE:5000}
+      restaurant-thumbnail:
+        ttl: ${LOCAL_CACHE_RESTAURANT_META_TTL:6h}
+        jitter: ${LOCAL_CACHE_RESTAURANT_META_JITTER:5m}
+        maximum-size: ${LOCAL_CACHE_RESTAURANT_META_MAX_SIZE:5000}
+      restaurant-summary:
+        ttl: ${LOCAL_CACHE_RESTAURANT_META_TTL:6h}
+        jitter: ${LOCAL_CACHE_RESTAURANT_META_JITTER:5m}
+        maximum-size: ${LOCAL_CACHE_RESTAURANT_META_MAX_SIZE:5000}
+      reverse-geocode:
+        ttl: ${LOCAL_CACHE_REVERSE_GEOCODE_TTL:24h}
   webhook:
     enabled: ${WEBHOOK_ENABLED:false}
     provider: ${WEBHOOK_PROVIDER:discord}
@@ -181,6 +277,50 @@ tasteam:
     default-consumer-group: ${MQ_DEFAULT_CONSUMER_GROUP:tasteam-api}
     poll-timeout-millis: ${MQ_POLL_TIMEOUT_MILLIS:1000}
     max-retries: ${MQ_MAX_RETRIES:3}
+    kafka:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+      connect-url: ${KAFKA_CONNECT_URL:http://localhost:8083}
+      client-id: ${KAFKA_CLIENT_ID:tasteam-api}
+      producer:
+        acks: ${KAFKA_PRODUCER_ACKS:all}
+        retries: ${KAFKA_PRODUCER_RETRIES:3}
+        batch-size: ${KAFKA_PRODUCER_BATCH_SIZE:16384}
+        linger-ms: ${KAFKA_PRODUCER_LINGER_MS:5}
+        send-timeout-millis: ${KAFKA_PRODUCER_SEND_TIMEOUT_MILLIS:5000}
+        transaction-id-prefix: ${KAFKA_TX_ID_PREFIX:tasteam-tx-}
+      consumer:
+        concurrency: ${KAFKA_CONSUMER_CONCURRENCY:3}
+        max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS:50}
+        poll-timeout-millis: ${KAFKA_CONSUMER_POLL_TIMEOUT_MILLIS:1000}
+        session-timeout-ms: ${KAFKA_CONSUMER_SESSION_TIMEOUT_MS:30000}
+        heartbeat-interval-ms: ${KAFKA_CONSUMER_HEARTBEAT_INTERVAL_MS:10000}
+        max-poll-interval-ms: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS:300000}
+        fetch-min-bytes: ${KAFKA_CONSUMER_FETCH_MIN_BYTES:1024}
+        fetch-max-wait-ms: ${KAFKA_CONSUMER_FETCH_MAX_WAIT_MS:500}
+        partition-assignment-strategy: ${KAFKA_CONSUMER_PARTITION_ASSIGNMENT_STRATEGY:org.apache.kafka.clients.consumer.CooperativeStickyAssignor}
+        retry:
+          max-attempts: ${KAFKA_CONSUMER_RETRY_MAX_ATTEMPTS:3}
+          backoff-millis: ${KAFKA_CONSUMER_RETRY_BACKOFF_MILLIS:1000}
+      notification:
+        topic: ${NOTIFICATION_MQ_TOPIC:evt.notification.dispatch.v1}
+        consumer-group: ${NOTIFICATION_MQ_CONSUMER_GROUP:cg.notification.processor.v1}
+        dlq-topic: ${NOTIFICATION_MQ_DLQ_TOPIC:evt.notification.dispatch.v1.dlq}
+      user-activity-s3-ingest:
+        topic: ${USER_ACTIVITY_S3_INGEST_MQ_TOPIC:evt.user-activity.s3-ingest.v1}
+        dlq-topic: ${USER_ACTIVITY_S3_INGEST_MQ_DLQ_TOPIC:evt.user-activity.s3-ingest.v1.dlq}
+      connector:
+        auto-register: ${KAFKA_CONNECT_CONNECTOR_AUTO_REGISTER:false}
+        user-activity-s3-sink:
+          bucket: ${ANALYTICS_S3_BUCKET:}
+          region: ${AWS_REGION:ap-northeast-2}
+          tasks-max: ${KAFKA_CONNECT_UA_S3_TASKS_MAX:8}
+          flush-size: ${KAFKA_CONNECT_UA_S3_FLUSH_SIZE:100000}
+          rotate-interval-ms: ${KAFKA_CONNECT_UA_S3_ROTATE_INTERVAL_MS:3600000}
+          rotate-schedule-interval-ms: ${KAFKA_CONNECT_UA_S3_ROTATE_SCHEDULE_INTERVAL_MS:3600000}
+          endpoint: ${KAFKA_CONNECT_S3_ENDPOINT:${S3_ENDPOINT:}}
+          path-style-access: ${S3_PATH_STYLE_ACCESS:false}
+          access-key-id: ${AWS_ACCESS_KEY_ID:}
+          secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
   notification:
     email:
       provider: ${NOTIFICATION_EMAIL_PROVIDER:log}
@@ -255,6 +395,9 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        tasteam.api.request.duration: true
+        tasteam.transaction.duration: true
+        tasteam.transaction.query.count: true
     tags:
       application: tasteam-api
       environment: ${spring.profiles.active:local}

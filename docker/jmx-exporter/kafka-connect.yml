@@ -1,0 +1,111 @@
+startDelaySeconds: 0
+hostPort: kafka-connect:9102
+ssl: false
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+
+rules:
+  # Connector status (running tasks per connector)
+  - pattern: "kafka.connect<type=connector-task-metrics, connector=(.+), task=(.+)><>running-ratio"
+    name: kafka_connect_connector_task_running_ratio
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
+  # Worker metrics
+  - pattern: "kafka.connect<type=connect-worker-metrics><>connector-count"
+    name: kafka_connect_worker_connector_count
+    type: GAUGE
+
+  - pattern: "kafka.connect<type=connect-worker-metrics><>task-count"
+    name: kafka_connect_worker_task_count
+    type: GAUGE
+
+  - pattern: "kafka.connect<type=connect-worker-metrics><>connector-startup-success-total"
+    name: kafka_connect_worker_connector_startup_success_total
+    type: COUNTER
+
+  - pattern: "kafka.connect<type=connect-worker-metrics><>connector-startup-failure-total"
+    name: kafka_connect_worker_connector_startup_failure_total
+    type: COUNTER
+
+  - pattern: "kafka.connect<type=connect-worker-metrics><>task-startup-success-total"
+    name: kafka_connect_worker_task_startup_success_total
+    type: COUNTER
+
+  - pattern: "kafka.connect<type=connect-worker-metrics><>task-startup-failure-total"
+    name: kafka_connect_worker_task_startup_failure_total
+    type: COUNTER
+
+  # Sink task metrics (lag / put latency)
+  - pattern: "kafka.connect<type=sink-task-metrics, connector=(.+), task=(.+)><>sink-record-lag-max"
+    name: kafka_connect_sink_task_record_lag_max
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
+  - pattern: "kafka.connect<type=sink-task-metrics, connector=(.+), task=(.+)><>put-batch-avg-time-ms"
+    name: kafka_connect_sink_task_put_batch_avg_time_ms
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
+  - pattern: "kafka.connect<type=sink-task-metrics, connector=(.+), task=(.+)><>batch-size-max"
+    name: kafka_connect_sink_task_batch_size_max
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
+  - pattern: "kafka.connect<type=sink-task-metrics, connector=(.+), task=(.+)><>offset-commit-avg-time-ms"
+    name: kafka_connect_sink_task_offset_commit_avg_time_ms
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
+  - pattern: "kafka.connect<type=sink-task-metrics, connector=(.+), task=(.+)><>sink-record-active-count"
+    name: kafka_connect_sink_task_record_active_count
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
+  # Task error metrics (available when the connector exposes Connect task error MBeans)
+  - pattern: "kafka.connect<type=task-error-metrics, connector=(.+), task=(.+)><>record-error-rate"
+    name: kafka_connect_task_record_error_rate
+    type: GAUGE
+    labels:
+      connector: "$1"
+      task: "$2"
+
+  # Consumer fetch manager (used internally by connect)
+  - pattern: "kafka.consumer<type=consumer-fetch-manager-metrics, client-id=(.+)><>records-lag-max"
+    name: kafka_connect_consumer_records_lag_max
+    type: GAUGE
+    labels:
+      client_id: "$1"
+
+  - pattern: "kafka.consumer<type=consumer-fetch-manager-metrics, client-id=(.+)><>fetch-rate"
+    name: kafka_connect_consumer_fetch_rate
+    type: GAUGE
+    labels:
+      client_id: "$1"
+
+  # JVM memory
+  - pattern: "java.lang<type=Memory><HeapMemoryUsage>(used|committed|max)"
+    name: kafka_connect_jvm_heap_memory_bytes
+    type: GAUGE
+    labels:
+      area: "heap"
+      state: "$1"
+
+  # GC
+  - pattern: "java.lang<type=GarbageCollector, name=(.+)><>CollectionCount"
+    name: kafka_connect_jvm_gc_collection_count_total
+    type: COUNTER
+    labels:
+      gc: "$1"

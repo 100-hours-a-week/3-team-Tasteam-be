@@ -6,10 +6,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.tasteam.domain.analytics.api.ActivityEvent;
@@ -17,6 +20,7 @@ import com.tasteam.domain.analytics.ingest.dto.request.ClientActivityEventItemRe
 import com.tasteam.domain.analytics.persistence.UserActivityEventStoreService;
 import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.exception.code.AnalyticsErrorCode;
+import com.tasteam.infra.messagequeue.UserActivityS3SinkPublisher;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,10 +34,39 @@ public class ClientActivityIngestService {
 	private final AnalyticsIngestProperties ingestProperties;
 	private final ClientActivityIngestRateLimiter rateLimiter;
 	private final UserActivityEventStoreService userActivityEventStoreService;
+	private final ObjectProvider<UserActivityS3SinkPublisher> userActivityS3SinkPublisherProvider;
+	@Qualifier("clientActivityPublishExecutor")
+	private final Executor clientActivityPublishExecutor;
 	private final Clock clock = Clock.systemUTC();
 
-	@Transactional
 	public int ingest(Long memberId, String anonymousId, List<ClientActivityEventItemRequest> events) {
+		List<ActivityEvent> activityEvents = prepareEvents(memberId, anonymousId, events);
+		for (ActivityEvent activityEvent : activityEvents) {
+			userActivityEventStoreService.store(activityEvent);
+		}
+		return activityEvents.size();
+	}
+
+	public int ingestToS3(Long memberId, String anonymousId, List<ClientActivityEventItemRequest> events) {
+		UserActivityS3SinkPublisher userActivityS3SinkPublisher = userActivityS3SinkPublisherProvider.getIfAvailable();
+		if (userActivityS3SinkPublisher == null) {
+			throw new IllegalStateException("UserActivityS3SinkPublisher 빈이 없어 S3 direct ingest를 처리할 수 없습니다.");
+		}
+		List<ActivityEvent> activityEvents = prepareEvents(memberId, anonymousId, events);
+		try {
+			clientActivityPublishExecutor.execute(() -> {
+				for (ActivityEvent activityEvent : activityEvents) {
+					userActivityS3SinkPublisher.sink(activityEvent);
+				}
+			});
+		} catch (RejectedExecutionException ex) {
+			throw new BusinessException(AnalyticsErrorCode.ANALYTICS_INGEST_RATE_LIMIT_EXCEEDED);
+		}
+		return activityEvents.size();
+	}
+
+	private List<ActivityEvent> prepareEvents(Long memberId, String anonymousId,
+		List<ClientActivityEventItemRequest> events) {
 		validateBatch(events);
 		String normalizedAnonymousId = normalizeAnonymousId(anonymousId);
 		String rateLimitKey = resolveRateLimitKey(memberId, normalizedAnonymousId);
@@ -43,11 +76,12 @@ public class ClientActivityIngestService {
 		}
 
 		Set<String> allowedEventNames = ingestProperties.allowedEventNames();
+		List<ActivityEvent> activityEvents = new java.util.ArrayList<>(events.size());
 		for (ClientActivityEventItemRequest eventItem : events) {
 			validateAllowlist(allowedEventNames, eventItem.eventName());
-			userActivityEventStoreService.store(toActivityEvent(memberId, normalizedAnonymousId, eventItem));
+			activityEvents.add(toActivityEvent(memberId, normalizedAnonymousId, eventItem));
 		}
-		return events.size();
+		return List.copyOf(activityEvents);
 	}
 
 	private void validateBatch(List<ClientActivityEventItemRequest> events) {

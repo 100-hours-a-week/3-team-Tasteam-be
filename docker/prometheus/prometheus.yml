@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: tasteam-api
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    # OpenMetrics 형식으로 scrape → Exemplar 수집 활성화
+    params:
+      format: [ openmetrics ]
+    static_configs:
+      - targets:
+          - host.docker.internal:8080
+          - api:8080
+
+  - job_name: tasteam-postgres-exporter
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - postgres-exporter:9187
+
+  - job_name: tasteam-cadvisor
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - cadvisor:8080

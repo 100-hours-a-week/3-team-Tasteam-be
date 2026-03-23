@@ -49,6 +49,8 @@ CLAUDE.md
 .env
 .env.*
 !.env.example
+!.env.kafka.prod.template
+!.env.kafka-connect.prod.template
 
 # GitHub issue templates
 /.github/issue
@@ -72,3 +74,4 @@ application-*.yaml
 Thumbs.db
 
 /3-team-tasteam-wiki.wiki
+/output/playwright

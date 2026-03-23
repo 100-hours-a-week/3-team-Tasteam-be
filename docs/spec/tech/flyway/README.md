@@ -169,4 +169,4 @@ app-api/
 
 ## 11) 관련 문서
 - `docs/convention/flyway/README.md` (Flyway 컨벤션)
-- `docs/troubleshooting-flyway-enum-check-constraint.md` (enum CHECK 제약 자동화 이슈)
+- [Enum 수정 시 CHECK 제약 자동 반영이 안 되던 문제](https://github.com/100-hours-a-week/3-team-tasteam-wiki/wiki/%5BTroubleshooting%5D-Enum-%EC%88%98%EC%A0%95-%EC%8B%9C-CHECK-%EC%A0%9C%EC%95%BD-%EC%9E%90%EB%8F%99-%EB%B0%98%EC%98%81%EC%9D%B4-%EC%95%88-%EB%90%98%EB%8D%98-%EB%AC%B8%EC%A0%9C)

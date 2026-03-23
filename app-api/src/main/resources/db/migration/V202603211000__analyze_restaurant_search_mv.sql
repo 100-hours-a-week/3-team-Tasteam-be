@@ -1,0 +1,1 @@
+ANALYZE restaurant_search_mv;
