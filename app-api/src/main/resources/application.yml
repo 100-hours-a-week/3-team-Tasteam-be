@@ -7,9 +7,6 @@ server:
 spring:
   application:
     name: tasteam-api
-  threads:
-    virtual:
-      enabled: true
   config:
     import:
       - optional:classpath:application.local.yml
@@ -139,9 +136,6 @@ tasteam:
       summary-batch-size: ${TASTEAM_AI_ANALYSIS_SUMMARY_BATCH_SIZE:10}
       comparison-min-reviews: ${TASTEAM_AI_ANALYSIS_COMPARISON_MIN_REVIEWS:10}
       comparison-batch-size: ${TASTEAM_AI_ANALYSIS_COMPARISON_BATCH_SIZE:10}
-    comparison:
-      cron: ${TASTEAM_AI_COMPARISON_CRON:0 0 3 * * *}
-      zone: ${TASTEAM_AI_COMPARISON_ZONE:Asia/Seoul}
   image:
     optimization:
       enabled: ${IMAGE_OPTIMIZATION_ENABLED:false}
@@ -150,7 +144,7 @@ tasteam:
       cleanup-cron: ${IMAGE_OPTIMIZATION_CLEANUP_CRON:0 0 4 * * ?}
   batch:
     vector-upload:
-      cron: ${TASTEAM_BATCH_VECTOR_UPLOAD_CRON:0 0 3 * * ?}
+      cron: ${TASTEAM_BATCH_VECTOR_UPLOAD_CRON:0 30 * * * ?}
       zone: ${TASTEAM_BATCH_VECTOR_UPLOAD_ZONE:Asia/Seoul}
       worker-pool-size: ${TASTEAM_BATCH_VECTOR_UPLOAD_WORKER_POOL_SIZE:4}
     raw-export:
@@ -164,9 +158,21 @@ tasteam:
     review-analysis:
       worker-pool-size: ${TASTEAM_BATCH_REVIEW_ANALYSIS_WORKER_POOL_SIZE:4}
       finish-timeout: ${TASTEAM_BATCH_REVIEW_ANALYSIS_FINISH_TIMEOUT:10m}
+    recommendation-import:
+      enabled: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_ENABLED:false}
+      cron: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_CRON:0 */15 * * * ?}
+      zone: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_ZONE:Asia/Seoul}
+      s3-prefix-or-uri: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_S3_PREFIX_OR_URI:}
+      model-version: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_MODEL_VERSION:}
+      request-id-prefix: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_REQUEST_ID_PREFIX:recommendation-import-polling}
+      polling:
+        interval: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_POLLING_INTERVAL:PT1M}
+        timeout: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_POLLING_TIMEOUT:PT10M}
+        polling-max-attempts: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_POLLING_MAX_ATTEMPTS:3}
+        import-max-attempts: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_IMPORT_MAX_ATTEMPTS:2}
+        retry-backoff: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_RETRY_BACKOFF:PT3S}
     restaurant-comparison:
-      # TODO: 임시 매일 4시. 원래는 매주 일요일 4시로 변경 — cron: 0 0 4 ? * SUN
-      cron: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_CRON:0 0 4 * * ?}
+      cron: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_CRON:0 0 * * * ?}
       zone: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_ZONE:Asia/Seoul}
       worker-pool-size: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_WORKER_POOL_SIZE:4}
       finish-timeout: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_TIMEOUT:10m}
@@ -279,7 +285,6 @@ tasteam:
     max-retries: ${MQ_MAX_RETRIES:3}
     kafka:
       bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
-      connect-url: ${KAFKA_CONNECT_URL:http://localhost:8083}
       client-id: ${KAFKA_CLIENT_ID:tasteam-api}
       producer:
         acks: ${KAFKA_PRODUCER_ACKS:all}
@@ -308,19 +313,6 @@ tasteam:
       user-activity-s3-ingest:
         topic: ${USER_ACTIVITY_S3_INGEST_MQ_TOPIC:evt.user-activity.s3-ingest.v1}
         dlq-topic: ${USER_ACTIVITY_S3_INGEST_MQ_DLQ_TOPIC:evt.user-activity.s3-ingest.v1.dlq}
-      connector:
-        auto-register: ${KAFKA_CONNECT_CONNECTOR_AUTO_REGISTER:false}
-        user-activity-s3-sink:
-          bucket: ${ANALYTICS_S3_BUCKET:}
-          region: ${AWS_REGION:ap-northeast-2}
-          tasks-max: ${KAFKA_CONNECT_UA_S3_TASKS_MAX:8}
-          flush-size: ${KAFKA_CONNECT_UA_S3_FLUSH_SIZE:100000}
-          rotate-interval-ms: ${KAFKA_CONNECT_UA_S3_ROTATE_INTERVAL_MS:3600000}
-          rotate-schedule-interval-ms: ${KAFKA_CONNECT_UA_S3_ROTATE_SCHEDULE_INTERVAL_MS:3600000}
-          endpoint: ${KAFKA_CONNECT_S3_ENDPOINT:${S3_ENDPOINT:}}
-          path-style-access: ${S3_PATH_STYLE_ACCESS:false}
-          access-key-id: ${AWS_ACCESS_KEY_ID:}
-          secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
   notification:
     email:
       provider: ${NOTIFICATION_EMAIL_PROVIDER:log}

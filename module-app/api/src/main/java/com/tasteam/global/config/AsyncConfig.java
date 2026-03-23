@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.task.support.TaskExecutorAdapter;
 import org.springframework.lang.Nullable;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -30,7 +29,12 @@ public class AsyncConfig implements AsyncConfigurer {
 
 	@Bean(name = "webhookExecutor")
 	public Executor webhookExecutor() {
-		return new TaskExecutorAdapter(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(2);
+		executor.setMaxPoolSize(8);
+		executor.setQueueCapacity(200);
+		executor.setThreadNamePrefix("webhook-");
+		return executor;
 	}
 
 	@Bean(name = "notificationExecutor")
@@ -61,13 +65,23 @@ public class AsyncConfig implements AsyncConfigurer {
 	@Bean(name = "searchQueryExecutor")
 	@ConditionalOnMissingBean(name = "searchQueryExecutor")
 	public Executor searchQueryExecutor() {
-		return new TaskExecutorAdapter(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(8);
+		executor.setMaxPoolSize(16);
+		executor.setQueueCapacity(500);
+		executor.setThreadNamePrefix("search-query-");
+		return executor;
 	}
 
 	@Bean(name = "mainQueryExecutor")
 	@ConditionalOnMissingBean(name = "mainQueryExecutor")
 	public Executor mainQueryExecutor() {
-		return new TaskExecutorAdapter(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor());
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(8);
+		executor.setMaxPoolSize(16);
+		executor.setQueueCapacity(500);
+		executor.setThreadNamePrefix("main-query-");
+		return executor;
 	}
 
 	@Bean(name = "searchHistoryExecutor")

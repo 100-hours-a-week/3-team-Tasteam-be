@@ -11,13 +11,11 @@ import lombok.Setter;
 public class KafkaMessageQueueProperties {
 
 	private String bootstrapServers = "localhost:29092";
-	private String connectUrl = "http://localhost:8083";
 	private String clientId = "tasteam-api";
 	private ProducerProperties producer = new ProducerProperties();
 	private ConsumerProperties consumer = new ConsumerProperties();
 	private NotificationProperties notification = new NotificationProperties();
 	private UserActivityS3IngestProperties userActivityS3Ingest = new UserActivityS3IngestProperties();
-	private ConnectorProperties connector = new ConnectorProperties();
 
 	@Getter
 	@Setter
@@ -67,26 +65,4 @@ public class KafkaMessageQueueProperties {
 		private String dlqTopic = "evt.user-activity.s3-ingest.v1.dlq";
 	}
 
-	@Getter
-	@Setter
-	public static class ConnectorProperties {
-		private boolean autoRegister = false;
-		private UserActivityS3SinkConnectorProperties userActivityS3Sink = new UserActivityS3SinkConnectorProperties();
-	}
-
-	@Getter
-	@Setter
-	public static class UserActivityS3SinkConnectorProperties {
-		private String bucket;
-		private String region = "ap-northeast-2";
-		private int tasksMax = 8;
-		private int flushSize = 100000;
-		private long rotateIntervalMs = 3600000L;
-		private long rotateScheduleIntervalMs = 3600000L;
-		/** MinIO/LocalStack용 엔드포인트. 비어있으면 AWS S3 직접 사용. */
-		private String endpoint;
-		private boolean pathStyleAccess = false;
-		private String accessKeyId;
-		private String secretAccessKey;
-	}
 }

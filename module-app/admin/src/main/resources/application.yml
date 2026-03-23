@@ -7,9 +7,6 @@ server:
 spring:
   application:
     name: tasteam-admin
-  threads:
-    virtual:
-      enabled: true
   config:
     import:
       - optional:classpath:application.local.yml
@@ -218,7 +215,6 @@ tasteam:
     max-retries: ${MQ_MAX_RETRIES:3}
     kafka:
       bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
-      connect-url: ${KAFKA_CONNECT_URL:http://localhost:8083}
       client-id: ${KAFKA_CLIENT_ID:tasteam-admin}
       producer:
         acks: ${KAFKA_PRODUCER_ACKS:all}
