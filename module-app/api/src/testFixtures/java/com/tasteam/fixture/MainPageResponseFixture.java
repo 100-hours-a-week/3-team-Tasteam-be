@@ -85,11 +85,13 @@ public final class MainPageResponseFixture {
 		MainSectionItem item = new MainSectionItem(
 			DEFAULT_RESTAURANT_ID, DEFAULT_RESTAURANT_NAME, 120.0,
 			DEFAULT_CATEGORIES, DEFAULT_THUMBNAIL, "요약");
+		HomePageResponse.Group group = new HomePageResponse.Group("한식", "한식", List.of(item));
 		return new HomePageResponse(
 			createBanners(),
 			List.of(
-				new HomePageResponse.Section("NEW", "신규 개장", List.of(item)),
-				new HomePageResponse.Section("HOT", "이번주 Hot", List.of(item))),
+				HomePageResponse.Section.items("RECOMMEND", "당신을 위한 추천", List.of(item)),
+				HomePageResponse.Section.groups("HOT", "인기 음식점", List.of(group)),
+				HomePageResponse.Section.groups("DISTANCE", "가까운 음식점", List.of(group))),
 			createSplashPromotion());
 	}
 

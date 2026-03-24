@@ -219,22 +219,22 @@ tasteam:
       presigned-url:
         ttl: ${LOCAL_CACHE_PRESIGNED_URL_TTL:240s}
       main-section-hot-all:
-        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:10m}
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1m}
         jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
       main-section-new-all:
-        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:10m}
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1m}
         jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
       main-section-ai-all:
-        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:10m}
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1m}
         jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
       main-section-hot-geo:
-        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:10m}
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1m}
         jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
       main-section-new-geo:
-        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:10m}
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1m}
         jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
       main-section-ai-geo:
-        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:10m}
+        ttl: ${LOCAL_CACHE_MAIN_SECTION_TTL:1m}
         jitter: ${LOCAL_CACHE_MAIN_SECTION_JITTER:30s}
       main-banners:
         ttl: ${LOCAL_CACHE_PROMOTION_TTL:6h}
