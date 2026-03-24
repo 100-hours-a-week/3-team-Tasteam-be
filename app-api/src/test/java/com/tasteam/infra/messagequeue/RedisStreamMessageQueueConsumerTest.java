@@ -13,13 +13,17 @@ import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisStreamCommands;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.Subscription;
@@ -29,6 +33,48 @@ import com.tasteam.config.annotation.UnitTest;
 @UnitTest
 @DisplayName("[유닛](Redis) RedisStreamMessageQueueConsumer 단위 테스트")
 class RedisStreamMessageQueueConsumerTest {
+
+	@Test
+	@DisplayName("컨슈머 그룹 생성 시 Redis Stream 시작 오프셋은 latest를 사용한다")
+	void subscribe_createsConsumerGroupWithLatestOffset() {
+		// given
+		StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+		StringRedisSerializer serializer = new StringRedisSerializer();
+		when(redisTemplate.getStringSerializer()).thenReturn(serializer);
+
+		RedisConnection connection = mock(RedisConnection.class);
+		RedisStreamCommands streamCommands = mock(RedisStreamCommands.class);
+		when(connection.streamCommands()).thenReturn(streamCommands);
+		when(redisTemplate.execute(org.mockito.ArgumentMatchers.<RedisCallback<Void>>any())).thenAnswer(invocation -> {
+			RedisCallback<Void> callback = invocation.getArgument(0);
+			return callback.doInRedis(connection);
+		});
+
+		@SuppressWarnings("unchecked") StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer = mock(
+			StreamMessageListenerContainer.class);
+		Subscription subscriptionHandle = mock(Subscription.class);
+		when(listenerContainer.receive(any(Consumer.class), any(StreamOffset.class), any(StreamListener.class)))
+			.thenReturn(subscriptionHandle);
+
+		MessageQueueProperties properties = new MessageQueueProperties();
+		properties.setTopicPrefix("tasteam");
+		RedisStreamMessageQueueConsumer consumer = new RedisStreamMessageQueueConsumer(
+			redisTemplate,
+			listenerContainer,
+			properties,
+			new com.fasterxml.jackson.databind.ObjectMapper());
+
+		// when
+		consumer.subscribe(new MessageQueueSubscription("notification.dispatch", "group-1", "consumer-1"),
+			message -> {});
+
+		// then
+		verify(streamCommands).xGroupCreate(
+			eq(serializer.serialize("tasteam:notification.dispatch")),
+			eq("group-1"),
+			eq(ReadOffset.latest()),
+			eq(true));
+	}
 
 	@Test
 	@DisplayName("구독하면 컨슈머 그룹을 준비하고 리스너를 등록한다")

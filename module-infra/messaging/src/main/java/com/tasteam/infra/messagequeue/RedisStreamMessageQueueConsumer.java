@@ -139,7 +139,7 @@ public class RedisStreamMessageQueueConsumer implements MessageQueueConsumer, Di
 				connection.streamCommands().xGroupCreate(
 					stringRedisTemplate.getStringSerializer().serialize(streamKey),
 					consumerGroup,
-					ReadOffset.lastConsumed(),
+					ReadOffset.latest(),
 					true);
 			} catch (Exception ex) {
 				String message = ex.getMessage();
