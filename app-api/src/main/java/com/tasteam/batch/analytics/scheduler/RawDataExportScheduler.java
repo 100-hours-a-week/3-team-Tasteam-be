@@ -8,6 +8,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -33,18 +35,28 @@ public class RawDataExportScheduler {
 	private final RawDataExportService rawDataExportService;
 	private final RedisDistributedLockManager distributedLockManager;
 
-	@Scheduled(cron = "${tasteam.batch.raw-export.cron:0 45 * * * ?}", zone = "${tasteam.batch.raw-export.zone:Asia/Seoul}")
+	@EventListener(ApplicationReadyEvent.class)
+	public void runOnStartup() {
+		runExport("startup");
+	}
+
+	@Scheduled(cron = "${tasteam.batch.raw-export.cron:0 15,45 * * * ?}", zone = "${tasteam.batch.raw-export.zone:Asia/Seoul}")
 	public void run() {
+		runExport("scheduled");
+	}
+
+	private void runExport(String trigger) {
 		Optional<LockHandle> lockHandleOpt = distributedLockManager.tryLock(LOCK_KEY, LOCK_TTL);
 		if (lockHandleOpt.isEmpty()) {
-			log.info("raw data export scheduler skipped. another instance already owns lock. key={}", LOCK_KEY);
+			log.info("raw data export scheduler skipped. trigger={}, another instance already owns lock. key={}",
+				trigger, LOCK_KEY);
 			return;
 		}
 
 		LocalDate dt = LocalDate.now(KST_ZONE);
-		String requestId = "raw-export-scheduled-" + UUID.randomUUID();
+		String requestId = "raw-export-" + trigger + "-" + UUID.randomUUID();
 		try (LockHandle ignored = lockHandleOpt.get()) {
-			log.info("raw data export scheduler started. dt={}, requestId={}", dt, requestId);
+			log.info("raw data export scheduler started. trigger={}, dt={}, requestId={}", trigger, dt, requestId);
 			rawDataExportService.export(
 				new RawDataExportCommand(dt, EnumSet.allOf(RawDataType.class), requestId));
 		}
