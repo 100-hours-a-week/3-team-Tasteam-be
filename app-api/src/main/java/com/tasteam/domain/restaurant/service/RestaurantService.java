@@ -370,6 +370,8 @@ public class RestaurantService {
 		domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.RESTAURANT, restaurantId);
 		saveImagesIfPresent(restaurant, request.imageIds());
 
+		eventPublisher.publishRestaurantChanged(restaurant.getId());
+
 		return new RestaurantUpdateResponse(
 			restaurant.getId(),
 			restaurant.getCreatedAt(),
@@ -390,6 +392,7 @@ public class RestaurantService {
 		Instant now = Instant.now();
 		entity.softDelete(now);
 		domainImageRepository.deleteAllByDomainTypeAndDomainId(DomainType.RESTAURANT, restaurantId);
+		eventPublisher.publishRestaurantChanged(entity.getId());
 	}
 
 	private void saveImagesIfPresent(Restaurant restaurant, List<UUID> imageIds) {
