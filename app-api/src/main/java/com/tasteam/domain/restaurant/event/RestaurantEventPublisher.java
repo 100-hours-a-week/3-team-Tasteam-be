@@ -18,6 +18,10 @@ public class RestaurantEventPublisher {
 		publishAfterCommit(new RestaurantCreatedEvent(restaurantId));
 	}
 
+	public void publishRestaurantChanged(long restaurantId) {
+		publishAfterCommit(new RestaurantChangedEvent(restaurantId));
+	}
+
 	private void publishAfterCommit(Object event) {
 		if (TransactionSynchronizationManager.isActualTransactionActive()) {
 			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

@@ -15,6 +15,24 @@ public record HomePageResponse(
 	public record Section(
 		String type,
 		String title,
+		@JsonInclude(JsonInclude.Include.NON_NULL)
+		List<MainSectionItem> items,
+
+		@JsonInclude(JsonInclude.Include.NON_NULL)
+		List<Group> groups) {
+
+		public static Section items(String type, String title, List<MainSectionItem> items) {
+			return new Section(type, title, items, null);
+		}
+
+		public static Section groups(String type, String title, List<Group> groups) {
+			return new Section(type, title, null, groups);
+		}
+	}
+
+	public record Group(
+		String category,
+		String title,
 		List<MainSectionItem> items) {
 	}
 }

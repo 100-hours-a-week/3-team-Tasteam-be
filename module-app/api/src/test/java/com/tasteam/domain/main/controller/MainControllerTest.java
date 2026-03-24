@@ -66,7 +66,7 @@ class MainControllerTest extends BaseControllerWebMvcTest {
 	class GetHome {
 
 		@Test
-		@DisplayName("홈 페이지를 조회하면 배너, 스플래시와 함께 NEW/HOT 두 섹션을 반환한다")
+		@DisplayName("홈 페이지를 조회하면 배너, 스플래시와 함께 RECOMMEND/HOT/DISTANCE 세 섹션을 반환한다")
 		void 홈_페이지_조회_성공() throws Exception {
 			given(mainService.getHome(any(), any())).willReturn(MainPageResponseFixture.createHomePageResponse());
 
@@ -79,10 +79,12 @@ class MainControllerTest extends BaseControllerWebMvcTest {
 				.andExpect(jsonPath("$.data.banners.items[0].id").value(10))
 				.andExpect(jsonPath("$.data.splashPromotion.id").value(99))
 				.andExpect(jsonPath("$.data.sections").isArray())
-				.andExpect(jsonPath("$.data.sections.length()").value(2))
-				.andExpect(jsonPath("$.data.sections[0].type").value("NEW"))
+				.andExpect(jsonPath("$.data.sections.length()").value(3))
+				.andExpect(jsonPath("$.data.sections[0].type").value("RECOMMEND"))
 				.andExpect(jsonPath("$.data.sections[0].items[0].restaurantId").value(1))
-				.andExpect(jsonPath("$.data.sections[1].type").value("HOT"));
+				.andExpect(jsonPath("$.data.sections[1].type").value("HOT"))
+				.andExpect(jsonPath("$.data.sections[1].groups[0].category").value("한식"))
+				.andExpect(jsonPath("$.data.sections[2].type").value("DISTANCE"));
 		}
 	}
 

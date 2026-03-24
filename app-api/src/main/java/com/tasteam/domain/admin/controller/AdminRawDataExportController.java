@@ -7,7 +7,6 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,10 +21,13 @@ import com.tasteam.domain.analytics.export.RawDataExportAsyncLauncher;
 import com.tasteam.domain.analytics.export.RawDataExportCommand;
 import com.tasteam.domain.analytics.export.RawDataType;
 import com.tasteam.global.dto.api.SuccessResponse;
+import com.tasteam.global.security.common.constants.ApiEndpoints;
 
-@Profile({"local", "dev", "stg"})
 @RestController
-@RequestMapping("/api/v1/admin/analytics/raw-exports")
+@RequestMapping({
+	ApiEndpoints.ANALYTICS_RAW_EXPORTS,
+	ApiEndpoints.ADMIN_ANALYTICS_RAW_EXPORTS
+})
 public class AdminRawDataExportController implements AdminRawDataExportControllerDocs {
 
 	private static final ZoneId KST_ZONE = ZoneId.of("Asia/Seoul");
