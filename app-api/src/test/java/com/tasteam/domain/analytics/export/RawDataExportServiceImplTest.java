@@ -59,6 +59,7 @@ class RawDataExportServiceImplTest {
 			return null;
 		}).when(sourceRepository).streamRestaurants(any(CsvRowConsumer.class));
 		when(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY_S3_INGEST)).thenReturn("evt.user-activity.s3-ingest.v1");
+		when(storageClient.listObjects(successKey)).thenReturn(List.of());
 		when(storageClient.listObjects(prefix)).thenReturn(List.of());
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
@@ -95,6 +96,7 @@ class RawDataExportServiceImplTest {
 			batchExecutionRepository, topicNamingPolicy, new SimpleMeterRegistry());
 		LocalDate dt = LocalDate.of(2026, 3, 11);
 		String prefix = "evt.user-activity.s3-ingest.v1/raw/menus/dt=2026-03-11/";
+		String successKey = prefix + "_SUCCESS";
 
 		when(sourceRepository.menuHeaders()).thenReturn(List.of("restaurant_id", "menu_count"));
 		doAnswer(invocation -> {
@@ -103,6 +105,7 @@ class RawDataExportServiceImplTest {
 			return null;
 		}).when(sourceRepository).streamMenus(any(CsvRowConsumer.class));
 		when(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY_S3_INGEST)).thenReturn("evt.user-activity.s3-ingest.v1");
+		when(storageClient.listObjects(successKey)).thenReturn(List.of());
 		when(storageClient.listObjects(prefix)).thenReturn(List.of(prefix + "part-00001.csv", prefix + "_SUCCESS"));
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
@@ -134,6 +137,7 @@ class RawDataExportServiceImplTest {
 			return null;
 		}).when(sourceRepository).streamRestaurants(any(CsvRowConsumer.class));
 		when(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY_S3_INGEST)).thenReturn("evt.user-activity.s3-ingest.v1");
+		when(storageClient.listObjects(successKey)).thenReturn(List.of());
 		when(storageClient.listObjects(prefix)).thenReturn(List.of());
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
@@ -174,6 +178,7 @@ class RawDataExportServiceImplTest {
 			return null;
 		}).when(sourceRepository).streamRestaurants(any(CsvRowConsumer.class));
 		when(topicNamingPolicy.main(QueueTopic.USER_ACTIVITY_S3_INGEST)).thenReturn("evt.user-activity.s3-ingest.v1");
+		when(storageClient.listObjects(bucket, successKey)).thenReturn(List.of());
 		when(storageClient.listObjects(bucket, prefix)).thenReturn(List.of());
 		when(batchExecutionRepository.save(any(BatchExecution.class)))
 			.thenAnswer(invocation -> invocation.getArgument(0));
