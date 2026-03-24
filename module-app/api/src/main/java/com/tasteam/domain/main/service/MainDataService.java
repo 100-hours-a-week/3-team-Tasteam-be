@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -54,6 +55,43 @@ public class MainDataService {
 		return cacheService.fetchAiSectionAll();
 	}
 
+	public List<MainRestaurantDistanceProjection> fetchHotCategorySectionByLocation(
+		double lat,
+		double lon,
+		String categoryName,
+		int limit) {
+		return restaurantRepository.findHotRestaurantsByCategory(lat, lon, categoryName, limit);
+	}
+
+	public List<MainRestaurantDistanceProjection> fetchHotCategorySectionAll(String categoryName, int limit) {
+		return restaurantRepository.findHotRestaurantsAllByCategory(categoryName, limit);
+	}
+
+	public List<MainRestaurantDistanceProjection> fetchDistanceCategorySectionByLocation(
+		double lat,
+		double lon,
+		String categoryName,
+		int limit) {
+		return restaurantRepository.findDistanceRestaurantsByCategory(lat, lon, categoryName, limit);
+	}
+
+	public List<MainRestaurantDistanceProjection> fetchRestaurantsByIds(List<Long> ids) {
+		if (ids == null || ids.isEmpty()) {
+			return List.of();
+		}
+		return orderByIds(ids, restaurantRepository.findRestaurantsByIds(ids));
+	}
+
+	public List<MainRestaurantDistanceProjection> fetchRestaurantsByIdsWithDistance(
+		List<Long> ids,
+		double userLat,
+		double userLon) {
+		if (ids == null || ids.isEmpty()) {
+			return List.of();
+		}
+		return orderByIds(ids, fetchDistancesWithCoordCache(ids, userLat, userLon));
+	}
+
 	private List<MainRestaurantDistanceProjection> fetchDistancesWithCoordCache(
 		List<Long> ids, double userLat, double userLon) {
 
@@ -91,6 +129,26 @@ public class MainDataService {
 				double dist = GeoUtils.distanceMeter(userLat, userLon, loc.lat(), loc.lon());
 				return (MainRestaurantDistanceProjection)new CachedDistance(id, loc.name(), dist);
 			})
+			.filter(Objects::nonNull)
+			.toList();
+	}
+
+	private List<MainRestaurantDistanceProjection> orderByIds(
+		List<Long> ids,
+		List<MainRestaurantDistanceProjection> restaurants) {
+		if (ids == null || ids.isEmpty() || restaurants == null || restaurants.isEmpty()) {
+			return List.of();
+		}
+
+		Map<Long, MainRestaurantDistanceProjection> byId = restaurants.stream()
+			.collect(java.util.stream.Collectors.toMap(
+				MainRestaurantDistanceProjection::getId,
+				Function.identity(),
+				(existing, ignored) -> existing,
+				LinkedHashMap::new));
+
+		return ids.stream()
+			.map(byId::get)
 			.filter(Objects::nonNull)
 			.toList();
 	}

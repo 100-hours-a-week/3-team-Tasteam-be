@@ -17,6 +17,7 @@ import com.tasteam.domain.main.dto.response.AiRecommendResponse;
 import com.tasteam.domain.main.repository.MainGroupRepository;
 import com.tasteam.domain.promotion.service.PromotionService;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
+import com.tasteam.domain.restaurant.service.FoodCategoryService;
 import com.tasteam.fixture.MainPageResponseFixture;
 
 @UnitTest
@@ -45,8 +46,10 @@ class MainServiceTest {
 
 		MainService service = new MainService(
 			mainDataService,
+			mock(MainRecommendationService.class),
 			metadataLoader,
 			mock(MainGroupRepository.class),
+			mock(FoodCategoryService.class),
 			mock(PromotionService.class),
 			syncExecutor);
 

@@ -2,6 +2,7 @@ package com.tasteam.domain.main.service;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +27,7 @@ import com.tasteam.domain.main.repository.MainGroupRepository;
 import com.tasteam.domain.promotion.dto.response.SplashPromotionResponse;
 import com.tasteam.domain.promotion.service.PromotionService;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
+import com.tasteam.domain.restaurant.service.FoodCategoryService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,10 +36,14 @@ import lombok.RequiredArgsConstructor;
 public class MainService {
 
 	private static final long MAIN_QUERY_TIMEOUT_SECONDS = 3L;
+	private static final int HOT_GROUP_ITEM_LIMIT = 5;
+	private static final int DISTANCE_GROUP_ITEM_LIMIT = 10;
 
 	private final MainDataService mainDataService;
+	private final MainRecommendationService mainRecommendationService;
 	private final MainMetadataLoader metadataLoader;
 	private final MainGroupRepository groupRepository;
+	private final FoodCategoryService foodCategoryService;
 	private final PromotionService promotionService;
 	@Qualifier("mainQueryExecutor")
 	private final Executor mainQueryExecutor;
@@ -75,22 +81,40 @@ public class MainService {
 
 	public HomePageResponse getHome(Long memberId, MainPageRequest request) {
 		LocationContext location = resolveLocation(memberId, request);
+		List<String> categoryNames = loadHomeCategoryNames();
 
-		CompletableFuture<List<MainRestaurantDistanceProjection>> newFuture = CompletableFuture.supplyAsync(
-			() -> fetchNewSection(location), mainQueryExecutor);
-		CompletableFuture<List<MainRestaurantDistanceProjection>> hotFuture = CompletableFuture.supplyAsync(
-			() -> fetchHotSection(location), mainQueryExecutor);
+		CompletableFuture<List<MainRestaurantDistanceProjection>> recommendFuture = CompletableFuture.supplyAsync(
+			() -> fetchRecommendHomeSection(memberId, location), mainQueryExecutor);
+		Map<String, CompletableFuture<List<MainRestaurantDistanceProjection>>> hotGroupFutures = new LinkedHashMap<>();
+		Map<String, CompletableFuture<List<MainRestaurantDistanceProjection>>> distanceGroupFutures = new LinkedHashMap<>();
 
-		List<MainRestaurantDistanceProjection> newRestaurants = getWithTimeout(newFuture,
-			() -> mainDataService.fetchNewSectionAll());
-		List<MainRestaurantDistanceProjection> hotRestaurants = getWithTimeout(hotFuture,
-			() -> mainDataService.fetchHotSectionAll());
+		for (String categoryName : categoryNames) {
+			hotGroupFutures.put(categoryName, CompletableFuture.supplyAsync(
+				() -> fetchHotHomeGroup(location, categoryName), mainQueryExecutor));
+			distanceGroupFutures.put(categoryName, CompletableFuture.supplyAsync(
+				() -> fetchDistanceHomeGroup(location, categoryName), mainQueryExecutor));
+		}
 
-		SectionMetadata metadata = fetchMetadata(collectAllIds(newRestaurants, hotRestaurants));
+		List<MainRestaurantDistanceProjection> recommendRestaurants = getWithTimeout(recommendFuture, List::of);
+		Map<String, List<MainRestaurantDistanceProjection>> hotGroups = new LinkedHashMap<>();
+		Map<String, List<MainRestaurantDistanceProjection>> distanceGroups = new LinkedHashMap<>();
+
+		for (String categoryName : categoryNames) {
+			hotGroups.put(categoryName,
+				getWithTimeout(hotGroupFutures.get(categoryName), () -> fallbackHotHomeGroup(location, categoryName)));
+			distanceGroups.put(categoryName,
+				getWithTimeout(distanceGroupFutures.get(categoryName), List::of));
+		}
+
+		List<Long> allIds = new ArrayList<>(collectAllIds(recommendRestaurants));
+		hotGroups.values().forEach(restaurants -> restaurants.forEach(r -> allIds.add(r.getId())));
+		distanceGroups.values().forEach(restaurants -> restaurants.forEach(r -> allIds.add(r.getId())));
+		SectionMetadata metadata = fetchMetadata(new ArrayList<>(new HashSet<>(allIds)));
 
 		List<HomePageResponse.Section> sections = List.of(
-			new HomePageResponse.Section("NEW", "신규 개장", toSectionItems(newRestaurants, metadata)),
-			new HomePageResponse.Section("HOT", "이번주 Hot", toSectionItems(hotRestaurants, metadata)));
+			HomePageResponse.Section.items("RECOMMEND", "당신을 위한 추천", toSectionItems(recommendRestaurants, metadata)),
+			HomePageResponse.Section.groups("HOT", "인기 음식점", toHomeGroups(hotGroups, metadata, false)),
+			HomePageResponse.Section.groups("DISTANCE", "가까운 음식점", toHomeGroups(distanceGroups, metadata, true)));
 
 		Banners banners = fetchBanners();
 		SplashPromotionResponse splashPromotion = promotionService.getSplashPromotion().orElse(null);
@@ -167,6 +191,55 @@ public class MainService {
 		return mainDataService.fetchAiSectionAll();
 	}
 
+	private List<MainRestaurantDistanceProjection> fetchRecommendHomeSection(Long memberId, LocationContext location) {
+		Double latitude = location.hasLocation() ? location.latitude() : null;
+		Double longitude = location.hasLocation() ? location.longitude() : null;
+		return mainRecommendationService.fetchRecommendSection(memberId, latitude, longitude);
+	}
+
+	private List<String> loadHomeCategoryNames() {
+		return foodCategoryService.getFoodCategories().stream()
+			.map(category -> category.name())
+			.toList();
+	}
+
+	private List<MainRestaurantDistanceProjection> fetchHotHomeGroup(LocationContext location, String categoryName) {
+		if (location.hasLocation()) {
+			return mainDataService.fetchHotCategorySectionByLocation(
+				location.latitude(),
+				location.longitude(),
+				categoryName,
+				HOT_GROUP_ITEM_LIMIT);
+		}
+		return mainDataService.fetchHotCategorySectionAll(categoryName, HOT_GROUP_ITEM_LIMIT);
+	}
+
+	private List<MainRestaurantDistanceProjection> fallbackHotHomeGroup(
+		LocationContext location,
+		String categoryName) {
+		if (location.hasLocation()) {
+			return mainDataService.fetchHotCategorySectionByLocation(
+				location.latitude(),
+				location.longitude(),
+				categoryName,
+				HOT_GROUP_ITEM_LIMIT);
+		}
+		return mainDataService.fetchHotCategorySectionAll(categoryName, HOT_GROUP_ITEM_LIMIT);
+	}
+
+	private List<MainRestaurantDistanceProjection> fetchDistanceHomeGroup(
+		LocationContext location,
+		String categoryName) {
+		if (!location.hasLocation()) {
+			return List.of();
+		}
+		return mainDataService.fetchDistanceCategorySectionByLocation(
+			location.latitude(),
+			location.longitude(),
+			categoryName,
+			DISTANCE_GROUP_ITEM_LIMIT);
+	}
+
 	@SafeVarargs
 	private List<Long> collectAllIds(List<MainRestaurantDistanceProjection>... lists) {
 		Set<Long> idSet = new HashSet<>();
@@ -218,6 +291,27 @@ public class MainService {
 				metadata.categories().getOrDefault(r.getId(), List.of()),
 				metadata.thumbnails().get(r.getId()),
 				metadata.summaries().get(r.getId())))
+			.toList();
+	}
+
+	private List<HomePageResponse.Group> toHomeGroups(
+		Map<String, List<MainRestaurantDistanceProjection>> groups,
+		SectionMetadata metadata,
+		boolean sortByDistance) {
+		return groups.entrySet().stream()
+			.filter(entry -> !entry.getValue().isEmpty())
+			.map(entry -> {
+				List<MainSectionItem> items = toSectionItems(entry.getValue(), metadata);
+				if (sortByDistance) {
+					items = items.stream()
+						.sorted(java.util.Comparator.comparing(
+							MainSectionItem::distanceMeter,
+							java.util.Comparator.nullsLast(Double::compareTo)))
+						.toList();
+				}
+				return new HomePageResponse.Group(entry.getKey(), entry.getKey(), items);
+			})
+			.filter(group -> !group.items().isEmpty())
 			.toList();
 	}
 
