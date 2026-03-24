@@ -105,6 +105,7 @@ public final class ApiEndpoints {
 
 	// Analytics
 	public static final String ANALYTICS_EVENTS = API_V1 + "/analytics/events";
+	public static final String ANALYTICS_RAW_EXPORTS = API_V1 + "/analytics/raw-exports";
 
 	// File
 	public static final String FILES = API_V1 + "/files";
@@ -126,6 +127,7 @@ public final class ApiEndpoints {
 	// Admin
 	public static final String ADMIN = API_V1 + "/admin";
 	public static final String ADMIN_ALL = ADMIN + ALL;
+	public static final String ADMIN_ANALYTICS_RAW_EXPORTS = ADMIN + "/analytics/raw-exports";
 	public static final String ADMIN_DUMMY = ADMIN + "/dummy";
 	public static final String ADMIN_DUMMY_ALL = ADMIN_DUMMY + ALL;
 }
