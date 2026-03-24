@@ -122,8 +122,8 @@ tasteam:
       zone: ${TASTEAM_BATCH_VECTOR_UPLOAD_ZONE:Asia/Seoul}
       worker-pool-size: ${TASTEAM_BATCH_VECTOR_UPLOAD_WORKER_POOL_SIZE:4}
     raw-export:
-      enabled: ${TASTEAM_BATCH_RAW_EXPORT_ENABLED:false}
-      cron: ${TASTEAM_BATCH_RAW_EXPORT_CRON:0 15 2 * * ?}
+      enabled: ${TASTEAM_BATCH_RAW_EXPORT_ENABLED:true}
+      cron: ${TASTEAM_BATCH_RAW_EXPORT_CRON:0 15,45 * * * ?}
       zone: ${TASTEAM_BATCH_RAW_EXPORT_ZONE:Asia/Seoul}
     user-activity-s3-success-marker:
       enabled: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_ENABLED:false}
