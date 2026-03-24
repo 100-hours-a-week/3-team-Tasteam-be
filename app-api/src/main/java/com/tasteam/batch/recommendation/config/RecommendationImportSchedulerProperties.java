@@ -10,7 +10,7 @@ import lombok.Setter;
 @ConfigurationProperties(prefix = "tasteam.batch.recommendation-import")
 public class RecommendationImportSchedulerProperties {
 
-	private boolean enabled = false;
+	private boolean enabled = true;
 	private String cron = "0 */15 * * * ?";
 	private String zone = "Asia/Seoul";
 	private String s3PrefixOrUri;
