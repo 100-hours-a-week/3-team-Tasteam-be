@@ -13,22 +13,15 @@ import com.tasteam.domain.restaurant.repository.projection.RestaurantLocationPro
 public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 
 	@Query(value = """
-		with nearby as (
-		  select r.id
-		  from restaurant r
-		  where r.deleted_at is null
-		    and ST_DWithin(r.location::geography,
-		      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
-		  order by r.location::geography <-> ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography
-		  limit :candidateLimit
-		)
 		select r.id as id, r.name as name,
 		  ST_Distance(r.location::geography,
 		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
 		from restaurant r
-		join nearby n on n.id = r.id
 		left join review rv on rv.restaurant_id = r.id and rv.deleted_at is null
 		left join restaurant_review_sentiment s on s.restaurant_id = r.id
+		where r.deleted_at is null
+		  and ST_DWithin(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, 10000)
 		group by r.id, r.name, r.location, s.positive_percent
 		order by case when s.positive_percent is null then 1 else 0 end asc,
 		  coalesce(s.positive_percent, 0) desc,
@@ -41,61 +34,45 @@ public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 		double latitude,
 		@Param("longitude")
 		double longitude,
-		@Param("radiusMeter")
-		int radiusMeter,
-		@Param("candidateLimit")
-		int candidateLimit,
 		@Param("limit")
 		int limit);
 
 	@Query(value = """
-		with ranked as (
-		  select r.id, r.name, r.location
-		  from restaurant r
-		  where r.deleted_at is null
-		    and ST_DWithin(r.location::geography,
-		      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
-		  order by r.created_at desc, r.id desc
-		  limit :limit
-		)
-		select id, name,
-		  ST_Distance(location::geography,
+		select r.id as id, r.name as name,
+		  ST_Distance(r.location::geography,
 		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
-		from ranked
+		from restaurant r
+		where r.deleted_at is null
+		  and ST_DWithin(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, 10000)
+		order by r.created_at desc, r.id desc
+		limit :limit
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findNewRestaurants(
 		@Param("latitude")
 		double latitude,
 		@Param("longitude")
 		double longitude,
-		@Param("radiusMeter")
-		int radiusMeter,
 		@Param("limit")
 		int limit);
 
 	@Query(value = """
-		with ranked as (
-		  select r.id, r.name, r.location
-		  from restaurant r
-		  join restaurant_review_sentiment s on s.restaurant_id = r.id
-		  where r.deleted_at is null
-		    and ST_DWithin(r.location::geography,
-		      ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
-		  order by s.positive_percent desc, r.id asc
-		  limit :limit
-		)
-		select id, name,
-		  ST_Distance(location::geography,
+		select r.id as id, r.name as name,
+		  ST_Distance(r.location::geography,
 		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography) as distanceMeter
-		from ranked
+		from restaurant r
+		join restaurant_review_sentiment s on s.restaurant_id = r.id
+		where r.deleted_at is null
+		  and ST_DWithin(r.location::geography,
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, 10000)
+		order by s.positive_percent desc, r.id asc
+		limit :limit
 		""", nativeQuery = true)
 	List<MainRestaurantDistanceProjection> findAiRecommendRestaurants(
 		@Param("latitude")
 		double latitude,
 		@Param("longitude")
 		double longitude,
-		@Param("radiusMeter")
-		int radiusMeter,
 		@Param("limit")
 		int limit);
 
@@ -158,7 +135,7 @@ public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 		where r.deleted_at is null
 		  and lower(fc.name) = lower(:categoryName)
 		  and ST_DWithin(r.location::geography,
-		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, 10000)
 		order by r.location::geography <-> ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography,
 		  r.id asc
 		limit :limit
@@ -168,8 +145,6 @@ public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 		double latitude,
 		@Param("longitude")
 		double longitude,
-		@Param("radiusMeter")
-		int radiusMeter,
 		@Param("categoryName")
 		String categoryName,
 		@Param("limit")
@@ -187,7 +162,7 @@ public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 		where r.deleted_at is null
 		  and lower(fc.name) = lower(:categoryName)
 		  and ST_DWithin(r.location::geography,
-		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, :radiusMeter)
+		    ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)::geography, 10000)
 		group by r.id, r.name, r.location, s.positive_percent
 		order by case when s.positive_percent is null then 1 else 0 end asc,
 		  coalesce(s.positive_percent, 0) desc,
@@ -202,8 +177,6 @@ public interface MainRestaurantRepository extends Repository<Restaurant, Long> {
 		double latitude,
 		@Param("longitude")
 		double longitude,
-		@Param("radiusMeter")
-		int radiusMeter,
 		@Param("categoryName")
 		String categoryName,
 		@Param("limit")

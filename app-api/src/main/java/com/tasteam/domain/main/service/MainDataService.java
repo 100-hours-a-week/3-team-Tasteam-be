@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tasteam.domain.main.repository.MainRestaurantRepository;
-import com.tasteam.domain.restaurant.policy.RestaurantSearchPolicy;
 import com.tasteam.domain.restaurant.repository.projection.MainRestaurantDistanceProjection;
 import com.tasteam.domain.restaurant.repository.projection.RestaurantLocationProjection;
 import com.tasteam.domain.restaurant.support.GeoUtils;
@@ -61,12 +60,7 @@ public class MainDataService {
 		double lon,
 		String categoryName,
 		int limit) {
-		return restaurantRepository.findHotRestaurantsByCategory(
-			lat,
-			lon,
-			RestaurantSearchPolicy.SECTION_RADIUS_METER,
-			categoryName,
-			limit);
+		return restaurantRepository.findHotRestaurantsByCategory(lat, lon, categoryName, limit);
 	}
 
 	public List<MainRestaurantDistanceProjection> fetchHotCategorySectionAll(String categoryName, int limit) {
@@ -78,12 +72,7 @@ public class MainDataService {
 		double lon,
 		String categoryName,
 		int limit) {
-		return restaurantRepository.findDistanceRestaurantsByCategory(
-			lat,
-			lon,
-			RestaurantSearchPolicy.SECTION_RADIUS_METER,
-			categoryName,
-			limit);
+		return restaurantRepository.findDistanceRestaurantsByCategory(lat, lon, categoryName, limit);
 	}
 
 	public List<MainRestaurantDistanceProjection> fetchRestaurantsByIds(List<Long> ids) {
