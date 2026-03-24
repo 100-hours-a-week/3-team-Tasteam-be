@@ -36,7 +36,7 @@ import lombok.RequiredArgsConstructor;
 public class MainService {
 
 	private static final long MAIN_QUERY_TIMEOUT_SECONDS = 3L;
-	private static final int HOT_GROUP_ITEM_LIMIT = 5;
+	private static final int HOT_GROUP_ITEM_LIMIT = 1;
 	private static final int DISTANCE_GROUP_ITEM_LIMIT = 10;
 
 	private final MainDataService mainDataService;
@@ -299,10 +299,22 @@ public class MainService {
 		SectionMetadata metadata,
 		boolean distanceSection) {
 		return groupedRestaurants.entrySet().stream()
-			.map(entry -> new HomePageResponse.Group(
-				entry.getKey(),
-				entry.getKey(),
-				toSectionItems(entry.getValue(), metadata)))
+			.filter(entry -> !entry.getValue().isEmpty())
+			.map(entry -> {
+				List<MainSectionItem> items = toSectionItems(entry.getValue(), metadata);
+				if (distanceSection) {
+					items = items.stream()
+						.sorted(java.util.Comparator.comparing(
+							MainSectionItem::distanceMeter,
+							java.util.Comparator.nullsLast(Double::compareTo)))
+						.toList();
+				}
+				return new HomePageResponse.Group(
+					entry.getKey(),
+					entry.getKey(),
+					items);
+			})
+			.filter(group -> !group.items().isEmpty())
 			.toList();
 	}
 

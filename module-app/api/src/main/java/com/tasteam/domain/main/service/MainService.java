@@ -36,7 +36,7 @@ import lombok.RequiredArgsConstructor;
 public class MainService {
 
 	private static final long MAIN_QUERY_TIMEOUT_SECONDS = 3L;
-	private static final int HOT_GROUP_ITEM_LIMIT = 5;
+	private static final int HOT_GROUP_ITEM_LIMIT = 1;
 	private static final int DISTANCE_GROUP_ITEM_LIMIT = 10;
 
 	private final MainDataService mainDataService;
