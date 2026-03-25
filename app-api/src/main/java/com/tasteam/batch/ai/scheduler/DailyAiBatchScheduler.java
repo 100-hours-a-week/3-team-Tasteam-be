@@ -3,6 +3,8 @@ package com.tasteam.batch.ai.scheduler;
 import java.time.Duration;
 import java.util.Optional;
 
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -32,15 +34,30 @@ public class DailyAiBatchScheduler {
 
 	@Scheduled(cron = "${tasteam.batch.vector-upload.cron:0 30 * * * ?}", zone = "${tasteam.batch.vector-upload.zone:Asia/Seoul}")
 	public void runDailyAiBatch() {
-		Optional<LockHandle> lockHandleOpt = distributedLockManager.tryLock(LOCK_KEY, LOCK_TTL);
-		if (lockHandleOpt.isEmpty()) {
-			log.info("Daily AI batch skipped. another instance already owns scheduler lock. key={}", LOCK_KEY);
-			return;
-		}
+		runDailyAiBatch("scheduler");
+	}
 
-		try (LockHandle ignored = lockHandleOpt.get()) {
-			vectorUploadBatchRunner.startRun();
-			reviewAnalysisBatchRunner.startRun();
+	@EventListener(ApplicationReadyEvent.class)
+	public void runDailyAiBatchOnStartup() {
+		runDailyAiBatch("startup");
+	}
+
+	private void runDailyAiBatch(String trigger) {
+		try {
+			Optional<LockHandle> lockHandleOpt = distributedLockManager.tryLock(LOCK_KEY, LOCK_TTL);
+			if (lockHandleOpt.isEmpty()) {
+				log.info("Daily AI batch skipped. trigger={}, another instance already owns scheduler lock. key={}",
+					trigger, LOCK_KEY);
+				return;
+			}
+
+			try (LockHandle ignored = lockHandleOpt.get()) {
+				log.info("Daily AI batch triggered. trigger={}", trigger);
+				vectorUploadBatchRunner.startRun();
+				reviewAnalysisBatchRunner.startRun();
+			}
+		} catch (Exception e) {
+			log.error("Daily AI batch failed. trigger={}", trigger, e);
 		}
 	}
 }
