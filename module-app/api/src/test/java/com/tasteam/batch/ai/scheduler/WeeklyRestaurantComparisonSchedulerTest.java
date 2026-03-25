@@ -1,9 +1,11 @@
 package com.tasteam.batch.ai.scheduler;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 
 import java.util.Optional;
@@ -55,5 +57,33 @@ class WeeklyRestaurantComparisonSchedulerTest {
 		scheduler.runWeeklyRestaurantComparisonBatch();
 
 		then(restaurantComparisonBatchRunner).should(never()).startRun();
+	}
+
+	@Test
+	@DisplayName("앱 시작 직후에도 주간 비교 배치를 한 번 시작한다")
+	void runWeeklyRestaurantComparisonBatchOnStartup_runsBatch() {
+		given(distributedLockManager.tryLock(anyString(), any())).willReturn(Optional.of(lockHandle));
+		WeeklyRestaurantComparisonScheduler scheduler = new WeeklyRestaurantComparisonScheduler(
+			restaurantComparisonBatchRunner,
+			distributedLockManager);
+
+		scheduler.runWeeklyRestaurantComparisonBatchOnStartup();
+
+		then(restaurantComparisonBatchRunner).should().startRun();
+		then(lockHandle).should().close();
+	}
+
+	@Test
+	@DisplayName("배치 실행 중 예외가 발생해도 예외를 밖으로 던지지 않는다")
+	void runWeeklyRestaurantComparisonBatch_whenRunnerThrows_doesNotPropagateException() {
+		given(distributedLockManager.tryLock(anyString(), any())).willReturn(Optional.of(lockHandle));
+		willThrow(new RuntimeException("boom")).given(restaurantComparisonBatchRunner).startRun();
+		WeeklyRestaurantComparisonScheduler scheduler = new WeeklyRestaurantComparisonScheduler(
+			restaurantComparisonBatchRunner,
+			distributedLockManager);
+
+		assertThatCode(scheduler::runWeeklyRestaurantComparisonBatchOnStartup).doesNotThrowAnyException();
+
+		then(lockHandle).should().close();
 	}
 }
