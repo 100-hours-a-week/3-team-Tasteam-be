@@ -6,6 +6,7 @@ import java.util.concurrent.Callable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,9 @@ import com.tasteam.domain.recommendation.entity.RestaurantRecommendationImportCh
 import com.tasteam.domain.recommendation.exception.RecommendationBusinessException;
 import com.tasteam.domain.recommendation.importer.config.RecommendationImportPollingProperties;
 import com.tasteam.domain.recommendation.repository.RestaurantRecommendationImportCheckpointRepository;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.CommonErrorCode;
+import com.tasteam.global.exception.code.FileErrorCode;
 import com.tasteam.global.exception.code.RecommendationErrorCode;
 
 /**
@@ -58,7 +62,14 @@ public class RecommendationResultImportFacadeImpl implements RecommendationResul
 			() -> importService.importResults(
 				new RecommendationResultImportRequest(target.pipelineVersion(), target.resultFileS3Uri(),
 					command.requestId())));
-		saveCheckpoint(target);
+		executeWithRetry(
+			"checkpoint",
+			pollingProperties.getImportMaxAttempts(),
+			command.requestId(),
+			() -> {
+				saveCheckpoint(target);
+				return null;
+			});
 		return result;
 	}
 
@@ -157,10 +168,35 @@ public class RecommendationResultImportFacadeImpl implements RecommendationResul
 			}
 			return new FailureClassification(FailureType.BUSINESS_ERROR, false, code);
 		}
+		if (ex instanceof BusinessException businessException) {
+			String code = businessException.getErrorCode();
+			if (isRetryableStorageError(code)) {
+				return new FailureClassification(FailureType.STORAGE_TRANSIENT, true, code);
+			}
+			if (isRetryableExternalError(code)) {
+				return new FailureClassification(FailureType.EXTERNAL_TRANSIENT, true, code);
+			}
+			return new FailureClassification(FailureType.BUSINESS_ERROR, false, code);
+		}
 		if (ex instanceof TransientDataAccessException) {
 			return new FailureClassification(FailureType.TRANSIENT_DATA_ACCESS, true, ex.getClass().getSimpleName());
 		}
+		if (ex instanceof DataAccessException) {
+			return new FailureClassification(FailureType.DATA_ACCESS, false, ex.getClass().getSimpleName());
+		}
 		return new FailureClassification(FailureType.UNKNOWN_RUNTIME, false, ex.getClass().getSimpleName());
+	}
+
+	private boolean isRetryableStorageError(String errorCode) {
+		return FileErrorCode.STORAGE_ERROR.name().equals(errorCode)
+			|| FileErrorCode.STORAGE_THROTTLED.name().equals(errorCode)
+			|| FileErrorCode.STORAGE_SERVICE_UNAVAILABLE.name().equals(errorCode)
+			|| FileErrorCode.STORAGE_INTERNAL_ERROR.name().equals(errorCode);
+	}
+
+	private boolean isRetryableExternalError(String errorCode) {
+		return CommonErrorCode.EXTERNAL_SERVICE_TIMEOUT.name().equals(errorCode)
+			|| CommonErrorCode.EXTERNAL_SERVICE_UNAVAILABLE.name().equals(errorCode);
 	}
 
 	private void sleepBackoff() {
@@ -184,7 +220,10 @@ public class RecommendationResultImportFacadeImpl implements RecommendationResul
 		RESULT_VALIDATION_FAILED,
 		PIPELINE_VERSION_MISMATCH,
 		BUSINESS_ERROR,
+		STORAGE_TRANSIENT,
+		EXTERNAL_TRANSIENT,
 		TRANSIENT_DATA_ACCESS,
+		DATA_ACCESS,
 		UNKNOWN_RUNTIME
 	}
 

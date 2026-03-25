@@ -18,6 +18,8 @@ import com.tasteam.config.annotation.UnitTest;
 import com.tasteam.domain.recommendation.exception.RecommendationBusinessException;
 import com.tasteam.domain.recommendation.importer.config.RecommendationImportPollingProperties;
 import com.tasteam.domain.recommendation.repository.RestaurantRecommendationImportCheckpointRepository;
+import com.tasteam.global.exception.business.BusinessException;
+import com.tasteam.global.exception.code.FileErrorCode;
 
 @UnitTest
 @DisplayName("[유닛](Recommendation) RecommendationResultImportFacadeImpl 단위 테스트")
@@ -156,5 +158,39 @@ class RecommendationResultImportFacadeImplTest {
 			.hasMessageContaining("bad-csv");
 
 		verify(importService, times(1)).importResults(org.mockito.ArgumentMatchers.any());
+	}
+
+	@Test
+	@DisplayName("스토리지 일시 장애는 재시도 후 성공하면 import를 진행한다")
+	void importRecommendationResults_retriesWhenStorageUnavailable() {
+		S3RecommendationResultPollingService pollingService = mock(S3RecommendationResultPollingService.class);
+		RecommendationImportPollingProperties properties = new RecommendationImportPollingProperties();
+		properties.setImportMaxAttempts(2);
+		properties.setRetryBackoff(Duration.ZERO);
+		RestaurantRecommendationImportCheckpointRepository checkpointRepository = mock(
+			RestaurantRecommendationImportCheckpointRepository.class);
+		RecommendationResultImportService importService = mock(RecommendationResultImportService.class);
+		RecommendationResultImportFacadeImpl facade = new RecommendationResultImportFacadeImpl(
+			pollingService,
+			properties,
+			checkpointRepository,
+			importService);
+
+		when(pollingService.awaitImportTarget("s3://bucket/recommendations/", "deepfm-1", "req-1"))
+			.thenReturn(new RecommendationResultS3Target(
+				"s3://bucket/recommendations/pipeline_version=deepfm-1/dt=2026-03-08/part-00001.csv",
+				"deepfm-1",
+				LocalDate.parse("2026-03-08")));
+		when(checkpointRepository.existsByPipelineVersionAndBatchDt("deepfm-1", LocalDate.parse("2026-03-08")))
+			.thenReturn(false);
+		when(importService.importResults(org.mockito.ArgumentMatchers.any()))
+			.thenThrow(new BusinessException(FileErrorCode.STORAGE_SERVICE_UNAVAILABLE, "s3 down"))
+			.thenReturn(new RecommendationResultImportResult("deepfm-1", 2, 2, 0));
+
+		RecommendationResultImportResult result = facade.importResults(
+			new RecommendationResultImportFacadeCommand("deepfm-1", "s3://bucket/recommendations/", "req-1"));
+
+		assertThat(result.insertedRows()).isEqualTo(2);
+		verify(importService, times(2)).importResults(org.mockito.ArgumentMatchers.any());
 	}
 }
