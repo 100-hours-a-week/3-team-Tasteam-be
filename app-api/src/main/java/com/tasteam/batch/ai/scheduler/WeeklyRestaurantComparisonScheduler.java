@@ -3,6 +3,8 @@ package com.tasteam.batch.ai.scheduler;
 import java.time.Duration;
 import java.util.Optional;
 
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -30,16 +32,30 @@ public class WeeklyRestaurantComparisonScheduler {
 
 	@Scheduled(cron = "${tasteam.batch.restaurant-comparison.cron:0 0 * * * ?}", zone = "${tasteam.batch.restaurant-comparison.zone:Asia/Seoul}")
 	public void runWeeklyRestaurantComparisonBatch() {
-		Optional<LockHandle> lockHandleOpt = distributedLockManager.tryLock(LOCK_KEY, LOCK_TTL);
-		if (lockHandleOpt.isEmpty()) {
-			log.info("Weekly restaurant comparison batch skipped. another instance already owns scheduler lock. key={}",
-				LOCK_KEY);
-			return;
-		}
+		runWeeklyRestaurantComparisonBatch("scheduler");
+	}
 
-		try (LockHandle ignored = lockHandleOpt.get()) {
-			log.info("Weekly restaurant comparison batch triggered by scheduler");
-			restaurantComparisonBatchRunner.startRun();
+	@EventListener(ApplicationReadyEvent.class)
+	public void runWeeklyRestaurantComparisonBatchOnStartup() {
+		runWeeklyRestaurantComparisonBatch("startup");
+	}
+
+	private void runWeeklyRestaurantComparisonBatch(String trigger) {
+		try {
+			Optional<LockHandle> lockHandleOpt = distributedLockManager.tryLock(LOCK_KEY, LOCK_TTL);
+			if (lockHandleOpt.isEmpty()) {
+				log.info(
+					"Weekly restaurant comparison batch skipped. trigger={}, another instance already owns scheduler lock. key={}",
+					trigger, LOCK_KEY);
+				return;
+			}
+
+			try (LockHandle ignored = lockHandleOpt.get()) {
+				log.info("Weekly restaurant comparison batch triggered. trigger={}", trigger);
+				restaurantComparisonBatchRunner.startRun();
+			}
+		} catch (Exception e) {
+			log.error("Weekly restaurant comparison batch failed. trigger={}", trigger, e);
 		}
 	}
 }
