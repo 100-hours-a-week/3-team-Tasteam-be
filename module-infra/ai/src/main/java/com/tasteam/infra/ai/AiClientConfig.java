@@ -21,9 +21,21 @@ public class AiClientConfig {
 		ReactorClientHttpRequestFactory requestFactory = new ReactorClientHttpRequestFactory(httpClient);
 
 		return RestClient.builder()
-			.baseUrl(properties.getBaseUrl())
+			.baseUrl(normalizeBaseUrl(properties.getBaseUrl()))
 			.requestFactory(requestFactory)
 			.build();
+	}
+
+	static String normalizeBaseUrl(String baseUrl) {
+		if (baseUrl == null || baseUrl.isBlank()) {
+			return baseUrl;
+		}
+
+		String normalized = baseUrl.trim().replaceAll("/+$", "");
+		if (normalized.endsWith("/ai")) {
+			return normalized;
+		}
+		return normalized + "/ai";
 	}
 
 	@Bean
