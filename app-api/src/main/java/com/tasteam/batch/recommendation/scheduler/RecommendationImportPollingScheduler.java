@@ -14,6 +14,7 @@ import org.springframework.util.StringUtils;
 
 import com.tasteam.batch.recommendation.config.RecommendationImportSchedulerProperties;
 import com.tasteam.batch.recommendation.runner.RecommendationImportBatchRunner;
+import com.tasteam.global.exception.business.BusinessException;
 import com.tasteam.global.lock.RedisDistributedLockManager;
 import com.tasteam.global.lock.RedisDistributedLockManager.LockHandle;
 
@@ -63,11 +64,30 @@ public class RecommendationImportPollingScheduler {
 			log.info(
 				"Recommendation import polling triggered. trigger={}, modelVersion={}, requestId={}, s3PrefixOrUri={}",
 				trigger, schedulerProperties.getModelVersion(), requestId, schedulerProperties.getS3PrefixOrUri());
-			recommendationImportBatchRunner.runOnDemand(
-				schedulerProperties.getModelVersion(),
-				schedulerProperties.getS3PrefixOrUri(),
-				requestId);
+			try {
+				recommendationImportBatchRunner.runOnDemand(
+					schedulerProperties.getModelVersion(),
+					schedulerProperties.getS3PrefixOrUri(),
+					requestId);
+			} catch (RuntimeException ex) {
+				log.error(
+					"Recommendation import polling failed. trigger={}, modelVersion={}, requestId={}, s3PrefixOrUri={}, errorCode={}, message={}",
+					trigger,
+					schedulerProperties.getModelVersion(),
+					requestId,
+					schedulerProperties.getS3PrefixOrUri(),
+					resolveErrorCode(ex),
+					ex.getMessage(),
+					ex);
+			}
 		}
+	}
+
+	private String resolveErrorCode(Throwable throwable) {
+		if (throwable instanceof BusinessException businessException) {
+			return businessException.getErrorCode();
+		}
+		return throwable.getClass().getSimpleName();
 	}
 
 	private String buildRequestId(String trigger) {
