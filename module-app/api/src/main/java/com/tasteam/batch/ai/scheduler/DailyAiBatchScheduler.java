@@ -3,6 +3,8 @@ package com.tasteam.batch.ai.scheduler;
 import java.time.Duration;
 import java.util.Optional;
 
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 24시간 주기로 벡터 업로드 + 리뷰 분석 배치를 순서대로 시작.
+ * 매시 30분에 벡터 업로드 + 리뷰 분석 배치를 순서대로 시작.
  * 벡터 실행 생성·Job 디스패치 후, 리뷰 분석 RUNNING 실행을 생성해 둠. 벡터 Job 성공 시 리뷰 Job이 해당 실행에 붙음.
  */
 @Slf4j
@@ -30,17 +32,32 @@ public class DailyAiBatchScheduler {
 	private final ReviewAnalysisBatchRunner reviewAnalysisBatchRunner;
 	private final RedisDistributedLockManager distributedLockManager;
 
-	@Scheduled(cron = "${tasteam.batch.vector-upload.cron:0 0 3 * * ?}", zone = "${tasteam.batch.vector-upload.zone:Asia/Seoul}")
+	@Scheduled(cron = "${tasteam.batch.vector-upload.cron:0 30 * * * ?}", zone = "${tasteam.batch.vector-upload.zone:Asia/Seoul}")
 	public void runDailyAiBatch() {
-		Optional<LockHandle> lockHandleOpt = distributedLockManager.tryLock(LOCK_KEY, LOCK_TTL);
-		if (lockHandleOpt.isEmpty()) {
-			log.info("Daily AI batch skipped. another instance already owns scheduler lock. key={}", LOCK_KEY);
-			return;
-		}
+		runDailyAiBatch("scheduler");
+	}
 
-		try (LockHandle ignored = lockHandleOpt.get()) {
-			vectorUploadBatchRunner.startRun();
-			reviewAnalysisBatchRunner.startRun();
+	@EventListener(ApplicationReadyEvent.class)
+	public void runDailyAiBatchOnStartup() {
+		runDailyAiBatch("startup");
+	}
+
+	private void runDailyAiBatch(String trigger) {
+		try {
+			Optional<LockHandle> lockHandleOpt = distributedLockManager.tryLock(LOCK_KEY, LOCK_TTL);
+			if (lockHandleOpt.isEmpty()) {
+				log.info("Daily AI batch skipped. trigger={}, another instance already owns scheduler lock. key={}",
+					trigger, LOCK_KEY);
+				return;
+			}
+
+			try (LockHandle ignored = lockHandleOpt.get()) {
+				log.info("Daily AI batch triggered. trigger={}", trigger);
+				vectorUploadBatchRunner.startRun();
+				reviewAnalysisBatchRunner.startRun();
+			}
+		} catch (Exception e) {
+			log.error("Daily AI batch failed. trigger={}", trigger, e);
 		}
 	}
 }

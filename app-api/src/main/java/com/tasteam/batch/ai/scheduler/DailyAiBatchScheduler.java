@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 24시간 주기로 벡터 업로드 + 리뷰 분석 배치를 순서대로 시작.
+ * 매시 30분에 벡터 업로드 + 리뷰 분석 배치를 순서대로 시작.
  * 벡터 실행 생성·Job 디스패치 후, 리뷰 분석 RUNNING 실행을 생성해 둠. 벡터 Job 성공 시 리뷰 Job이 해당 실행에 붙음.
  */
 @Slf4j
@@ -30,7 +30,7 @@ public class DailyAiBatchScheduler {
 	private final ReviewAnalysisBatchRunner reviewAnalysisBatchRunner;
 	private final RedisDistributedLockManager distributedLockManager;
 
-	@Scheduled(cron = "${tasteam.batch.vector-upload.cron:0 0 3 * * ?}", zone = "${tasteam.batch.vector-upload.zone:Asia/Seoul}")
+	@Scheduled(cron = "${tasteam.batch.vector-upload.cron:0 30 * * * ?}", zone = "${tasteam.batch.vector-upload.zone:Asia/Seoul}")
 	public void runDailyAiBatch() {
 		Optional<LockHandle> lockHandleOpt = distributedLockManager.tryLock(LOCK_KEY, LOCK_TTL);
 		if (lockHandleOpt.isEmpty()) {
