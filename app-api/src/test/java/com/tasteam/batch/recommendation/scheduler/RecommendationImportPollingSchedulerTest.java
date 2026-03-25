@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 
 import java.util.Optional;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import com.tasteam.batch.recommendation.config.RecommendationImportSchedulerProperties;
 import com.tasteam.batch.recommendation.runner.RecommendationImportBatchRunner;
 import com.tasteam.config.annotation.UnitTest;
+import com.tasteam.domain.recommendation.exception.RecommendationBusinessException;
 import com.tasteam.global.lock.RedisDistributedLockManager;
 import com.tasteam.global.lock.RedisDistributedLockManager.LockHandle;
 
@@ -82,5 +84,26 @@ class RecommendationImportPollingSchedulerTest {
 		scheduler.pollAndImport();
 
 		then(recommendationImportBatchRunner).should(never()).runOnDemand(anyString(), anyString(), anyString());
+	}
+
+	@Test
+	@DisplayName("startup import가 실패해도 예외를 전파하지 않는다")
+	void pollAndImportOnStartup_whenImportFails_doesNotThrow() {
+		RecommendationImportSchedulerProperties properties = new RecommendationImportSchedulerProperties();
+		properties.setS3PrefixOrUri("s3://bucket/recommendations/");
+		properties.setModelVersion("deepfm-v2");
+		given(distributedLockManager.tryLock(anyString(), any())).willReturn(Optional.of(lockHandle));
+		doThrow(RecommendationBusinessException.resultPollingTimeout("timeout"))
+			.when(recommendationImportBatchRunner)
+			.runOnDemand(anyString(), anyString(), anyString());
+		RecommendationImportPollingScheduler scheduler = new RecommendationImportPollingScheduler(
+			recommendationImportBatchRunner,
+			properties,
+			distributedLockManager);
+
+		scheduler.pollAndImportOnStartup();
+
+		then(recommendationImportBatchRunner).should().runOnDemand(anyString(), anyString(), anyString());
+		then(lockHandle).should().close();
 	}
 }

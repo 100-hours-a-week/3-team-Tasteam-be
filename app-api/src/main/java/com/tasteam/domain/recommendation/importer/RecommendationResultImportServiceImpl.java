@@ -104,14 +104,10 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 				accumulator.insertedRows,
 				accumulator.skippedRows);
 		} catch (RecommendationImportTransactionIOException ex) {
-			accumulator.reconcileFailureCount();
-			markFailed(model);
-			finishBatchExecution(batchExecution, accumulator, BatchExecutionStatus.FAILED);
-			recordRowSummary(accumulator);
-			recordCounter("recommendation.import.execute.total", "stage", "import", "result", "io_failed");
-			recordTimer("recommendation.import.execute.duration", totalSample, "stage", "import", "result",
-				"io_failed");
 			IOException cause = (IOException)ex.getCause();
+			RecommendationBusinessException failure = RecommendationBusinessException.resultIoError(
+				"추천 결과 파일을 읽는 중 오류가 발생했습니다: " + cause.getMessage());
+			finalizeFailure(batchExecution, model, accumulator, totalSample, request, failure, "io_failed");
 			log.error(
 				"recommendation import failed by io. batchExecutionId={}, modelVersion={}, requestId={}, lineNumber={}, totalRows={}, insertedRows={}, skippedRows={}, failedRows={}, errorCode={}, message={}",
 				batchExecution.getId(),
@@ -125,15 +121,11 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 				"RECOMMENDATION_RESULT_IO_ERROR",
 				cause.getMessage(),
 				cause);
-			throw RecommendationBusinessException.resultIoError("추천 결과 파일을 읽는 중 오류가 발생했습니다: " + cause.getMessage());
+			throw failure;
 		} catch (IOException ex) {
-			accumulator.reconcileFailureCount();
-			markFailed(model);
-			finishBatchExecution(batchExecution, accumulator, BatchExecutionStatus.FAILED);
-			recordRowSummary(accumulator);
-			recordCounter("recommendation.import.execute.total", "stage", "import", "result", "io_failed");
-			recordTimer("recommendation.import.execute.duration", totalSample, "stage", "import", "result",
-				"io_failed");
+			RecommendationBusinessException failure = RecommendationBusinessException.resultIoError(
+				"추천 결과 파일을 읽는 중 오류가 발생했습니다: " + ex.getMessage());
+			finalizeFailure(batchExecution, model, accumulator, totalSample, request, failure, "io_failed");
 			log.error(
 				"recommendation import failed by io. batchExecutionId={}, modelVersion={}, requestId={}, lineNumber={}, totalRows={}, insertedRows={}, skippedRows={}, failedRows={}, errorCode={}, message={}",
 				batchExecution.getId(),
@@ -147,14 +139,9 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 				"RECOMMENDATION_RESULT_IO_ERROR",
 				ex.getMessage(),
 				ex);
-			throw RecommendationBusinessException.resultIoError("추천 결과 파일을 읽는 중 오류가 발생했습니다: " + ex.getMessage());
+			throw failure;
 		} catch (RuntimeException ex) {
-			accumulator.reconcileFailureCount();
-			markFailed(model);
-			finishBatchExecution(batchExecution, accumulator, BatchExecutionStatus.FAILED);
-			recordRowSummary(accumulator);
-			recordCounter("recommendation.import.execute.total", "stage", "import", "result", "failed");
-			recordTimer("recommendation.import.execute.duration", totalSample, "stage", "import", "result", "failed");
+			finalizeFailure(batchExecution, model, accumulator, totalSample, request, ex, "failed");
 			log.error(
 				"recommendation import failed. batchExecutionId={}, modelVersion={}, requestId={}, lineNumber={}, totalRows={}, insertedRows={}, skippedRows={}, failedRows={}, errorCode={}, message={}",
 				batchExecution.getId(),
@@ -169,6 +156,65 @@ public class RecommendationResultImportServiceImpl implements RecommendationResu
 				ex.getMessage(),
 				ex);
 			throw ex;
+		}
+	}
+
+	private void finalizeFailure(
+		BatchExecution batchExecution,
+		RestaurantRecommendationModel model,
+		ImportAccumulator accumulator,
+		Timer.Sample totalSample,
+		RecommendationResultImportRequest request,
+		RuntimeException original,
+		String resultTag) {
+		accumulator.reconcileFailureCount();
+		runFailureCleanup(() -> markFailed(model), original, batchExecution, model, request, "mark-model-failed");
+		runFailureCleanup(
+			() -> finishBatchExecution(batchExecution, accumulator, BatchExecutionStatus.FAILED),
+			original,
+			batchExecution,
+			model,
+			request,
+			"finish-batch-execution");
+		runFailureCleanup(() -> recordRowSummary(accumulator), original, batchExecution, model, request,
+			"record-row-summary");
+		runFailureCleanup(
+			() -> recordCounter("recommendation.import.execute.total", "stage", "import", "result", resultTag),
+			original,
+			batchExecution,
+			model,
+			request,
+			"record-failure-counter");
+		runFailureCleanup(
+			() -> recordTimer("recommendation.import.execute.duration", totalSample, "stage", "import", "result",
+				resultTag),
+			original,
+			batchExecution,
+			model,
+			request,
+			"record-failure-timer");
+	}
+
+	private void runFailureCleanup(
+		Runnable action,
+		RuntimeException original,
+		BatchExecution batchExecution,
+		RestaurantRecommendationModel model,
+		RecommendationResultImportRequest request,
+		String cleanupStage) {
+		try {
+			action.run();
+		} catch (RuntimeException cleanupEx) {
+			original.addSuppressed(cleanupEx);
+			log.error(
+				"recommendation import failure cleanup failed. cleanupStage={}, batchExecutionId={}, modelVersion={}, requestId={}, errorCode={}, message={}",
+				cleanupStage,
+				batchExecution == null ? null : batchExecution.getId(),
+				model == null ? null : model.getVersion(),
+				request == null ? null : request.requestId(),
+				resolveErrorCode(cleanupEx),
+				cleanupEx.getMessage(),
+				cleanupEx);
 		}
 	}
 

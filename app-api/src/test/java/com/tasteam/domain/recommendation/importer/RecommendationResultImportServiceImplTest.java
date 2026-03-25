@@ -373,4 +373,51 @@ class RecommendationResultImportServiceImplTest {
 			.extracting(ex -> ((RecommendationBusinessException)ex).getErrorCode())
 			.isEqualTo(RecommendationErrorCode.RECOMMENDATION_RESULT_IO_ERROR.name());
 	}
+
+	@Test
+	@DisplayName("실패 정리 중 추가 예외가 나도 원래 import 예외를 유지한다")
+	void importResults_preservesOriginalFailureWhenCleanupFails() throws Exception {
+		BatchExecutionRepository batchExecutionRepository = mock(BatchExecutionRepository.class);
+		RestaurantRecommendationModelRepository repository = mock(RestaurantRecommendationModelRepository.class);
+		RestaurantRecommendationJdbcRepository jdbcRepository = mock(RestaurantRecommendationJdbcRepository.class);
+		RecommendationResultObjectReader objectReader = mock(RecommendationResultObjectReader.class);
+		RecommendationResultCsvReader csvReader = mock(RecommendationResultCsvReader.class);
+		RecommendationImportRowValidator validator = mock(RecommendationImportRowValidator.class);
+		TransactionOperations txOps = passthroughTxOps();
+		RestaurantRecommendationModel model = RestaurantRecommendationModel.loading("deepfm-1");
+		ReflectionTestUtils.setField(model, "id", 1L);
+		BatchExecution execution = BatchExecution.start(
+			com.tasteam.domain.batch.entity.BatchType.RECOMMENDATION_IMPORT_ON_DEMAND,
+			Instant.parse("2026-03-03T09:00:00Z"));
+
+		when(repository.findByVersion("deepfm-1")).thenReturn(Optional.of(model));
+		when(repository.save(model))
+			.thenReturn(model)
+			.thenThrow(new IllegalStateException("cleanup save failed"));
+		when(batchExecutionRepository.save(any(BatchExecution.class))).thenReturn(execution);
+		when(objectReader.openStream("s3://bucket/result.csv")).thenReturn(new ByteArrayInputStream(new byte[0]));
+		doAnswer(invocation -> {
+			throw RecommendationBusinessException.csvFormatInvalid("bad csv");
+		}).when(csvReader).read(any(), any());
+		RecommendationResultImportServiceImpl service = new RecommendationResultImportServiceImpl(
+			batchExecutionRepository,
+			repository,
+			jdbcRepository,
+			objectReader,
+			csvReader,
+			validator,
+			txOps,
+			new SimpleMeterRegistry());
+
+		assertThatThrownBy(() -> service.importResults(
+			new RecommendationResultImportRequest("deepfm-1", "s3://bucket/result.csv", "req-1")))
+			.isInstanceOf(RecommendationBusinessException.class)
+			.satisfies(ex -> {
+				RecommendationBusinessException businessException = (RecommendationBusinessException)ex;
+				assertThat(businessException.getErrorCode())
+					.isEqualTo(RecommendationErrorCode.RECOMMENDATION_CSV_FORMAT_INVALID.name());
+				assertThat(businessException.getSuppressed())
+					.anySatisfy(suppressed -> assertThat(suppressed).hasMessageContaining("cleanup save failed"));
+			});
+	}
 }
