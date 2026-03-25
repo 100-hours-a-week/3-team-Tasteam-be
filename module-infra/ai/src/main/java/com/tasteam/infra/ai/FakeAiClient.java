@@ -78,7 +78,7 @@ public class FakeAiClient extends AiClient {
 		delay();
 		List<AiSummaryDisplayResponse> results = request.restaurants() == null
 			? List.of()
-			: request.restaurants().stream().map(item -> summaryDisplay(item.restaurantId())).toList();
+			: request.restaurants().stream().map(FakeAiClient::summaryDisplay).toList();
 		return new AiSummaryBatchResponse(results);
 	}
 

@@ -145,7 +145,7 @@ tasteam:
     vector-upload:
       cron: ${TASTEAM_BATCH_VECTOR_UPLOAD_CRON:0 30 * * * ?}
       zone: ${TASTEAM_BATCH_VECTOR_UPLOAD_ZONE:Asia/Seoul}
-      worker-pool-size: ${TASTEAM_BATCH_VECTOR_UPLOAD_WORKER_POOL_SIZE:4}
+      worker-pool-size: ${TASTEAM_BATCH_VECTOR_UPLOAD_WORKER_POOL_SIZE:2}
     raw-export:
       enabled: ${TASTEAM_BATCH_RAW_EXPORT_ENABLED:true}
       cron: ${TASTEAM_BATCH_RAW_EXPORT_CRON:0 15,45 * * * ?}
@@ -155,7 +155,7 @@ tasteam:
       cron: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_CRON:0 30 0 * * ?}
       zone: ${TASTEAM_BATCH_UA_S3_SUCCESS_MARKER_ZONE:Asia/Seoul}
     review-analysis:
-      worker-pool-size: ${TASTEAM_BATCH_REVIEW_ANALYSIS_WORKER_POOL_SIZE:4}
+      worker-pool-size: ${TASTEAM_BATCH_REVIEW_ANALYSIS_WORKER_POOL_SIZE:2}
       finish-timeout: ${TASTEAM_BATCH_REVIEW_ANALYSIS_FINISH_TIMEOUT:10m}
     recommendation-import:
       enabled: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_ENABLED:true}
@@ -173,7 +173,7 @@ tasteam:
     restaurant-comparison:
       cron: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_CRON:0 0 * * * ?}
       zone: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_ZONE:Asia/Seoul}
-      worker-pool-size: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_WORKER_POOL_SIZE:4}
+      worker-pool-size: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_WORKER_POOL_SIZE:2}
       finish-timeout: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_TIMEOUT:10m}
       finish-check-interval: ${TASTEAM_BATCH_RESTAURANT_COMPARISON_FINISH_CHECK_INTERVAL:PT1M}
   aop:
