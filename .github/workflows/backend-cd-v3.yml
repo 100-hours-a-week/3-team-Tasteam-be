@@ -102,7 +102,7 @@ jobs:
         run: |
           cd v3-k8s/manifests/app/overlays/prod
 
-          sed -i "/name: SPRING_BOOT_IMAGE/{n;s|newName:.*|newName: ${ECR_REGISTRY}/${ECR_REPO}|;n;s|newTag:.*|newTag: ${NEW_TAG}|}" kustomization.yaml
+          sed -i "/name: SPRING_BOOT_IMAGE/{n;s|newName:.*|newName: ${ECR_REGISTRY}/${ECR_REPO}|;n;s|newTag:.*|newTag: \"${NEW_TAG}\"|}" kustomization.yaml
 
           echo "Updated image tag to: ${NEW_TAG}"
           cat kustomization.yaml
