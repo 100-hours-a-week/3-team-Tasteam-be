@@ -126,7 +126,7 @@ class RawDataExportServiceIntegrationTest {
 	}
 
 	private String firstLine(String csv) {
-		return csv.split("\n", -1)[0];
+		return csv.split("\\r?\\n", -1)[0];
 	}
 
 	private Restaurant createRestaurant(String name) {
