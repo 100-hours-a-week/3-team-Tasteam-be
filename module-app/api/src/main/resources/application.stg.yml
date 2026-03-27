@@ -114,6 +114,11 @@ tasteam:
   auth:
     test:
       access-token-expiration-ms: ${TASTEAM_TEST_AUTH_ACCESS_TOKEN_EXPIRATION_MS:172800000}
+  message-queue:
+    kafka:
+      user-activity-s3-ingest:
+        topic: ${USER_ACTIVITY_S3_INGEST_MQ_TOPIC:evt.stg.user-activity.s3-ingest.v1}
+        dlq-topic: ${USER_ACTIVITY_S3_INGEST_MQ_DLQ_TOPIC:evt.stg.user-activity.s3-ingest.v1.dlq}
   notification:
     email:
       provider: ${NOTIFICATION_EMAIL_PROVIDER:ses}

@@ -113,6 +113,14 @@ chat:
     ws-pubsub-channel: ${CHAT_STREAM_WS_PUBSUB_CHANNEL:chat:websocket:broadcast}
 
 tasteam:
+  batch:
+    recommendation-import:
+      s3-prefix-or-uri: ${TASTEAM_BATCH_RECOMMENDATION_IMPORT_S3_PREFIX_OR_URI:s3://tasteam-prod-analytics/evt.user-activity.s3-ingest.v1/recommendations/}
+  message-queue:
+    kafka:
+      user-activity-s3-ingest:
+        topic: ${USER_ACTIVITY_S3_INGEST_MQ_TOPIC:evt.user-activity.s3-ingest.v1}
+        dlq-topic: ${USER_ACTIVITY_S3_INGEST_MQ_DLQ_TOPIC:evt.user-activity.s3-ingest.v1.dlq}
   notification:
     email:
       provider: ${NOTIFICATION_EMAIL_PROVIDER:ses}
