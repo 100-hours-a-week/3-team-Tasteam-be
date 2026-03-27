@@ -50,7 +50,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: app-api/Dockerfile
+      dockerfile: module-app/api/Dockerfile
     image: tasteam-api:local
     container_name: tasteam-api
     networks: [tasteam-net]
